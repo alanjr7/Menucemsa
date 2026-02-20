@@ -29,6 +29,7 @@
         </a>
         @endif
 
+        
         <hr class="border-blue-800/50 my-2 mx-4">
 
         @if(Auth::user()->isAdmin())

@@ -35,7 +35,40 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth', 'role:admin|reception'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
+        Route::get('/patients/create', [\App\Http\Controllers\PatientsController::class, 'create'])->name('patients.create');
+        Route::get('/patients/history', [\App\Http\Controllers\PatientsController::class, 'history'])->name('patients.history');
         Route::get('/admision', [ReceptionController::class, 'admision'])->name('admision.index');
+        
+        // Rutas de admisión/episodios para recepcionistas
+        Route::prefix('admision')->name('admision.')->group(function () {
+            Route::get('/consulta-externa', [ReceptionController::class, 'consultaExterna'])->name('consulta-externa');
+            Route::get('/emergencia', [ReceptionController::class, 'emergencia'])->name('emergencia');
+            Route::get('/hospitalizacion', [ReceptionController::class, 'hospitalizacion'])->name('hospitalizacion');
+            Route::get('/cirugia', [ReceptionController::class, 'cirugia'])->name('cirugia');
+            Route::get('/tipo-pago', [ReceptionController::class, 'tipoPago'])->name('tipo-pago');
+            Route::get('/seguros', [ReceptionController::class, 'seguros'])->name('seguros');
+            Route::get('/preautorizacion', [ReceptionController::class, 'preautorizacion'])->name('preautorizacion');
+        });
+        
+        // Rutas de emergencias para recepcionistas
+        Route::prefix('emergencias-reception')->name('emergencias-reception.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Reception\EmergencyReceptionController::class, 'index'])->name('index');
+            Route::get('/regularizar', [\App\Http\Controllers\Reception\EmergencyReceptionController::class, 'regularizar'])->name('regularizar');
+            Route::get('/estado', [\App\Http\Controllers\Reception\EmergencyReceptionController::class, 'estado'])->name('estado');
+        });
+        
+        // Rutas de agenda para recepcionistas
+        Route::prefix('agenda')->name('agenda.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Reception\AgendaController::class, 'index'])->name('index');
+            Route::get('/asignar', [\App\Http\Controllers\Reception\AgendaController::class, 'asignar'])->name('asignar');
+            Route::get('/reprogramar', [\App\Http\Controllers\Reception\AgendaController::class, 'reprogramar'])->name('reprogramar');
+        });
+        
+        // Rutas de órdenes de caja para recepcionistas
+        Route::prefix('ordenes-caja')->name('ordenes-caja.')->group(function () {
+            Route::get('/generar', [\App\Http\Controllers\Reception\OrdenesCajaController::class, 'generar'])->name('generar');
+            Route::get('/estado', [\App\Http\Controllers\Reception\OrdenesCajaController::class, 'estado'])->name('estado');
+        });
     });
 
     // Rutas médicas (solo admin)
