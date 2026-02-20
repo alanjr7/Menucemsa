@@ -31,55 +31,61 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
-    Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
-    Route::get('/admision', [ReceptionController::class, 'admision'])->name('admision.index');
-
-    Route::get('/emergencias', [EmergencyController::class, 'index'])->name('emergencias.index');
-
-    Route::get('/enfermeria', [NursingController::class, 'index'])->name('enfermeria.index');
-
-    Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
-
-    Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
-
-    Route::get('/hospitalizacion', [HospitalizacionController::class, 'index'])->name('hospitalizacion.index');
-
-    Route::get('/consulta-externa', function () {
-        return view('medical.consulta-externa');
-    })->name('consulta.index');
-
-    Route::get('/admin/caja', function () {
-        return view('admin.caja');
-    })->name('caja.index');
-
-
-    Route::get('/admin/facturacion', function () {
-    return view('admin.facturacion');
-})->name('facturacion.index');
-
-    Route::get('/admin/tarifarios', function () {
-        return view('admin.tarifarios');
-    })->name('admin.tarifarios');
-
-Route::get('/admin/seguros', [SeguroController::class, 'index'])->name('admin.seguros');
-
-Route::get('/admin/cuentas-por-cobrar', [CuentaCobrarController::class, 'index'])->name('admin.cuentas');
-
-Route::get('/farmacia', [FarmaciaController::class, 'index'])->name('farmacia.index');
-
-Route::get('/gerencial/reportes', [ReportesController::class, 'index'])->name('gerencial.reportes');
-Route::get('/gerencial/kpis', [KpiController::class, 'index'])->name('gerencial.kpis');
-
-Route::prefix('seguridad')->name('seguridad.')->group(function () {
-    // Aquí definimos la ruta 'usuarios.index', que al estar en el grupo será 'seguridad.usuarios.index'
-    Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
-     Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
-   Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
-
-     });
-
+    // Rutas para recepción (acceso para admin y reception)
+    Route::middleware(['role:admin,reception'])->group(function () {
+        Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
+        Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
+        Route::get('/admision', [ReceptionController::class, 'admision'])->name('admision.index');
     });
+
+    // Rutas médicas (solo admin)
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/emergencias', [EmergencyController::class, 'index'])->name('emergencias.index');
+        Route::get('/enfermeria', [NursingController::class, 'index'])->name('enfermeria.index');
+        Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
+        Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
+        Route::get('/hospitalizacion', [HospitalizacionController::class, 'index'])->name('hospitalizacion.index');
+        Route::get('/consulta-externa', function () {
+            return view('medical.consulta-externa');
+        })->name('consulta.index');
+    });
+
+    // Rutas de administración (solo admin)
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/caja', function () {
+            return view('admin.caja');
+        })->name('caja.index');
+        
+        Route::get('/facturacion', function () {
+            return view('admin.facturacion');
+        })->name('facturacion.index');
+        
+        Route::get('/tarifarios', function () {
+            return view('admin.tarifarios');
+        })->name('tarifarios');
+        
+        Route::get('/seguros', [SeguroController::class, 'index'])->name('seguros');
+        Route::get('/cuentas-por-cobrar', [CuentaCobrarController::class, 'index'])->name('cuentas');
+    });
+
+    // Rutas de farmacia (solo admin)
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/farmacia', [FarmaciaController::class, 'index'])->name('farmacia.index');
+    });
+
+    // Rutas gerenciales (solo admin)
+    Route::middleware(['role:admin'])->prefix('gerencial')->name('gerencial.')->group(function () {
+        Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes');
+        Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
+    });
+
+    // Rutas de seguridad (solo admin)
+    Route::middleware(['role:admin'])->prefix('seguridad')->name('seguridad.')->group(function () {
+        Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
+        Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
+        Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
+    });
+});
 
 
 
