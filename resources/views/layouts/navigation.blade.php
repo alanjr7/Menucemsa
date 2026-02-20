@@ -68,8 +68,8 @@
                 <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
-                <a href="{{ route('caja.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('caja.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Caja Central</a>
-                <a href="{{ route('facturacion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('facturacion.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Facturación</a>
+                <a href="{{ route('admin.caja.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.caja.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Caja Central</a>
+                <a href="{{ route('admin.facturacion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.facturacion.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Facturación</a>
                 <a href="{{ route('admin.tarifarios') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.tarifarios') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Tarifarios</a>
                 <a href="{{ route('admin.seguros') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.seguros') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Seguros</a>
                 <a href="{{ route('admin.cuentas') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.cuentas') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Cuentas por Cobrar</a>
