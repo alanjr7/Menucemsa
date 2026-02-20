@@ -21,20 +21,35 @@
         </style>
     </head>
 
-    <body class="font-sans antialiased text-gray-900 bg-gray-100">
+    <body class="font-sans antialiased text-gray-900 bg-gray-100" x-data="{ sidebarOpen: true }">
         <div class="flex min-h-screen">
 
-            <aside class="w-64 bg-[#1e3a8a] fixed h-full z-20 shadow-2xl text-white">
+            <aside class="bg-[#1e3a8a] fixed h-full shadow-2xl text-white transition-all duration-300 ease-in-out z-10" 
+                   :class="sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'">
                 @include('layouts.navigation')
             </aside>
 
-            <div class="flex-1 flex flex-col ml-64">
+            <div class="flex-1 flex flex-col transition-all duration-300 ease-in-out" 
+                 :class="sidebarOpen ? 'ml-64' : 'ml-0'">
 
                 <header class="bg-white shadow-sm h-16 flex items-center justify-between px-8 sticky top-0 z-10">
-                    <div class="text-blue-900 font-medium tracking-tight">
-                        <span class="font-bold text-lg">🏥 Clínica CEMSA</span>
-                        <span class="mx-2 text-gray-300">|</span>
-                        <span class="text-sm text-gray-500 uppercase font-semibold">Sede Principal</span>
+                    <div class="flex items-center gap-4">
+                        <button @click="sidebarOpen = !sidebarOpen" 
+                                class="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md relative z-20">
+                            <!-- Hamburger icon when sidebar is open -->
+                            <svg x-show="sidebarOpen" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                            </svg>
+                            <!-- Menu icon when sidebar is closed -->
+                            <svg x-show="!sidebarOpen" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                        </button>
+                        <div class="text-blue-900 font-medium tracking-tight">
+                            <span class="font-bold text-lg">🏥 Clínica CEMSA</span>
+                            <span class="mx-2 text-gray-300">|</span>
+                            <span class="text-sm text-gray-500 uppercase font-semibold">Sede Principal</span>
+                        </div>
                     </div>
 
                     <div class="flex items-center gap-4">
