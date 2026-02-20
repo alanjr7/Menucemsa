@@ -32,7 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Rutas para recepción (acceso para admin y reception)
-    Route::middleware(['role:admin,reception'])->group(function () {
+    Route::middleware(['auth', 'role:admin|reception'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
         Route::get('/admision', [ReceptionController::class, 'admision'])->name('admision.index');
