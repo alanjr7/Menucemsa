@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-6">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full p-6">
         <div class="flex justify-between items-center mb-6">
             <div>
                 <div class="flex items-center gap-3">
@@ -121,4 +123,4 @@
         </div>
     </div>
 </div>
-</x-app-layout>
+@endsection

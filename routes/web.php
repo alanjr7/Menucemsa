@@ -16,6 +16,7 @@ use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
 use App\Http\Controllers\Seguridad\UsuariosController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\ActivityLogController;
 
 
 
@@ -89,6 +90,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
         Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
+        Route::get('/bitacora', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
     // Rutas de gestión de usuarios (admin y gerente)

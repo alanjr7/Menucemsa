@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div x-data="{ tab: 'agenda' }" class="p-6">
+@extends('layouts.app')
+
+@section('content')
+<div x-data="{ tab: 'agenda' }" class="w-full p-6">
 
         <div class="mb-6 flex justify-between items-center">
             <div>
@@ -98,4 +100,5 @@
             @include('medical.partials.historial')
         </div>
 
-    </div> </x-app-layout>
+    </div>
+@endsection

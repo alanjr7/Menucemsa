@@ -136,6 +136,9 @@
                 <a href="{{ route('user-management.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('user-management*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
                     Gestión de Usuarios
                 </a>
+                <a href="{{ route('seguridad.activity-logs.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('seguridad.activity-logs.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Bitácora de Actividades
+                </a>
                
             </div>
         </div>

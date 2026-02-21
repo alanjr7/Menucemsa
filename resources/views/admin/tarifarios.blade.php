@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div x-data="{ tab: 'servicios' }" class="p-8 bg-[#f8fafc] min-h-screen font-sans antialiased">
+@extends('layouts.app')
+
+@section('content')
+<div x-data="{ tab: 'servicios' }" class="w-full p-8 bg-[#f8fafc] min-h-screen font-sans antialiased">
 
         <div class="flex justify-between items-start mb-8">
             <div>
@@ -91,4 +93,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+@endsection

@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-6 bg-gray-50/50 min-h-screen">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full p-6 bg-gray-50/50 min-h-screen">
 
         <!-- Header -->
         <div class="flex justify-between items-end mb-8">
@@ -337,4 +339,4 @@
             document.getElementById(`btn-${tabName}`).className = `flex-1 px-4 py-2.5 rounded-lg text-center text-sm transition-all duration-200 ${btnClassesActive}`;
         }
     </script>
-</x-app-layout>
+@endsection
