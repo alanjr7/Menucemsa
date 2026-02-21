@@ -31,49 +31,15 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Rutas para recepción (acceso para admin y reception)
-    Route::middleware(['auth', 'role:admin|reception'])->group(function () {
+    // Rutas para recepción y pacientes (acceso para admin, reception y dirmedico)
+    Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
-        Route::get('/patients/create', [\App\Http\Controllers\PatientsController::class, 'create'])->name('patients.create');
-        Route::get('/patients/history', [\App\Http\Controllers\PatientsController::class, 'history'])->name('patients.history');
         Route::get('/admision', [ReceptionController::class, 'admision'])->name('admision.index');
-        
-        // Rutas de admisión/episodios para recepcionistas
-        Route::prefix('admision')->name('admision.')->group(function () {
-            Route::get('/consulta-externa', [ReceptionController::class, 'consultaExterna'])->name('consulta-externa');
-            Route::get('/emergencia', [ReceptionController::class, 'emergencia'])->name('emergencia');
-            Route::get('/hospitalizacion', [ReceptionController::class, 'hospitalizacion'])->name('hospitalizacion');
-            Route::get('/cirugia', [ReceptionController::class, 'cirugia'])->name('cirugia');
-            Route::get('/tipo-pago', [ReceptionController::class, 'tipoPago'])->name('tipo-pago');
-            Route::get('/seguros', [ReceptionController::class, 'seguros'])->name('seguros');
-            Route::get('/preautorizacion', [ReceptionController::class, 'preautorizacion'])->name('preautorizacion');
-        });
-        
-        // Rutas de emergencias para recepcionistas
-        Route::prefix('emergencias-reception')->name('emergencias-reception.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Reception\EmergencyReceptionController::class, 'index'])->name('index');
-            Route::get('/regularizar', [\App\Http\Controllers\Reception\EmergencyReceptionController::class, 'regularizar'])->name('regularizar');
-            Route::get('/estado', [\App\Http\Controllers\Reception\EmergencyReceptionController::class, 'estado'])->name('estado');
-        });
-        
-        // Rutas de agenda para recepcionistas
-        Route::prefix('agenda')->name('agenda.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Reception\AgendaController::class, 'index'])->name('index');
-            Route::get('/asignar', [\App\Http\Controllers\Reception\AgendaController::class, 'asignar'])->name('asignar');
-            Route::get('/reprogramar', [\App\Http\Controllers\Reception\AgendaController::class, 'reprogramar'])->name('reprogramar');
-        });
-        
-        // Rutas de órdenes de caja para recepcionistas
-        Route::prefix('ordenes-caja')->name('ordenes-caja.')->group(function () {
-            Route::get('/generar', [\App\Http\Controllers\Reception\OrdenesCajaController::class, 'generar'])->name('generar');
-            Route::get('/estado', [\App\Http\Controllers\Reception\OrdenesCajaController::class, 'estado'])->name('estado');
-        });
     });
 
-    // Rutas médicas (solo admin)
-    Route::middleware(['role:admin'])->group(function () {
-        Route::get('/emergencias', [EmergencyController::class, 'index'])->name('emergencias.index');
+    // Rutas médicas (admin y dirmedico)
+    Route::middleware(['role:admin|dirmedico'])->group(function () {
         Route::get('/enfermeria', [NursingController::class, 'index'])->name('enfermeria.index');
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
@@ -83,8 +49,13 @@ Route::middleware('auth')->group(function () {
         })->name('consulta.index');
     });
 
-    // Rutas de administración (solo admin)
-    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Rutas de emergencia (admin, dirmedico y emergencia)
+    Route::middleware(['role:admin|dirmedico|emergencia'])->group(function () {
+        Route::get('/emergencias', [EmergencyController::class, 'index'])->name('emergencias.index');
+    });
+
+    // Rutas de administración (admin y caja)
+    Route::middleware(['role:admin|caja'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/caja', function () {
             return view('admin.caja');
         })->name('caja.index');

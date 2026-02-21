@@ -14,19 +14,53 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         // Crear usuario administrador
-        User::create([
-            'name' => 'Administrador',
-            'email' => 'admin@menucemsa.com',
-            'password' => bcrypt('admin123'),
-            'role' => 'admin',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@menucemsa.com'],
+            [
+                'name' => 'Administrador',
+                'password' => bcrypt('admin123'),
+                'role' => 'admin',
+            ]
+        );
 
         // Crear usuario recepción
-        User::create([
-            'name' => 'Recepción',
-            'email' => 'recepcion@menucemsa.com',
-            'password' => bcrypt('recepcion123'),
-            'role' => 'reception',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'recepcion@menucemsa.com'],
+            [
+                'name' => 'Recepción',
+                'password' => bcrypt('recepcion123'),
+                'role' => 'reception',
+            ]
+        );
+
+        // Crear usuario Director Médico
+        User::firstOrCreate(
+            ['email' => 'dirmedico@menucemsa.com'],
+            [
+                'name' => 'Director Médico',
+                'password' => bcrypt('dirmedico123'),
+                'role' => 'dirmedico',
+            ]
+        );
+
+        // Crear usuario Emergencia
+        User::firstOrCreate(
+            ['email' => 'emergencia@menucemsa.com'],
+            [
+                'name' => 'Emergencia',
+                'password' => bcrypt('emergencia123'),
+                'role' => 'emergencia',
+            ]
+        );
+
+        // Crear usuario Caja
+        User::firstOrCreate(
+            ['email' => 'caja@menucemsa.com'],
+            [
+                'name' => 'Caja',
+                'password' => bcrypt('caja123'),
+                'role' => 'caja',
+            ]
+        );
     }
 }

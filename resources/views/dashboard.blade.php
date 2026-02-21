@@ -117,7 +117,147 @@
             </div>
         </div>
 
-        <!-- Charts Section -->
+        <!-- Action Buttons Section -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-8">
+            <div class="flex items-center gap-2 mb-6">
+                <div class="p-1.5 bg-blue-100 rounded-lg">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800">Acciones Rápidas</h3>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Admin Actions -->
+                @if(auth()->user()->role === 'admin')
+                    <a href="{{ route('seguridad.usuarios.index') }}" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition group">
+                        <div class="p-3 bg-blue-500 text-white rounded-lg group-hover:bg-blue-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Gestionar Usuarios</span>
+                    </a>
+
+                    <a href="{{ route('seguridad.configuracion.index') }}" class="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition group">
+                        <div class="p-3 bg-purple-500 text-white rounded-lg group-hover:bg-purple-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Configuración</span>
+                    </a>
+                @endif
+
+                <!-- Reception Actions -->
+                @if(auth()->user()->role === 'reception')
+                    <a href="{{ route('patients.index') }}" class="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-xl transition group">
+                        <div class="p-3 bg-green-500 text-white rounded-lg group-hover:bg-green-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Nuevo Paciente</span>
+                    </a>
+
+                    <a href="{{ route('admision.index') }}" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition group">
+                        <div class="p-3 bg-blue-500 text-white rounded-lg group-hover:bg-blue-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Agendar Cita</span>
+                    </a>
+                @endif
+
+                <!-- Director Médico Actions -->
+                @if(auth()->user()->role === 'dirmedico')
+                    <a href="{{ route('consulta.index') }}" class="flex flex-col items-center p-4 bg-teal-50 hover:bg-teal-100 rounded-xl transition group">
+                        <div class="p-3 bg-teal-500 text-white rounded-lg group-hover:bg-teal-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Consultas Médicas</span>
+                    </a>
+
+                    <a href="{{ route('gerencial.reportes') }}" class="flex flex-col items-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition group">
+                        <div class="p-3 bg-indigo-500 text-white rounded-lg group-hover:bg-indigo-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v1a1 1 0 001 1h4a1 1 0 001-1v-1m3-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v6m3-2h6"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Reportes Médicos</span>
+                    </a>
+                @endif
+
+                <!-- Emergencia Actions -->
+                @if(auth()->user()->role === 'emergencia')
+                    <a href="{{ route('emergencias.index') }}" class="flex flex-col items-center p-4 bg-red-50 hover:bg-red-100 rounded-xl transition group">
+                        <div class="p-3 bg-red-500 text-white rounded-lg group-hover:bg-red-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Nueva Emergencia</span>
+                    </a>
+
+                    <a href="{{ route('emergencias.index') }}" class="flex flex-col items-center p-4 bg-orange-50 hover:bg-orange-100 rounded-xl transition group">
+                        <div class="p-3 bg-orange-500 text-white rounded-lg group-hover:bg-orange-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Triaje</span>
+                    </a>
+                @endif
+
+                <!-- Caja Actions -->
+                @if(auth()->user()->role === 'caja')
+                    <a href="{{ route('admin.facturacion.index') }}" class="flex flex-col items-center p-4 bg-yellow-50 hover:bg-yellow-100 rounded-xl transition group">
+                        <div class="p-3 bg-yellow-500 text-white rounded-lg group-hover:bg-yellow-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Nueva Factura</span>
+                    </a>
+
+                    <a href="{{ route('admin.cuentas') }}" class="flex flex-col items-center p-4 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition group">
+                        <div class="p-3 bg-emerald-500 text-white rounded-lg group-hover:bg-emerald-600 transition mb-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Cobros</span>
+                    </a>
+                @endif
+
+                <!-- Common Actions for all roles -->
+                <a href="{{ route('profile.edit') }}" class="flex flex-col items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition group">
+                    <div class="p-3 bg-gray-500 text-white rounded-lg group-hover:bg-gray-600 transition mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Mi Perfil</span>
+                </a>
+
+                <a href="#" onclick="showHelp()" class="flex flex-col items-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl transition group">
+                    <div class="p-3 bg-slate-500 text-white rounded-lg group-hover:bg-slate-600 transition mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Ayuda</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Charts Section - Solo para Admin -->
+        @if(auth()->user()->role === 'admin')
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
@@ -139,6 +279,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Activity Section -->
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -204,7 +345,8 @@
 
     </div>
 
-    <!-- Chart.js Scripts -->
+    <!-- Chart.js Scripts - Solo para Admin -->
+    @if(auth()->user()->role === 'admin')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -283,4 +425,5 @@
             });
         });
     </script>
+    @endif
 </x-app-layout>

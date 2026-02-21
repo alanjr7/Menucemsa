@@ -32,8 +32,23 @@
         
         <hr class="border-blue-800/50 my-2 mx-4">
 
-        @if(Auth::user()->isAdmin())
-        <div x-data="{ open: {{ request()->is('patients*', 'admision*', 'consulta*', 'emergencias*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">
+        @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isEmergencia())
+        <div x-data="{ open: {{ request()->is('emergencias*') ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
+                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
+                <span class="text-sm font-medium flex-1 text-left">Emergencias</span>
+                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
+                <a href="{{ route('emergencias.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergencias.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Gestión de Emergencias
+                </a>
+            </div>
+        </div>
+        @endif
+
+        @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico())
+        <div x-data="{ open: {{ request()->is('patients*', 'admision*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span class="text-sm font-medium flex-1 text-left">Pacientes</span>
@@ -44,13 +59,18 @@
                     $pacientesLinks = [
                         ['r' => 'patients.index', 'l' => 'Maestro de Pacientes'],
                         ['r' => 'admision.index', 'l' => 'Admisión'],
-                        ['r' => 'consulta.index', 'l' => 'Consulta Externa'],
-                        ['r' => 'emergencias.index', 'l' => 'Emergencias'],
-                        ['r' => 'enfermeria.index', 'l' => 'Enfermería'],
-                        ['r' => 'uti.index', 'l' => 'UTI'],
-                        ['r' => 'quirofano.index', 'l' => 'Quirófano'],
-                        ['r' => 'hospitalizacion.index', 'l' => 'Hospitalización'],
                     ];
+                    
+                    // Admin y Director Médico pueden ver todas las áreas médicas excepto emergencias
+                    if(Auth::user()->isAdmin() || Auth::user()->isDirMedico()):
+                        $pacientesLinks = array_merge($pacientesLinks, [
+                            ['r' => 'consulta.index', 'l' => 'Consulta Externa'],
+                            ['r' => 'enfermeria.index', 'l' => 'Enfermería'],
+                            ['r' => 'uti.index', 'l' => 'UTI'],
+                            ['r' => 'quirofano.index', 'l' => 'Quirófano'],
+                            ['r' => 'hospitalizacion.index', 'l' => 'Hospitalización'],
+                        ]);
+                    endif;
                 @endphp
                 @foreach($pacientesLinks as $link)
                     <a href="{{ route($link['r']) }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs($link['r']) ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
@@ -61,7 +81,7 @@
         </div>
         @endif
 
-        @if(Auth::user()->isAdmin())
+        @if(Auth::user()->isAdmin() || Auth::user()->isCaja())
         <div x-data="{ open: {{ request()->is('caja*', 'facturacion*', 'admin*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

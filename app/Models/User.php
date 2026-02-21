@@ -57,6 +57,21 @@ class User extends Authenticatable
         return $this->role === 'reception';
     }
 
+    public function isDirMedico(): bool
+    {
+        return $this->role === 'dirmedico';
+    }
+
+    public function isEmergencia(): bool
+    {
+        return $this->role === 'emergencia';
+    }
+
+    public function isCaja(): bool
+    {
+        return $this->role === 'caja';
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
