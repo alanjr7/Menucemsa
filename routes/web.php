@@ -77,8 +77,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/farmacia', [FarmaciaController::class, 'index'])->name('farmacia.index');
     });
 
-    // Rutas gerenciales (solo admin)
-    Route::middleware(['role:admin'])->prefix('gerencial')->name('gerencial.')->group(function () {
+    // Rutas gerenciales (admin y gerente)
+    Route::middleware(['role:admin|gerente'])->prefix('gerencial')->name('gerencial.')->group(function () {
         Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes');
         Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
     });

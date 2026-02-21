@@ -62,5 +62,15 @@ class RoleSeeder extends Seeder
                 'role' => 'caja',
             ]
         );
+
+        // Crear usuario Gerente
+        User::firstOrCreate(
+            ['email' => 'gerente@menucemsa.com'],
+            [
+                'name' => 'Gerente',
+                'password' => bcrypt('gerente123'),
+                'role' => 'gerente',
+            ]
+        );
     }
 }
