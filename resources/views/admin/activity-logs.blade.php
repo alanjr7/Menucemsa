@@ -130,7 +130,7 @@
                                     
                                     @if($log->old_values || $log->new_values)
                                         <div class="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
-                                            @if($log->action === 'update' && isset($log->old_values['is_active']))
+                                            @if($log->action === 'update' && isset($log->old_values['is_active']) && isset($log->new_values['is_active']))
                                                 <div class="flex items-center gap-2">
                                                     <span class="font-medium text-gray-700">Estado cambiado:</span>
                                                     <span class="px-2 py-1 rounded text-xs font-medium
@@ -146,18 +146,55 @@
                                                     </span>
                                                 </div>
                                             @else
-                                                @if($log->old_values)
-                                                    <div class="text-red-600 mb-1">
-                                                        <span class="font-medium">Antes:</span> 
-                                                        {{ json_encode($log->old_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}
-                                                    </div>
-                                                @endif
-                                                @if($log->new_values)
-                                                    <div class="text-green-600">
-                                                        <span class="font-medium">Después:</span> 
-                                                        {{ json_encode($log->new_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}
-                                                    </div>
-                                                @endif
+                                                <div class="space-y-2">
+                                                    @if($log->old_values)
+                                                        @php
+                                                            $relevantOld = [];
+                                                            foreach($log->old_values as $key => $value) {
+                                                                if (!in_array($key, ['id', 'created_at', 'updated_at', 'email_verified_at', 'remember_token'])) {
+                                                                    $relevantOld[$key] = $value;
+                                                                }
+                                                            }
+                                                        @endphp
+                                                        @if(!empty($relevantOld))
+                                                            <div class="text-red-600">
+                                                                <span class="font-medium">Cambios anteriores:</span>
+                                                                <div class="mt-1 space-y-1">
+                                                                    @foreach($relevantOld as $key => $value)
+                                                                        <div class="flex items-center gap-2 text-sm">
+                                                                            <span class="font-medium capitalize">{{ $key }}:</span>
+                                                                            <span class="bg-red-50 px-2 py-1 rounded text-xs">{{ $value }}</span>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    @endif
+                                                    
+                                                    @if($log->new_values)
+                                                        @php
+                                                            $relevantNew = [];
+                                                            foreach($log->new_values as $key => $value) {
+                                                                if (!in_array($key, ['id', 'created_at', 'updated_at', 'email_verified_at', 'remember_token'])) {
+                                                                    $relevantNew[$key] = $value;
+                                                                }
+                                                            }
+                                                        @endphp
+                                                        @if(!empty($relevantNew))
+                                                            <div class="text-green-600">
+                                                                <span class="font-medium">Valores nuevos:</span>
+                                                                <div class="mt-1 space-y-1">
+                                                                    @foreach($relevantNew as $key => $value)
+                                                                        <div class="flex items-center gap-2 text-sm">
+                                                                            <span class="font-medium capitalize">{{ $key }}:</span>
+                                                                            <span class="bg-green-50 px-2 py-1 rounded text-xs">{{ $value }}</span>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    @endif
+                                                </div>
                                             @endif
                                         </div>
                                     @endif
