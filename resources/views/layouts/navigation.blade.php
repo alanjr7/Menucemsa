@@ -125,7 +125,7 @@
         </div>
         @endif
 
-        @if(Auth::user()->isAdmin())
+        @if(Auth::user()->isAdmin() || Auth::user()->isGerente())
         <div x-data="{ open: {{ request()->is('seguridad*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -133,9 +133,18 @@
                 <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
-                <a href="{{ route('seguridad.usuarios.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('seguridad.usuarios.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Usuarios</a>
-                <a href="{{ route('seguridad.auditoria.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('seguridad.auditoria.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Auditoría</a>
-                <a href="{{ route('seguridad.configuracion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('seguridad.configuracion.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Configuración</a>
+                <a href="{{ route('user-management.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('user-management*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Gestión de Usuarios
+                </a>
+                <a href="{{ route('seguridad.usuarios.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('seguridad.usuarios.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Usuarios
+                </a>
+                <a href="{{ route('seguridad.auditoria.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('seguridad.auditoria.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Auditoría
+                </a>
+                <a href="{{ route('seguridad.configuracion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('seguridad.configuracion.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Configuración
+                </a>
             </div>
         </div>
         @endif

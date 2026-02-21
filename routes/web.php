@@ -15,6 +15,7 @@ use App\Http\Controllers\FarmaciaController;
 use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
 use App\Http\Controllers\Seguridad\UsuariosController;
+use App\Http\Controllers\UserManagementController;
 
 
 
@@ -83,11 +84,22 @@ Route::middleware('auth')->group(function () {
         Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
     });
 
-    // Rutas de seguridad (solo admin)
-    Route::middleware(['role:admin'])->prefix('seguridad')->name('seguridad.')->group(function () {
+    // Rutas de seguridad (admin y gerente)
+    Route::middleware(['role:admin|gerente'])->prefix('seguridad')->name('seguridad.')->group(function () {
         Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
         Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
+    });
+
+    // Rutas de gestión de usuarios (admin y gerente)
+    Route::middleware(['role:admin|gerente'])->prefix('user-management')->name('user-management.')->group(function () {
+        Route::get('/', [UserManagementController::class, 'index'])->name('index');
+        Route::get('/create', [UserManagementController::class, 'create'])->name('create');
+        Route::post('/', [UserManagementController::class, 'store'])->name('store');
+        Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
+        Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+        Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
     });
 });
 

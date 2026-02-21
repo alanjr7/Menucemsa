@@ -102,7 +102,7 @@
 
                 <main class="p-8">
                     <div class="max-w-7xl mx-auto">
-                        {{ $slot }}
+                        @yield('content')
                     </div>
                 </main>
 
