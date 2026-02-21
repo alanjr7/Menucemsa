@@ -101,7 +101,7 @@
                 </header>
 
                 <main class="p-8">
-                    <div class="max-w-7xl mx-auto">
+                    <div class="w-full">
                         @yield('content')
                     </div>
                 </main>

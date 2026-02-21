@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="min-h-screen bg-gray-50/50 p-6">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full min-h-screen bg-gray-50/50 p-6">
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h1 class="text-2xl font-black text-gray-900 tracking-tight">Reportes Gerenciales</h1>
@@ -268,4 +270,5 @@
             }
         });
     </script>
-</x-app-layout>
+</div>
+@endsection
