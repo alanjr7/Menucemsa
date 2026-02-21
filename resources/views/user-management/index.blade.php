@@ -7,7 +7,7 @@
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
-                    <p class="text-gray-600 mt-1">Administra todos los usuarios del sistema</p>
+                    <p class="text-gray-600 mt-1">Administra todos los usuarios del sistema y su acceso</p>
                 </div>
                 <a href="{{ route('user-management.create') }}" 
                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2">
@@ -29,6 +29,13 @@
                     {{ session('error') }}
                 </div>
             @endif
+
+            <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-4">
+                <p class="text-sm">
+                    <strong>Nota:</strong> Solo los usuarios <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">ACTIVOS</span> pueden iniciar sesión en el sistema.
+                    Los usuarios <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">INACTIVOS</span> no pueden acceder.
+                </p>
+            </div>
 
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -83,8 +90,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {{ $user->email_verified_at ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ $user->email_verified_at ? 'Activo' : 'Inactivo' }}
+                                    {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ $user->is_active ? 'Activo' : 'Inactivo' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -106,6 +113,20 @@
                                             </svg>
                                         </button>
                                     </form>
+                                    
+                                    <button onclick="toggleUserStatus({{ $user->id }})" 
+                                            class="text-{{ $user->is_active ? 'orange' : 'green' }}-600 hover:text-{{ $user->is_active ? 'orange' : 'green' }}-900"
+                                            title="{{ $user->is_active ? 'Desactivar usuario' : 'Activar usuario' }}">
+                                        @if($user->is_active)
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                            </svg>
+                                        @else
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        @endif
+                                    </button>
                                     @endif
                                 </div>
                             </td>
@@ -123,4 +144,32 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleUserStatus(userId) {
+    if (!confirm('¿Estás seguro de cambiar el estado de este usuario?')) {
+        return;
+    }
+    
+    fetch(`/user-management/${userId}/toggle-status`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error al cambiar el estado del usuario');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al cambiar el estado del usuario');
+    });
+}
+</script>
 @endsection

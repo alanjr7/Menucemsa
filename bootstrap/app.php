@@ -13,7 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'user.status' => \App\Http\Middleware\CheckUserStatus::class,
         ]);
+        
+        // Aplicar el middleware de estado a todas las rutas web
+        $middleware->web(\App\Http\Middleware\CheckUserStatus::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -112,8 +112,8 @@
                         <div>
                             <span class="font-medium">Estado:</span> 
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {{ $user->email_verified_at ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $user->email_verified_at ? 'Activo' : 'Inactivo' }}
+                                {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $user->is_active ? 'Activo' : 'Inactivo' }}
                             </span>
                         </div>
                     </div>

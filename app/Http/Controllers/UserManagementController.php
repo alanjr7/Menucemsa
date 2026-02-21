@@ -93,15 +93,13 @@ class UserManagementController extends Controller
             return response()->json(['error' => 'No puedes desactivar tu propio usuario.'], 403);
         }
 
-        // Aquí podrías agregar un campo 'active' en la tabla users
-        // Por ahora, simulamos el cambio de estado
         $user->update([
-            'email_verified_at' => $user->email_verified_at ? null : now(),
+            'is_active' => !$user->is_active,
         ]);
 
         return response()->json([
             'success' => true,
-            'status' => $user->email_verified_at ? 'active' : 'inactive'
+            'status' => $user->is_active ? 'active' : 'inactive'
         ]);
     }
 }
