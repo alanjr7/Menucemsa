@@ -10,13 +10,17 @@ use App\Http\Controllers\Medical\QuirofanoController;
 use App\Http\Controllers\Medical\HospitalizacionController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
-use App\Http\Controllers\FarmaciaController;
+
 
 use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
 use App\Http\Controllers\Seguridad\UsuariosController;
-
-
+use App\Http\Controllers\Farmacia\FarmaciaDashboardController;
+use App\Http\Controllers\Farmacia\PuntoVentaController;
+use App\Http\Controllers\Farmacia\InventarioController;
+use App\Http\Controllers\Farmacia\VentasController;
+use App\Http\Controllers\Farmacia\ClientesController;
+use App\Http\Controllers\Farmacia\ReporteController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -59,15 +63,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/caja', function () {
             return view('admin.caja');
         })->name('caja.index');
-        
+
         Route::get('/facturacion', function () {
             return view('admin.facturacion');
         })->name('facturacion.index');
-        
+
         Route::get('/tarifarios', function () {
             return view('admin.tarifarios');
         })->name('tarifarios');
-        
+
         Route::get('/seguros', [SeguroController::class, 'index'])->name('seguros');
         Route::get('/cuentas-por-cobrar', [CuentaCobrarController::class, 'index'])->name('cuentas');
     });
@@ -89,6 +93,28 @@ Route::middleware('auth')->group(function () {
         Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
     });
+// Rutas de farmacia organizadas por controlador modular
+Route::middleware(['auth', 'role:admin'])->prefix('farmacia')->name('farmacia.')->group(function () {
+
+    // URL: /farmacia -> Llama a FarmaciaDashboardController
+    Route::get('/', [FarmaciaDashboardController::class, 'index'])->name('index');
+
+    // URL: /farmacia/punto-de-venta -> Llama a PuntoVentaController
+    Route::get('/punto-de-venta', [PuntoVentaController::class, 'index'])->name('pos');
+
+    // NUEVA RUTA: URL: /farmacia/inventario -> Llama a InventarioController
+    // El nombre de la ruta será 'farmacia.inventario' automáticamente por el name('farmacia.')
+    Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario');
+
+       Route::get('/ventas', [VentasController::class, 'index'])->name('ventas');
+
+         Route::get('/clientes', [ClientesController::class, 'index'])->name('clientes');
+
+         Route ::get('/reporte', [ReporteController::class, 'index'])->name('reporte');
+
+         });
+
+
 });
 
 

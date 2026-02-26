@@ -29,7 +29,7 @@
         </a>
         @endif
 
-        
+
         <hr class="border-blue-800/50 my-2 mx-4">
 
         @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isEmergencia())
@@ -60,7 +60,7 @@
                         ['r' => 'patients.index', 'l' => 'Maestro de Pacientes'],
                         ['r' => 'admision.index', 'l' => 'Admisión'],
                     ];
-                    
+
                     // Admin y Director Médico pueden ver todas las áreas médicas excepto emergencias
                     if(Auth::user()->isAdmin() || Auth::user()->isDirMedico()):
                         $pacientesLinks = array_merge($pacientesLinks, [
@@ -102,11 +102,21 @@
         <div x-data="{ open: {{ request()->is('farmacia*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                <span class="text-sm font-medium flex-1 text-left">Logística</span>
+                <span class="text-sm font-medium flex-1 text-left">Farmacia</span>
                 <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
-                <a href="{{ route('farmacia.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Farmacia</a>
+                <a href="{{ route('farmacia.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Dashboard</a>
+
+          <a href="{{ route('farmacia.pos') }}"
+           class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.pos') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+           Punto de Venta
+        </a>
+                <a href="{{ route('farmacia.inventario') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.inventario') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Inventario</a>
+
+                <a href="{{ route('farmacia.ventas') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.ventas') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Ventas</a>
+                <a href="{{ route('farmacia.clientes') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.clientes') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Clientes</a>
+                <a href="{{ route('farmacia.reporte') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.reporte') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Reporte</a>
             </div>
         </div>
         @endif
