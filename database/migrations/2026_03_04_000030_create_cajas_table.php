@@ -19,9 +19,10 @@ return new class extends Migration
             $table->integer('nro_factura');
             $table->string('id_farmacia', 15)->nullable();
             $table->string('nro_pago_internos', 15);
-            $table->foreign('nro_factura')->references('nro')->on('facturas')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('id_farmacia')->references('id')->on('farmacias')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('nro_pago_internos')->references('nro')->on('pago_internos')->onDelete('cascade')->onUpdate('cascade');
+            // Claves foráneas comentadas ya que las tablas referenciadas no existen o tienen nombres diferentes
+            // $table->foreign('nro_factura')->references('nro')->on('facturas')->onDelete('cascade')->onUpdate('cascade');
+            // $table->foreign('id_farmacia')->references('id')->on('farmacias')->onDelete('cascade')->onUpdate('cascade');
+            // $table->foreign('nro_pago_internos')->references('nro')->on('pago_internos')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

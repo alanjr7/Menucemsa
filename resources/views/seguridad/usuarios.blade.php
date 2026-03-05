@@ -6,20 +6,20 @@
                 <h1 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h1>
                 <p class="text-sm text-gray-500">Administración de usuarios, roles y permisos</p>
             </div>
-            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition shadow-sm">
+            <a href="{{ route('seguridad.usuarios.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition shadow-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 Nuevo Usuario
-            </button>
+            </a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             @php
                 $stats = [
-                    ['label' => 'Administrador', 'count' => 3, 'color' => 'purple'],
-                    ['label' => 'Médico', 'count' => 12, 'color' => 'blue'],
-                    ['label' => 'Enfermera', 'count' => 18, 'color' => 'green'],
-                    ['label' => 'Farmacia', 'count' => 5, 'color' => 'orange'],
-                    ['label' => 'Caja', 'count' => 4, 'color' => 'indigo'],
+                    ['label' => 'Administrador', 'count' => $usuarios->where('role', 'admin')->count(), 'color' => 'purple'],
+                    ['label' => 'Médico', 'count' => $usuarios->where('role', 'dirmedico')->count(), 'color' => 'blue'],
+                    ['label' => 'Recepción', 'count' => $usuarios->where('role', 'reception')->count(), 'color' => 'green'],
+                    ['label' => 'Emergencia', 'count' => $usuarios->where('role', 'emergencia')->count(), 'color' => 'orange'],
+                    ['label' => 'Caja', 'count' => $usuarios->where('role', 'caja')->count(), 'color' => 'indigo'],
                 ];
             @endphp
             @foreach($stats as $stat)
@@ -45,7 +45,7 @@
 
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <div class="p-6 border-b border-gray-50">
-                <h3 class="font-bold text-gray-800 tracking-tight">Usuarios del Sistema (5)</h3>
+                <h3 class="font-bold text-gray-800 tracking-tight">Usuarios del Sistema ({{ $usuarios->count() }})</h3>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
@@ -61,46 +61,68 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
+                        @foreach($usuarios as $usuario)
                         @php
-                            $users = [
-                                ['user' => 'jramirez', 'name' => 'Dr. Juan Ramírez Pérez', 'role' => 'Médico', 'area' => 'Medicina General', 'status' => 'Activo', 'date' => '2026-02-03 14:30', 'color' => 'blue'],
-                                ['user' => 'atorres', 'name' => 'Dra. Ana Torres López', 'role' => 'Médico', 'area' => 'Pediatría', 'status' => 'Activo', 'date' => '2026-02-03 13:15', 'color' => 'blue'],
-                                ['user' => 'mgarcia', 'name' => 'María García Silva', 'role' => 'Enfermera', 'area' => 'UTI', 'status' => 'Activo', 'date' => '2026-02-03 15:00', 'color' => 'green'],
-                                ['user' => 'clopez', 'name' => 'Carlos López Mendoza', 'role' => 'Administrador', 'area' => 'Caja', 'status' => 'Activo', 'date' => '2026-02-03 12:45', 'color' => 'purple'],
-                                ['user' => 'psilva', 'name' => 'Pedro Silva Castro', 'role' => 'Farmacia', 'area' => 'Dispensación', 'status' => 'Inactivo', 'date' => '2026-02-01 18:20', 'color' => 'orange'],
+                            $roleLabels = [
+                                'admin' => 'Administrador',
+                                'dirmedico' => 'Médico',
+                                'reception' => 'Recepción',
+                                'emergencia' => 'Emergencia',
+                                'caja' => 'Caja',
+                                'user' => 'Usuario'
                             ];
+                            
+                            $roleColors = [
+                                'admin' => 'purple',
+                                'dirmedico' => 'blue',
+                                'reception' => 'green',
+                                'emergencia' => 'orange',
+                                'caja' => 'indigo',
+                                'user' => 'gray'
+                            ];
+                            
+                            $roleLabel = $roleLabels[$usuario->role] ?? 'Usuario';
+                            $roleColor = $roleColors[$usuario->role] ?? 'gray';
                         @endphp
-                        @foreach($users as $u)
                         <tr class="hover:bg-gray-50/50 transition text-sm">
-                            <td class="px-6 py-4 font-bold text-gray-800">{{ $u['user'] }}</td>
-                            <td class="px-6 py-4 text-gray-600 font-medium">{{ $u['name'] }}</td>
+                            <td class="px-6 py-4 font-bold text-gray-800">{{ $usuario->email }}</td>
+                            <td class="px-6 py-4 text-gray-600 font-medium">{{ $usuario->name }}</td>
                             <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded text-[10px] font-bold bg-{{ $u['color'] }}-50 text-{{ $u['color'] }}-600 italic">
-                                    {{ $u['role'] }}
+                                <span class="px-2 py-1 rounded text-[10px] font-bold bg-{{ $roleColor }}-50 text-{{ $roleColor }}-600 italic">
+                                    {{ $roleLabel }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-gray-500">{{ $u['area'] }}</td>
+                            <td class="px-6 py-4 text-gray-500">{{ $roleLabel }}</td>
                             <td class="px-6 py-4">
-                                <span class="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold {{ $u['status'] == 'Activo' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600' }}">
-                                    @if($u['status'] == 'Activo')
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
-                                    @else
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/></svg>
-                                    @endif
-                                    {{ $u['status'] }}
+                                <span class="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold bg-green-50 text-green-600">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                                    Activo
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-xs text-gray-400">{{ $u['date'] }}</td>
+                            <td class="px-6 py-4 text-xs text-gray-400">{{ $usuario->updated_at ? $usuario->updated_at->format('Y-m-d H:i') : 'N/A' }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex gap-2">
-                                    <button class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                        Editar
-                                    </button>
-                                    <button class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                        Permisos
-                                    </button>
+                                    @if(auth()->user()->id !== $usuario->id)
+                                        <a href="{{ route('seguridad.usuarios.edit', $usuario->id) }}" class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            Editar
+                                        </a>
+                                    @else
+                                        <span class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-100 rounded-lg text-xs font-bold text-gray-400 bg-gray-50">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            Tú
+                                        </span>
+                                    @endif
+                                    @if(auth()->user()->id !== $usuario->id)
+                                        <form action="{{ route('seguridad.usuarios.destroy', $usuario->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este usuario?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 rounded-lg text-xs font-bold text-red-700 hover:bg-red-50 transition">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

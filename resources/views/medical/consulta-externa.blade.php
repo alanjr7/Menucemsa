@@ -1,10 +1,25 @@
 <x-app-layout>
     <div x-data="{ tab: 'agenda' }" class="p-6">
 
+        @if(isset($error))
+            <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-lg font-bold text-red-800">Error de Configuración</h3>
+                        <p class="text-red-700 mt-1">{{ $error }}</p>
+                        <p class="text-sm text-red-600 mt-2">Por favor, contacte al administrador del sistema para asociar su cuenta de médico correctamente.</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Consulta Externa</h1>
-                <p class="text-sm text-gray-500">Dr. Carlos Mendoza - Medicina General</p>
+                <p class="text-sm text-gray-500">Dr. {{ $medico->usuario->name ?? 'Médico' }} - {{ $medico->especialidad->nombre ?? 'Especialidad' }}</p>
             </div>
             <div class="flex gap-3">
                 <button class="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition">
@@ -38,64 +53,183 @@
         <div x-show="tab === 'agenda'" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="p-4 border-b border-gray-100 flex items-center gap-2 text-gray-700">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span class="font-bold">Consultas Programadas - 03/02/2026</span>
+                <span class="font-bold">Consultas Pagadas - {{ now()->format('d/m/Y') }}</span>
             </div>
 
             <div class="divide-y divide-gray-100">
-                <div class="p-6 flex items-center justify-between hover:bg-gray-50 transition">
-                    <div class="flex items-center gap-6">
-                        <div class="text-blue-600 font-bold text-lg">08:00</div>
-                        <div>
-                            <h4 class="font-bold text-gray-800">García, Juan</h4>
-                            <p class="text-xs text-gray-400">HC-001234</p>
-                            <p class="text-sm text-gray-600 mt-1">Control de hipertensión</p>
+                @forelse ($consultasPendientes as $consulta)
+                    <div class="p-6 flex items-center justify-between hover:bg-gray-50 transition">
+                        <div class="flex items-center gap-6">
+                            <div class="text-blue-600 font-bold text-lg">{{ \Carbon\Carbon::parse($consulta->hora)->format('H:i') }}</div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">{{ $consulta->paciente->nombre }}</h4>
+                                <p class="text-xs text-gray-400">CI: {{ $consulta->paciente->ci }}</p>
+                                <p class="text-sm text-gray-600 mt-1">{{ $consulta->motivo }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Pagado</span>
+                            <button onclick="iniciarConsulta('{{ $consulta->nro }}')" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm">
+                                Atender
+                            </button>
                         </div>
                     </div>
-                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
-                        Completado
-                    </span>
-                </div>
-
-                <div class="p-6 flex items-center justify-between hover:bg-gray-50 transition border-l-4 border-orange-400">
-                    <div class="flex items-center gap-6">
-                        <div class="text-blue-600 font-bold text-lg">08:30</div>
-                        <div>
-                            <h4 class="font-bold text-gray-800">López, María</h4>
-                            <p class="text-xs text-gray-400">HC-001235</p>
-                            <p class="text-sm text-gray-600 mt-1">Dolor abdominal</p>
-                        </div>
+                @empty
+                    <div class="p-8 text-center text-gray-500">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-lg font-medium">No hay consultas pagadas pendientes</p>
+                        <p class="text-sm mt-2">Los pacientes aparecerán aquí una vez que realicen el pago en caja</p>
                     </div>
-                    <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full border border-orange-200">
-                        ● En Proceso
-                    </span>
-                </div>
-
-                <div class="p-6 flex items-center justify-between hover:bg-gray-50 transition">
-                    <div class="flex items-center gap-6">
-                        <div class="text-blue-600 font-bold text-lg">09:00</div>
-                        <div>
-                            <h4 class="font-bold text-gray-800">Rodríguez, Pedro</h4>
-                            <p class="text-xs text-gray-400">HC-001236</p>
-                            <p class="text-sm text-gray-600 mt-1">Control post-operatorio</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Pendiente</span>
-                        <button @click="tab = 'atencion'" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm">
-                            Atender
-                        </button>
-                    </div>
-                </div>
+                @endforelse
             </div>
         </div>
 
-        <div x-show="tab === 'atencion'" x-cloak>
-            @include('medical.partials.atencion-actual')
+        <div x-show="tab === 'atencion'" x-cloak class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex items-center gap-2 text-gray-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="font-bold">Consulta en Atención</span>
+            </div>
+
+            @forelse ($consultasEnAtencion as $consulta)
+                <div class="p-6">
+                    <div class="flex items-center gap-6 mb-4">
+                        <div class="text-green-600 font-bold text-lg">{{ \Carbon\Carbon::parse($consulta->hora)->format('H:i') }}</div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-800">{{ $consulta->paciente->nombre }}</h4>
+                            <p class="text-xs text-gray-400">CI: {{ $consulta->paciente->ci }}</p>
+                            <p class="text-sm text-gray-600 mt-1">{{ $consulta->motivo }}</p>
+                        </div>
+                        <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full border border-orange-200">
+                            ● En Atención
+                        </span>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <h5 class="font-semibold text-gray-800 mb-3">Detalles de la Consulta</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Especialidad:</p>
+                                <p class="font-medium">{{ $consulta->especialidad->nombre ?? 'N/A' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Fecha:</p>
+                                <p class="font-medium">{{ $consulta->fecha->format('d/m/Y') }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-600 mb-2">Observaciones:</p>
+                            <textarea class="w-full border border-gray-200 rounded-lg p-3 text-sm" rows="3" placeholder="Agregar observaciones de la consulta...">{{ $consulta->observaciones ?? '' }}</textarea>
+                        </div>
+                        
+                        <div class="flex justify-end gap-3 mt-4">
+                            <button onclick="completarConsulta('{{ $consulta->nro }}')" class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-sm">
+                                Completar Consulta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="p-8 text-center text-gray-500">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <p class="text-lg font-medium">No hay consultas en atención</p>
+                </div>
+            @endforelse
         </div>
 
-        <div x-show="tab === 'historial'" x-cloak>
-            @include('medical.partials.historial')
+        <div x-show="tab === 'historial'" x-cloak class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex items-center gap-2 text-gray-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="font-bold">Consultas Completadas Hoy</span>
+            </div>
+
+            <div class="divide-y divide-gray-100">
+                @forelse ($consultasCompletadas as $consulta)
+                    <div class="p-6 flex items-center justify-between hover:bg-gray-50 transition">
+                        <div class="flex items-center gap-6">
+                            <div class="text-blue-600 font-bold text-lg">{{ \Carbon\Carbon::parse($consulta->hora)->format('H:i') }}</div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">{{ $consulta->paciente->nombre }}</h4>
+                                <p class="text-xs text-gray-400">CI: {{ $consulta->paciente->ci }}</p>
+                                <p class="text-sm text-gray-600 mt-1">{{ $consulta->motivo }}</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
+                            Completado
+                        </span>
+                    </div>
+                @empty
+                    <div class="p-8 text-center text-gray-500">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-lg font-medium">No hay consultas completadas hoy</p>
+                    </div>
+                @endforelse
+            </div>
         </div>
 
-    </div> </x-app-layout>
+    </div>
+    
+    <script>
+        function iniciarConsulta(consultaId) {
+            if (confirm('¿Está seguro de iniciar esta consulta?')) {
+                fetch(`/doctor/iniciar-consulta/${consultaId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Consulta iniciada correctamente');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al iniciar la consulta');
+                });
+            }
+        }
+
+        function completarConsulta(consultaId) {
+            const observaciones = document.querySelector('textarea').value;
+            
+            if (confirm('¿Está seguro de completar esta consulta?')) {
+                fetch(`/doctor/completar-consulta/${consultaId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        observaciones: observaciones
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Consulta completada correctamente');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al completar la consulta');
+                });
+            }
+        }
+    </script>
+</x-app-layout>

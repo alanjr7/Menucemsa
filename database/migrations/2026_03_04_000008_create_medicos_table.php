@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('ci');
             $table->integer('telefono')->nullable();
             $table->string('estado', 80);
-            $table->string('id_asistente', 15);
+            $table->string('id_asistente', 15)->nullable();
             $table->string('codigo_especialidad', 15)->nullable();
             $table->primary(['id_usuario', 'ci']);
             $table->foreign('id_asistente')->references('id')->on('asistente_quirofanos')->onDelete('cascade')->onUpdate('cascade');

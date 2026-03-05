@@ -4,14 +4,104 @@ namespace App\Http\Controllers\Seguridad;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\User;
 
 class UsuariosController extends Controller
 {
-
-
     public function index()
     {
+        $usuarios = User::orderBy('name')->get();
+        
+        return view('seguridad.usuarios', compact('usuarios'));
+    }
 
-        return view('seguridad.usuarios');
+    public function create()
+    {
+        return view('seguridad.usuarios-create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,user'
+        ]);
+
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'role' => $request->role,
+        ]);
+
+        return redirect()->route('seguridad.usuarios.index')
+            ->with('success', 'Usuario creado exitosamente.');
+    }
+
+    public function edit(User $user)
+    {
+        return view('seguridad.usuarios-edit', compact('user'));
+    }
+
+    public function update(Request $request, User $user)
+    {
+        // Prevenir que un usuario edite su propio rol
+        if ($user->id === auth()->id()) {
+            return redirect()->route('seguridad.usuarios.index')
+                ->with('error', 'No puedes modificar tu propio rol. Contacta a otro administrador.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja'
+        ]);
+
+        try {
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'role' => $request->role,
+            ]);
+
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => 'required|string|min:8|confirmed',
+                ]);
+                $user->update([
+                    'password' => bcrypt($request->password),
+                ]);
+            }
+
+            return redirect()->route('seguridad.usuarios.index')
+                ->with('success', 'Usuario actualizado exitosamente.');
+                
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Manejar error de constraint de la base de datos
+            if (strpos($e->getMessage(), 'CHECK constraint failed') !== false) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'El rol seleccionado no es válido. Por favor selecciona un rol válido.');
+            }
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al actualizar el usuario: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return redirect()->route('seguridad.usuarios.index')
+                ->with('error', 'No puedes eliminar tu propio usuario.');
+        }
+
+        $user->delete();
+
+        return redirect()->route('seguridad.usuarios.index')
+            ->with('success', 'Usuario eliminado exitosamente.');
     }
 }
