@@ -78,7 +78,7 @@
                                flex items-center justify-center gap-2 transform transition-all hover:brightness-110 active:scale-95 shadow-lg">
                     Ingresar <span class="text-xl">→</span>
                 </button>
-            </form>
+            </form>;O;U;H;OH;OIHIOPHIHIO
         </div>
     </div>
 
