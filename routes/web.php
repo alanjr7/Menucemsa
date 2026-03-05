@@ -28,6 +28,8 @@ Route::get('/test-caja', function() {
     return 'Test route working';
 });
 
+Route::get('/test-tarifarios', [TarifarioController::class, 'index'])->name('test.tarifarios');
+
 Route::get('/', function () {
     return redirect()->route('login');
 });

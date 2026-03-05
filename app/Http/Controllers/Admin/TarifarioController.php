@@ -41,6 +41,10 @@ class TarifarioController extends Controller
 
         Tarifa::create($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Tarifa creada exitosamente.']);
+        }
+
         return redirect()->route('admin.tarifarios')->with('success', 'Tarifa creada exitosamente.');
     }
 
@@ -59,12 +63,21 @@ class TarifarioController extends Controller
 
         $tarifa->update($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Tarifa actualizada exitosamente.']);
+        }
+
         return redirect()->route('admin.tarifarios')->with('success', 'Tarifa actualizada exitosamente.');
     }
 
-    public function destroy(Tarifa $tarifa)
+    public function destroy(Tarifa $tarifa, Request $request)
     {
         $tarifa->update(['activo' => false]);
+        
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Tarifa eliminada exitosamente.']);
+        }
+        
         return redirect()->route('admin.tarifarios')->with('success', 'Tarifa eliminada exitosamente.');
     }
 

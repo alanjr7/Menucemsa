@@ -1,14 +1,6 @@
 <x-app-layout>
-    <div x-data="{ 
-        tab: 'servicios',
-        tarifarios: @json($servicios),
-        procedimientos: @json($procedimientos),
-        cirugias: @json($cirugias),
-        stats: @json($stats),
-        searchTerm: '',
-        showAddModal: false,
-        editingTarifa: null
-    }" class="p-8 bg-[#f8fafc] min-h-screen font-sans antialiased">
+    <div x-data="tarifariosApp()" 
+         x-init="init()" class="p-8 bg-[#f8fafc] min-h-screen font-sans antialiased">
 
         <div class="flex justify-between items-start mb-8">
             <div>
@@ -76,7 +68,8 @@
                                     <span x-show="tarifa.tipo_convenio_eps !== 'CONVENIO'" x-text="tarifa.precio_eps || '-'"></span>
                                 </td>
                                 <td class="px-10 py-6 text-right">
-                                    <button @click="editingTarifa = tarifa" class="border border-slate-200 px-4 py-2 rounded-xl text-[12px] font-bold">Editar</button>
+                                    <button @click="editingTarifa = tarifa" class="border border-slate-200 px-4 py-2 rounded-xl text-[12px] font-bold mr-2">Editar</button>
+                                    <button @click="deleteTarifa(tarifa)" class="border border-red-200 text-red-600 px-4 py-2 rounded-xl text-[12px] font-bold hover:bg-red-50">Eliminar</button>
                                 </td>
                             </tr>
                         </template>
@@ -105,7 +98,8 @@
                                     <span x-show="tarifa.tipo_convenio_eps !== 'CONVENIO'" x-text="tarifa.precio_eps || '-'"></span>
                                 </td>
                                 <td class="px-10 py-6 text-right">
-                                    <button @click="editingTarifa = tarifa" class="border border-slate-200 px-4 py-2 rounded-xl text-[12px] font-bold">Editar</button>
+                                    <button @click="editingTarifa = tarifa" class="border border-slate-200 px-4 py-2 rounded-xl text-[12px] font-bold mr-2">Editar</button>
+                                    <button @click="deleteTarifa(tarifa)" class="border border-red-200 text-red-600 px-4 py-2 rounded-xl text-[12px] font-bold hover:bg-red-50">Eliminar</button>
                                 </td>
                             </tr>
                         </template>
@@ -134,7 +128,8 @@
                                     <span x-show="tarifa.tipo_convenio_eps !== 'CONVENIO'" x-text="tarifa.precio_eps || '-'"></span>
                                 </td>
                                 <td class="px-10 py-6 text-right">
-                                    <button @click="editingTarifa = tarifa" class="border border-slate-200 px-4 py-2 rounded-xl text-[12px] font-bold">Editar</button>
+                                    <button @click="editingTarifa = tarifa" class="border border-slate-200 px-4 py-2 rounded-xl text-[12px] font-bold mr-2">Editar</button>
+                                    <button @click="deleteTarifa(tarifa)" class="border border-red-200 text-red-600 px-4 py-2 rounded-xl text-[12px] font-bold hover:bg-red-50">Eliminar</button>
                                 </td>
                             </tr>
                         </template>
@@ -143,4 +138,202 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal para agregar/editar tarifa -->
+    <div x-show="showAddModal || editingTarifa" 
+         x-cloak
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         @click.self="showAddModal = false; editingTarifa = null">
+        <div class="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6" x-text="editingTarifa ? 'Editar Tarifa' : 'Nueva Tarifa'"></h2>
+            
+            <form @submit.prevent="submitTarifa">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Código</label>
+                        <input type="text" 
+                               x-model="formData.codigo"
+                               class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none"
+                               :readonly="editingTarifa"
+                               required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Categoría</label>
+                        <select x-model="formData.categoria"
+                                class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none"
+                                required>
+                            <option value="">Seleccionar</option>
+                            <option value="SERVICIO">Servicio</option>
+                            <option value="PROCEDIMIENTO">Procedimiento</option>
+                            <option value="CIRUGIA">Cirugía</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Descripción</label>
+                    <textarea x-model="formData.descripcion"
+                              rows="3"
+                              class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none"
+                              required></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Precio Particular (S/)</label>
+                        <input type="number" 
+                               step="0.01"
+                               x-model="formData.precio_particular"
+                               class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none"
+                               required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Precio SIS (S/)</label>
+                        <input type="number" 
+                               step="0.01"
+                               x-model="formData.precio_sis"
+                               class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Precio EPS (S/)</label>
+                        <input type="number" 
+                               step="0.01"
+                               x-model="formData.precio_eps"
+                               class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Convenio SIS</label>
+                        <select x-model="formData.tipo_convenio_sis"
+                                class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none">
+                            <option value="">Seleccionar</option>
+                            <option value="CONVENIO">Convenio</option>
+                            <option value="TARIFARIO">Tarifario</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Convenio EPS</label>
+                        <select x-model="formData.tipo_convenio_eps"
+                                class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-50 outline-none">
+                            <option value="">Seleccionar</option>
+                            <option value="CONVENIO">Convenio</option>
+                            <option value="TARIFARIO">Tarifario</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-4">
+                    <button type="button" 
+                            @click="showAddModal = false; editingTarifa = null"
+                            class="px-6 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            class="px-6 py-2.5 bg-[#0061df] hover:bg-blue-700 text-white rounded-xl font-bold">
+                        <span x-text="editingTarifa ? 'Actualizar' : 'Guardar'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('tarifariosApp', () => ({
+                tab: 'servicios',
+                tarifarios: @json($servicios),
+                procedimientos: @json($procedimientos),
+                cirugias: @json($cirugias),
+                stats: @json($stats),
+                searchTerm: '',
+                showAddModal: false,
+                editingTarifa: null,
+                formData: {
+                    codigo: '',
+                    descripcion: '',
+                    categoria: '',
+                    precio_particular: '',
+                    precio_sis: '',
+                    precio_eps: '',
+                    tipo_convenio_sis: '',
+                    tipo_convenio_eps: ''
+                },
+
+                deleteTarifa(tarifa) {
+                    if (confirm('¿Está seguro de eliminar esta tarifa?')) {
+                        fetch(`/admin/tarifarios/${tarifa.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.reload();
+                            } else {
+                                alert('Error al eliminar la tarifa');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Error al eliminar la tarifa');
+                        });
+                    }
+                },
+
+                submitTarifa() {
+                    const url = this.editingTarifa ? `/admin/tarifarios/${this.editingTarifa.id}` : '/admin/tarifarios';
+                    const method = this.editingTarifa ? 'PUT' : 'POST';
+                    
+                    fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify(this.formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error al guardar la tarifa');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al guardar la tarifa');
+                    });
+                },
+
+                init() {
+                    this.$watch('editingTarifa', (value) => {
+                        if (value) {
+                            this.formData = { ...value };
+                        } else {
+                            this.resetForm();
+                        }
+                    });
+                },
+
+                resetForm() {
+                    this.formData = {
+                        codigo: '',
+                        descripcion: '',
+                        categoria: '',
+                        precio_particular: '',
+                        precio_sis: '',
+                        precio_eps: '',
+                        tipo_convenio_sis: '',
+                        tipo_convenio_eps: ''
+                    };
+                }
+            }));
+        });
+    </script>
 </x-app-layout>
