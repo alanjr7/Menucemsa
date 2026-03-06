@@ -28,6 +28,21 @@ Route::get('/test-caja', function() {
     return 'Test route working';
 });
 
+Route::get('/test-tarifarios-modal', function() {
+    $stats = [
+        'total' => 26,
+        'servicios' => 10,
+        'procedimientos' => 8,
+        'cirugias' => 8,
+    ];
+    
+    $servicios = \App\Models\Tarifa::porCategoria('SERVICIO')->orderBy('codigo')->get();
+    $procedimientos = \App\Models\Tarifa::porCategoria('PROCEDIMIENTO')->orderBy('codigo')->get();
+    $cirugias = \App\Models\Tarifa::porCategoria('CIRUGIA')->orderBy('codigo')->get();
+    
+    return view('admin.tarifarios', compact('stats', 'servicios', 'procedimientos', 'cirugias'));
+});
+
 Route::get('/test-tarifarios', [TarifarioController::class, 'index'])->name('test.tarifarios');
 
 Route::get('/', function () {
@@ -69,6 +84,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/estadisticas-dashboard', [ReceptionController::class, 'getEstadisticasDashboard'])->name('reception.estadisticas');
         Route::get('/api/medicos-disponibles', [ReceptionController::class, 'buscarMedicosDisponibles'])->name('reception.medicos-disponibles');
         Route::get('/api/especialidades', [ReceptionController::class, 'getEspecialidades'])->name('reception.especialidades');
+
+        // Rutas para flujo de pago en recepción
+        Route::post('/reception/procesar-pago/{id}', [ReceptionController::class, 'procesarPago'])->name('reception.procesar-pago');
+        Route::get('/reception/confirmacion/{id}', [ReceptionController::class, 'confirmacion'])->name('reception.confirmacion');
     });
 
 

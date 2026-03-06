@@ -180,12 +180,12 @@
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
-                            <input type="date" name="fecha" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
+                            <input type="date" name="fecha" onchange="cargarMedicosDisponibles()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
                         </div>
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Hora *</label>
-                            <input type="time" name="hora" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
+                            <input type="time" name="hora" onchange="cargarMedicosDisponibles()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
                         </div>
                         
                         <div>

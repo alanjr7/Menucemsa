@@ -318,7 +318,8 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Pago procesado exitosamente',
-                'factura' => $caja->nro_factura
+                'factura' => $caja->nro_factura,
+                'redirect_url' => route('reception.confirmacion', ['id' => $caja->id])
             ]);
             
         } catch (\Exception $e) {
@@ -335,6 +336,14 @@ class ReceptionController extends Controller
                      ->findOrFail($id);
         
         return view('reception.confirmacion-registro', compact('caja'));
+    }
+
+    public function confirmacion($id)
+    {
+        $caja = Caja::with(['consulta.paciente', 'consulta.medico.usuario', 'consulta.especialidad'])
+                     ->findOrFail($id);
+
+        return view('reception.confirmacion', compact('caja'));
     }
 
     // MÉTODOS PARA GESTIÓN DE CITAS Y AGENDA
@@ -573,15 +582,28 @@ class ReceptionController extends Controller
 
     public function buscarMedicosDisponibles(Request $request)
     {
-        $especialidad = $request->get('especialidad');
+        $especialidadCodigo = $request->get('especialidad');
         $fecha = $request->get('fecha');
         $hora = $request->get('hora');
 
-        $medicos = Medico::with(['usuario', 'especialidades'])
-            ->when($especialidad, function($query) use ($especialidad) {
-                return $query->whereHas('especialidades', function($q) use ($especialidad) {
-                    $q->where('codigo', $especialidad);
-                });
+        // Incluir todos los códigos con el mismo nombre (normalizado) por si hay "Medicina General" y "Medicina general"
+        $codigosEspecialidad = [];
+        if ($especialidadCodigo) {
+            $nombre = Especialidad::where('codigo', $especialidadCodigo)->value('nombre');
+            if ($nombre) {
+                $nombreNorm = strtolower(trim($nombre));
+                $codigosEspecialidad = Especialidad::all()
+                    ->filter(fn ($e) => strtolower(trim($e->nombre)) === $nombreNorm)
+                    ->pluck('codigo')
+                    ->toArray();
+            } else {
+                $codigosEspecialidad = [$especialidadCodigo];
+            }
+        }
+
+        $medicos = Medico::with(['usuario', 'especialidad'])
+            ->when(!empty($codigosEspecialidad), function ($query) use ($codigosEspecialidad) {
+                return $query->whereIn('codigo_especialidad', $codigosEspecialidad);
             })
             ->get();
 
@@ -607,7 +629,11 @@ class ReceptionController extends Controller
     public function getEspecialidades()
     {
         try {
-            $especialidades = Especialidad::orderBy('nombre')->get();
+            // Una sola opción por nombre (ignorar mayúsculas/espacios: "Medicina General" = "Medicina general")
+            $especialidades = Especialidad::orderBy('nombre')
+                ->get()
+                ->unique(fn ($esp) => strtolower(trim($esp->nombre)))
+                ->values();
             
             return response()->json($especialidades);
         } catch (\Exception $e) {

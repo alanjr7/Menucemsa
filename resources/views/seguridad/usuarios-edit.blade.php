@@ -124,6 +124,57 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        <!-- Datos adicionales para médicos -->
+                        <div id="medico-extra-fields" class="md:col-span-2 mt-4 {{ old('role', $user->role) === 'dirmedico' ? '' : 'hidden' }}">
+                            <div class="border-t border-gray-100 pt-4 mt-2">
+                                <h3 class="text-sm font-semibold text-gray-700 mb-3">Datos del Médico</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            CI del Médico *
+                                        </label>
+                                        <input type="number"
+                                               name="ci"
+                                               value="{{ old('ci', $medico->ci ?? '') }}"
+                                               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        @error('ci')
+                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Teléfono
+                                        </label>
+                                        <input type="number"
+                                               name="telefono"
+                                               value="{{ old('telefono', $medico->telefono ?? '') }}"
+                                               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        @error('telefono')
+                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Especialidad *
+                                        </label>
+                                        <select name="codigo_especialidad"
+                                                class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option value="">Seleccionar especialidad...</option>
+                                            @foreach($especialidades as $esp)
+                                                <option value="{{ $esp->codigo }}"
+                                                    {{ old('codigo_especialidad', $medico->codigo_especialidad ?? '') == $esp->codigo ? 'selected' : '' }}>
+                                                    {{ $esp->nombre }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('codigo_especialidad')
+                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Información del usuario -->
@@ -167,4 +218,25 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const roleSelect = document.querySelector('select[name="role"]');
+            const medicoFields = document.getElementById('medico-extra-fields');
+
+            function toggleMedicoFields() {
+                if (!roleSelect || !medicoFields) return;
+                if (roleSelect.value === 'dirmedico') {
+                    medicoFields.classList.remove('hidden');
+                } else {
+                    medicoFields.classList.add('hidden');
+                }
+            }
+
+            if (roleSelect) {
+                roleSelect.addEventListener('change', toggleMedicoFields);
+                toggleMedicoFields();
+            }
+        });
+    </script>
 </x-app-layout>

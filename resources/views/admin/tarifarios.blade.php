@@ -1,6 +1,5 @@
 <x-app-layout>
-    <div x-data="tarifariosApp()" 
-         x-init="init()" class="p-8 bg-[#f8fafc] min-h-screen font-sans antialiased">
+    <div x-data="tarifariosApp()" class="p-8 bg-[#f8fafc] min-h-screen font-sans antialiased">
 
         <div class="flex justify-between items-start mb-8">
             <div>
@@ -263,19 +262,23 @@
 
                 deleteTarifa(tarifa) {
                     if (confirm('¿Está seguro de eliminar esta tarifa?')) {
+                        const formData = new FormData();
+                        formData.append('_method', 'DELETE');
+                        
                         fetch(`/admin/tarifarios/${tarifa.id}`, {
-                            method: 'DELETE',
+                            method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            }
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json'
+                            },
+                            body: formData
                         })
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
                                 window.location.reload();
                             } else {
-                                alert('Error al eliminar la tarifa');
+                                alert('Error al eliminar la tarifa: ' + (data.message || 'Error desconocido'));
                             }
                         })
                         .catch(error => {
@@ -286,23 +289,41 @@
                 },
 
                 submitTarifa() {
+                    console.log('Enviando formulario:', this.formData);
+                    
                     const url = this.editingTarifa ? `/admin/tarifarios/${this.editingTarifa.id}` : '/admin/tarifarios';
-                    const method = this.editingTarifa ? 'PUT' : 'POST';
+                    const method = this.editingTarifa ? 'POST' : 'POST'; // Laravel uses POST with _method for PUT/DELETE
+                    
+                    const formData = new FormData();
+                    Object.keys(this.formData).forEach(key => {
+                        formData.append(key, this.formData[key]);
+                    });
+                    
+                    if (this.editingTarifa) {
+                        formData.append('_method', 'PUT');
+                    }
+                    
+                    console.log('URL:', url);
+                    console.log('FormData:', Array.from(formData.entries()));
                     
                     fetch(url, {
                         method: method,
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
                         },
-                        body: JSON.stringify(this.formData)
+                        body: formData
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Response data:', data);
                         if (data.success) {
                             window.location.reload();
                         } else {
-                            alert('Error al guardar la tarifa');
+                            alert('Error al guardar la tarifa: ' + (data.message || 'Error desconocido'));
                         }
                     })
                     .catch(error => {
@@ -312,9 +333,18 @@
                 },
 
                 init() {
+                    // Debug: verificar que los datos se carguen correctamente
+                    console.log('Datos iniciales:', {
+                        tarifarios: this.tarifarios,
+                        procedimientos: this.procedimientos,
+                        cirugias: this.cirugias,
+                        stats: this.stats
+                    });
+                    
                     this.$watch('editingTarifa', (value) => {
                         if (value) {
                             this.formData = { ...value };
+                            console.log('Editando tarifa:', value);
                         } else {
                             this.resetForm();
                         }

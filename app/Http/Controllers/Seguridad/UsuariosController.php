@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Seguridad;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Medico;
+use App\Models\Especialidad;
 
 class UsuariosController extends Controller
 {
@@ -17,7 +19,9 @@ class UsuariosController extends Controller
 
     public function create()
     {
-        return view('seguridad.usuarios-create');
+        $especialidades = Especialidad::orderBy('nombre')->get();
+
+        return view('seguridad.usuarios-create', compact('especialidades'));
     }
 
     public function store(Request $request)
@@ -29,12 +33,33 @@ class UsuariosController extends Controller
             'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,user'
         ]);
 
-        User::create([
+        if ($request->role === 'dirmedico') {
+            $request->validate([
+                'ci' => 'required|integer',
+                'telefono' => 'nullable|integer',
+                'codigo_especialidad' => 'required|string|exists:especialidades,codigo',
+            ]);
+        }
+
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
             'role' => $request->role,
         ]);
+
+        if ($request->role === 'dirmedico') {
+            Medico::updateOrCreate(
+                ['id_usuario' => $user->id],
+                [
+                    'ci' => $request->ci,
+                    'telefono' => $request->telefono,
+                    'estado' => 'Activo',
+                    'id_asistente' => null,
+                    'codigo_especialidad' => $request->codigo_especialidad,
+                ]
+            );
+        }
 
         return redirect()->route('seguridad.usuarios.index')
             ->with('success', 'Usuario creado exitosamente.');
@@ -42,7 +67,10 @@ class UsuariosController extends Controller
 
     public function edit(User $user)
     {
-        return view('seguridad.usuarios-edit', compact('user'));
+        $especialidades = Especialidad::orderBy('nombre')->get();
+        $medico = Medico::where('id_usuario', $user->id)->first();
+
+        return view('seguridad.usuarios-edit', compact('user', 'especialidades', 'medico'));
     }
 
     public function update(Request $request, User $user)
@@ -59,12 +87,33 @@ class UsuariosController extends Controller
             'role' => 'required|in:admin,reception,dirmedico,emergencia,caja'
         ]);
 
+        if ($request->role === 'dirmedico') {
+            $request->validate([
+                'ci' => 'required|integer',
+                'telefono' => 'nullable|integer',
+                'codigo_especialidad' => 'required|string|exists:especialidades,codigo',
+            ]);
+        }
+
         try {
             $user->update([
                 'name' => $request->name,
                 'email' => $request->email,
                 'role' => $request->role,
             ]);
+
+            if ($request->role === 'dirmedico') {
+                Medico::updateOrCreate(
+                    ['id_usuario' => $user->id],
+                    [
+                        'ci' => $request->ci,
+                        'telefono' => $request->telefono,
+                        'estado' => 'Activo',
+                        'id_asistente' => null,
+                        'codigo_especialidad' => $request->codigo_especialidad,
+                    ]
+                );
+            }
 
             if ($request->filled('password')) {
                 $request->validate([

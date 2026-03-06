@@ -36,7 +36,7 @@
     <style>
         @media (min-width: 640px) and (max-width: 1023px) {
             body {
-                background-image: url("/images/fondotablet.jpeg") !important;
+                background-image: url("/images/fondoDia.png") !important;
             }
         }
     </style>
@@ -83,7 +83,7 @@
     </div>
 
     <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src="/images/fondotablet.jpeg"
+        <img src="/images/fondoDia.png"
              alt="Fondo Clinica"
              class="absolute inset-0 w-full h-full object-cover transform scale-105 hover:scale-100 transition-transform duration-700">
 
@@ -91,7 +91,7 @@
 
         <div class="absolute bottom-12 left-0 right-0 text-center px-4">
             <p class="text-white text-2xl font-serif italic drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-                Clinica de especialidades Santa Cruz Srl.
+                Clinica de especialidades  Santa Cruz Srl.
             </p>
         </div>
     </div>
