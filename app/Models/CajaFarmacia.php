@@ -24,6 +24,11 @@ class CajaFarmacia extends Model
 
     public $timestamps = false;
 
+    protected $casts = [
+        'FECHA' => 'datetime',
+        'TOTAL' => 'decimal:2',
+    ];
+
     public function caja()
     {
         return $this->belongsTo(Caja::class, 'ID_CAJA', 'ID');

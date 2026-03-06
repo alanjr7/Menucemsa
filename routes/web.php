@@ -10,7 +10,6 @@ use App\Http\Controllers\Medical\QuirofanoController;
 use App\Http\Controllers\Medical\HospitalizacionController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
-use App\Http\Controllers\Admin\TarifarioController;
 
 
 use App\Http\Controllers\Gerencial\ReportesController;
@@ -142,13 +141,9 @@ Route::middleware('auth')->group(function () {
 
     // Rutas de administración (admin y caja)
     Route::middleware(['role:admin|caja'])->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/caja', [\App\Http\Controllers\CajaController::class, 'index'])->name('caja.index');
-
-        Route::get('/nuevo-cobro', function () {
-            return view('admin.nuevo-cobro');
-        })->name('nuevo-cobro');
-
-        Route::post('/procesar-nuevo-cobro', [\App\Http\Controllers\CajaController::class, 'procesarNuevoCobro'])->name('procesar-nuevo-cobro');
+        Route::get('/caja', function () {
+            return view('admin.caja');
+        })->name('caja.index');
 
         Route::get('/facturacion', function () {
             return view('admin.facturacion');
