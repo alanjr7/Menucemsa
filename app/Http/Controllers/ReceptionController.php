@@ -346,6 +346,202 @@ class ReceptionController extends Controller
         return view('reception.confirmacion', compact('caja'));
     }
 
+
+
+    public function procesarTriageGeneral(Request $request)
+    {
+        $request->validate([
+            'ci' => 'required|string|min:6',
+            'triage_tipo' => 'required|in:rojo,amarillo,verde',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $paciente = $this->crearOActualizarPaciente($request);
+            $triage = $this->crearTriagePorTipo($request->triage_tipo);
+            $paciente->update(['id_triage' => $triage->id]);
+
+            if ($request->triage_tipo === 'verde') {
+                $caja = $this->crearRegistroCajaPendiente($request, $paciente);
+                $consulta = $this->crearConsulta($request, $paciente, $caja);
+
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'flujo' => 'consulta_normal',
+                    'message' => 'Triage VERDE registrado. Continúe con caja y consulta externa.',
+                    'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id]),
+                    'consulta_id' => $consulta->id,
+                ]);
+            }
+
+            if ($request->triage_tipo === 'rojo') {
+                $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+                DB::table('emergencias')->insert([
+                    'nro' => $nroEmergencia,
+                    'descripcion' => $request->motivo ?? 'Emergencia por triage rojo',
+                    'estado' => 'INGRESADO',
+                    'tipo' => strtoupper($request->input('tipo_emergencia', 'EMERGENCIA')),
+                    'id_triage' => $triage->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $acciones = ['enviado_emergencia' => true];
+
+                if ($request->boolean('accidente_automovilistico')) {
+                    $this->obtenerOCrearRegistroMotivo('Formulario SOAT - ' . $paciente->ci);
+                    $acciones['formulario_soat'] = true;
+                }
+
+                if ($request->boolean('requiere_cirugia_inmediata')) {
+                    $acciones['traslado_uci'] = true;
+                    $quirofano = DB::table('quirofanos')->orderBy('nro')->first();
+                    if ($quirofano) {
+                        $nroCirugia = 'CIR-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+                        DB::table('cirugias')->insert([
+                            'nro' => $nroCirugia,
+                            'fecha' => now()->toDateString(),
+                            'hora' => now()->toTimeString(),
+                            'tipo' => 'CIRUGIA_INMEDIATA',
+                            'descripcion' => $request->motivo ?? 'Cirugía inmediata por triage rojo',
+                            'nro_emergencia' => $nroEmergencia,
+                            'nro_quirofano' => $quirofano->nro,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $acciones['cirugia'] = true;
+                    }
+                } else {
+                    $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+                    DB::table('hospitalizaciones')->insert([
+                        'id' => $idHosp,
+                        'fecha_ingreso' => now(),
+                        'motivo' => 'Observación posterior a triage rojo',
+                        'nro_emergencia' => $nroEmergencia,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $acciones['internacion_uti'] = true;
+                }
+
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'flujo' => 'emergencia',
+                    'message' => 'Triage ROJO procesado y derivado a emergencia.',
+                    'acciones' => $acciones,
+                ]);
+            }
+
+            // AMARILLO - Parto
+            $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+            $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+            DB::table('emergencias')->insert([
+                'nro' => $nroEmergencia,
+                'descripcion' => 'Ingreso para parto',
+                'estado' => 'INGRESADO',
+                'tipo' => 'PARTO',
+                'id_triage' => $triage->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('hospitalizaciones')->insert([
+                'id' => $idHosp,
+                'fecha_ingreso' => now(),
+                'motivo' => $request->boolean('requiere_estabilizacion_previa') ? 'Estabilización previa a parto' : 'Ingreso a parto',
+                'nro_emergencia' => $nroEmergencia,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $quirofano = DB::table('quirofanos')->orderBy('nro')->first();
+            $acciones = [
+                'registro_paciente' => true,
+                'parto_quirofano_exclusivo' => true,
+                'asignacion_neonatologia' => true,
+            ];
+
+            if ($quirofano) {
+                $nroCirugia = 'CIR-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+                DB::table('cirugias')->insert([
+                    'nro' => $nroCirugia,
+                    'fecha' => now()->toDateString(),
+                    'hora' => now()->toTimeString(),
+                    'tipo' => 'PARTO',
+                    'descripcion' => 'Parto en quirófano exclusivo',
+                    'nro_emergencia' => $nroEmergencia,
+                    'nro_quirofano' => $quirofano->nro,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('partos')->insert([
+                    'nro' => 'PARTO-' . now()->format('YmdHis') . '-' . random_int(100, 999),
+                    'tipo' => 'INSTITUCIONAL',
+                    'observaciones' => $request->observaciones,
+                    'id_hospitalizacion' => $idHosp,
+                    'nro_cirugia' => $nroCirugia,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            if ($request->boolean('requiere_observacion_postparto')) {
+                $acciones['observacion_postparto_uti'] = true;
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'flujo' => 'parto',
+                'message' => 'Triage AMARILLO (parto) procesado correctamente.',
+                'acciones' => $acciones,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar triage: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function crearTriagePorTipo(string $tipo)
+    {
+        $currentUser = Auth::user();
+
+        $map = [
+            'rojo' => ['color' => 'red', 'descripcion' => 'Emergencia', 'prioridad' => 'alta'],
+            'amarillo' => ['color' => 'yellow', 'descripcion' => 'Parto', 'prioridad' => 'media'],
+            'verde' => ['color' => 'green', 'descripcion' => 'Consulta Externa - No Urgente', 'prioridad' => 'baja'],
+        ];
+
+        $cfg = $map[$tipo];
+        return Triage::create([
+            'id' => 'TRIAGE-' . strtoupper($tipo) . '-' . now()->format('YmdHis') . '-' . random_int(100, 999),
+            'color' => $cfg['color'],
+            'descripcion' => $cfg['descripcion'],
+            'prioridad' => $cfg['prioridad'],
+            'id_usuario' => $currentUser->id,
+        ]);
+    }
+
+    private function obtenerOCrearRegistroMotivo(string $motivo)
+    {
+        return Registro::firstOrCreate(
+            ['codigo' => 'REG-' . now()->format('YmdHis') . '-' . random_int(100, 999)],
+            [
+                'fecha' => now()->toDateString(),
+                'hora' => now()->toTimeString(),
+                'motivo' => $motivo,
+                'id_usuario' => Auth::id(),
+            ]
+        );
+    }
+
     // MÉTODOS PARA GESTIÓN DE CITAS Y AGENDA
 
     public function getAgendaDia(Request $request)

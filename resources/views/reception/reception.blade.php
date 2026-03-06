@@ -557,8 +557,13 @@
             const data = Object.fromEntries(formData.entries());
             
             // Validar campos requeridos básicos
-            if (!data.ci || !data.especialidad || !data.medico || !data.seguro) {
-                alert('Por favor complete todos los campos requeridos');
+            if (!data.ci || !data.triage_tipo) {
+                alert('Por favor complete CI y tipo de triage');
+                return;
+            }
+
+            if (data.triage_tipo === 'verde' && (!data.especialidad || !data.medico || !data.seguro || !data.motivo)) {
+                alert('Para triage VERDE debe completar los datos de consulta normal');
                 return;
             }
 
@@ -582,7 +587,7 @@
             submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Procesando...';
             submitBtn.disabled = true;
 
-            fetch('/api/registrar-consulta-externa', {
+            fetch('/api/triage-general', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -593,10 +598,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Nuevo episodio de consulta externa registrado exitosamente. El paciente debe pasar a caja para realizar el pago.');
+                    alert(data.message || 'Triage procesado correctamente');
                     cerrarModalConsultaExterna();
-                    // Redirigir a página de confirmación
-                    window.location.href = data.redirect_url;
+                    // Redirigir a página de confirmación solo para consulta normal
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
                 } else {
                     alert('Error: ' + data.message);
                 }
@@ -641,6 +648,22 @@
             }
         }
 
+
+
+        function actualizarCamposPorTriage() {
+            const tipo = document.getElementById('triage_tipo')?.value;
+            const rojo = document.getElementById('bloqueRojo');
+            const amarillo = document.getElementById('bloqueAmarillo');
+
+            if (rojo) rojo.classList.add('hidden');
+            if (amarillo) amarillo.classList.add('hidden');
+
+            habilitarCamposConsulta(tipo === 'verde');
+
+            if (tipo === 'rojo' && rojo) rojo.classList.remove('hidden');
+            if (tipo === 'amarillo' && amarillo) amarillo.classList.remove('hidden');
+        }
+
         // Función para habilitar/deshabilitar campos de consulta
         function habilitarCamposConsulta(habilitar) {
             const camposConsulta = [
@@ -669,6 +692,7 @@
         // Inicializar cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', function() {
             inicializarTipoPaciente();
+            actualizarCamposPorTriage();
         });
 
         // También inicializar cuando se abre el modal
@@ -679,6 +703,7 @@
             // Re-inicializar el tipo de paciente
             setTimeout(() => {
                 inicializarTipoPaciente();
+            actualizarCamposPorTriage();
             }, 100);
         }
 
@@ -849,6 +874,26 @@
                                     <option value="existente">Paciente Existente</option>
                                 </select>
                             </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Triage</label>
+                                <select id="triage_tipo" name="triage_tipo" onchange="actualizarCamposPorTriage()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="rojo">ROJO - Emergencia</option>
+                                    <option value="amarillo">AMARILLO - Parto</option>
+                                    <option value="verde">VERDE - Consulta Normal</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="bloqueRojo" class="mt-4 p-4 bg-red-50 rounded-xl border border-red-200 hidden">
+                            <label class="inline-flex items-center mr-4"><input type="checkbox" name="accidente_automovilistico" class="mr-2">¿Accidente automovilístico?</label>
+                            <label class="inline-flex items-center"><input type="checkbox" name="requiere_cirugia_inmediata" class="mr-2">¿Requiere cirugía inmediata?</label>
+                        </div>
+
+                        <div id="bloqueAmarillo" class="mt-4 p-4 bg-yellow-50 rounded-xl border border-yellow-200 hidden">
+                            <label class="inline-flex items-center mr-4"><input type="checkbox" name="requiere_estabilizacion_previa" class="mr-2">¿Requiere estabilización previa?</label>
+                            <label class="inline-flex items-center"><input type="checkbox" name="requiere_observacion_postparto" class="mr-2">¿Requiere observación post parto?</label>
                         </div>
 
                         <!-- Datos Personales (se muestran si es paciente nuevo) -->

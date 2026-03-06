@@ -67,6 +67,7 @@ Route::middleware('auth')->group(function () {
         // Rutas para consulta externa
         Route::post('/api/buscar-paciente', [ReceptionController::class, 'buscarPaciente'])->name('reception.buscar-paciente');
         Route::post('/api/registrar-consulta-externa', [ReceptionController::class, 'registrarConsultaExterna'])->name('reception.registrar-consulta');
+        Route::post('/api/triage-general', [ReceptionController::class, 'procesarTriageGeneral'])->name('reception.triage-general');
         Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
         
         // Rutas API para gestión de citas
