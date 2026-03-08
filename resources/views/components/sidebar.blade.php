@@ -53,6 +53,7 @@
                         ['r' => 'caja.index', 'l' => 'Caja Central'],
                         ['r' => 'facturacion.index', 'l' => 'Facturación'],
                         ['r' => 'admin.tarifarios', 'l' => 'Tarifarios'],
+                        ['r' => 'admin.especialidades', 'l' => 'Especialidades'],
                         ['r' => 'admin.seguros', 'l' => 'Seguros'],
                         ['r' => 'admin.cuentas', 'l' => 'Cuentas por Cobrar'],
                     ]

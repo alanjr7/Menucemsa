@@ -21,7 +21,7 @@
         <!-- Botones de Acción Principal -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <!-- Botón Verde - Consulta Externa -->
-            <button onclick="abrirConsultaExterna()" class="group relative bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-6 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <a href="{{ route('reception.consulta-externa') }}" class="group relative bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-6 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div class="flex flex-col items-center">
                     <div class="bg-white/20 p-3 rounded-full mb-3 group-hover:bg-white/30 transition-colors">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,10 +31,10 @@
                     <span class="text-lg">Consulta Externa</span>
                     <span class="text-xs opacity-90 mt-1">Paciente nuevo o episodio</span>
                 </div>
-            </button>
+            </a>
 
             <!-- Botón Amarillo - Emergencia -->
-            <button class="group relative bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-6 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <a href="{{ route('reception.emergencia') }}" class="group relative bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-6 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div class="flex flex-col items-center">
                     <div class="bg-white/20 p-3 rounded-full mb-3 group-hover:bg-white/30 transition-colors">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,10 +44,10 @@
                     <span class="text-lg">Emergencia</span>
                     <span class="text-xs opacity-90 mt-1">Atención urgente</span>
                 </div>
-            </button>
+            </a>
 
             <!-- Botón Rojo - Hospitalización -->
-            <button class="group relative bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-6 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <a href="{{ route('reception.hospitalizacion') }}" class="group relative bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-6 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div class="flex flex-col items-center">
                     <div class="bg-white/20 p-3 rounded-full mb-3 group-hover:bg-white/30 transition-colors">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +57,7 @@
                     <span class="text-lg">Hospitalización</span>
                     <span class="text-xs opacity-90 mt-1">Admisión interna</span>
                 </div>
-            </button>
+            </a>
         </div>
 
         <!-- Stats Cards -->

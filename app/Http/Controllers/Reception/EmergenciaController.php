@@ -1,0 +1,336 @@
+<?php
+
+namespace App\Http\Controllers\Reception;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Paciente;
+use App\Models\Emergencia;
+use App\Models\Triage;
+use App\Models\Registro;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+
+class EmergenciaController extends Controller
+{
+    public function index()
+    {
+        return view('reception.emergencia');
+    }
+
+    public function buscarPaciente(Request $request)
+    {
+        $ci = $request->get('ci');
+        
+        if (strlen($ci) < 8) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El CI debe tener al menos 8 dígitos'
+            ]);
+        }
+
+        $paciente = Paciente::with(['seguro', 'triage', 'registro'])
+                            ->where('ci', $ci)
+                            ->first();
+
+        if ($paciente) {
+            return response()->json([
+                'success' => true,
+                'paciente' => $paciente,
+                'message' => 'Paciente encontrado'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Paciente no encontrado. Por favor registre sus datos.',
+                'show_form' => true
+            ]);
+        }
+    }
+
+    public function registrarEmergencia(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            // 1. Crear o encontrar paciente
+            $paciente = $this->crearOActualizarPaciente($request);
+
+            // 2. Crear triage de emergencia
+            $triage = $this->crearTriagePorTipo($request->nivel_emergencia);
+            $paciente->update(['id_triage' => $triage->id]);
+
+            // 3. Crear registro de emergencia
+            $emergencia = $this->crearEmergencia($request, $paciente, $triage);
+
+            // 4. Procesar acciones adicionales según el nivel
+            $acciones = $this->procesarAccionesEmergencia($request, $paciente, $emergencia, $triage);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Emergencia registrada exitosamente',
+                'emergencia' => $emergencia->load(['paciente', 'triage']),
+                'acciones' => $acciones
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar la emergencia: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getEmergenciasActivas()
+    {
+        try {
+            $emergencias = Emergencia::with(['paciente', 'triage'])
+                ->where('estado', 'INGRESADO')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Formatear datos para la vista
+            $emergenciasFormateadas = $emergencias->map(function($emergencia) {
+                return [
+                    'codigo' => $emergencia->nro,
+                    'paciente' => [
+                        'nombre' => $emergencia->paciente->nombre,
+                        'ci' => $emergencia->paciente->ci
+                    ],
+                    'nivel' => strtolower($emergencia->triage->color),
+                    'tipo_emergencia' => $emergencia->tipo,
+                    'descripcion' => $emergencia->descripcion,
+                    'hora_ingreso' => $emergencia->created_at->format('H:i'),
+                    'estado' => $emergencia->estado
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'emergencias' => $emergenciasFormateadas
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar emergencias activas: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function crearOActualizarPaciente($request)
+    {
+        $ci = $request->ci;
+        
+        // Buscar paciente existente
+        $paciente = Paciente::find($ci);
+        
+        if (!$paciente) {
+            // Validar que todos los campos requeridos estén presentes
+            $request->validate([
+                'nombres' => 'required|string|max:80',
+                'apellidos' => 'required|string|max:80',
+                'sexo' => 'required|string|in:Masculino,Femenino',
+            ]);
+
+            // Crear nuevo paciente
+            $paciente = Paciente::create([
+                'ci' => $ci,
+                'nombre' => trim($request->nombres . ' ' . $request->apellidos),
+                'sexo' => $request->sexo,
+                'direccion' => $request->direccion ?? 'Sin especificar',
+                'telefono' => $request->telefono ?? 0,
+                'correo' => $request->correo ?? 'sin@email.com',
+                'codigo_seguro' => $this->obtenerOCrearSeguro($request->seguro ?? 'particular'),
+                'id_triage' => null, // Se asignará después
+                'codigo_registro' => $this->obtenerOCrearRegistro(),
+            ]);
+        } else {
+            // Actualizar datos si es necesario
+            $paciente->update([
+                'telefono' => $request->telefono ?? $paciente->telefono,
+                'correo' => $request->correo ?? $paciente->correo,
+                'direccion' => $request->direccion ?? $paciente->direccion,
+            ]);
+        }
+        
+        return $paciente;
+    }
+
+    private function crearEmergencia($request, $paciente, $triage)
+    {
+        $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+        
+        return Emergencia::create([
+            'nro' => $nroEmergencia,
+            'descripcion' => $request->descripcion,
+            'estado' => 'INGRESADO',
+            'tipo' => strtoupper($request->tipo_emergencia),
+            'id_triage' => $triage->id,
+            'ci_paciente' => $paciente->ci,
+            'presion_arterial' => $request->presion_arterial,
+            'frecuencia_cardiaca' => $request->frecuencia_cardiaca,
+            'frecuencia_respiratoria' => $request->frecuencia_respiratoria,
+            'temperatura' => $request->temperatura,
+            'alergias' => $request->alergias,
+            'medicamentos' => $request->medicamentos,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function procesarAccionesEmergencia($request, $paciente, $emergencia, $triage)
+    {
+        $acciones = [];
+
+        // Acción principal: enviar a emergencia
+        $acciones['enviado_emergencia'] = true;
+
+        // Accidente automovilístico
+        if ($request->boolean('accidente_automovilistico')) {
+            $this->obtenerOCrearRegistroMotivo('Formulario SOAT - ' . $paciente->ci);
+            $acciones['formulario_soat'] = true;
+        }
+
+        // Cirugía inmediata
+        if ($request->boolean('requiere_cirugia_inmediata')) {
+            $acciones['traslado_uci'] = true;
+            $quirofano = DB::table('quirofanos')->orderBy('nro')->first();
+            if ($quirofano) {
+                $nroCirugia = 'CIR-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+                DB::table('cirugias')->insert([
+                    'nro' => $nroCirugia,
+                    'fecha' => now()->toDateString(),
+                    'hora' => now()->toTimeString(),
+                    'tipo' => 'CIRUGIA_INMEDIATA',
+                    'descripcion' => $request->descripcion,
+                    'nro_emergencia' => $emergencia->nro,
+                    'nro_quirofano' => $quirofano->nro,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $acciones['cirugia'] = true;
+            }
+        }
+
+        // Requiere UCI
+        if ($request->boolean('requiere_uci')) {
+            $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+            DB::table('hospitalizaciones')->insert([
+                'id' => $idHosp,
+                'fecha_ingreso' => now(),
+                'motivo' => 'Hospitalización en UCI por emergencia',
+                'nro_emergencia' => $emergencia->nro,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $acciones['internacion_uti'] = true;
+        }
+
+        // Contactar familiar
+        if ($request->boolean('contacto_familia')) {
+            $this->obtenerOCrearRegistroMotivo('Contacto familiar notificado - ' . $paciente->ci);
+            $acciones['contacto_familiar'] = true;
+        }
+
+        return $acciones;
+    }
+
+    private function crearTriagePorTipo(string $tipo)
+    {
+        $currentUser = Auth::user();
+
+        $map = [
+            'rojo' => ['color' => 'red', 'descripcion' => 'Emergencia Inmediata', 'prioridad' => 'alta'],
+            'naranja' => ['color' => 'orange', 'descripcion' => 'Emergencia Urgente', 'prioridad' => 'alta'],
+            'amarillo' => ['color' => 'yellow', 'descripcion' => 'Emergencia Media', 'prioridad' => 'media'],
+            'verde' => ['color' => 'green', 'descripcion' => 'Emergencia Baja', 'prioridad' => 'baja'],
+        ];
+
+        $cfg = $map[$tipo] ?? $map['amarillo'];
+        return Triage::create([
+            'id' => 'TRIAGE-' . strtoupper($tipo) . '-' . now()->format('YmdHis') . '-' . random_int(100, 999),
+            'color' => $cfg['color'],
+            'descripcion' => $cfg['descripcion'],
+            'prioridad' => $cfg['prioridad'],
+            'id_usuario' => $currentUser->id,
+        ]);
+    }
+
+    private function obtenerOCrearSeguro($seguroNombre)
+    {
+        $seguro = \App\Models\Seguro::firstOrCreate(
+            ['nombre_empresa' => ucfirst($seguroNombre)],
+            [
+                'codigo' => \App\Models\Seguro::max('codigo') + 1,
+                'tipo' => 'EMERGENCIA',
+                'cobertura' => 'Cobertura de Emergencia',
+                'telefono' => null,
+                'formulario' => 'EMERGENCIA',
+                'estado' => 'ACTIVO'
+            ]
+        );
+        
+        return $seguro->codigo;
+    }
+
+    private function obtenerOCrearRegistro()
+    {
+        $currentUser = Auth::user();
+        $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
+        
+        $registro = Registro::firstOrCreate(
+            ['codigo' => $codigo],
+            [
+                'fecha' => now()->toDateString(),
+                'hora' => now()->toTimeString(),
+                'motivo' => 'Registro de Emergencia',
+                'id_usuario' => $currentUser->id
+            ]
+        );
+        
+        return $registro->codigo;
+    }
+
+    private function obtenerOCrearRegistroMotivo(string $motivo)
+    {
+        return Registro::firstOrCreate(
+            ['codigo' => 'REG-' . now()->format('YmdHis') . '-' . random_int(100, 999)],
+            [
+                'fecha' => now()->toDateString(),
+                'hora' => now()->toTimeString(),
+                'motivo' => $motivo,
+                'id_usuario' => Auth::id(),
+            ]
+        );
+    }
+
+    public function actualizarEstadoEmergencia(Request $request, $nroEmergencia)
+    {
+        try {
+            $emergencia = Emergencia::where('nro', $nroEmergencia)->firstOrFail();
+            
+            $emergencia->update([
+                'estado' => $request->estado,
+                'updated_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado de emergencia actualizado exitosamente',
+                'emergencia' => $emergencia
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar estado: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}
