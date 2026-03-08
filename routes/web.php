@@ -183,7 +183,7 @@ Route::middleware('auth')->group(function () {
     // Rutas de administración (solo admin) - Incluyendo especialidades
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         // Rutas para especialidades
-        Route::get('/especialidades', [\App\Http\Controllers\Admin\EspecialidadController::class, 'index'])->name('especialidades');
+        Route::get('/especialidades', [\App\Http\Controllers\Admin\EspecialidadController::class, 'index'])->name('especialidades.index');
         Route::post('/especialidades', [\App\Http\Controllers\Admin\EspecialidadController::class, 'store'])->name('especialidades.store');
         Route::put('/especialidades/{codigo}', [\App\Http\Controllers\Admin\EspecialidadController::class, 'update'])->name('especialidades.update');
         Route::delete('/especialidades/{codigo}', [\App\Http\Controllers\Admin\EspecialidadController::class, 'destroy'])->name('especialidades.destroy');
@@ -196,7 +196,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/api/especialidades/{codigo}', [\App\Http\Controllers\Admin\EspecialidadController::class, 'update'])->name('especialidades.api.update');
         Route::delete('/api/especialidades/{codigo}', [\App\Http\Controllers\Admin\EspecialidadController::class, 'destroy'])->name('especialidades.api.destroy');
         Route::get('/api/especialidades/{codigo}', [\App\Http\Controllers\Admin\EspecialidadController::class, 'show'])->name('especialidades.api.show');
-        Route::get('/api/admin/especialidades/stats', [\App\Http\Controllers\Admin\EspecialidadController::class, 'getStats'])->name('especialidades.api.stats');
+        Route::get('/api/especialidades/stats', [\App\Http\Controllers\Admin\EspecialidadController::class, 'getStats'])->name('especialidades.api.stats');
     });
 
     // Rutas de farmacia (solo admin)
