@@ -18,11 +18,17 @@ class Especialidad extends Model
         'codigo',
         'nombre',
         'descripcion',
+        'estado',
     ];
 
     protected $casts = [
         'codigo' => 'string',
     ];
+
+    public function getRouteKeyName(): string
+    {
+        return 'codigo';
+    }
 
     public function medicos()
     {
@@ -39,7 +45,7 @@ class Especialidad extends Model
         return $this->hasMany(Cirugia::class, 'codigo_especialidad', 'codigo');
     }
 
-    public static function boot()
+    protected static function boot()
     {
         parent::boot();
 

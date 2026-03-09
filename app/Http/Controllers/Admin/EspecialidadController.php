@@ -3,164 +3,81 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Especialidad;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class EspecialidadController extends Controller
 {
-    public function index()
+    public function index(): View
     {
-        $especialidades = Especialidad::withCount(['medicos', 'consultas'])->orderBy('nombre')->get();
-        return view('admin.especialidades', compact('especialidades'));
+        $especialidades = Especialidad::withCount(['medicos', 'consultas'])
+            ->orderBy('nombre')
+            ->paginate(15);
+
+        return view('admin.especialidades.index', compact('especialidades'));
     }
 
-    public function store(Request $request)
+    public function create(): View
     {
-        $validator = Validator::make($request->all(), [
-            'codigo' => 'required|string|max:15|unique:especialidades,codigo',
-            'nombre' => 'required|string|max:80|unique:especialidades,nombre',
-            'descripcion' => 'required|string|max:80',
+        return view('admin.especialidades.create');
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'codigo' => ['nullable', 'string', 'max:15', 'unique:especialidades,codigo'],
+            'nombre' => ['required', 'string', 'max:80', 'unique:especialidades,nombre'],
+            'descripcion' => ['nullable', 'string', 'max:255'],
+            'estado' => ['required', 'in:activo,inactivo'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 422);
+        if (! isset($data['codigo']) || blank($data['codigo'])) {
+            unset($data['codigo']);
+        } else {
+            $data['codigo'] = strtoupper($data['codigo']);
         }
 
-        try {
-            $especialidad = Especialidad::create([
-                'codigo' => strtoupper($request->codigo),
-                'nombre' => ucwords(strtolower($request->nombre)),
-                'descripcion' => ucfirst($request->descripcion),
-            ]);
+        Especialidad::create($data);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Especialidad creada exitosamente',
-                'especialidad' => $especialidad
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear especialidad: ' . $e->getMessage()
-            ], 500);
-        }
+        return redirect()
+            ->route('admin.especialidades.index')
+            ->with('success', 'Especialidad creada correctamente.');
     }
 
-    public function update(Request $request, $codigo)
+    public function edit(Especialidad $especialidad): View
     {
-        $especialidad = Especialidad::findOrFail($codigo);
+        return view('admin.especialidades.edit', compact('especialidad'));
+    }
 
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:80|unique:especialidades,nombre,' . $codigo . ',codigo',
-            'descripcion' => 'required|string|max:80',
+    public function update(Request $request, Especialidad $especialidad): RedirectResponse
+    {
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:80', 'unique:especialidades,nombre,' . $especialidad->codigo . ',codigo'],
+            'descripcion' => ['nullable', 'string', 'max:255'],
+            'estado' => ['required', 'in:activo,inactivo'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $especialidad->update($data);
 
-        try {
-            $especialidad->update([
-                'nombre' => ucwords(strtolower($request->nombre)),
-                'descripcion' => ucfirst($request->descripcion),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Especialidad actualizada exitosamente',
-                'especialidad' => $especialidad
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al actualizar especialidad: ' . $e->getMessage()
-            ], 500);
-        }
+        return redirect()
+            ->route('admin.especialidades.index')
+            ->with('success', 'Especialidad actualizada correctamente.');
     }
 
-    public function destroy($codigo)
+    public function destroy(Especialidad $especialidad): RedirectResponse
     {
-        try {
-            $especialidad = Especialidad::findOrFail($codigo);
-            
-            // Verificar si hay médicos asociados
-            if ($especialidad->medicos()->count() > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede eliminar la especialidad porque tiene médicos asociados'
-                ], 422);
-            }
-
-            // Verificar si hay consultas asociadas
-            if ($especialidad->consultas()->count() > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede eliminar la especialidad porque tiene consultas asociadas'
-                ], 422);
-            }
-
-            $especialidad->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Especialidad eliminada exitosamente'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al eliminar especialidad: ' . $e->getMessage()
-            ], 500);
+        if ($especialidad->medicos()->exists() || $especialidad->consultas()->exists()) {
+            return redirect()
+                ->route('admin.especialidades.index')
+                ->with('error', 'No se puede eliminar la especialidad porque tiene médicos o consultas asociadas.');
         }
-    }
 
-    public function show($codigo)
-    {
-        try {
-            $especialidad = Especialidad::withCount(['medicos', 'consultas'])->findOrFail($codigo);
-            
-            return response()->json([
-                'success' => true,
-                'especialidad' => $especialidad
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener especialidad: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+        $especialidad->delete();
 
-    public function getStats()
-    {
-        try {
-            $stats = [
-                'total' => Especialidad::count(),
-                'con_medicos' => Especialidad::has('medicos')->count(),
-                'sin_medicos' => Especialidad::doesntHave('medicos')->count(),
-                'mas_usadas' => Especialidad::withCount('consultas')
-                    ->orderBy('consultas_count', 'desc')
-                    ->limit(5)
-                    ->get()
-            ];
-
-            return response()->json([
-                'success' => true,
-                'stats' => $stats
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener estadísticas: ' . $e->getMessage()
-            ], 500);
-        }
+        return redirect()
+            ->route('admin.especialidades.index')
+            ->with('success', 'Especialidad eliminada correctamente.');
     }
 }

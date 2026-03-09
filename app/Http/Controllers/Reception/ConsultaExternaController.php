@@ -21,7 +21,12 @@ class ConsultaExternaController extends Controller
 {
     public function index()
     {
-        return view('reception.consulta-externa');
+        $especialidades = Especialidad::query()
+            ->where('estado', 'activo')
+            ->orderBy('nombre')
+            ->get();
+
+        return view('reception.consulta-externa', compact('especialidades'));
     }
 
     public function buscarPaciente(Request $request)
@@ -243,16 +248,17 @@ class ConsultaExternaController extends Controller
         return $medicos[$medicoSeleccionado] ?? 12345678;
     }
 
-    private function obtenerEspecialidadCodigo($especialidadNombre)
+    private function obtenerEspecialidadCodigo($especialidadCodigo)
     {
-        $especialidad = Especialidad::firstOrCreate(
-            ['nombre' => ucfirst(str_replace('_', ' ', $especialidadNombre))],
-            [
-                'descripcion' => 'Especialidad de ' . str_replace('_', ' ', $especialidadNombre)
-            ]
-        );
-        
-        return $especialidad->codigo;
+        $especialidad = Especialidad::where('codigo', $especialidadCodigo)->first();
+
+        if ($especialidad) {
+            return $especialidad->codigo;
+        }
+
+        $especialidadPorNombre = Especialidad::where('nombre', ucfirst(str_replace('_', ' ', $especialidadCodigo)))->first();
+
+        return $especialidadPorNombre?->codigo;
     }
 
     public function procesarTriageGeneral(Request $request)

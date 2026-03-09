@@ -826,7 +826,7 @@ class ReceptionController extends Controller
     {
         try {
             // Una sola opción por nombre (ignorar mayúsculas/espacios: "Medicina General" = "Medicina general")
-            $especialidades = Especialidad::orderBy('nombre')
+            $especialidades = Especialidad::where('estado', 'activo')->orderBy('nombre')
                 ->get()
                 ->unique(fn ($esp) => strtolower(trim($esp->nombre)))
                 ->values();
