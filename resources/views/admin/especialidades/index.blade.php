@@ -1,4 +1,6 @@
-<x-app-layout>
+@extends('layouts.app')
+
+@section('content')
     <div class="p-6 bg-gray-50 min-h-screen">
         <div class="flex items-center justify-between mb-6">
             <div>
@@ -62,4 +64,4 @@
             {{ $especialidades->links() }}
         </div>
     </div>
-</x-app-layout>
+@endsection

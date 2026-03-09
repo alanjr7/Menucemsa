@@ -13,8 +13,8 @@ export default defineConfig({
         port: 5173,
         strictPort: true,
         hmr: {
-            host: 'nonprovocative-pseudorealistic-carlita.ngrok-free.dev',
-            protocol: 'wss',
+            host: 'localhost',
+            protocol: 'ws',
         },
     },
 });

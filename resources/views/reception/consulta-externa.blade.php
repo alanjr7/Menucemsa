@@ -1,4 +1,5 @@
-<x-app-layout>
+@extends('layouts.app')
+@section('content')
     <div class="p-6 bg-gray-50/50 min-h-screen">
 
         <!-- Header -->
@@ -432,4 +433,4 @@
             });
         }
     </script>
-</x-app-layout>
+@endsection

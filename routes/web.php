@@ -14,11 +14,18 @@ use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitaliza
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
+use App\Http\Controllers\DoctorController;
 
 use App\Http\Controllers\Admin\TarifarioController;
 use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
+use App\Http\Controllers\Farmacia\FarmaciaDashboardController;
 use App\Http\Controllers\Seguridad\UsuariosController;
+
+use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\PuntoVentaController;
+use App\Http\Controllers\InventarioController;
+use App\Http\Controllers\ActivityLogController;
 
 
 
@@ -105,27 +112,27 @@ Route::middleware('auth')->group(function () {
         Route::get('/consulta-externa', [DoctorController::class, 'index'])->name('consulta.index');
         
         // Test route
-        Route::get('/test-doctor', function() {
-            return 'DoctorController works!';
-        });
+        // Route::get('/test-doctor', function() {
+        //     return 'DoctorController works!';
+        // });
         
         // Test DoctorController directly
-        Route::get('/test-doctor-class', function() {
-            try {
-                $controller = new \App\Http\Controllers\DoctorController();
-                return 'DoctorController class loaded successfully';
-            } catch (\Exception $e) {
-                return 'Error loading DoctorController: ' . $e->getMessage();
-            }
-        });
+        // Route::get('/test-doctor-class', function() {
+        //     try {
+        //         $controller = new \App\Http\Controllers\DoctorController();
+        //         return 'DoctorController class loaded successfully';
+        //     } catch (\Exception $e) {
+        //         return 'Error loading DoctorController: ' . $e->getMessage();
+        //     }
+        // });
     });
 
     // Rutas para médicos (dirmedico)
     Route::middleware(['auth', 'role:dirmedico'])->prefix('doctor')->name('doctor.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\DoctorController::class, 'index'])->name('dashboard');
-        Route::get('/consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'verConsulta'])->name('ver-consulta');
-        Route::post('/iniciar-consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'iniciarConsulta'])->name('iniciar-consulta');
-        Route::post('/completar-consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'completarConsulta'])->name('completar-consulta');
+        // Route::get('/', [\App\Http\Controllers\DoctorController::class, 'index'])->name('dashboard');
+        // Route::get('/consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'verConsulta'])->name('ver-consulta');
+        // Route::post('/iniciar-consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'iniciarConsulta'])->name('iniciar-consulta');
+        // Route::post('/completar-consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'completarConsulta'])->name('completar-consulta');
     });
 
     // Rutas de emergencia (admin, dirmedico y emergencia)

@@ -14,10 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'user.status' => \App\Http\Middleware\CheckUserStatus::class,
+            'force.http' => \App\Http\Middleware\ForceHttp::class,
         ]);
         
         // Aplicar el middleware de estado a todas las rutas web
         $middleware->web(\App\Http\Middleware\CheckUserStatus::class);
+        
+        // Forzar HTTP en desarrollo
+        $middleware->web(\App\Http\Middleware\ForceHttp::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
