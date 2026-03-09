@@ -1,4 +1,5 @@
-<x-app-layout>
+@extends('layouts.app')
+@section('content')
     <div class="p-6 bg-gray-50 min-h-screen">
         <h1 class="text-2xl font-bold text-gray-800 mb-6">Crear especialidad</h1>
 
@@ -13,4 +14,4 @@
             </form>
         </div>
     </div>
-</x-app-layout>
+@endsection
