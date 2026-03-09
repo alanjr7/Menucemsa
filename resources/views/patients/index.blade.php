@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-6 bg-gray-50/50 min-h-screen">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full p-6 bg-gray-50/50 min-h-screen">
 
         <!-- Page Header -->
         <div class="flex justify-between items-end mb-8">
@@ -255,4 +257,4 @@
         </div>
 
     </div>
-</x-app-layout>
+@endsection

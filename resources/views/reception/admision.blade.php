@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="mb-6">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full p-6">
         <h2 class="text-sm text-gray-500 uppercase tracking-widest text-blue-600 font-semibold">Admisión de Pacientes</h2>
         <h1 class="text-2xl font-bold text-gray-800">Registro de ingreso y apertura de episodio</h1>
     </div>
@@ -294,4 +296,4 @@
 @endif
 
     </div>
-</x-app-layout>
+@endsection

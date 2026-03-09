@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-8 bg-[#f0f2f5] min-h-screen font-sans antialiased">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full p-8 bg-[#f0f2f5] min-h-screen font-sans antialiased">
         <div class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Facturación Electrónica</h1>
@@ -147,4 +149,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+@endsection

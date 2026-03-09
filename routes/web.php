@@ -19,34 +19,8 @@ use App\Http\Controllers\Admin\TarifarioController;
 use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
 use App\Http\Controllers\Seguridad\UsuariosController;
-use App\Http\Controllers\Farmacia\FarmaciaDashboardController;
-use App\Http\Controllers\Farmacia\PuntoVentaController;
-use App\Http\Controllers\Farmacia\InventarioController;
-use App\Http\Controllers\Farmacia\VentasController;
-use App\Http\Controllers\Farmacia\ClientesController;
-use App\Http\Controllers\Farmacia\ReporteController;
-use App\Http\Controllers\DoctorController;
 
-Route::get('/test-caja', function() {
-    return 'Test route working';
-});
 
-Route::get('/test-tarifarios-modal', function() {
-    $stats = [
-        'total' => 26,
-        'servicios' => 10,
-        'procedimientos' => 8,
-        'cirugias' => 8,
-    ];
-    
-    $servicios = \App\Models\Tarifa::porCategoria('SERVICIO')->orderBy('codigo')->get();
-    $procedimientos = \App\Models\Tarifa::porCategoria('PROCEDIMIENTO')->orderBy('codigo')->get();
-    $cirugias = \App\Models\Tarifa::porCategoria('CIRUGIA')->orderBy('codigo')->get();
-    
-    return view('admin.tarifarios', compact('stats', 'servicios', 'procedimientos', 'cirugias'));
-});
-
-Route::get('/test-tarifarios', [TarifarioController::class, 'index'])->name('test.tarifarios');
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -204,14 +178,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/farmacia', [FarmaciaController::class, 'index'])->name('farmacia.index');
     });
 
-    // Rutas gerenciales (solo admin)
-    Route::middleware(['role:admin'])->prefix('gerencial')->name('gerencial.')->group(function () {
+    // Rutas gerenciales (admin y gerente)
+    Route::middleware(['role:admin|gerente'])->prefix('gerencial')->name('gerencial.')->group(function () {
         Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes');
         Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
     });
 
-    // Rutas de seguridad (solo admin)
-    Route::middleware(['role:admin'])->prefix('seguridad')->name('seguridad.')->group(function () {
+    // Rutas de seguridad (admin y gerente)
+    Route::middleware(['role:admin|gerente'])->prefix('seguridad')->name('seguridad.')->group(function () {
         Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
         Route::get('/usuarios/create', [UsuariosController::class, 'create'])->name('usuarios.create');
         Route::post('/usuarios', [UsuariosController::class, 'store'])->name('usuarios.store');
@@ -220,6 +194,18 @@ Route::middleware('auth')->group(function () {
         Route::delete('/usuarios/{user}', [UsuariosController::class, 'destroy'])->name('usuarios.destroy');
         Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
+        Route::get('/bitacora', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    });
+
+    // Rutas de gestión de usuarios (admin y gerente)
+    Route::middleware(['role:admin|gerente'])->prefix('user-management')->name('user-management.')->group(function () {
+        Route::get('/', [UserManagementController::class, 'index'])->name('index');
+        Route::get('/create', [UserManagementController::class, 'create'])->name('create');
+        Route::post('/', [UserManagementController::class, 'store'])->name('store');
+        Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
+        Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+        Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
     });
 // Rutas de farmacia organizadas por controlador modular
 Route::middleware(['auth', 'role:admin'])->prefix('farmacia')->name('farmacia.')->group(function () {

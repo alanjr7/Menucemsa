@@ -101,8 +101,8 @@
                 </header>
 
                 <main class="p-8">
-                    <div class="max-w-7xl mx-auto">
-                        {{ $slot }}
+                    <div class="w-full">
+                        @yield('content')
                     </div>
                 </main>
 

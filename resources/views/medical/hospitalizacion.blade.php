@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-6 bg-slate-50 min-h-screen">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full p-6 bg-slate-50 min-h-screen">
         <div class="mb-8 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-3">
@@ -105,4 +107,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+@endsection

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
     ];
 
     /**
@@ -70,6 +71,11 @@ class User extends Authenticatable
     public function isCaja(): bool
     {
         return $this->role === 'caja';
+    }
+
+    public function isGerente(): bool
+    {
+        return $this->role === 'gerente';
     }
 
     public function hasRole(string $role): bool

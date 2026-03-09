@@ -20,6 +20,7 @@ class RoleSeeder extends Seeder
                 'name' => 'Administrador',
                 'password' => bcrypt('admin123'),
                 'role' => 'admin',
+                'is_active' => true,
             ]
         );
 
@@ -30,6 +31,7 @@ class RoleSeeder extends Seeder
                 'name' => 'Recepción',
                 'password' => bcrypt('recepcion123'),
                 'role' => 'reception',
+                'is_active' => true,
             ]
         );
 
@@ -40,6 +42,7 @@ class RoleSeeder extends Seeder
                 'name' => 'Director Médico',
                 'password' => bcrypt('dirmedico123'),
                 'role' => 'dirmedico',
+                'is_active' => true,
             ]
         );
 
@@ -50,6 +53,7 @@ class RoleSeeder extends Seeder
                 'name' => 'Emergencia',
                 'password' => bcrypt('emergencia123'),
                 'role' => 'emergencia',
+                'is_active' => true,
             ]
         );
 
@@ -60,6 +64,18 @@ class RoleSeeder extends Seeder
                 'name' => 'Caja',
                 'password' => bcrypt('caja123'),
                 'role' => 'caja',
+                'is_active' => true,
+            ]
+        );
+
+        // Crear usuario Gerente
+        User::firstOrCreate(
+            ['email' => 'gerente@menucemsa.com'],
+            [
+                'name' => 'Gerente',
+                'password' => bcrypt('gerente123'),
+                'role' => 'gerente',
+                'is_active' => true,
             ]
         );
     }

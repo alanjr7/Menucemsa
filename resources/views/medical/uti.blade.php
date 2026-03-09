@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-6 bg-slate-50 min-h-screen">
+@extends('layouts.app')
+
+@section('content')
+<div class="w-full p-6 bg-slate-50 min-h-screen">
 
         <div class="mb-6">
             <div class="flex items-center gap-3">
@@ -209,4 +211,4 @@
 
         </div>
     </div>
-</x-app-layout>
+@endsection

@@ -1,21 +1,6 @@
 <x-app-layout>
     <div x-data="{ tab: 'agenda' }" class="p-6">
 
-        @if(isset($error))
-            <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
-                <div class="flex items-center">
-                    <svg class="w-6 h-6 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <div>
-                        <h3 class="text-lg font-bold text-red-800">Error de Configuración</h3>
-                        <p class="text-red-700 mt-1">{{ $error }}</p>
-                        <p class="text-sm text-red-600 mt-2">Por favor, contacte al administrador del sistema para asociar su cuenta de médico correctamente.</p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Consulta Externa</h1>
@@ -174,62 +159,12 @@
             </div>
         </div>
 
-    </div>
-    
-    <script>
-        function iniciarConsulta(consultaId) {
-            if (confirm('¿Está seguro de iniciar esta consulta?')) {
-                fetch(`/doctor/iniciar-consulta/${consultaId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Consulta iniciada correctamente');
-                        location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al iniciar la consulta');
-                });
-            }
-        }
+        <div x-show="tab === 'atencion'" x-cloak>
+            @include('medical.partials.atencion-actual')
+        </div>
 
-        function completarConsulta(consultaId) {
-            const observaciones = document.querySelector('textarea').value;
-            
-            if (confirm('¿Está seguro de completar esta consulta?')) {
-                fetch(`/doctor/completar-consulta/${consultaId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        observaciones: observaciones
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Consulta completada correctamente');
-                        location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al completar la consulta');
-                });
-            }
-        }
-    </script>
-</x-app-layout>
+        <div x-show="tab === 'historial'" x-cloak>
+            @include('medical.partials.historial')
+        </div>
+
+    </div> </x-app-layout>
