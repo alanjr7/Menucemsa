@@ -90,14 +90,9 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Especialidad *</label>
                             <select name="especialidad" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all">
                                 <option value="">Seleccione...</option>
-                                <option value="GENERAL">Medicina General</option>
-                                <option value="CARDIO">Cardiología</option>
-                                <option value="PEDIAT">Pediatría</option>
-                                <option value="GINE">Ginecología</option>
-                                <option value="DERMA">Dermatología</option>
-                                <option value="NEURO">Neurología</option>
-                                <option value="ORTOP">Ortopedia</option>
-                                <option value="OFTAL">Oftalmología</option>
+                                @foreach($especialidades as $especialidad)
+                                    <option value="{{ $especialidad->codigo }}">{{ $especialidad->nombre }}</option>
+                                @endforeach
                             </select>
                         </div>
                         
@@ -151,58 +146,9 @@
     <script>
         // Cargar datos al iniciar la página
         document.addEventListener('DOMContentLoaded', function() {
-            cargarEspecialidades();
             inicializarTipoPaciente();
         });
 
-        // Función para cargar especialidades
-        async function cargarEspecialidades() {
-            try {
-                const response = await fetch('/api/especialidades');
-                let especialidades = await response.json();
-                
-                // Si no hay especialidades en la BD, usar opciones por defecto
-                if (!especialidades || especialidades.length === 0) {
-                    especialidades = [
-                        {codigo: 'GENERAL', nombre: 'Medicina General'},
-                        {codigo: 'CARDIO', nombre: 'Cardiología'},
-                        {codigo: 'PEDIAT', nombre: 'Pediatría'},
-                        {codigo: 'GINE', nombre: 'Ginecología'},
-                        {codigo: 'DERMA', nombre: 'Dermatología'},
-                        {codigo: 'NEURO', nombre: 'Neurología'},
-                        {codigo: 'ORTOP', nombre: 'Ortopedia'},
-                        {codigo: 'OFTAL', nombre: 'Oftalmología'}
-                    ];
-                }
-                
-                const select = document.querySelector('select[name="especialidad"]');
-                select.innerHTML = '<option value="">Seleccione...</option>';
-                
-                especialidades.forEach(esp => {
-                    const option = document.createElement('option');
-                    option.value = esp.codigo;
-                    option.textContent = esp.nombre;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error al cargar especialidades:', error);
-                // En caso de error, cargar opciones por defecto
-                const select = document.querySelector('select[name="especialidad"]');
-                const opcionesDefecto = [
-                    {codigo: 'GENERAL', nombre: 'Medicina General'},
-                    {codigo: 'CARDIO', nombre: 'Cardiología'},
-                    {codigo: 'PEDIAT', nombre: 'Pediatría'}
-                ];
-                
-                select.innerHTML = '<option value="">Seleccione...</option>';
-                opcionesDefecto.forEach(esp => {
-                    const option = document.createElement('option');
-                    option.value = esp.codigo;
-                    option.textContent = esp.nombre;
-                    select.appendChild(option);
-                });
-            }
-        }
 
         // Función para buscar paciente
         function buscarPaciente() {
