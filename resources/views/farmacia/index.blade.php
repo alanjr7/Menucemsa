@@ -33,7 +33,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Alertas de Stock</p>
-                    <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $alertasStock }}</h3>
+                    <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $alertasStock->count() }}</h3>
                     <p class="text-[11px] text-gray-400 mt-1 font-bold">Requieren reabastecimiento</p>
                 </div>
                 <div class="p-3 bg-orange-500 rounded-xl text-white shadow-lg shadow-orange-100">
@@ -60,7 +60,26 @@
                     <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </div>
                 <div class="flex-1 flex items-center justify-center p-6">
-                    <p class="text-sm font-bold text-gray-400">No hay productos con stock bajo</p>
+                    @php
+                        $totalAlertas = $alertasStock->count() + $alertasVencimiento->count();
+                    @endphp
+                    @if($totalAlertas > 0)
+                        <div class="text-center">
+                            <p class="text-5xl font-black text-orange-500">{{ $totalAlertas }}</p>
+                            <p class="text-sm font-bold text-gray-400 mt-2">Requieren reabastecimiento</p>
+                            @if($alertasStock->count() > 0)
+                                <p class="text-xs text-orange-600 mt-1">{{ $alertasStock->count() }} con stock bajo</p>
+                            @endif
+                            @if($alertasVencimiento->count() > 0)
+                                <p class="text-xs text-red-600 mt-1">{{ $alertasVencimiento->count() }} por vencer</p>
+                            @endif
+                        </div>
+                    @else
+                        <div class="text-center">
+                            <p class="text-5xl font-black text-green-500">0</p>
+                            <p class="text-sm font-bold text-gray-400 mt-2">No hay alertas activas</p>
+                        </div>
+                    @endif
                 </div>
             </div>
 

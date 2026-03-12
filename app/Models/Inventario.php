@@ -30,6 +30,11 @@ class Inventario extends Model
         return $this->belongsTo(Farmacia::class, 'ID_FARMACIA', 'ID');
     }
 
+    public function medicamento()
+    {
+        return $this->belongsTo(Medicamentos::class, 'ID', 'CODIGO');
+    }
+
     protected function setKeysForSaveQuery($query)
     {
         $keys = $this->getKeyName();

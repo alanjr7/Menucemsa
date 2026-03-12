@@ -45,6 +45,7 @@
                         <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">Stock</th>
                         <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Código</th>
                         <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Proveedor</th>
+                        <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Vencimiento</th>
                         <th class="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                     </tr>
                 </thead>
@@ -65,6 +66,14 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-400 font-mono" x-text="p.codigo_barras"></td>
                             <td class="px-6 py-4 text-sm text-gray-500" x-text="p.proveedor"></td>
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                <template x-if="p.fecha_vencimiento && p.fecha_vencimiento !== 'N/A'">
+                                    <span class="text-xs" x-text="new Date(p.fecha_vencimiento).toLocaleDateString('es-PE')"></span>
+                                </template>
+                                <template x-if="!p.fecha_vencimiento || p.fecha_vencimiento === 'N/A'">
+                                    <span class="text-xs text-gray-400">N/A</span>
+                                </template>
+                            </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
                                     <button @click="editProduct(p)" class="p-1.5 text-blue-500 hover:bg-blue-100 rounded-md border border-blue-100 shadow-sm transition-colors">

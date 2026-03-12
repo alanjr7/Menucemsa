@@ -21,6 +21,20 @@ class PuntoVentaController extends Controller
             ->get()
             ->map(function ($medicamento) {
                 $detalle = $medicamento->detalleMedicamentos->first();
+                
+                // Obtener stock real desde la tabla INVENTARIO
+                $stock = 0;
+                
+                if ($detalle) {
+                    $inventario = \App\Models\Inventario::where('ID', $medicamento->CODIGO)
+                        ->where('ID_FARMACIA', $detalle->ID_FARMACIA)
+                        ->first();
+                    
+                    if ($inventario) {
+                        $stock = (int) $inventario->STOCK_DISPONIBLE;
+                    }
+                }
+                
                 return [
                     'id' => $medicamento->CODIGO,
                     'nombre' => $medicamento->DESCRIPCION,
@@ -28,7 +42,7 @@ class PuntoVentaController extends Controller
                     'categoria' => $detalle?->TIPO ?? 'Medicamento',
                     'laboratorio' => $detalle?->LABORATORIO ?? 'N/A',
                     'fecha_vencimiento' => $detalle?->FECHA_VENCIMIENTO ?? 'N/A',
-                    'stock' => 100, // Placeholder - necesitaríamos campo de stock en la BD
+                    'stock' => $stock,
                     'codigo_barras' => $medicamento->CODIGO,
                     'lote' => 'LOT-' . $medicamento->CODIGO,
                     'requerimiento' => $detalle?->REQUERIMIENTO ?? 'Normal'
