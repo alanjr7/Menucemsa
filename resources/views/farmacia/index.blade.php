@@ -11,8 +11,8 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ventas Hoy</p>
-                    <h3 class="text-3xl font-black text-gray-800 mt-2">$0.00</h3>
-                    <p class="text-[11px] text-gray-400 mt-1 font-bold">0 transacciones</p>
+                    <h3 class="text-3xl font-black text-gray-800 mt-2">${{ number_format($ingresosHoy, 2) }}</h3>
+                    <p class="text-[11px] text-gray-400 mt-1 font-bold">{{ $ventasHoy }} transacciones</p>
                 </div>
                 <div class="p-3 bg-green-500 rounded-xl text-white shadow-lg shadow-green-100">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -22,8 +22,8 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Productos en Stock</p>
-                    <h3 class="text-3xl font-black text-gray-800 mt-2">1225</h3>
-                    <p class="text-[11px] text-gray-400 mt-1 font-bold">15 productos distintos</p>
+                    <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $totalMedicamentos }}</h3>
+                    <p class="text-[11px] text-gray-400 mt-1 font-bold">{{ $medicamentosDistintos }} productos distintos</p>
                 </div>
                 <div class="p-3 bg-blue-500 rounded-xl text-white shadow-lg shadow-blue-100">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -33,7 +33,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Alertas de Stock</p>
-                    <h3 class="text-3xl font-black text-gray-800 mt-2">0</h3>
+                    <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $alertasStock }}</h3>
                     <p class="text-[11px] text-gray-400 mt-1 font-bold">Requieren reabastecimiento</p>
                 </div>
                 <div class="p-3 bg-orange-500 rounded-xl text-white shadow-lg shadow-orange-100">
@@ -44,7 +44,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Ventas</p>
-                    <h3 class="text-3xl font-black text-gray-800 mt-2">0</h3>
+                    <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $totalVentas }}</h3>
                     <p class="text-[11px] text-gray-400 mt-1 font-bold">Historial completo</p>
                 </div>
                 <div class="p-3 bg-purple-500 rounded-xl text-white shadow-lg shadow-purple-100">
@@ -69,8 +69,28 @@
                     <h2 class="font-black text-gray-800 text-lg">Últimas Ventas</h2>
                     <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                 </div>
-                <div class="flex-1 flex items-center justify-center p-6">
-                    <p class="text-sm font-bold text-gray-400">No hay ventas registradas</p>
+                <div class="flex-1 overflow-y-auto">
+                    @if($ultimasVentas->count() > 0)
+                        <div class="p-6 space-y-3">
+                            @foreach($ultimasVentas as $venta)
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">{{ $venta->CODIGO_VENTA }}</p>
+                                        <p class="text-xs text-gray-500">{{ $venta->FECHA_VENTA->format('d/m/Y H:i') }}</p>
+                                        <p class="text-xs text-gray-400">{{ $venta->CLIENTE ?: 'Cliente General' }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-green-600">${{ number_format($venta->TOTAL, 2) }}</p>
+                                        <p class="text-xs text-gray-400">{{ $venta->detalles->count() }} productos</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="flex-1 flex items-center justify-center p-6">
+                            <p class="text-sm font-bold text-gray-400">No hay ventas registradas</p>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

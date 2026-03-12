@@ -6,7 +6,7 @@
         <div class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Clientes</h1>
-                <p class="text-gray-500 text-sm" x-text="clientes.length + ' clientes registrados'"></p>
+                <p class="text-gray-500 text-sm">{{ $clientes->count() }} clientes registrados</p>
             </div>
             <button @click="openCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-100 transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -126,9 +126,7 @@
                 showModal: false,
                 isEdit: false,
                 editingClient: {},
-                clientes: [
-                    { id: 1, nombre: 'hols', fecha: '25/2/2026', telefono: 'sss', email: 'ss', direccion: 'ss' }
-                ],
+                clientes: @json($clientesArray),
 
                 get filteredClients() {
                     if (this.search === '') return this.clientes;
@@ -151,25 +149,78 @@
                     this.showModal = true;
                 },
 
-                saveClient() {
-                    if (!this.editingClient.nombre || !this.editingClient.telefono) {
-                        alert('Nombre y Teléfono son requeridos');
+                async saveClient() {
+                    if (!this.editingClient.nombre) {
+                        alert('Nombre es requerido');
                         return;
                     }
 
-                    if (this.isEdit) {
-                        const index = this.clientes.findIndex(c => c.id === this.editingClient.id);
-                        this.clientes[index] = this.editingClient;
-                    } else {
-                        this.editingClient.id = Date.now();
-                        this.clientes.unshift(this.editingClient);
+                    try {
+                        let response;
+                        if (this.isEdit) {
+                            response = await fetch(`/farmacia/clientes/${this.editingClient.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify(this.editingClient)
+                            });
+                        } else {
+                            response = await fetch('/farmacia/clientes', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify(this.editingClient)
+                            });
+                        }
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            if (this.isEdit) {
+                                const index = this.clientes.findIndex(c => c.id === this.editingClient.id);
+                                if (index !== -1) {
+                                    this.clientes[index] = { ...this.editingClient, id: result.cliente?.id || this.editingClient.id };
+                                }
+                            } else {
+                                this.editingClient.id = result.cliente?.id || Date.now();
+                                this.clientes.unshift({ ...this.editingClient, id: result.cliente?.id || this.editingClient.id });
+                            }
+                            this.showModal = false;
+                            alert(result.message);
+                        } else {
+                            alert('Error: ' + result.message);
+                        }
+                    } catch (error) {
+                        alert('Error al guardar el cliente: ' + error.message);
                     }
-                    this.showModal = false;
                 },
 
-                deleteClient(id) {
+                async deleteClient(id) {
                     if (confirm('¿Eliminar este cliente?')) {
-                        this.clientes = this.clientes.filter(c => c.id !== id);
+                        try {
+                            const response = await fetch(`/farmacia/clientes/${id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                }
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                this.clientes = this.clientes.filter(c => c.id !== id);
+                                alert(result.message);
+                            } else {
+                                alert('Error: ' + result.message);
+                            }
+                        } catch (error) {
+                            alert('Error al eliminar el cliente: ' + error.message);
+                        }
                     }
                 }
             }

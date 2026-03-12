@@ -25,7 +25,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Ventas</p>
-                    <p class="text-3xl font-black text-gray-800">0</p>
+                    <p class="text-3xl font-black text-gray-800">{{ $totalVentas }}</p>
                 </div>
                 <div class="bg-blue-500 p-4 rounded-2xl shadow-lg shadow-blue-100 text-white">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -35,7 +35,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ingresos Totales</p>
-                    <p class="text-3xl font-black text-green-500">$0.00</p>
+                    <p class="text-3xl font-black text-green-500">${{ number_format($ingresosTotales, 2) }}</p>
                 </div>
                 <div class="bg-green-500 p-4 rounded-2xl shadow-lg shadow-green-100 text-white">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -45,7 +45,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Promedio por Venta</p>
-                    <p class="text-3xl font-black text-gray-800">$0.00</p>
+                    <p class="text-3xl font-black text-gray-800">${{ number_format($promedioPorVenta, 2) }}</p>
                 </div>
                 <div class="bg-purple-500 p-4 rounded-2xl shadow-lg shadow-purple-100 text-white">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
@@ -179,11 +179,22 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td colspan="4" class="px-8 py-12 text-center text-gray-400 font-bold text-sm">
-                                No hay datos de ventas en el periodo seleccionado
-                            </td>
-                        </tr>
+                        @if($productosMasVendidos->count() > 0)
+                            @foreach($productosMasVendidos as $index => $producto)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-8 py-4 text-sm font-medium text-gray-900">{{ $index + 1 }}</td>
+                                    <td class="px-8 py-4 text-sm text-gray-700 font-medium">{{ $producto->NOMBRE_PRODUCTO }}</td>
+                                    <td class="px-8 py-4 text-sm text-gray-600">{{ $producto->total_vendido }}</td>
+                                    <td class="px-8 py-4 text-sm text-right font-bold text-green-600">${{ number_format($producto->total_ingresos, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td colspan="4" class="px-8 py-12 text-center text-gray-400 font-bold text-sm">
+                                    No hay datos de ventas en el periodo seleccionado
+                                </td>
+                            </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>

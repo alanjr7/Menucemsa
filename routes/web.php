@@ -227,16 +227,26 @@ Route::middleware(['auth', 'role:admin'])->prefix('farmacia')->name('farmacia.')
 
     // URL: /farmacia/punto-de-venta -> Llama a PuntoVentaController
     Route::get('/punto-de-venta', [PuntoVentaController::class, 'index'])->name('pos');
+    Route::post('/punto-de-venta/procesar', [PuntoVentaController::class, 'procesarVenta'])->name('pos.procesar');
 
     // NUEVA RUTA: URL: /farmacia/inventario -> Llama a InventarioController
     // El nombre de la ruta será 'farmacia.inventario' automáticamente por el name('farmacia.')
     Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario');
+       Route::post('/inventario', [InventarioController::class, 'store'])->name('inventario.store');
+       Route::put('/inventario/{id}', [InventarioController::class, 'update'])->name('inventario.update');
+       Route::delete('/inventario/{id}', [InventarioController::class, 'destroy'])->name('inventario.destroy');
 
        Route::get('/ventas', [VentasController::class, 'index'])->name('ventas');
+       Route::get('/ventas/{codigoVenta}', [VentasController::class, 'show'])->name('ventas.show');
+       Route::delete('/ventas/{codigoVenta}', [VentasController::class, 'destroy'])->name('ventas.destroy');
 
          Route::get('/clientes', [ClientesController::class, 'index'])->name('clientes');
+       Route::post('/clientes', [ClientesController::class, 'store'])->name('clientes.store');
+       Route::put('/clientes/{id}', [ClientesController::class, 'update'])->name('clientes.update');
+       Route::delete('/clientes/{id}', [ClientesController::class, 'destroy'])->name('clientes.destroy');
 
-         Route ::get('/reporte', [ReporteController::class, 'index'])->name('reporte');
+         Route::get('/reporte', [ReporteController::class, 'index'])->name('reporte');
+       Route::post('/reporte/filtrar', [ReporteController::class, 'filtrar'])->name('reporte.filtrar');
 
          });
 

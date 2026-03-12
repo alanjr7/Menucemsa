@@ -53,18 +53,17 @@
                         <tr class="hover:bg-blue-50/30 transition-colors">
                             <td class="px-6 py-4">
                                 <p class="font-bold text-gray-800 text-sm" x-text="p.nombre"></p>
-                                <template x-if="p.receta">
+                                <template x-if="p.requerimiento === 'Receta'">
                                     <span class="text-[10px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-medium">Requiere Receta</span>
                                 </template>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500" x-text="p.categoria"></td>
-                            <td class="px-6 py-4 text-sm font-bold text-gray-800 text-center" x-text="'$' + p.precio.toFixed(2)"></td>
+                            <td class="px-6 py-4 text-sm font-bold text-gray-800 text-center" x-text="'$' + parseFloat(p.precio).toFixed(2)"></td>
                             <td class="px-6 py-4 text-center">
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold"
-                                      :class="p.stock < p.stockMinimo ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-700'"
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-700"
                                       x-text="p.stock"></span>
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-400 font-mono" x-text="p.codigo"></td>
+                            <td class="px-6 py-4 text-sm text-gray-400 font-mono" x-text="p.codigo_barras"></td>
                             <td class="px-6 py-4 text-sm text-gray-500" x-text="p.proveedor"></td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
@@ -132,7 +131,7 @@
                         <div class="grid grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Código de Barras *</label>
-                                <input type="text" x-model="editingProduct.codigo" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <input type="text" x-model="editingProduct.codigo_barras" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Proveedor</label>
@@ -143,7 +142,7 @@
                         <div class="grid grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">📅 Fecha de Vencimiento</label>
-                                <input type="text" x-model="editingProduct.vencimiento" placeholder="dd/mm/aaaa" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <input type="date" x-model="editingProduct.vencimiento" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Número de Lote</label>
@@ -176,23 +175,7 @@
             showEditModal: false,
             isEdit: false,
             editingProduct: {},
-     productos: [
-                { id: 1, nombre: 'Paracetamol 500mg', precio: 5.50, stock: 150, categoria: 'Medicamento', codigo: '7501234567890', proveedor: 'FarmaLab', receta: false },
-                { id: 2, nombre: 'Ibuprofeno 400mg', precio: 8.00, stock: 120, categoria: 'Medicamento', codigo: '7501234567891', proveedor: 'FarmaLab', receta: false },
-                { id: 3, nombre: 'Amoxicilina 500mg', precio: 45.00, stock: 80, categoria: 'Receta', codigo: '7501234567892', proveedor: 'MediPharma', receta: true },
-                { id: 4, nombre: 'Omeprazol 20mg', precio: 12.50, stock: 90, categoria: 'Medicamento', codigo: '7501234567893', proveedor: 'FarmaLab', receta: false },
-                { id: 5, nombre: 'Loratadina 10mg', precio: 15.00, stock: 100, categoria: 'Medicamento', codigo: '7501234567894', proveedor: 'AllergyPharma', receta: false },
-                { id: 6, nombre: 'Vitamina C 1000mg', precio: 25.00, stock: 60, categoria: 'Vitaminas', codigo: '7501234567895', proveedor: 'VitaPlus', receta: false },
-                { id: 7, nombre: 'Alcohol en Gel 250ml', precio: 18.00, stock: 200, categoria: 'Cuidado Personal', codigo: '7501234567896', proveedor: 'HygieneCare', receta: false },
-                { id: 8, nombre: 'Vendas Elásticas', precio: 12.00, stock: 45, categoria: 'Primeros Auxilios', codigo: '7501234567897', proveedor: 'MediSupply', receta: false },
-                { id: 9, nombre: 'Enalapril 10mg', precio: 35.00, stock: 65, categoria: 'Receta', codigo: '7501234567898', proveedor: 'CardioMed', receta: true },
-                { id: 10, nombre: 'Metformina 850mg', precio: 28.00, stock: 70, categoria: 'Receta', codigo: '7501234567899', proveedor: 'DiabetesCare', receta: true },
-                { id: 11, nombre: 'Termómetro Digital', precio: 85.00, stock: 25, categoria: 'Primeros Auxilios', codigo: '7501234567800', proveedor: 'MediSupply', receta: false },
-                { id: 12, nombre: 'Complejo B', precio: 32.00, stock: 55, categoria: 'Vitaminas', codigo: '7501234567801', proveedor: 'VitaPlus', receta: false },
-                { id: 13, nombre: 'Suero Oral', precio: 8.50, stock: 110, categoria: 'Medicamento', codigo: '7501234567802', proveedor: 'HydratePlus', receta: false },
-                { id: 14, nombre: 'Diclofenaco Gel', precio: 42.00, stock: 40, categoria: 'Medicamento', codigo: '7501234567803', proveedor: 'FarmaLab', receta: false },
-                { id: 15, nombre: 'Mascarillas Quirúrgicas x50', precio: 95.00, stock: 15, categoria: 'Cuidado Personal', codigo: '7501234567804', proveedor: 'HygieneCare', receta: false }
-            ],
+            productos: @json($productos),
 
             get filteredProducts() {
                 return this.productos.filter(p => {
@@ -229,29 +212,80 @@
                 this.showEditModal = true;
             },
 
-            saveProduct() {
+            async saveProduct() {
                 // Validación básica
-                if(!this.editingProduct.nombre || !this.editingProduct.codigo) {
+                if(!this.editingProduct.nombre || !this.editingProduct.codigo_barras) {
                     alert('Nombre y Código son obligatorios');
                     return;
                 }
 
-                this.editingProduct.receta = (this.editingProduct.categoria === 'Receta');
+                this.editingProduct.requerimiento = (this.editingProduct.categoria === 'Receta');
 
-                if (this.isEdit) {
-                    const index = this.productos.findIndex(p => p.id === this.editingProduct.id);
-                    if (index !== -1) {
-                        this.productos[index] = this.editingProduct;
+                try {
+                    let response;
+                    if (this.isEdit) {
+                        response = await fetch(`/farmacia/inventario/${this.editingProduct.id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify(this.editingProduct)
+                        });
+                    } else {
+                        response = await fetch('/farmacia/inventario', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify(this.editingProduct)
+                        });
                     }
-                } else {
-                    this.productos.unshift(this.editingProduct);
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        if (this.isEdit) {
+                            const index = this.productos.findIndex(p => p.id === this.editingProduct.id);
+                            if (index !== -1) {
+                                this.productos[index] = { ...this.editingProduct, id: result.producto?.id || this.editingProduct.id };
+                            }
+                        } else {
+                            this.productos.unshift({ ...this.editingProduct, id: result.producto?.id || Date.now() });
+                        }
+                        this.showEditModal = false;
+                        alert(result.message);
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('Error al guardar el producto: ' + error.message);
                 }
-                this.showEditModal = false;
             },
 
-            deleteProduct(id) {
+            async deleteProduct(id) {
                 if(confirm('¿Estás seguro de eliminar este producto?')) {
-                    this.productos = this.productos.filter(p => p.id !== id);
+                    try {
+                        const response = await fetch(`/farmacia/inventario/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.productos = this.productos.filter(p => p.id !== id);
+                            alert(result.message);
+                        } else {
+                            alert('Error: ' + result.message);
+                        }
+                    } catch (error) {
+                        alert('Error al eliminar el producto: ' + error.message);
+                    }
                 }
             }
         }
