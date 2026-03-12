@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="min-h-screen bg-gray-50/50 p-6">
+@extends('layouts.app')
+
+@section('content')
+<div class="min-h-screen bg-gray-50/50 p-6">
         <div class="mb-8">
             <h1 class="text-3xl font-black text-gray-900 tracking-tight">Dashboard</h1>
             <p class="text-sm text-gray-500 mt-1 font-medium">Resumen general del sistema</p>
@@ -109,4 +111,4 @@
             </a>
         </div>
     </div>
-</x-app-layout>
+@endsection

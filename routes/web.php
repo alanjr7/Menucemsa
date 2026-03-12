@@ -23,8 +23,11 @@ use App\Http\Controllers\Farmacia\FarmaciaDashboardController;
 use App\Http\Controllers\Seguridad\UsuariosController;
 
 use App\Http\Controllers\UserManagementController;
-use App\Http\Controllers\PuntoVentaController;
-use App\Http\Controllers\InventarioController;
+use App\Http\Controllers\Farmacia\PuntoVentaController;
+use App\Http\Controllers\Farmacia\InventarioController;
+use App\Http\Controllers\Farmacia\VentasController;
+use App\Http\Controllers\Farmacia\ClientesController;
+use App\Http\Controllers\Farmacia\ReporteController;
 use App\Http\Controllers\ActivityLogController;
 
 
@@ -163,8 +166,23 @@ Route::middleware('auth')->group(function () {
 
     // Rutas de administración (solo admin) - Especialidades CRUD
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
-        Route::resource('especialidades', EspecialidadController::class)
-            ->except(['show']);
+        Route::get('especialidades', [EspecialidadController::class, 'index'])->name('especialidades.index');
+        Route::get('especialidades/create', [EspecialidadController::class, 'create'])->name('especialidades.create');
+        Route::post('especialidades', [EspecialidadController::class, 'store'])->name('especialidades.store');
+        Route::get('especialidades/{especialidad}/edit', [EspecialidadController::class, 'edit'])->name('especialidades.edit');
+        Route::put('especialidades/{especialidad}', [EspecialidadController::class, 'update'])->name('especialidades.update');
+        Route::delete('especialidades/{especialidad}', [EspecialidadController::class, 'destroy'])->name('especialidades.destroy');
+
+        // Rutas para gestión de doctores
+        Route::get('doctors', [DoctorController::class, 'index'])->name('doctors.index');
+        Route::get('doctors/create', [DoctorController::class, 'create'])->name('doctors.create');
+        Route::post('doctors', [DoctorController::class, 'store'])->name('doctors.store');
+        Route::get('doctors/{doctor}/edit', [DoctorController::class, 'edit'])->name('doctors.edit');
+        Route::put('doctors/{doctor}', [DoctorController::class, 'update'])->name('doctors.update');
+        Route::delete('doctors/{doctor}', [DoctorController::class, 'destroy'])->name('doctors.destroy');
+
+        // Rutas API para doctores
+        Route::get('api/medicos-por-especialidad', [DoctorController::class, 'getMedicosByEspecialidad'])->name('doctors.by-especialidad');
     });
 
     // Rutas de farmacia (solo admin)

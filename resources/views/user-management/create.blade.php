@@ -88,6 +88,7 @@
                                     @elseif($role == 'caja') - Todas las áreas financieras
                                     @elseif($role == 'gerente') - Dashboard y reportes gerenciales
                                     @elseif($role == 'reception') - Recepción y admisión
+                                    @elseif($role == 'doctor') - Médico con especialidad asignada
                                     @endif
                                 </option>
                             @endforeach
@@ -95,6 +96,61 @@
                         @error('role')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                    </div>
+
+                    <!-- Campos adicionales para doctores -->
+                    <div id="doctor-fields" class="md:col-span-2">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Información Médica (solo para rol Doctor)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+                            <div>
+                                <label for="ci" class="block text-sm font-medium text-gray-700">
+                                    Cédula de Identidad *
+                                </label>
+                                <input type="text" 
+                                       id="ci" 
+                                       name="ci" 
+                                       value="{{ old('ci') }}"
+                                       placeholder="Ej: 12345678"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                @error('ci')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="telefono" class="block text-sm font-medium text-gray-700">
+                                    Teléfono
+                                </label>
+                                <input type="text" 
+                                       id="telefono" 
+                                       name="telefono" 
+                                       value="{{ old('telefono') }}"
+                                       placeholder="Ej: 098765432"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                @error('telefono')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label for="codigo_especialidad" class="block text-sm font-medium text-gray-700">
+                                    Especialidad *
+                                </label>
+                                <select id="codigo_especialidad" 
+                                        name="codigo_especialidad" 
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Seleccione una especialidad</option>
+                                    @foreach(\App\Models\Especialidad::where('estado', 'activo')->orderBy('nombre')->get() as $especialidad)
+                                        <option value="{{ $especialidad->codigo }}" {{ old('codigo_especialidad') == $especialidad->codigo ? 'selected' : '' }}>
+                                            {{ $especialidad->nombre }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('codigo_especialidad')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -112,4 +168,45 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelect = document.getElementById('role');
+    const doctorFields = document.getElementById('doctor-fields');
+    
+    function toggleDoctorFields() {
+        console.log('Rol seleccionado:', roleSelect.value); // Debug
+        
+        if (roleSelect.value === 'doctor') {
+            doctorFields.classList.remove('hidden');
+            // Hacer obligatorios los campos de doctor
+            const ciField = document.getElementById('ci');
+            const especialidadField = document.getElementById('codigo_especialidad');
+            
+            if (ciField) ciField.required = true;
+            if (especialidadField) especialidadField.required = true;
+            
+            console.log('Campos de doctor habilitados'); // Debug
+        } else {
+            doctorFields.classList.add('hidden');
+            // Quitar obligatoriedad
+            const ciField = document.getElementById('ci');
+            const especialidadField = document.getElementById('codigo_especialidad');
+            
+            if (ciField) ciField.required = false;
+            if (especialidadField) especialidadField.required = false;
+            
+            console.log('Campos de doctor deshabilitados'); // Debug
+        }
+    }
+    
+    roleSelect.addEventListener('change', toggleDoctorFields);
+    
+    // Verificar estado inicial
+    toggleDoctorFields();
+    
+    // Debug: mostrar el valor inicial del rol
+    console.log('Valor inicial del rol:', roleSelect.value);
+});
+</script>
 @endsection

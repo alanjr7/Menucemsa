@@ -90,6 +90,7 @@
             </button>
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
                 <a href="{{ route('admin.especialidades.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.especialidades*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Especialidades</a>
+                <a href="{{ route('admin.doctors.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.doctors*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Doctores</a>
                 <a href="{{ route('admin.caja.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.caja.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Caja Central</a>
                 <a href="{{ route('admin.facturacion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.facturacion.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Facturación</a>
                 <a href="{{ route('admin.tarifarios') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.tarifarios') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Tarifarios</a>

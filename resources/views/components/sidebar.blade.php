@@ -1,15 +1,15 @@
-<aside class="w-64 h-screen flex flex-col flex-shrink-0 transition-all duration-300 shadow-xl bg-[#1e3a8a] overflow-hidden">
+<aside class="w-64 h-screen flex flex-col flex-shrink-0 transition-all duration-300 shadow-xl bg-[#c2eaba] overflow-hidden">
 
-    <div class="h-16 flex-shrink-0 flex items-center px-6 border-b border-blue-800/50 bg-[#1a306d]">
+    <div class="h-16 flex-shrink-0 flex items-center px-6 border-b border-green-700/50 bg-[#b4d8b3]">
         <div class="flex items-center gap-3">
-            <div class="p-1.5 bg-blue-500/20 rounded-lg text-green-400">
+            <div class="p-1.5 bg-green-600/20 rounded-lg text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
             </div>
             <div>
                 <h1 class="font-bold text-lg leading-tight uppercase tracking-tight text-white">HIS / CEMSA</h1>
-                <p class="text-[10px] text-blue-300 uppercase tracking-widest font-semibold">Sistema Clínico</p>
+                <p class="text-[10px] text-green-100 uppercase tracking-widest font-semibold">Sistema Clínico</p>
             </div>
         </div>
     </div>
@@ -17,18 +17,18 @@
     <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
 
         <a href="{{ route('dashboard') }}"
-           class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-blue-600 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white' }}">
+           class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-green-600 text-white shadow-md' : 'text-green-100 hover:bg-green-700/50 hover:text-white' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             <span class="text-sm font-medium">Dashboard</span>
         </a>
 
         <a href="{{ route('reception') }}"
-           class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 {{ request()->routeIs('reception') ? 'bg-blue-600 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white' }}">
+           class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 {{ request()->routeIs('reception') ? 'bg-green-600 text-white shadow-md' : 'text-green-100 hover:bg-green-700/50 hover:text-white' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
             <span class="text-sm font-medium">Recepción</span>
         </a>
 
-        <div class="py-2 px-4"><hr class="border-blue-800/50"></div>
+        <div class="py-2 px-4"><hr class="border-green-700/50"></div>
 
         @php
             $menus = [
@@ -86,7 +86,7 @@
         @foreach($menus as $title => $data)
             <div x-data="{ open: {{ $data['active'] ? 'true' : 'false' }} }">
                 <button @click="open = !open"
-                    class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 hover:text-white rounded-lg transition-all focus:outline-none">
+                    class="w-full flex items-center px-4 py-3 text-green-100 hover:bg-green-700/50 hover:text-white rounded-lg transition-all focus:outline-none">
                     <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $data['icon'] }}"/>
                     </svg>
@@ -95,10 +95,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
+                <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-green-700/50 ml-6">
                     @foreach($data['links'] as $link)
                         <a href="{{ route($link['r']) }}"
-                           class="block px-3 py-2 text-[13px] rounded-md transition-colors {{ request()->routeIs($link['r']) ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                           class="block px-3 py-2 text-[13px] rounded-md transition-colors {{ request()->routeIs($link['r']) ? 'text-white bg-green-700/60 font-bold' : 'text-green-200 hover:text-white hover:bg-green-700' }}">
                             {{ $link['l'] }}
                         </a>
                     @endforeach
@@ -108,16 +108,16 @@
 
     </nav>
 
-    <div class="h-20 flex-shrink-0 p-4 border-t border-blue-800/50 bg-[#1a306d]">
+    <div class="h-20 flex-shrink-0 p-4 border-t border-green-700/50 bg-[#c2eaba]">
         <div class="flex items-center gap-3 px-2">
-            <div class="w-9 h-9 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-sm font-bold text-white shadow-inner border border-blue-400/30">
+            <div class="w-9 h-9 rounded-full bg-green-600 flex-shrink-0 flex items-center justify-center text-sm font-bold text-white shadow-inner border border-green-400/30">
                 {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
             </div>
             <div class="text-[11px] overflow-hidden">
-                <p class="font-bold text-blue-100 truncate">{{ Auth::user()->name ?? 'Usuario' }}</p>
+                <p class="font-bold text-green-100 truncate">{{ Auth::user()->name ?? 'Usuario' }}</p>
                 <div class="flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                    <span class="text-blue-400 font-medium">En línea</span>
+                    <span class="text-green-400 font-medium">En línea</span>
                 </div>
             </div>
         </div>

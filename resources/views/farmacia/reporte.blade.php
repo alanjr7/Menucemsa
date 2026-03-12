@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-8 bg-[#f8fafc] min-h-screen font-sans">
+@extends('layouts.app')
+
+@section('content')
+<div class="p-8 bg-[#f8fafc] min-h-screen font-sans">
 
         <div class="flex justify-between items-center mb-8">
             <div>
@@ -187,5 +189,5 @@
             </div>
         </div>
 
-    </div>
-</x-app-layout>
+</div>
+@endsection

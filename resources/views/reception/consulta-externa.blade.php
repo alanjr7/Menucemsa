@@ -148,7 +148,51 @@
         // Cargar datos al iniciar la página
         document.addEventListener('DOMContentLoaded', function() {
             inicializarTipoPaciente();
+            inicializarCargaMedicos();
         });
+
+        // Función para inicializar la carga de médicos
+        function inicializarCargaMedicos() {
+            const especialidadSelect = document.querySelector('select[name="especialidad"]');
+            const medicoSelect = document.querySelector('select[name="medico"]');
+            
+            if (especialidadSelect && medicoSelect) {
+                especialidadSelect.addEventListener('change', function() {
+                    cargarMedicosPorEspecialidad(this.value);
+                });
+            }
+        }
+
+        // Función para cargar médicos por especialidad
+        async function cargarMedicosPorEspecialidad(especialidadCodigo) {
+            const medicoSelect = document.querySelector('select[name="medico"]');
+            
+            if (!especialidadCodigo) {
+                medicoSelect.innerHTML = '<option value="">Seleccione especialidad primero</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/medicos-disponibles?especialidad=${especialidadCodigo}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    medicoSelect.innerHTML = '<option value="">Seleccione...</option>';
+                    
+                    data.medicos.forEach(medico => {
+                        const option = document.createElement('option');
+                        option.value = medico.ci;
+                        option.textContent = `Dr. ${medico.nombre} - ${medico.especialidad}`;
+                        medicoSelect.appendChild(option);
+                    });
+                } else {
+                    medicoSelect.innerHTML = '<option value="">No hay médicos disponibles</option>';
+                }
+            } catch (error) {
+                console.error('Error al cargar médicos:', error);
+                medicoSelect.innerHTML = '<option value="">Error al cargar médicos</option>';
+            }
+        }
 
 
         // Función para buscar paciente

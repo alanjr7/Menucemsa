@@ -1,4 +1,5 @@
-<x-app-layout>
+@extends('layouts.app')
+@section('content')
     <div class="p-6 bg-gray-50/50 min-h-screen">
         <div class="max-w-4xl mx-auto">
             <!-- Header de Confirmación -->
@@ -69,7 +70,7 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-sm text-gray-600">Fecha:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->fecha->format('d/m/Y') ?? 'N/A' }}</span>
+                                    <span class="text-sm font-medium">{{ \Carbon\Carbon::parse($caja->consulta->fecha)->format('d/m/Y') ?? 'N/A' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-sm text-gray-600">Hora:</span>
@@ -164,4 +165,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+@endsection

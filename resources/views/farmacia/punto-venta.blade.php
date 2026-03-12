@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="flex h-[calc(100vh-64px)] bg-[#f8fafc] overflow-hidden font-sans" x-data="posSystem()">
+@extends('layouts.app')
+
+@section('content')
+<div class="flex h-[calc(100vh-64px)] bg-[#f8fafc] overflow-hidden font-sans" x-data="posSystem()">
 
         <div class="flex-1 flex flex-col min-w-0">
             <div class="p-8 pb-4">
@@ -341,4 +343,4 @@
             }
         }
     </script>
-</x-app-layout>
+@endsection

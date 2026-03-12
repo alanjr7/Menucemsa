@@ -1,4 +1,5 @@
-<x-app-layout>
+@extends('layouts.app')
+@section('content')
     <div class="p-6 bg-gray-50/50 min-h-screen">
         <div class="max-w-4xl mx-auto">
             <!-- Header -->
@@ -38,7 +39,7 @@
                         </div>
                         <div class="bg-white rounded-xl p-4">
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Fecha y Hora</p>
-                            <p class="font-semibold text-gray-900">{{ $caja->consulta->fecha->format('d/m/Y') ?? 'N/A' }}</p>
+                            <p class="font-semibold text-gray-900">{{ \Carbon\Carbon::parse($caja->consulta->fecha)->format('d/m/Y') ?? 'N/A' }}</p>
                             <p class="text-sm text-gray-500">{{ $caja->consulta->hora ?? 'N/A' }}</p>
                         </div>
                         <div class="bg-white rounded-xl p-4">
@@ -184,4 +185,4 @@
             });
         }
     </script>
-</x-app-layout>
+@endsection

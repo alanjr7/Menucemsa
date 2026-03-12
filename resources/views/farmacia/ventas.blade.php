@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-8 bg-[#f8fafc] min-h-screen font-sans">
+@extends('layouts.app')
+
+@section('content')
+<div class="p-8 bg-[#f8fafc] min-h-screen font-sans">
 
         <div class="mb-8">
             <h1 class="text-2xl font-bold text-gray-800">Historial de Ventas</h1>
@@ -87,5 +89,5 @@
             </div>
 
         </div>
-    </div>
-</x-app-layout>
+</div>
+@endsection

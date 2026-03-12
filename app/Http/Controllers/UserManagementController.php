@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 
 class UserManagementController extends Controller
@@ -17,33 +19,82 @@ class UserManagementController extends Controller
 
     public function create()
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente'];
+        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor'];
         return view('user-management.create', compact('roles'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente',
-        ]);
+        try {
+            // Validación básica siempre requerida
+            $rules = [
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => ['required', 'confirmed', Password::defaults()],
+                'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor',
+                'ci' => 'required|string',
+                'codigo_especialidad' => 'required|exists:especialidades,codigo',
+                'telefono' => 'nullable|string',
+            ];
 
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-        ]);
+            $validated = $request->validate($rules);
 
-        return redirect()->route('user-management.index')
-            ->with('success', 'Usuario creado exitosamente.');
+            // Verificar si el CI ya existe
+            $existingMedico = \App\Models\Medico::where('ci', $validated['ci'])->first();
+            if ($existingMedico) {
+                return redirect()->back()
+                    ->with('error', 'El CI ' . $validated['ci'] . ' ya está registrado en el sistema.')
+                    ->withInput();
+            }
+
+            DB::beginTransaction();
+
+            // Crear usuario
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => $validated['role'],
+                'is_active' => true,
+            ]);
+
+            // Crear registro médico
+            $medico = \App\Models\Medico::create([
+                'id_usuario' => $user->id,
+                'ci' => $validated['ci'],
+                'telefono' => $validated['telefono'] ?? null,
+                'estado' => 'Activo',
+                'codigo_especialidad' => $validated['codigo_especialidad'],
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('user-management.index')
+                ->with('success', 'Usuario doctor creado exitosamente.');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Mostrar errores de validación específicos
+            $errorMessages = [];
+            foreach ($e->errors() as $field => $messages) {
+                $errorMessages[] = $field . ': ' . implode(', ', $messages);
+            }
+            
+            return redirect()->back()
+                ->with('error', 'Error de validación: ' . implode('; ', $errorMessages))
+                ->withInput();
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->back()
+                ->with('error', 'Error al crear el usuario: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function edit(User $user)
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente'];
+        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor'];
         return view('user-management.edit', compact('user', 'roles'));
     }
 
@@ -52,7 +103,7 @@ class UserManagementController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente',
+            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor',
         ]);
 
         $user->update([

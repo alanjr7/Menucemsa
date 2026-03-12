@@ -818,7 +818,13 @@ class ReceptionController extends Controller
 
         return response()->json([
             'success' => true,
-            'medicos' => $medicosDisponibles
+            'medicos' => $medicosDisponibles->map(function($medico) {
+                return [
+                    'ci' => $medico->ci,
+                    'nombre' => $medico->usuario ? $medico->usuario->name : 'Sin usuario',
+                    'especialidad' => $medico->especialidad ? $medico->especialidad->nombre : 'Sin especialidad',
+                ];
+            })
         ]);
     }
 

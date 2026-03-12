@@ -10,8 +10,8 @@ class Medico extends Model
     use HasFactory;
 
     protected $table = 'medicos';
-    protected $primaryKey = ['id_usuario', 'ci'];
-    public $incrementing = false;
+    protected $primaryKey = 'id_usuario';
+    public $incrementing = true;
     protected $keyType = 'integer';
 
     protected $fillable = [
