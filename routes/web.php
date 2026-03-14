@@ -3,13 +3,15 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReceptionController;
+use App\Http\Controllers\QuirofanoController;
+use App\Http\Controllers\QuirofanoManagementController;
 use App\Http\Controllers\Reception\ConsultaExternaController;
 use App\Http\Controllers\Reception\EmergenciaController;
 use App\Http\Controllers\Reception\HospitalizacionController;
 use App\Http\Controllers\Medical\EmergencyController;
 use App\Http\Controllers\Medical\NursingController;
 use App\Http\Controllers\Medical\UtiController;
-use App\Http\Controllers\Medical\QuirofanoController;
+use App\Http\Controllers\Medical\QuirofanoController as MedicalQuirofanoController;
 use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitalizacionController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
@@ -44,6 +46,33 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Rutas para quirofano (acceso para admin, reception y dirmedico)
+    Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
+        Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
+        Route::get('/quirofano/create', [QuirofanoController::class, 'create'])->name('quirofano.create');
+        Route::post('/quirofano', [QuirofanoController::class, 'store'])->name('quirofano.store');
+        Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show');
+        Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit');
+        Route::put('/quirofano/{cita}', [QuirofanoController::class, 'update'])->name('quirofano.update');
+        Route::post('/quirofano/{cita}/iniciar', [QuirofanoController::class, 'iniciarCirugia'])->name('quirofano.iniciar');
+        Route::post('/quirofano/{cita}/finalizar', [QuirofanoController::class, 'finalizarCirugia'])->name('quirofano.finalizar');
+        Route::post('/quirofano/{cita}/cancelar', [QuirofanoController::class, 'cancelar'])->name('quirofano.cancelar');
+        Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
+        Route::get('/quirofano/calendario', [QuirofanoController::class, 'calendario'])->name('quirofano.calendario');
+
+        // Rutas para gestión de quirófanos (solo admin)
+        Route::middleware(['role:admin'])->group(function () {
+            Route::get('/quirofanos-management', [QuirofanoManagementController::class, 'index'])->name('quirofanos.management.index');
+            Route::get('/quirofanos-management/create', [QuirofanoManagementController::class, 'create'])->name('quirofanos.management.create');
+            Route::post('/quirofanos-management', [QuirofanoManagementController::class, 'store'])->name('quirofanos.management.store');
+            Route::get('/quirofanos-management/{quirofano}', [QuirofanoManagementController::class, 'show'])->name('quirofanos.management.show');
+            Route::get('/quirofanos-management/{quirofano}/edit', [QuirofanoManagementController::class, 'edit'])->name('quirofanos.management.edit');
+            Route::put('/quirofanos-management/{quirofano}', [QuirofanoManagementController::class, 'update'])->name('quirofanos.management.update');
+            Route::delete('/quirofanos-management/{quirofano}', [QuirofanoManagementController::class, 'destroy'])->name('quirofanos.management.destroy');
+            Route::post('/quirofanos-management/{quirofano}/estado', [QuirofanoManagementController::class, 'cambiarEstado'])->name('quirofanos.management.estado');
+        });
+    });
 
     // Rutas para recepción y pacientes (acceso para admin, reception y dirmedico)
     Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {

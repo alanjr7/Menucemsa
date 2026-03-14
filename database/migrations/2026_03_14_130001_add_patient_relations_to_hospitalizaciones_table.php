@@ -22,8 +22,8 @@ return new class extends Migration
             $table->string('estado', 20)->default('Activo')->after('tratamiento');
             $table->string('cama', 10)->nullable()->after('estado');
             
-            $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null')->onUpdate('cascade');
+            // $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade')->onUpdate('cascade');
+            // $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null')->onUpdate('cascade');
         });
     }
 

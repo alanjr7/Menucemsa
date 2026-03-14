@@ -18,8 +18,8 @@ return new class extends Migration
             $table->time('hora')->nullable()->after('fecha');
             $table->string('motivo', 200)->nullable()->after('hora');
             
-            $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null')->onUpdate('cascade');
+            // $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade')->onUpdate('cascade');
+            // $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null')->onUpdate('cascade');
         });
     }
 
