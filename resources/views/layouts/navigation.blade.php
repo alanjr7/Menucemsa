@@ -48,7 +48,7 @@
         @endif
 
         @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico())
-        <div x-data="{ open: {{ request()->is('patients*', 'admision*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">
+        <div x-data="{ open: {{ request()->is('patients*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span class="text-sm font-medium flex-1 text-left">Pacientes</span>
@@ -58,7 +58,6 @@
                 @php
                     $pacientesLinks = [
                         ['r' => 'patients.index', 'l' => 'Maestro de Pacientes'],
-                        ['r' => 'admision.index', 'l' => 'Admisión'],
                     ];
 
                     // Admin y Director Médico pueden ver todas las áreas médicas excepto emergencias

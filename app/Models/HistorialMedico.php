@@ -9,7 +9,7 @@ class HistorialMedico extends Model
 {
     use HasFactory;
 
-    protected $table = 'historial_medico';
+    protected $table = 'historial_medicos';
     protected $primaryKey = 'ci_paciente';
     public $incrementing = false;
     protected $keyType = 'integer';

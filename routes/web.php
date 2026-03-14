@@ -14,7 +14,7 @@ use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitaliza
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
-use App\Http\Controllers\DoctorController;
+use App\Http\Controllers\Admin\DoctorController;
 
 use App\Http\Controllers\Admin\TarifarioController;
 use App\Http\Controllers\Gerencial\ReportesController;
@@ -49,7 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
-        Route::get('/admision', [ReceptionController::class, 'admision'])->name('admision.index');
+        Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
         
         // Rutas para las nuevas páginas separadas
         Route::get('/reception/consulta-externa', [ConsultaExternaController::class, 'index'])->name('reception.consulta-externa');
