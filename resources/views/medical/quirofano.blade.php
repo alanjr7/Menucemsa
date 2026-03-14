@@ -17,12 +17,19 @@
             </div>
 
             <div>
-                <button class="group bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                <a href="{{ route('quirofano.create') }}" class="group bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
                     <svg class="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Nueva Cirugía
-                </button>
+                </a>
             </div>
         </div>
+
+
+        @if (session('status'))
+            <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                {{ session('status') }}
+            </div>
+        @endif
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
 
@@ -136,46 +143,26 @@
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
             <div class="px-8 py-5 border-b border-slate-100 flex items-center gap-3">
                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <h3 class="font-bold text-slate-800 text-lg">Cirugías Programadas - Hoy</h3>
+                <h3 class="font-bold text-slate-800 text-lg">Cirugías Programadas</h3>
             </div>
             <div class="divide-y divide-slate-50">
-                <div class="px-8 py-5 flex items-center justify-between hover:bg-slate-50/80 transition-colors group">
-                    <div class="flex items-start gap-6">
-                        <div class="font-mono text-xl font-black text-slate-400 group-hover:text-blue-600 transition-colors">16:30</div>
-                        <div>
-                            <h4 class="font-bold text-slate-800 text-base mb-1">Colecistectomía Laparoscópica</h4>
-                            <div class="flex items-center gap-4 text-sm font-medium text-slate-500">
-                                <span class="flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> Torres, Ana</span>
-                                <span class="flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg> Dr. Ramírez</span>
+                @forelse($citas as $cita)
+                    <div class="px-8 py-5 flex items-center justify-between hover:bg-slate-50/80 transition-colors group">
+                        <div class="flex items-start gap-6">
+                            <div class="font-mono text-xl font-black text-slate-400 group-hover:text-blue-600 transition-colors">{{ $cita->scheduled_at->format('H:i') }}</div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-base mb-1">{{ $cita->procedure_name }}</h4>
+                                <div class="flex items-center gap-4 text-sm font-medium text-slate-500">
+                                    <span>{{ $cita->patient_name }}</span>
+                                    <span>{{ $cita->surgeon_name }}</span>
+                                </div>
                             </div>
                         </div>
+                        <span class="bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-lg text-xs uppercase tracking-wider">{{ $cita->operating_room }}</span>
                     </div>
-                    <div class="flex items-center gap-4">
-                         <span class="bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-lg text-xs uppercase tracking-wider">QX-02</span>
-                         <button class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-full transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                         </button>
-                    </div>
-                </div>
-                <div class="px-8 py-5 flex items-center justify-between hover:bg-slate-50/80 transition-colors group">
-                    <div class="flex items-start gap-6">
-                        <div class="font-mono text-xl font-black text-slate-400 group-hover:text-blue-600 transition-colors">18:00</div>
-                        <div>
-                            <h4 class="font-bold text-slate-800 text-base mb-1">Hernioplastia Inguinal</h4>
-                            <div class="flex items-center gap-4 text-sm font-medium text-slate-500">
-                                <span class="flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> Mendoza, Luis</span>
-                                <span class="flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg> Dra. Herrera</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                         <span class="bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-lg text-xs uppercase tracking-wider">QX-01</span>
-                         <button class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-full transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                         </button>
-                    </div>
-                </div>
+                @empty
+                    <div class="px-8 py-8 text-sm text-slate-500">No hay cirugías programadas aún.</div>
+                @endforelse
             </div>
         </div>
-    </div>
 @endsection

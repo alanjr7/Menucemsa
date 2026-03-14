@@ -45,6 +45,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/enfermeria', [NursingController::class, 'index'])->name('enfermeria.index');
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
+        Route::get('/quirofano/create', [QuirofanoController::class, 'create'])->name('quirofano.create');
+        Route::post('/quirofano', [QuirofanoController::class, 'store'])->name('quirofano.store');
         Route::get('/hospitalizacion', [HospitalizacionController::class, 'index'])->name('hospitalizacion.index');
         Route::get('/consulta-externa', function () {
             return view('medical.consulta-externa');
