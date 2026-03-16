@@ -312,6 +312,23 @@ class DoctorController extends Controller
         ));
     }
 
+    public function getPaciente($ci)
+    {
+        $paciente = Paciente::where('ci', $ci)->first();
+        
+        if (!$paciente) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Paciente no encontrado'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'paciente' => $paciente
+        ]);
+    }
+
     public function verConsulta($consultaId)
     {
         $consulta = Consulta::with([
@@ -322,11 +339,17 @@ class DoctorController extends Controller
             'recetas'
         ])->findOrFail($consultaId);
 
-        // Verificar que la consulta pertenezca al médico actual
         $user = Auth::user();
+        
+        // Admin puede ver todas las consultas
+        if ($user->role === 'admin') {
+            return view('doctor.consulta', compact('consulta'));
+        }
+        
+        // Para médicos y dirmedico, verificar que la consulta pertenezca al médico actual
         $medico = Medico::where('id_usuario', $user->id)->first();
         
-        if ($consulta->ci_medico !== $medico->ci) {
+        if (!$medico || $consulta->ci_medico !== $medico->ci) {
             abort(403, 'No tiene permiso para acceder a esta consulta.');
         }
 

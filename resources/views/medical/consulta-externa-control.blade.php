@@ -146,7 +146,7 @@
                                                 </div>
                                                 <div class="flex items-center gap-2">
                                                     <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Pagado</span>
-                                                    <button onclick="verDetallesConsulta({{ $consulta->nro }})" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                                    <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleVerDetallesConsulta(this)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                                         Ver →
                                                     </button>
                                                 </div>
@@ -176,7 +176,7 @@
                                                 </div>
                                                 <div class="flex items-center gap-2">
                                                     <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">● En atención</span>
-                                                    <button onclick="verDetallesConsulta({{ $consulta->nro }})" class="text-orange-600 hover:text-orange-800 text-sm font-medium">
+                                                    <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleVerDetallesConsulta(this)" class="text-orange-600 hover:text-orange-800 text-sm font-medium">
                                                         Ver →
                                                     </button>
                                                 </div>
@@ -209,7 +209,7 @@
                                                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
                                                         Completado
                                                     </span>
-                                                    <button onclick="verDetallesConsulta({{ $consulta->nro }})" class="text-green-600 hover:text-green-800 text-sm font-medium">
+                                                    <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleVerDetallesConsulta(this)" class="text-green-600 hover:text-green-800 text-sm font-medium">
                                                         Ver →
                                                     </button>
                                                 </div>
@@ -245,6 +245,11 @@
 </div>
 
 <script>
+function handleVerDetallesConsulta(button) {
+    const consultaId = button.getAttribute('data-consulta-nro');
+    verDetallesConsulta(consultaId);
+}
+
 function verDetallesConsulta(consultaId) {
     // Redirigir a la vista de detalles de la consulta
     window.open(`/consulta/${consultaId}`, '_blank');

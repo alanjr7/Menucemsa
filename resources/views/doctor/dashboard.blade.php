@@ -1,5 +1,7 @@
-<x-app-layout>
-    <div class="p-6 bg-gray-50/50 min-h-screen">
+@extends('layouts.app')
+
+@section('content')
+<div class="p-6 bg-gray-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto">
             <!-- Header -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
@@ -74,10 +76,10 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <a href="{{ route('doctor.ver-consulta', $consulta->nro) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                                        <a href="{{ route('consulta.ver', $consulta->nro) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                                             Ver Ficha
                                         </a>
-                                        <button onclick="iniciarConsulta('{{ $consulta->nro }}')" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleIniciarConsulta(this)" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
                                             Iniciar Atención
                                         </button>
                                     </div>
@@ -120,10 +122,10 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <a href="{{ route('doctor.ver-consulta', $consulta->nro) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <a href="{{ route('consulta.ver', $consulta->nro) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                                             Continuar Consulta
                                         </a>
-                                        <button onclick="completarConsulta('{{ $consulta->nro }}')" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleCompletarConsulta(this)" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
                                             Completar
                                         </button>
                                     </div>
@@ -169,7 +171,7 @@
                                         <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                                             Completada
                                         </span>
-                                        <a href="{{ route('doctor.ver-consulta', $consulta->nro) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                                        <a href="{{ route('consulta.ver', $consulta->nro) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                                             Ver Detalles
                                         </a>
                                     </div>
@@ -194,9 +196,19 @@
     </div>
 
     <script>
+        function handleIniciarConsulta(button) {
+            const consultaId = button.getAttribute('data-consulta-nro');
+            iniciarConsulta(consultaId);
+        }
+
+        function handleCompletarConsulta(button) {
+            const consultaId = button.getAttribute('data-consulta-nro');
+            completarConsulta(consultaId);
+        }
+
         function iniciarConsulta(consultaId) {
             if (confirm('¿Está seguro de iniciar esta consulta?')) {
-                fetch(`/doctor/iniciar-consulta/${consultaId}`, {
+                fetch(`/consulta-externa/iniciar/${consultaId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -220,7 +232,7 @@
 
         function completarConsulta(consultaId) {
             if (confirm('¿Está seguro de completar esta consulta?')) {
-                fetch(`/doctor/completar-consulta/${consultaId}`, {
+                fetch(`/consulta-externa/completar/${consultaId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -242,4 +254,4 @@
             }
         }
     </script>
-</x-app-layout>
+@endsection

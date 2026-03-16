@@ -190,7 +190,7 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onclick="verDetallesConsulta({{ $consulta->nro }})" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleVerDetallesConsulta(this)" class="text-blue-600 hover:text-blue-900 mr-3">
                                     Ver
                                 </button>
                             </td>
@@ -222,6 +222,11 @@
 </div>
 
 <script>
+function handleVerDetallesConsulta(button) {
+    const consultaId = button.getAttribute('data-consulta-nro');
+    verDetallesConsulta(consultaId);
+}
+
 function verDetallesConsulta(consultaId) {
     // Redirigir a la vista de detalles de la consulta
     window.open(`/consulta/${consultaId}`, '_blank');

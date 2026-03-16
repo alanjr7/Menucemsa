@@ -1,11 +1,13 @@
-<x-app-layout>
-    <div class="p-6 bg-gray-50/50 min-h-screen">
+@extends('layouts.app')
+
+@section('content')
+<div class="p-6 bg-gray-50/50 min-h-screen">
         <div class="max-w-6xl mx-auto">
             <!-- Header -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-4">
-                        <a href="{{ route('doctor.dashboard') }}" class="text-gray-500 hover:text-gray-700">
+                        <a href="{{ route('consulta.index') }}" class="text-gray-500 hover:text-gray-700">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                             </svg>
@@ -263,7 +265,7 @@
                 .then(data => {
                     if (data.success) {
                         alert('Consulta completada exitosamente');
-                        window.location.href = '/doctor/dashboard';
+                        window.location.href = '/consulta-externa';
                     } else {
                         alert('Error: ' + data.message);
                     }
@@ -275,4 +277,4 @@
             }
         }
     </script>
-</x-app-layout>
+@endsection
