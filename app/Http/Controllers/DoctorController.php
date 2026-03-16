@@ -106,7 +106,7 @@ class DoctorController extends Controller
         ));
     }
 
-    private function vistaControlTotal()
+    public function vistaControlTotal()
     {
         // Obtener todos los médicos del sistema
         $medicos = Medico::with(['usuario', 'especialidad'])
@@ -152,7 +152,7 @@ class DoctorController extends Controller
             'medicosActivos' => $consultasHoy->pluck('ci_medico')->unique()->count()
         ];
 
-        return view('medical.consulta-externa-control', compact(
+        return view('admin.consulta-externa-gestion', compact(
             'medicos',
             'consultasPorMedico',
             'stats'

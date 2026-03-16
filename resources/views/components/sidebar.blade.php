@@ -59,10 +59,11 @@
                     'links' => [
                         ['r' => 'caja.index', 'l' => 'Caja Central'],
                         ['r' => 'facturacion.index', 'l' => 'Facturación'],
-                        ['r' => 'admin.tarifarios', 'l' => 'Tarifarios'],
+                        ['r' => 'admin.consulta-externa-gestion', 'l' => 'Gestionar Consulta Externa'],
+                        ['r' => 'tarifarios', 'l' => 'Tarifarios'],
                         ['r' => 'admin.especialidades.index', 'l' => 'Especialidades'],
-                        ['r' => 'admin.seguros', 'l' => 'Seguros'],
-                        ['r' => 'admin.cuentas', 'l' => 'Cuentas por Cobrar'],
+                        ['r' => 'seguros', 'l' => 'Seguros'],
+                        ['r' => 'cuentas-por-cobrar', 'l' => 'Cuentas por Cobrar'],
                     ]
                 ],
                 'Logística' => [
