@@ -151,7 +151,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
         Route::get('/hospitalizacion', [MedicalHospitalizacionController::class, 'index'])->name('hospitalizacion.index');
-        Route::get('/consulta-externa', [DoctorController::class, 'index'])->name('consulta.index');
+        Route::get('/consulta-externa', [\App\Http\Controllers\DoctorController::class, 'index'])->name('consulta.index');
+        
+        // Rutas de control administrativo para consulta externa (solo admin)
+        Route::get('/consulta-externa/historial/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verHistorialMedico'])->name('consulta.historial-medico');
+        Route::get('/consulta-externa/pacientes/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verPacientesMedico'])->name('consulta.pacientes-medicos');
         
         // Vista del médico para atender pacientes
         Route::get('/medico/dashboard', [\App\Http\Controllers\Medical\DoctorDashboardController::class, 'index'])->name('medico.dashboard');
