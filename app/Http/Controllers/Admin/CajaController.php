@@ -7,6 +7,7 @@ use App\Models\Caja;
 use App\Models\Paciente;
 use App\Models\Consulta;
 use App\Models\Tarifario;
+use App\Models\Emergency;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
@@ -125,7 +126,7 @@ class CajaController extends Controller
     {
         try {
             // Pacientes con consultas pendientes de pago
-            $pendientes = Consulta::with('paciente')
+            $consultasPendientes = Consulta::with('paciente')
                 ->where('estado_pago', 'pendiente')
                 ->whereDate('created_at', today())
                 ->orderBy('created_at', 'desc')
@@ -133,6 +134,7 @@ class CajaController extends Controller
                 ->map(function ($consulta) {
                     return [
                         'id' => $consulta->id,
+                        'tipo' => 'consulta',
                         'paciente_ci' => $consulta->ci_paciente,
                         'paciente_nombre' => $consulta->paciente->nombre,
                         'concepto' => 'Consulta Externa',
@@ -141,6 +143,30 @@ class CajaController extends Controller
                         'estado' => 'pendiente'
                     ];
                 });
+
+            // Emergencias no pagadas
+            $emergenciesPendientes = Emergency::with('patient')
+                ->where('paid', false)
+                ->whereDate('created_at', today())
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($emergency) {
+                    return [
+                        'id' => $emergency->id,
+                        'tipo' => 'emergencia',
+                        'paciente_ci' => $emergency->patient->dni ?? 'N/A',
+                        'paciente_nombre' => $emergency->patient->name,
+                        'concepto' => 'Emergencia - ' . $emergency->code,
+                        'monto' => $emergency->cost,
+                        'fecha' => $emergency->created_at->format('Y-m-d H:i:s'),
+                        'estado' => 'pendiente'
+                    ];
+                });
+
+            // Combinar ambos resultados
+            $pendientes = $consultasPendientes->concat($emergenciesPendientes)
+                ->sortByDesc('fecha')
+                ->values();
 
             return response()->json([
                 'success' => true,
@@ -186,7 +212,8 @@ class CajaController extends Controller
                 'monto' => 'required|numeric|min:0',
                 'metodo_pago' => 'required|in:EFECTIVO,TARJETA,TRANSFERENCIA',
                 'medico_ci' => 'required|string',
-                'servicio_id' => 'nullable|integer'
+                'servicio_id' => 'nullable|integer',
+                'tipo_servicio' => 'required|in:consulta,emergencia'
             ]);
 
             // Crear movimiento en caja central con solo las columnas existentes
@@ -199,43 +226,65 @@ class CajaController extends Controller
                 'nro_pago_internos' => $request->paciente_ci . ' - ' . $request->paciente_nombre . ' - Dr: ' . $request->medico_ci
             ]);
 
-            // Crear consulta médica asociada
-            $consulta = Consulta::create([
-                'nro' => 'CONS-' . date('YmdHis') . '-' . rand(100, 999),
-                'fecha' => now()->toDateString(),
-                'hora' => now()->toTimeString(),
-                'motivo' => $request->concepto,
-                'observaciones' => 'Cobro realizado en caja central - Médico: ' . $request->medico_ci,
-                'codigo_especialidad' => 'ESP001', // Especialidad por defecto (Medicina General)
-                'ci_paciente' => $request->paciente_ci,
-                'ci_medico' => $request->medico_ci,
-                'estado_pago' => true, // Pagado
-                'id_caja' => $movimiento->id,
-                'estado' => 'pendiente' // Pendiente de atención médica
-            ]);
-
-            // Debug: registrar en log
-            \Log::info('Cobro procesado:', [
-                'movimiento_id' => $movimiento->id,
-                'consulta_nro' => $consulta->nro,
-                'monto' => $request->monto,
-                'paciente_ci' => $request->paciente_ci,
-                'medico_ci' => $request->medico_ci
-            ]);
-
-            // Si hay un servicio_id, actualizar estado de pago
-            if ($request->servicio_id) {
-                $consultaExistente = Consulta::find($request->servicio_id);
-                if ($consultaExistente) {
-                    $consultaExistente->update(['estado_pago' => true]);
+            // Procesar según tipo de servicio
+            if ($request->tipo_servicio === 'emergencia') {
+                // Marcar emergencia como pagada
+                $emergency = Emergency::find($request->servicio_id);
+                if ($emergency) {
+                    $emergency->update(['paid' => true]);
+                    
+                    \Log::info('Pago de emergencia procesado:', [
+                        'emergency_id' => $emergency->id,
+                        'emergency_code' => $emergency->code,
+                        'movimiento_id' => $movimiento->id,
+                        'monto' => $request->monto
+                    ]);
                 }
+            } else {
+                // Crear consulta médica asociada
+                $consulta = Consulta::create([
+                    'nro' => 'CONS-' . date('YmdHis') . '-' . rand(100, 999),
+                    'fecha' => now()->toDateString(),
+                    'hora' => now()->toTimeString(),
+                    'motivo' => $request->concepto,
+                    'observaciones' => 'Cobro realizado en caja central - Médico: ' . $request->medico_ci,
+                    'codigo_especialidad' => 'ESP001', // Especialidad por defecto (Medicina General)
+                    'ci_paciente' => $request->paciente_ci,
+                    'ci_medico' => $request->medico_ci,
+                    'estado_pago' => true, // Pagado
+                    'id_caja' => $movimiento->id,
+                    'estado' => 'pendiente' // Pendiente de atención médica
+                ]);
+
+                // Si hay un servicio_id, actualizar estado de pago
+                if ($request->servicio_id) {
+                    $consultaExistente = Consulta::find($request->servicio_id);
+                    if ($consultaExistente) {
+                        $consultaExistente->update(['estado_pago' => true]);
+                    }
+                }
+
+                // Debug: registrar en log
+                \Log::info('Cobro de consulta procesado:', [
+                    'movimiento_id' => $movimiento->id,
+                    'consulta_nro' => $consulta->nro,
+                    'monto' => $request->monto,
+                    'paciente_ci' => $request->paciente_ci,
+                    'medico_ci' => $request->medico_ci
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cobro y consulta registrados correctamente',
+                    'movimiento' => $movimiento,
+                    'consulta' => $consulta
+                ]);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cobro y consulta registrados correctamente',
-                'movimiento' => $movimiento,
-                'consulta' => $consulta
+                'message' => 'Pago procesado correctamente',
+                'movimiento' => $movimiento
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -98,9 +98,9 @@
                         @enderror
                     </div>
 
-                    <!-- Campos adicionales para doctores -->
+                    <!-- Campos adicionales para doctores y directores médicos -->
                     <div id="doctor-fields" class="md:col-span-2">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Información Médica (solo para rol Doctor)</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Información Médica (solo para roles Doctor y Director Médico)</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                             <div>
                                 <label for="ci" class="block text-sm font-medium text-gray-700">
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function toggleDoctorFields() {
         console.log('Rol seleccionado:', roleSelect.value); // Debug
         
-        if (roleSelect.value === 'doctor') {
+        if (roleSelect.value === 'doctor' || roleSelect.value === 'dirmedico') {
             doctorFields.classList.remove('hidden');
             // Hacer obligatorios los campos de doctor
             const ciField = document.getElementById('ci');

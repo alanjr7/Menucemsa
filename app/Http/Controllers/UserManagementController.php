@@ -32,19 +32,25 @@ class UserManagementController extends Controller
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => ['required', 'confirmed', Password::defaults()],
                 'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor',
-                'ci' => 'required|string',
-                'codigo_especialidad' => 'required|exists:especialidades,codigo',
-                'telefono' => 'nullable|string',
             ];
+
+            // Validaciones adicionales solo para roles que las necesitan
+            if (in_array($request->role, ['doctor', 'dirmedico'])) {
+                $rules['ci'] = 'required|string';
+                $rules['codigo_especialidad'] = 'required|exists:especialidades,codigo';
+                $rules['telefono'] = 'nullable|string';
+            }
 
             $validated = $request->validate($rules);
 
-            // Verificar si el CI ya existe
-            $existingMedico = \App\Models\Medico::where('ci', $validated['ci'])->first();
-            if ($existingMedico) {
-                return redirect()->back()
-                    ->with('error', 'El CI ' . $validated['ci'] . ' ya está registrado en el sistema.')
-                    ->withInput();
+            // Verificar si el CI ya existe (solo para roles médicos)
+            if (in_array($request->role, ['doctor', 'dirmedico']) && isset($validated['ci'])) {
+                $existingMedico = \App\Models\Medico::where('ci', $validated['ci'])->first();
+                if ($existingMedico) {
+                    return redirect()->back()
+                        ->with('error', 'El CI ' . $validated['ci'] . ' ya está registrado en el sistema.')
+                        ->withInput();
+                }
             }
 
             DB::beginTransaction();
@@ -56,21 +62,40 @@ class UserManagementController extends Controller
                 'password' => Hash::make($validated['password']),
                 'role' => $validated['role'],
                 'is_active' => true,
+                'email_verified_at' => now(), // Auto-verificar
             ]);
 
-            // Crear registro médico
-            $medico = \App\Models\Medico::create([
-                'id_usuario' => $user->id,
-                'ci' => $validated['ci'],
-                'telefono' => $validated['telefono'] ?? null,
-                'estado' => 'Activo',
-                'codigo_especialidad' => $validated['codigo_especialidad'],
-            ]);
+            // Crear registro médico solo para roles médicos
+            if (in_array($request->role, ['doctor', 'dirmedico'])) {
+                $medico = \App\Models\Medico::create([
+                    'id_usuario' => $user->id,
+                    'ci' => $validated['ci'],
+                    'telefono' => $validated['telefono'] ?? null,
+                    'estado' => 'Activo',
+                    'codigo_especialidad' => $validated['codigo_especialidad'],
+                ]);
 
-            DB::commit();
+                DB::commit();
 
-            return redirect()->route('user-management.index')
-                ->with('success', 'Usuario doctor creado exitosamente.');
+                return redirect()->route('user-management.index')
+                    ->with('success', 'Usuario doctor creado exitosamente.');
+            } else {
+                // Para roles no médicos (admin, reception, emergencia, caja, gerente)
+                DB::commit();
+
+                $roleNames = [
+                    'admin' => 'administrador',
+                    'reception' => 'recepción',
+                    'emergencia' => 'emergencias',
+                    'caja' => 'caja',
+                    'gerente' => 'gerente'
+                ];
+
+                $roleName = $roleNames[$validated['role']] ?? $validated['role'];
+
+                return redirect()->route('user-management.index')
+                    ->with('success', 'Usuario de ' . $roleName . ' creado exitosamente.');
+            }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Mostrar errores de validación específicos

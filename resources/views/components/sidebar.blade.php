@@ -59,6 +59,7 @@
                     'links' => [
                         ['r' => 'caja.index', 'l' => 'Caja Central'],
                         ['r' => 'facturacion.index', 'l' => 'Facturación'],
+                        ['r' => 'admin.emergencies.index', 'l' => 'Gestión de Emergencias'],
                         ['r' => 'admin.consulta-externa-gestion', 'l' => 'Gestionar Consulta Externa'],
                         ['r' => 'tarifarios', 'l' => 'Tarifarios'],
                         ['r' => 'admin.especialidades.index', 'l' => 'Especialidades'],
@@ -66,6 +67,17 @@
                         ['r' => 'cuentas-por-cobrar', 'l' => 'Cuentas por Cobrar'],
                     ]
                 ],
+                @if(auth()->user()->hasRole('emergency'))
+                'Emergencias' => [
+                    'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+                    'active' => request()->is('emergency-staff*'),
+                    'links' => [
+                        ['r' => 'emergency-staff.dashboard', 'l' => 'Panel de Emergencias'],
+                        ['r' => 'emergency-staff.pending', 'l' => 'Emergencias Pendientes'],
+                        ['r' => 'emergency-staff.create', 'l' => 'Nueva Emergencia'],
+                    ]
+                ],
+                @endif
                 'Logística' => [
                     'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
                     'active' => request()->is('farmacia*'),

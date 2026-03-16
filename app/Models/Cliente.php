@@ -24,6 +24,6 @@ class Cliente extends Model
     // Accesor para formatear la fecha
     public function getFechaAttribute()
     {
-        return $this->created_at->format('d/m/Y');
+        return $this->created_at ? $this->created_at->format('d/m/Y') : 'N/A';
     }
 }

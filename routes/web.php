@@ -31,6 +31,8 @@ use App\Http\Controllers\Farmacia\VentasController;
 use App\Http\Controllers\Farmacia\ClientesController;
 use App\Http\Controllers\Farmacia\ReporteController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
+use App\Http\Controllers\EmergencyStaffController;
 
 
 
@@ -284,6 +286,31 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
         Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
     });
+
+    // Rutas de gestión de emergencias (admin)
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/emergencies', [AdminEmergencyController::class, 'index'])->name('emergencies.index');
+        Route::get('/emergencies/create', [AdminEmergencyController::class, 'create'])->name('emergencies.create');
+        Route::post('/emergencies', [AdminEmergencyController::class, 'store'])->name('emergencies.store');
+        Route::get('/emergencies/{emergency}', [AdminEmergencyController::class, 'show'])->name('emergencies.show');
+        Route::get('/emergencies/{emergency}/edit', [AdminEmergencyController::class, 'edit'])->name('emergencies.edit');
+        Route::put('/emergencies/{emergency}', [AdminEmergencyController::class, 'update'])->name('emergencies.update');
+        Route::delete('/emergencies/{emergency}', [AdminEmergencyController::class, 'destroy'])->name('emergencies.destroy');
+        Route::post('/emergencies/{emergency}/mark-paid', [AdminEmergencyController::class, 'markAsPaid'])->name('emergencies.mark-paid');
+    });
+
+    // Rutas para personal de emergencias
+    Route::middleware(['role:emergency|admin|dirmedico'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+        Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
+        Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
+        Route::post('/', [EmergencyStaffController::class, 'store'])->name('store');
+        Route::get('/{emergency}', [EmergencyStaffController::class, 'show'])->name('show');
+        Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
+        Route::put('/{emergency}', [EmergencyStaffController::class, 'update'])->name('update');
+        Route::post('/{emergency}/assign-to-me', [EmergencyStaffController::class, 'assignToMe'])->name('assign-to-me');
+        Route::get('/pending', [EmergencyStaffController::class, 'pending'])->name('pending');
+    });
+
 // Rutas de farmacia organizadas por controlador modular
 Route::middleware(['auth', 'role:admin'])->prefix('farmacia')->name('farmacia.')->group(function () {
 
