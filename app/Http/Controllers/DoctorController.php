@@ -9,6 +9,7 @@ use App\Models\Paciente;
 use App\Models\Especialidad;
 use App\Models\Receta;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DoctorController extends Controller
 {
@@ -22,7 +23,7 @@ class DoctorController extends Controller
         }
         
         // Check if user has the correct role
-        if (!in_array($user->role, ['dirmedico', 'admin'])) {
+        if (!in_array($user->role, ['dirmedico', 'admin', 'doctor'])) {
             return redirect()->route('dashboard')
                 ->with('error', 'Acceso denegado. Esta sección es solo para personal médico.');
         }
@@ -49,9 +50,12 @@ class DoctorController extends Controller
         // Obtener consultas del día que están pagadas y pendientes de atención
         $consultasHoy = Consulta::with(['paciente', 'especialidad', 'caja'])
             ->where('ci_medico', $medico->ci)
-            ->where('fecha', today())
-            ->whereHas('caja', function($query) {
-                $query->whereNotNull('nro_factura'); // Solo consultas pagadas
+            ->where('fecha', date('Y-m-d'))
+            ->whereExists(function($query) {
+                $query->select(DB::raw(1))
+                      ->from('cajas')
+                      ->whereColumn('cajas.id', 'consultas.id_caja')
+                      ->whereNotNull('cajas.nro_factura');
             })
             ->orderBy('hora')
             ->get();
@@ -79,9 +83,12 @@ class DoctorController extends Controller
 
         // Obtener todas las consultas de hoy con información completa
         $consultasHoy = Consulta::with(['paciente', 'medico.usuario', 'especialidad', 'caja'])
-            ->where('fecha', today())
-            ->whereHas('caja', function($query) {
-                $query->whereNotNull('nro_factura'); // Solo consultas pagadas
+            ->where('fecha', date('Y-m-d'))
+            ->whereExists(function($query) {
+                $query->select(DB::raw(1))
+                      ->from('cajas')
+                      ->whereColumn('cajas.id', 'consultas.id_caja')
+                      ->whereNotNull('cajas.nro_factura');
             })
             ->orderBy('hora')
             ->get();

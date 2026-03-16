@@ -206,7 +206,7 @@ class CajaController extends Controller
                 'hora' => now()->toTimeString(),
                 'motivo' => $request->concepto,
                 'observaciones' => 'Cobro realizado en caja central - Médico: ' . $request->medico_ci,
-                'codigo_especialidad' => 'MED-GENERAL', // Especialidad por defecto
+                'codigo_especialidad' => 'ESP001', // Especialidad por defecto (Medicina General)
                 'ci_paciente' => $request->paciente_ci,
                 'ci_medico' => $request->medico_ci,
                 'estado_pago' => true, // Pagado

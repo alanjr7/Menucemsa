@@ -145,8 +145,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/servicios-disponibles', [\App\Http\Controllers\CajaController::class, 'getServiciosDisponibles'])->name('servicios-disponibles');
     });
 
-    // Rutas médicas (admin y dirmedico)
-    Route::middleware(['role:admin|dirmedico'])->group(function () {
+    // Rutas médicas (admin, dirmedico y doctor)
+    Route::middleware(['role:admin|dirmedico|doctor'])->group(function () {
         Route::get('/enfermeria', [NursingController::class, 'index'])->name('enfermeria.index');
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
