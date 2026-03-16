@@ -61,7 +61,7 @@
                                     required>
                                 <option value="">Seleccionar rol...</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrador</option>
-                                <option value="dirmedico" {{ old('role') == 'dirmedico' ? 'selected' : '' }}>Médico</option>
+                                <option value="dirmedico" {{ old('role') == 'dirmedico' ? 'selected' : '' }}>Director Médico</option>
                                 <option value="reception" {{ old('role') == 'reception' ? 'selected' : '' }}>Recepción</option>
                                 <option value="emergencia" {{ old('role') == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
                                 <option value="caja" {{ old('role') == 'caja' ? 'selected' : '' }}>Caja</option>
@@ -163,7 +163,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                <span class="text-blue-700"><strong>Médico:</strong> Consultas médicas</span>
+                                <span class="text-blue-700"><strong>Director Médico:</strong> Consultas médicas (equivalente a Médico)</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 bg-green-500 rounded-full"></span>
@@ -182,6 +182,10 @@
                                 <span class="text-blue-700"><strong>Usuario:</strong> Acceso básico</span>
                             </div>
                         </div>
+                        <p class="text-xs text-blue-600 mt-2">
+                            <strong>Nota:</strong> Los roles "Director Médico" y "Médico" son equivalentes. 
+                            Ambos controlan a todos los usuarios con rol médico.
+                        </p>
                     </div>
 
                     <!-- Botones -->

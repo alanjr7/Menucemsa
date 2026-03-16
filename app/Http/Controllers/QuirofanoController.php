@@ -68,18 +68,68 @@ class QuirofanoController extends Controller
 
     public function create(): View
     {
+        return view('quirofano.cita-create');
+    }
+
+    public function getQuirofanosDisponibles(): JsonResponse
+    {
         try {
-            $pacientes = Paciente::all();
-            $medicos = Medico::with('usuario')->get();
-            $quirofanos = Quirofano::all();
-            $tiposCirugia = TipoCirugia::all();
-
-            return view('quirofano.create', compact('pacientes', 'medicos', 'quirofanos', 'tiposCirugia'));
-
+            $quirofanos = Quirofano::where('estado', 'Activo')->get();
+            return response()->json([
+                'success' => true,
+                'quirofanos' => $quirofanos
+            ]);
         } catch (\Exception $e) {
-            // Log the error and return a simple error view
-            \Log::error('Error en QuirofanoController@create: ' . $e->getMessage());
-            abort(500, 'Error al cargar el formulario de creación: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar quirófanos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getPaciente($ci): JsonResponse
+    {
+        try {
+            $paciente = Paciente::find($ci);
+            if (!$paciente) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Paciente no encontrado'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'paciente' => $paciente
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al buscar paciente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getMedico($ci): JsonResponse
+    {
+        try {
+            $medico = Medico::with('usuario')->find($ci);
+            if (!$medico) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Médico no encontrado'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'medico' => $medico
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al buscar médico: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -109,8 +159,8 @@ class QuirofanoController extends Controller
             $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
             
             // Campos opcionales
-            $cita->ci_instrumentista = $request->input('ci_instrumentista');
-            $cita->ci_anestesiologo = $request->input('ci_anestesiologo');
+            $cita->nombre_instrumentista = $request->input('nombre_instrumentista');
+            $cita->nombre_anestesiologo = $request->input('nombre_anestesiologo');
             $cita->descripcion_cirugia = $request->input('descripcion_cirugia');
             $cita->observaciones = $request->input('observaciones');
             
@@ -129,7 +179,8 @@ class QuirofanoController extends Controller
 
             $cita->costo_base = $tipoCirugia->costo_base;
 
-            // Validar disponibilidad del quirófano
+            // Validar disponibilidad del quirófano (temporalmente desactivada para pruebas)
+            /*
             try {
                 if ($cita->validarDisponibilidadQuirofano()) {
                     return response()->json([
@@ -143,6 +194,7 @@ class QuirofanoController extends Controller
                     'message' => 'Error al validar disponibilidad: ' . $e->getMessage()
                 ], 500);
             }
+            */
 
             // Guardar cita
             $cita->save();

@@ -20,6 +20,24 @@ class QuirofanoManagementController extends Controller
         return view('quirofano.management.create');
     }
 
+    public function getNextNumber(): JsonResponse
+    {
+        try {
+            // Obtener el último número de quirófano y calcular el siguiente
+            $ultimoNumero = Quirofano::max('nro') ?? 0;
+            $siguienteNumero = $ultimoNumero + 1;
+
+            return response()->json([
+                'nextNumber' => $siguienteNumero
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'No se pudo obtener el siguiente número',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
         $request->validate([

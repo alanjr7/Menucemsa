@@ -60,6 +60,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/quirofano/{cita}/cancelar', [QuirofanoController::class, 'cancelar'])->name('quirofano.cancelar');
         Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
         Route::get('/quirofano/calendario', [QuirofanoController::class, 'calendario'])->name('quirofano.calendario');
+        
+        // API routes for surgical appointments
+        Route::get('/api/quirofanos-disponibles', [QuirofanoController::class, 'getQuirofanosDisponibles'])->name('api.quirofanos-disponibles');
+        Route::get('/api/paciente/{ci}', [QuirofanoController::class, 'getPaciente'])->name('api.paciente');
+        Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
 
         // Rutas para gestión de quirófanos (solo admin)
         Route::middleware(['role:admin'])->group(function () {
@@ -71,12 +76,16 @@ Route::middleware('auth')->group(function () {
             Route::put('/quirofanos-management/{quirofano}', [QuirofanoManagementController::class, 'update'])->name('quirofanos.management.update');
             Route::delete('/quirofanos-management/{quirofano}', [QuirofanoManagementController::class, 'destroy'])->name('quirofanos.management.destroy');
             Route::post('/quirofanos-management/{quirofano}/estado', [QuirofanoManagementController::class, 'cambiarEstado'])->name('quirofanos.management.estado');
+            
+            // API para obtener siguiente número de quirófano
+            Route::get('/api/quirofanos/next-number', [QuirofanoManagementController::class, 'getNextNumber'])->name('quirofanos.api.next-number');
         });
     });
 
     // Rutas para recepción y pacientes (acceso para admin, reception y dirmedico)
     Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
+        Route::get('/admision', [\App\Http\Controllers\ReceptionController::class, 'admision'])->name('admision.index');
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
         Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
         
@@ -143,6 +152,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/hospitalizacion', [MedicalHospitalizacionController::class, 'index'])->name('hospitalizacion.index');
         Route::get('/consulta-externa', [DoctorController::class, 'index'])->name('consulta.index');
         
+        // Vista del médico para atender pacientes
+        Route::get('/medico/dashboard', [\App\Http\Controllers\Medical\DoctorDashboardController::class, 'index'])->name('medico.dashboard');
+        Route::post('/medico/atender-paciente', [\App\Http\Controllers\Medical\DoctorDashboardController::class, 'atenderPaciente'])->name('medico.atender-paciente');
+        
         // Test route
         // Route::get('/test-doctor', function() {
         //     return 'DoctorController works!';
@@ -175,6 +188,14 @@ Route::middleware('auth')->group(function () {
     // Rutas de administración (admin y caja)
     Route::middleware(['role:admin|caja'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/caja', [\App\Http\Controllers\Admin\CajaController::class, 'index'])->name('caja.index');
+        Route::get('/nuevo-cobro', [\App\Http\Controllers\Admin\CajaController::class, 'nuevoCobro'])->name('caja.nuevo-cobro');
+
+        // API routes para caja
+        Route::get('/api/pacientes-registrados', [\App\Http\Controllers\Admin\CajaController::class, 'getPacientesRegistrados'])->name('caja.api.pacientes-registrados');
+        Route::get('/api/pacientes-pendientes', [\App\Http\Controllers\Admin\CajaController::class, 'getPacientesPendientes'])->name('caja.api.pacientes-pendientes');
+        Route::get('/api/servicios-disponibles', [\App\Http\Controllers\Admin\CajaController::class, 'getServiciosDisponibles'])->name('caja.api.servicios-disponibles');
+        Route::post('/api/procesar-cobro', [\App\Http\Controllers\Admin\CajaController::class, 'procesarCobro'])->name('caja.api.procesar-cobro');
+        Route::post('/api/imprimir-cierre', [\App\Http\Controllers\Admin\CajaController::class, 'imprimirCierre'])->name('caja.api.imprimir-cierre');
 
         Route::get('/facturacion', function () {
             return view('admin.facturacion');
@@ -225,8 +246,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
     });
 
-    // Rutas de seguridad (admin y gerente)
-    Route::middleware(['role:admin|gerente'])->prefix('seguridad')->name('seguridad.')->group(function () {
+    // Rutas de seguridad (admin, gerente y dirmedico)
+    Route::middleware(['role:admin|gerente|dirmedico'])->prefix('seguridad')->name('seguridad.')->group(function () {
         Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
         Route::get('/usuarios/create', [UsuariosController::class, 'create'])->name('usuarios.create');
         Route::post('/usuarios', [UsuariosController::class, 'store'])->name('usuarios.store');

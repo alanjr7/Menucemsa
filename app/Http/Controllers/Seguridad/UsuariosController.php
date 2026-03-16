@@ -30,10 +30,13 @@ class UsuariosController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,user'
+            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja,user'
         ]);
 
-        if ($request->role === 'dirmedico') {
+        // Normalizar roles: si selecciona 'doctor', convertirlo a 'dirmedico'
+        $role = $request->role === 'doctor' ? 'dirmedico' : $request->role;
+
+        if ($role === 'dirmedico') {
             $request->validate([
                 'ci' => 'required|integer',
                 'telefono' => 'nullable|integer',
@@ -45,10 +48,10 @@ class UsuariosController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'role' => $request->role,
+            'role' => $role,
         ]);
 
-        if ($request->role === 'dirmedico') {
+        if ($role === 'dirmedico') {
             Medico::updateOrCreate(
                 ['id_usuario' => $user->id],
                 [
@@ -84,10 +87,13 @@ class UsuariosController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja'
+            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja'
         ]);
 
-        if ($request->role === 'dirmedico') {
+        // Normalizar roles: si selecciona 'doctor', convertirlo a 'dirmedico'
+        $role = $request->role === 'doctor' ? 'dirmedico' : $request->role;
+
+        if ($role === 'dirmedico') {
             $request->validate([
                 'ci' => 'required|integer',
                 'telefono' => 'nullable|integer',
@@ -99,10 +105,10 @@ class UsuariosController extends Controller
             $user->update([
                 'name' => $request->name,
                 'email' => $request->email,
-                'role' => $request->role,
+                'role' => $role,
             ]);
 
-            if ($request->role === 'dirmedico') {
+            if ($role === 'dirmedico') {
                 Medico::updateOrCreate(
                     ['id_usuario' => $user->id],
                     [

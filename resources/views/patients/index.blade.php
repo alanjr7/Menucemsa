@@ -144,7 +144,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $paciente->nombre }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ $paciente->ci }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->telefono ?? '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->seguro->nombre ?? 'Particular' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->seguro->nombre_empresa ?? 'Particular' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @php
                                         $estado = 'Activo';
@@ -162,7 +162,7 @@
                                         {{ $estado }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->registro->usuario->name ?? '-' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->registro->usuario->name ?? 'Sistema' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex justify-end gap-2">
                                         <a href="{{ route('patients.show', $paciente->ci) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all">

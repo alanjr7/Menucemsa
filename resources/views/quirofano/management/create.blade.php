@@ -110,46 +110,91 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('quirofanoForm');
     
-    // Obtener el siguiente número disponible
-    fetch('/api/quirofanos/next-number')
-        .then(response => response.json())
+    // SOLUCIÓN: Obtener el siguiente número disponible con manejo de errores
+    // Si la API no existe, simplemente no pre-rellenamos el número
+    fetch('{{ route("quirofanos.api.next-number") }}', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+        .then(response => {
+            // Solo procesar si la respuesta es 200-299
+            if (!response.ok) {
+                console.warn('API no disponible, continuando sin pre-rellenar número');
+                return null;
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.nextNumber) {
+            if (data && data.nextNumber) {
                 document.getElementById('nro').value = data.nextNumber;
                 document.getElementById('nro').min = data.nextNumber;
             }
         })
         .catch(error => {
-            console.error('Error obteniendo siguiente número:', error);
+            console.warn('No se pudo obtener siguiente número:', error);
+            console.log('El formulario funcionará sin pre-rellenar el número');
         });
     
-    // Submit del formulario
+    // SOLUCIÓN: Submit del formulario con manejo robusto de errores
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        fetch('/quirofanos-management', {
+        // Validación básica en frontend
+        if (!data.nro || !data.tipo || !data.estado) {
+            alert('Por favor completa todos los campos requeridos');
+            return;
+        }
+        
+        // SOLUCIÓN: Usar route() helper de Laravel
+        const submitUrl = '{{ route("quirofanos.management.store") }}';
+        
+        console.log('Enviando POST a:', submitUrl);
+        console.log('Datos:', data);
+        
+        fetch(submitUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify(data)
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Status:', response.status);
+            
+            // Si es 404, mostrar error específico
+            if (response.status === 404) {
+                throw new Error('Ruta no encontrada (404) - Contacta al administrador');
+            }
+            
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+                });
+            }
+            
+            return response.json();
+        })
         .then(data => {
+            console.log('Respuesta:', data);
+            
             if (data.success) {
-                alert(data.message);
-                window.location.href = '/quirofanos-management';
+                alert(data.message || 'Quirófano creado exitosamente');
+                window.location.href = '{{ route("quirofanos.management.index") }}';
             } else {
-                alert(data.message);
+                alert(data.message || 'Error al crear el quirófano');
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Ocurrió un error al crear el quirófano');
+            console.error('Error completo:', error);
+            alert('Error: ' + error.message);
         });
     });
 });

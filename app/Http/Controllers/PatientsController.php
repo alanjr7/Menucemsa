@@ -15,10 +15,7 @@ class PatientsController extends Controller
     public function index(Request $request): View
     {
         $query = Paciente::with(['seguro', 'triage', 'registro.usuario'])
-            ->whereHas('registro') // Solo pacientes con registro
-            ->whereHas('consultas.caja', function($q) {
-                $q->whereNotNull('nro_factura'); // Solo pacientes que han pagado
-            });
+            ->whereHas('registro'); // Solo pacientes con registro
 
         // Búsqueda
         if ($request->filled('search')) {
