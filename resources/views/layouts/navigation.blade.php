@@ -47,7 +47,7 @@
         </div>
         @endif
 
-        @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico())
+        @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isDoctor())
         <div x-data="{ open: {{ request()->is('patients*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -68,6 +68,12 @@
                             ['r' => 'uti.index', 'l' => 'UTI'],
                             ['r' => 'quirofano.index', 'l' => 'Quirófano'],
                             ['r' => 'hospitalizacion.index', 'l' => 'Hospitalización'],
+                        ]);
+                    // Doctor role puede ver Consulta Externa y Historial de Consultas
+                    elseif(Auth::user()->isDoctor()):
+                        $pacientesLinks = array_merge($pacientesLinks, [
+                            ['r' => 'consulta.index', 'l' => 'Consulta Externa'],
+                            ['r' => 'consulta.historial-medico', 'l' => 'Historial de Consultas'],
                         ]);
                     endif;
                 @endphp

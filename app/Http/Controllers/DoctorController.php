@@ -28,11 +28,6 @@ class DoctorController extends Controller
                 ->with('error', 'Acceso denegado. Esta sección es solo para personal médico.');
         }
         
-        // Para administradores, mostrar vista de control total
-        if ($user->role === 'admin') {
-            return $this->vistaControlTotal();
-        }
-        
         // Obtener el médico asociado al usuario actual
         $medico = Medico::where('id_usuario', $user->id)->first();
         
@@ -45,6 +40,16 @@ class DoctorController extends Controller
                 'consultasEnAtencion' => collect([]),
                 'consultasCompletadas' => collect([])
             ]);
+        }
+
+        // Para administradores, mostrar vista de control total
+        if ($user->role === 'admin') {
+            return $this->vistaControlTotal();
+        }
+        
+        // Para rol 'doctor', mostrar el dashboard del médico
+        if ($user->role === 'doctor') {
+            return $this->vistaDoctorDashboard($medico);
         }
 
         // Obtener consultas del día que están pagadas y pendientes de atención
@@ -65,7 +70,35 @@ class DoctorController extends Controller
         $consultasEnAtencion = $consultasHoy->where('estado', 'en_atencion');
         $consultasCompletadas = $consultasHoy->where('estado', 'completada');
 
-        return view('medical.consulta-externa', compact(
+        return view('doctor.consulta-externa', compact(
+            'medico',
+            'consultasPendientes',
+            'consultasEnAtencion',
+            'consultasCompletadas'
+        ));
+    }
+
+    private function vistaDoctorDashboard($medico)
+    {
+        // Obtener consultas del día que están pagadas y pendientes de atención
+        $consultasHoy = Consulta::with(['paciente', 'especialidad', 'caja'])
+            ->where('ci_medico', $medico->ci)
+            ->where('fecha', date('Y-m-d'))
+            ->whereExists(function($query) {
+                $query->select(DB::raw(1))
+                      ->from('cajas')
+                      ->whereColumn('cajas.id', 'consultas.id_caja')
+                      ->whereNotNull('cajas.nro_factura');
+            })
+            ->orderBy('hora')
+            ->get();
+
+        // Separar consultas por estado
+        $consultasPendientes = $consultasHoy->where('estado', 'pendiente');
+        $consultasEnAtencion = $consultasHoy->where('estado', 'en_atencion');
+        $consultasCompletadas = $consultasHoy->where('estado', 'completada');
+
+        return view('doctor.dashboard', compact(
             'medico',
             'consultasPendientes',
             'consultasEnAtencion',
@@ -128,60 +161,182 @@ class DoctorController extends Controller
 
     public function iniciarConsulta($consultaId)
     {
-        $consulta = Consulta::findOrFail($consultaId);
-        
-        // Verificar que la consulta pertenezca al médico actual
-        $user = Auth::user();
-        $medico = Medico::where('id_usuario', $user->id)->first();
-        
-        if ($consulta->ci_medico !== $medico->ci) {
-            abort(403, 'No tiene permiso para acceder a esta consulta.');
+        try {
+            \Log::info('Attempting to start consultation', [
+                'consultaId' => $consultaId,
+                'user_id' => Auth::id()
+            ]);
+
+            $consulta = Consulta::findOrFail($consultaId);
+            
+            // Verificar que la consulta pertenezca al médico actual
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            $medico = Medico::where('id_usuario', $user->id)->first();
+            
+            if (!$medico) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontró información del médico'
+                ], 403);
+            }
+            
+            if ($consulta->ci_medico !== $medico->ci) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tiene permiso para iniciar esta consulta'
+                ], 403);
+            }
+
+            // Verificar que la consulta esté en estado "pendiente"
+            if ($consulta->estado !== 'pendiente') {
+                \Log::warning('Invalid consultation state for start', [
+                    'consulta_id' => $consulta->nro,
+                    'current_state' => $consulta->estado,
+                    'required_state' => 'pendiente'
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La consulta debe estar pendiente para poder iniciarse'
+                ], 400);
+            }
+
+            // Actualizar estado a "en atención"
+            $consulta->estado = 'en_atencion';
+            $consulta->save();
+
+            \Log::info('Consulta started successfully', [
+                'consulta_id' => $consulta->nro,
+                'new_state' => 'en_atencion'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Consulta iniciada correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error starting consultation', [
+                'consultaId' => $consultaId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al iniciar la consulta: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Actualizar estado a "en atención"
-        $consulta->estado = 'en_atencion';
-        $consulta->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Consulta iniciada correctamente'
-        ]);
     }
 
     public function completarConsulta($consultaId, Request $request)
     {
-        $consulta = Consulta::findOrFail($consultaId);
-        
-        // Verificar que la consulta pertenezca al médico actual
-        $user = Auth::user();
-        $medico = Medico::where('id_usuario', $user->id)->first();
-        
-        if ($consulta->ci_medico !== $medico->ci) {
-            abort(403, 'No tiene permiso para acceder a esta consulta.');
+        try {
+            // Debug information
+            \Log::info('Attempting to complete consultation', [
+                'consultaId' => $consultaId,
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
+
+            $consulta = Consulta::findOrFail($consultaId);
+            
+            // Verificar que la consulta pertenezca al médico actual
+            $user = Auth::user();
+            
+            if (!$user) {
+                \Log::error('User not authenticated');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            $medico = Medico::where('id_usuario', $user->id)->first();
+            
+            if (!$medico) {
+                \Log::error('No medico found for user', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontró información del médico'
+                ], 403);
+            }
+            
+            if ($consulta->ci_medico !== $medico->ci) {
+                \Log::error('CI mismatch in completarConsulta', [
+                    'consulta_medico_ci' => $consulta->ci_medico,
+                    'user_medico_ci' => $medico->ci
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tiene permiso para completar esta consulta'
+                ], 403);
+            }
+
+            // Verificar que la consulta esté en estado "en_atencion"
+            if ($consulta->estado !== 'en_atencion') {
+                \Log::error('Invalid consultation state for completion', [
+                    'consulta_id' => $consulta->nro,
+                    'current_state' => $consulta->estado,
+                    'required_state' => 'en_atencion'
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La consulta debe estar en atención para poder completarse'
+                ], 400);
+            }
+
+            // Actualizar estado a "completada"
+            $consulta->estado = 'completada';
+            $consulta->observaciones = $request->observaciones ?? $consulta->observaciones;
+            $consulta->save();
+
+            \Log::info('Consulta completed successfully', [
+                'consulta_id' => $consulta->nro,
+                'new_state' => 'completada'
+            ]);
+
+            // Crear receta si se proporcionaron medicamentos
+            if ($request->has('medicamentos') && !empty($request->medicamentos)) {
+                $this->crearReceta($consulta, $request);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Consulta completada correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error completing consultation', [
+                'consultaId' => $consultaId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al completar la consulta: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Actualizar estado a "completada"
-        $consulta->estado = 'completada';
-        $consulta->observaciones = $request->observaciones ?? $consulta->observaciones;
-        $consulta->save();
-
-        // Crear receta si se proporcionaron medicamentos
-        if ($request->has('medicamentos') && !empty($request->medicamentos)) {
-            $this->crearReceta($consulta, $request);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Consulta completada correctamente'
-        ]);
     }
 
     private function crearReceta($consulta, $request)
     {
+        $user = Auth::user();
+        $medico = Medico::where('id_usuario', $user->id)->first();
+        
         $receta = Receta::create([
+            'nro' => 'REC-' . date('Y') . '-' . str_pad(Receta::count() + 1, 6, '0', STR_PAD_LEFT),
             'nro_consulta' => $consulta->nro,
             'fecha' => now(),
             'indicaciones' => $request->indicaciones ?? '',
+            'id_usuario_medico' => $medico->id_usuario ?? null,
         ]);
 
         // Aquí se podrían agregar los detalles de los medicamentos si existe la tabla detalle_receta
@@ -192,13 +347,23 @@ class DoctorController extends Controller
     {
         $user = Auth::user();
         
+        // Obtener el médico asociado al usuario actual
+        $medicoUsuario = Medico::where('id_usuario', $user->id)->first();
+        
         // Solo administradores pueden ver historial de otros médicos
+        // Los doctores solo pueden ver su propio historial
         if ($user->role !== 'admin') {
-            abort(403, 'Acceso denegado');
+            if (!$medicoUsuario || ($ci_medico && $ci_medico != $medicoUsuario->ci)) {
+                abort(403, 'Acceso denegado');
+            }
+            // Si es doctor y no se especifica ci_medico, usar su propio CI
+            if (!$ci_medico) {
+                $ci_medico = $medicoUsuario->ci;
+            }
         }
         
-        // Si no se especifica médico, mostrar lista para seleccionar
-        if (!$ci_medico) {
+        // Si no se especifica médico (y es admin), mostrar lista para seleccionar
+        if (!$ci_medico && $user->role === 'admin') {
             $medicos = Medico::with(['usuario', 'especialidad'])
                 ->orderByRaw('(SELECT name FROM users WHERE id = medicos.id_usuario)')
                 ->get();
@@ -251,13 +416,23 @@ class DoctorController extends Controller
     {
         $user = Auth::user();
         
+        // Obtener el médico asociado al usuario actual
+        $medicoUsuario = Medico::where('id_usuario', $user->id)->first();
+        
         // Solo administradores pueden ver pacientes de otros médicos
+        // Los doctores solo pueden ver sus propios pacientes
         if ($user->role !== 'admin') {
-            abort(403, 'Acceso denegado');
+            if (!$medicoUsuario || ($ci_medico && $ci_medico != $medicoUsuario->ci)) {
+                abort(403, 'Acceso denegado');
+            }
+            // Si es doctor y no se especifica ci_medico, usar su propio CI
+            if (!$ci_medico) {
+                $ci_medico = $medicoUsuario->ci;
+            }
         }
         
-        // Si no se especifica médico, mostrar lista para seleccionar
-        if (!$ci_medico) {
+        // Si no se especifica médico (y es admin), mostrar lista para seleccionar
+        if (!$ci_medico && $user->role === 'admin') {
             $medicos = Medico::with(['usuario', 'especialidad'])
                 ->orderByRaw('(SELECT name FROM users WHERE id = medicos.id_usuario)')
                 ->get();
@@ -341,6 +516,20 @@ class DoctorController extends Controller
 
         $user = Auth::user();
         
+        // Debug information
+        if (!$user) {
+            abort(403, 'Usuario no autenticado');
+        }
+        
+        // Debug: Log user information
+        \Log::info('User attempting to view consultation', [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'user_name' => $user->name,
+            'consulta_id' => $consultaId,
+            'consulta_medico_ci' => $consulta->ci_medico
+        ]);
+        
         // Admin puede ver todas las consultas
         if ($user->role === 'admin') {
             return view('doctor.consulta', compact('consulta'));
@@ -349,7 +538,18 @@ class DoctorController extends Controller
         // Para médicos y dirmedico, verificar que la consulta pertenezca al médico actual
         $medico = Medico::where('id_usuario', $user->id)->first();
         
-        if (!$medico || $consulta->ci_medico !== $medico->ci) {
+        // Debug: Check if medico was found
+        if (!$medico) {
+            \Log::error('No medico found for user', ['user_id' => $user->id]);
+            abort(403, 'No se encontró información del médico para este usuario.');
+        }
+        
+        // Debug: Check CI match
+        if ($consulta->ci_medico !== $medico->ci) {
+            \Log::error('CI mismatch', [
+                'consulta_medico_ci' => $consulta->ci_medico,
+                'user_medico_ci' => $medico->ci
+            ]);
             abort(403, 'No tiene permiso para acceder a esta consulta.');
         }
 

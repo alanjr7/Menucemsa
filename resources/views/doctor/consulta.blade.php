@@ -223,7 +223,7 @@
 
         function iniciarConsulta(consultaId) {
             if (confirm('¿Está seguro de iniciar esta consulta?')) {
-                fetch(`/doctor/iniciar-consulta/${consultaId}`, {
+                fetch(`/consulta-externa/iniciar/${consultaId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -253,7 +253,7 @@
             const data = Object.fromEntries(formData.entries());
             
             if (confirm('¿Está seguro de completar esta consulta?')) {
-                fetch(`/doctor/completar-consulta/${consultaId}`, {
+                fetch(`/consulta-externa/completar/${consultaId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -261,8 +261,13 @@
                     },
                     body: JSON.stringify(data)
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers.get('content-type'));
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Response data:', data);
                     if (data.success) {
                         alert('Consulta completada exitosamente');
                         window.location.href = '/consulta-externa';
@@ -272,7 +277,8 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error al completar la consulta');
+                    console.error('Error details:', error.message);
+                    alert('Error al completar la consulta: ' + error.message);
                 });
             }
         }
