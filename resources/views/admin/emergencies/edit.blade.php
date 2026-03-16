@@ -19,20 +19,20 @@
                         @csrf
                         @method('PUT')
                         
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="patient_id">Paciente *</label>
-                                    <select name="patient_id" id="patient_id" class="form-control @error('patient_id') is-invalid @enderror" required>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="patient_id" class="block text-sm font-medium text-gray-700 mb-2">Paciente *</label>
+                                    <select name="patient_id" id="patient_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('patient_id') border-red-500 @enderror" required>
                                         <option value="">Seleccione un paciente</option>
-                                        @foreach($patients as $patient)
-                                        <option value="{{ $patient->id }}" {{ old('patient_id', $emergency->patient_id) == $patient->id ? 'selected' : '' }}>
-                                            {{ $patient->name }} - {{ $patient->dni }}
+                                        @foreach($pacientes as $paciente)
+                                        <option value="{{ $paciente->id }}" {{ old('patient_id', $emergency->patient_id) == $paciente->id ? 'selected' : '' }}">
+                                            {{ $paciente->name }} - {{ $paciente->dni }}
                                         </option>
                                         @endforeach
                                     </select>
                                     @error('patient_id')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="text-red-600 text-sm mt-1">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>

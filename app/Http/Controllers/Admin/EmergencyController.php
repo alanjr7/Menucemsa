@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Emergency;
-use App\Models\Patient;
+use App\Models\Paciente;
 use App\Models\User;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -14,15 +14,15 @@ class EmergencyController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:emergencies.view')->only(['index', 'show']);
-        $this->middleware('permission:emergencies.create')->only(['create', 'store']);
-        $this->middleware('permission:emergencies.update')->only(['edit', 'update']);
-        $this->middleware('permission:emergencies.delete')->only(['destroy']);
+        $this->middleware('role:admin|dirmedico')->only(['index', 'show']);
+        $this->middleware('role:admin|dirmedico')->only(['create', 'store']);
+        $this->middleware('role:admin|dirmedico')->only(['edit', 'update']);
+        $this->middleware('role:admin')->only(['destroy']);
     }
 
     public function index(): View
     {
-        $emergencies = Emergency::with(['patient', 'user'])
+        $emergencies = Emergency::with(['paciente', 'user'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -39,16 +39,16 @@ class EmergencyController extends Controller
 
     public function create(): View
     {
-        $patients = Patient::orderBy('name')->get();
+        $pacientes = Paciente::orderBy('name')->get();
         $users = User::role('emergency')->orderBy('name')->get();
         
-        return view('admin.emergencies.create', compact('patients', 'users'));
+        return view('admin.emergencies.create', compact('pacientes', 'users'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'patient_id' => 'required|exists:patients,id',
+            'patient_id' => 'required|exists:pacientes,id',
             'user_id' => 'required|exists:users,id',
             'symptoms' => 'required|string',
             'initial_assessment' => 'nullable|string',
@@ -71,17 +71,17 @@ class EmergencyController extends Controller
 
     public function show(Emergency $emergency): View
     {
-        $emergency->load(['patient', 'user']);
+        $emergency->load(['paciente', 'user']);
         
         return view('admin.emergencies.show', compact('emergency'));
     }
 
     public function edit(Emergency $emergency): View
     {
-        $patients = Patient::orderBy('name')->get();
+        $pacientes = Paciente::orderBy('name')->get();
         $users = User::role('emergency')->orderBy('name')->get();
         
-        return view('admin.emergencies.edit', compact('emergency', 'patients', 'users'));
+        return view('admin.emergencies.edit', compact('emergency', 'pacientes', 'users'));
     }
 
     public function update(Request $request, Emergency $emergency): RedirectResponse

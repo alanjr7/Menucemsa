@@ -13,9 +13,9 @@ class EmergencyStaffController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:emergencies.view');
-        $this->middleware('permission:emergencies.create')->only(['create', 'store']);
-        $this->middleware('permission:emergencies.update')->only(['update', 'updateStatus']);
+        $this->middleware('role:emergency|admin|dirmedico');
+        $this->middleware('role:emergency|admin|dirmedico')->only(['create', 'store']);
+        $this->middleware('role:emergency|admin|dirmedico')->only(['update', 'updateStatus']);
     }
 
     public function index(): View

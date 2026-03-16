@@ -32,20 +32,41 @@
 
         <hr class="border-blue-800/50 my-2 mx-4">
 
-        @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isEmergencia())
-        <div x-data="{ open: {{ request()->is('emergencias*') ? 'true' : 'false' }} }">
+        @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico())
+        <div x-data="{ open: {{ request()->is('admin.emergencies*') ? 'true' : 'false' }}">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
                 <span class="text-sm font-medium flex-1 text-left">Emergencias</span>
                 <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
-                <a href="{{ route('emergencias.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergencias.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                <a href="{{ route('admin.emergencies.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.emergencies*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
                     Gestión de Emergencias
                 </a>
             </div>
         </div>
-        @endif
+    @endif
+
+    @if(Auth::user()->isEmergencia())
+        <div x-data="{ open: {{ request()->is('emergency-staff*') ? 'true' : 'false' }}">
+            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
+                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
+                <span class="text-sm font-medium flex-1 text-left">Emergencias</span>
+                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
+                <a href="{{ route('emergency-staff.dashboard') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergency-staff.dashboard') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Panel de Emergencias
+                </a>
+                <a href="{{ route('emergency-staff.pending') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergency-staff.pending') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Emergencias Pendientes
+                </a>
+                <a href="{{ route('emergency-staff.create') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergency-staff.create') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Nueva Emergencia
+                </a>
+            </div>
+        </div>
+    @endif
 
         @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isDoctor())
         <div x-data="{ open: {{ request()->is('patients*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">
