@@ -7,11 +7,13 @@ use App\Models\TipoCirugia;
 use App\Models\Paciente;
 use App\Models\Medico;
 use App\Models\Quirofano;
+use App\Models\Caja;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class QuirofanoController extends Controller
 {
@@ -327,13 +329,61 @@ class QuirofanoController extends Controller
             ], 422);
         }
 
-        $cita->finalizarCirugia();
+        try {
+            DB::beginTransaction();
+            
+            // Finalizar la cirugía
+            $cita->finalizarCirugia();
+            
+            // Crear registro automático en caja
+            $this->crearRegistroCajaCirugia($cita);
+            
+            DB::commit();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cirugía finalizada exitosamente.',
-            'cita' => $cita->fresh()
+            return response()->json([
+                'success' => true,
+                'message' => 'Cirugía finalizada exitosamente. Se ha generado el cobro automático en caja.',
+                'cita' => $cita->fresh(),
+                'cobro_generado' => true
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al finalizar cirugía y generar cobro: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al finalizar cirugía: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function crearRegistroCajaCirugia(CitaQuirurgica $cita)
+    {
+        // Crear registro en caja para la cirugía
+        $caja = Caja::create([
+            'fecha' => now(),
+            'total_dia' => $cita->costo_final,
+            'tipo' => 'CIRUGIA',
+            'nro_factura' => null, // Pendiente de pago en caja
+            'id_farmacia' => null,
+            'nro_pago_internos' => 'CIRUGIA-' . $cita->id,
+            'metodo_pago' => null,
+            'referencia' => 'Cita Quirúrgica ID: ' . $cita->id,
         ]);
+
+        // Relacionar la cita con la caja (necesitaríamos agregar el campo id_caja en citas_quirurgicas)
+        // Por ahora, podemos guardar la referencia en observaciones
+        $cita->observaciones = ($cita->observaciones ?? '') . ' | Registro Caja: ' . $caja->id;
+        $cita->save();
+        
+        Log::info('Registro de caja creado para cirugía', [
+            'cita_id' => $cita->id,
+            'caja_id' => $caja->id,
+            'monto' => $cita->costo_final
+        ]);
+        
+        return $caja;
     }
 
     public function cancelar(Request $request, CitaQuirurgica $cita): JsonResponse
@@ -466,5 +516,23 @@ class QuirofanoController extends Controller
         ];
 
         return $colores[$estado] ?? '#6b7280'; // gray
+    }
+
+    public function historial(): View
+    {
+        $citas = CitaQuirurgica::with(['paciente', 'cirujano.usuario', 'quirofano'])
+            ->orderBy('fecha', 'desc')
+            ->orderBy('hora_inicio_estimada', 'desc')
+            ->paginate(20);
+
+        $stats = [
+            'total' => CitaQuirurgica::count(),
+            'programadas' => CitaQuirurgica::where('estado', 'programada')->count(),
+            'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
+            'finalizadas' => CitaQuirurgica::where('estado', 'finalizada')->count(),
+            'canceladas' => CitaQuirurgica::where('estado', 'cancelada')->count(),
+        ];
+
+        return view('quirofano.historial', compact('citas', 'stats'));
     }
 }

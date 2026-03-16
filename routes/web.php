@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
     // Rutas para quirofano (acceso para admin, reception y dirmedico)
     Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
+        Route::get('/quirofano/historial', [QuirofanoController::class, 'historial'])->name('quirofano.historial');
         Route::get('/quirofano/create', [QuirofanoController::class, 'create'])->name('quirofano.create');
         Route::post('/quirofano', [QuirofanoController::class, 'store'])->name('quirofano.store');
         Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show');

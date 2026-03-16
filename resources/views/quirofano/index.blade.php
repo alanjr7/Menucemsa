@@ -1,20 +1,28 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="w-full p-6 bg-gray-50/50 min-h-screen">
+<div class="w-full p-4 bg-gray-50/50 min-h-screen">
 
     <!-- Page Header -->
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Horario Semanal de Quirófanos</h1>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Horario Semanal de Quirófanos</h1>
             <p class="text-sm text-gray-500">Programación quirúrgica de la semana</p>
         </div>
-        <div class="flex gap-3">
-            <a href="{{ route('quirofano.create') }}" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('quirofano.historial') }}" class="flex items-center px-3 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 font-medium transition-colors text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <span class="hidden sm:inline">Historial</span>
+                <span class="sm:hidden">Hist.</span>
+            </a>
+            <a href="{{ route('quirofano.create') }}" class="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
-                Nueva Cita Quirúrgica
+                <span class="hidden sm:inline">Nueva Cita</span>
+                <span class="sm:hidden">+</span>
             </a>
             @if(Auth::user()->isAdmin())
             <a href="{{ route('quirofanos.management.index') }}" class="flex items-center px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 font-medium transition-colors">
@@ -34,43 +42,43 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Total Semana</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ $stats['total_semana'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-gray-500">Total Semana</p>
+                    <p class="text-lg lg:text-2xl font-bold text-gray-900">{{ $stats['total_semana'] }}</p>
                 </div>
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Citas Hoy</p>
-                    <p class="text-2xl font-bold text-amber-600">{{ $stats['hoy'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-gray-500">Citas Hoy</p>
+                    <p class="text-lg lg:text-2xl font-bold text-amber-600">{{ $stats['hoy'] }}</p>
                 </div>
-                <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">En Curso</p>
-                    <p class="text-2xl font-bold text-red-600">{{ $stats['en_curso'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-gray-500">En Curso</p>
+                    <p class="text-lg lg:text-2xl font-bold text-red-600">{{ $stats['en_curso'] }}</p>
                 </div>
-                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
@@ -78,14 +86,14 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">Finalizadas Hoy</p>
-                    <p class="text-2xl font-bold text-green-600">{{ $stats['finalizadas'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-gray-500">Finalizadas Hoy</p>
+                    <p class="text-lg lg:text-2xl font-bold text-green-600">{{ $stats['finalizadas'] }}</p>
                 </div>
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-6m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
@@ -93,8 +101,72 @@
         </div>
     </div>
 
-    <!-- Horario Semanal -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <!-- Vista Móvil: Tarjetas por Día -->
+    <div class="lg:hidden space-y-4 mb-8">
+        @foreach($diasSemana as $dia)
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 bg-gray-50 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800">{{ $dia['nombre'] }}</h3>
+                        <div class="text-sm text-gray-500">
+                            {{ $dia['dia_mes'] }}
+                            @if($dia['fecha']->isToday())
+                                <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs font-semibold rounded-full">Hoy</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    @php
+                        $citasDelDia = [];
+                        foreach($horasDia as $hora) {
+                            if(isset($citasPorDiaHora[$dia['fecha_key']][$hora])) {
+                                foreach($quirofanos as $quirofano) {
+                                    if(isset($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->nro])) {
+                                        $citasDelDia = array_merge($citasDelDia, $citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->nro]);
+                                    }
+                                }
+                            }
+                        }
+                    @endphp
+                    
+                    @if(!empty($citasDelDia))
+                        <div class="space-y-3">
+                            @foreach($citasDelDia as $cita)
+                                <div class="border border-gray-200 rounded-lg p-3 {{ $cita->estado === 'programada' ? 'bg-blue-50' : ($cita->estado === 'en_curso' ? 'bg-amber-50' : ($cita->estado === 'finalizada' ? 'bg-green-50' : 'bg-red-50')) }}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <div class="font-semibold text-gray-900 text-sm">{{ $cita->paciente->nombre }}</div>
+                                            <div class="text-xs text-gray-600">{{ $cita->cirujano->usuario->name }}</div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $cita->estado === 'programada' ? 'bg-blue-100 text-blue-800' : ($cita->estado === 'en_curso' ? 'bg-amber-100 text-amber-800' : ($cita->estado === 'finalizada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')) }}">
+                                            {{ ucfirst($cita->estado) }}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs text-gray-500">
+                                        <div>Q{{ $cita->quirofano->nro }} • {{ $cita->hora_inicio_estimada->format('H:i') }}</div>
+                                        <button onclick="verDetalles({{ $cita->id }})" class="text-blue-600 hover:text-blue-800 font-medium">
+                                            Ver →
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-8 text-gray-400">
+                            <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-sm">No hay cirugías programadas</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <!-- Vista Desktop: Tabla Horario -->
+    <div class="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="p-6 border-b border-gray-100">
             <div class="flex justify-between items-center">
                 <h2 class="text-lg font-bold text-gray-800">Horario Semanal Detallado</h2>
