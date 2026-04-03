@@ -122,6 +122,7 @@
                 <a href="{{ route('admin.tarifarios') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.tarifarios') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Tarifarios</a>
                 <a href="{{ route('admin.seguros') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.seguros') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Seguros</a>
                 <a href="{{ route('admin.cuentas') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.cuentas') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Cuentas por Cobrar</a>
+                <a href="{{ route('admin.almacen-medicamentos.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.almacen-medicamentos*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Almacén de Medicamentos</a>
             </div>
         </div>
         @endif

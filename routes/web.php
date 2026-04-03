@@ -33,6 +33,7 @@ use App\Http\Controllers\Farmacia\ReporteController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
 use App\Http\Controllers\EmergencyStaffController;
+use App\Http\Controllers\Admin\AlmacenMedicamentosController;
 
 
 
@@ -297,6 +298,19 @@ Route::middleware('auth')->group(function () {
         Route::put('/emergencies/{emergency}', [AdminEmergencyController::class, 'update'])->name('emergencies.update');
         Route::delete('/emergencies/{emergency}', [AdminEmergencyController::class, 'destroy'])->name('emergencies.destroy');
         Route::post('/emergencies/{emergency}/mark-paid', [AdminEmergencyController::class, 'markAsPaid'])->name('emergencies.mark-paid');
+
+        // Rutas para almacén de medicamentos
+        Route::get('/almacen-medicamentos', [AlmacenMedicamentosController::class, 'index'])->name('almacen-medicamentos.index');
+        Route::get('/almacen-medicamentos/create', [AlmacenMedicamentosController::class, 'create'])->name('almacen-medicamentos.create');
+        Route::post('/almacen-medicamentos', [AlmacenMedicamentosController::class, 'store'])->name('almacen-medicamentos.store');
+        Route::get('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'show'])->name('almacen-medicamentos.show');
+        Route::get('/almacen-medicamentos/{almacenMedicamento}/edit', [AlmacenMedicamentosController::class, 'edit'])->name('almacen-medicamentos.edit');
+        Route::put('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'update'])->name('almacen-medicamentos.update');
+        Route::delete('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'destroy'])->name('almacen-medicamentos.destroy');
+        Route::post('/almacen-medicamentos/{almacenMedicamento}/actualizar-stock', [AlmacenMedicamentosController::class, 'actualizarStock'])->name('almacen-medicamentos.actualizar-stock');
+        Route::get('/almacen-medicamentos/reporte/bajo-stock', [AlmacenMedicamentosController::class, 'reporteBajoStock'])->name('almacen-medicamentos.reporte.bajo-stock');
+        Route::get('/almacen-medicamentos/reporte/vencimiento', [AlmacenMedicamentosController::class, 'reporteVencimiento'])->name('almacen-medicamentos.reporte.vencimiento');
+        Route::get('/almacen-medicamentos/area/{area}', [AlmacenMedicamentosController::class, 'porArea'])->name('almacen-medicamentos.por-area');
     });
 
     // Rutas para personal de emergencias
