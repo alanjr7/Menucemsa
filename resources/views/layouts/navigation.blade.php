@@ -21,7 +21,7 @@
             <span class="text-sm font-medium">Dashboard</span>
         </a>
 
-        @if(Auth::user()->isReception() || Auth::user()->isAdmin())
+        @if(Auth::user()->isReception())
         <a href="{{ route('reception') }}"
            class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('reception') ? 'bg-blue-600 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800/50' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
@@ -31,42 +31,6 @@
 
 
         <hr class="border-blue-800/50 my-2 mx-4">
-
-        @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico())
-        <div x-data="{ open: {{ request()->is('admin.emergencies*') ? 'true' : 'false' }}">
-            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
-                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
-                <span class="text-sm font-medium flex-1 text-left">Emergencias</span>
-                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
-                <a href="{{ route('admin.emergencies.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.emergencies*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
-                    Gestión de Emergencias
-                </a>
-            </div>
-        </div>
-    @endif
-
-    @if(Auth::user()->isEmergencia() || Auth::user()->isAdmin())
-        <div x-data="{ open: {{ request()->is('emergency-staff*') ? 'true' : 'false' }}">
-            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
-                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
-                <span class="text-sm font-medium flex-1 text-left">Emergencias Staff</span>
-                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
-                <a href="{{ route('emergency-staff.dashboard') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergency-staff.dashboard') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
-                    Dashboard
-                </a>
-                <a href="{{ route('emergency-staff.create') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergency-staff.create') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
-                    Nuevo Registro
-                </a>
-                <a href="{{ route('emergency-staff.pending') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('emergency-staff.pending') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
-                    Pendientes
-                </a>
-            </div>
-        </div>
-    @endif
 
         @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isDoctor())
         <div x-data="{ open: {{ request()->is('patients*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">

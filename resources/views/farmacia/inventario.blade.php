@@ -300,5 +300,5 @@
         }
     }
 </script>
-</div>
+<\/div>
 @endsection
