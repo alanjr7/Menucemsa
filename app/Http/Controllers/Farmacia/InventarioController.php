@@ -4,11 +4,25 @@ namespace App\Http\Controllers\Farmacia;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Inventario;
 use App\Models\Medicamentos;
 use App\Models\DetalleMedicamentos;
+use Illuminate\Support\Facades\Auth;
 
 class InventarioController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        // Verificar que el usuario tenga rol farmacia o admin
+        $this->middleware(function ($request, $next) {
+            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin'])) {
+                abort(403, 'No tienes permisos para acceder a este módulo.');
+            }
+            return $next($request);
+        });
+    }
+
     public function index()
     {
         // Obtener todos los medicamentos con sus detalles e inventario

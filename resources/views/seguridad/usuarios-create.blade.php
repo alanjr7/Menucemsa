@@ -65,6 +65,7 @@
                                 <option value="reception" {{ old('role') == 'reception' ? 'selected' : '' }}>Recepción</option>
                                 <option value="emergencia" {{ old('role') == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
                                 <option value="caja" {{ old('role') == 'caja' ? 'selected' : '' }}>Caja</option>
+                                <option value="farmacia" {{ old('role') == 'farmacia' ? 'selected' : '' }}>Farmacia</option>
                                 <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Usuario</option>
                             </select>
                             @error('role')

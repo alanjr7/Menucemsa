@@ -30,7 +30,7 @@ class UsuariosController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja,user'
+            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja,user,farmacia'
         ]);
 
         // Normalizar roles: si selecciona 'doctor', convertirlo a 'dirmedico'
@@ -87,7 +87,7 @@ class UsuariosController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja'
+            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja,farmacia'
         ]);
 
         // Normalizar roles: si selecciona 'doctor', convertirlo a 'dirmedico'

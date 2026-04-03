@@ -19,7 +19,7 @@ class UserManagementController extends Controller
 
     public function create()
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor'];
+        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia'];
         return view('user-management.create', compact('roles'));
     }
 
@@ -31,7 +31,7 @@ class UserManagementController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => ['required', 'confirmed', Password::defaults()],
-                'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor',
+                'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia',
             ];
 
             // Validaciones adicionales solo para roles que las necesitan
@@ -119,7 +119,7 @@ class UserManagementController extends Controller
 
     public function edit(User $user)
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor'];
+        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia'];
         return view('user-management.edit', compact('user', 'roles'));
     }
 
@@ -128,7 +128,7 @@ class UserManagementController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor',
+            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia',
         ]);
 
         $user->update([

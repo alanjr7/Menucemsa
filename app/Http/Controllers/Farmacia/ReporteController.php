@@ -7,10 +7,24 @@ use Illuminate\Http\Request;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
 use App\Models\Medicamentos;
+use App\Models\Cliente;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class ReporteController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        // Verificar que el usuario tenga rol farmacia o admin
+        $this->middleware(function ($request, $next) {
+            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin'])) {
+                abort(403, 'No tienes permisos para acceder a este módulo.');
+            }
+            return $next($request);
+        });
+    }
+
     public function index()
     {
         // Obtener estadísticas generales

@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
 use App\Http\Controllers\Admin\DoctorController;
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\TarifarioController;
 use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
@@ -41,9 +42,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -234,6 +233,11 @@ Route::middleware('auth')->group(function () {
 
     // Rutas de administración (solo admin) - Especialidades CRUD
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        // Dashboard principal del admin
+        Route::get('/dashboard', function () {
+            return view('dashboard');
+        })->name('dashboard');
+        
         Route::get('especialidades', [EspecialidadController::class, 'index'])->name('especialidades.index');
         Route::get('especialidades/create', [EspecialidadController::class, 'create'])->name('especialidades.create');
         Route::post('especialidades', [EspecialidadController::class, 'store'])->name('especialidades.store');
@@ -253,13 +257,42 @@ Route::middleware('auth')->group(function () {
         Route::get('api/medicos-por-especialidad', [DoctorController::class, 'getMedicosByEspecialidad'])->name('doctors.by-especialidad');
     });
 
-    // Rutas de farmacia (solo admin)
-    Route::middleware(['role:admin'])->group(function () {
-        Route::get('/farmacia', [FarmaciaController::class, 'index'])->name('farmacia.index');
+    // Rutas de farmacia (admin y farmacia)
+    Route::middleware(['auth', 'role:admin|farmacia'])->prefix('farmacia')->name('farmacia.')->group(function () {
+
+        // URL: /farmacia -> Llama a FarmaciaDashboardController
+        Route::get('/', [FarmaciaDashboardController::class, 'index'])->name('index');
+
+        // URL: /farmacia/punto-de-venta -> Llama a PuntoVentaController
+        Route::get('/punto-de-venta', [PuntoVentaController::class, 'index'])->name('pos');
+        Route::post('/punto-de-venta/procesar', [PuntoVentaController::class, 'procesarVenta'])->name('pos.procesar');
+
+        // URL: /farmacia/inventario -> Llama a InventarioController
+        Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario');
+        Route::post('/inventario', [InventarioController::class, 'store'])->name('inventario.store');
+        Route::put('/inventario/{id}', [InventarioController::class, 'update'])->name('inventario.update');
+        Route::delete('/inventario/{id}', [InventarioController::class, 'destroy'])->name('inventario.destroy');
+
+        Route::get('/ventas', [VentasController::class, 'index'])->name('ventas');
+        Route::get('/ventas/{codigoVenta}', [VentasController::class, 'show'])->name('ventas.show');
+        Route::delete('/ventas/{codigoVenta}', [VentasController::class, 'destroy'])->name('ventas.destroy');
+
+        Route::get('/clientes', [ClientesController::class, 'index'])->name('clientes');
+        Route::post('/clientes', [ClientesController::class, 'store'])->name('clientes.store');
+        Route::put('/clientes/{id}', [ClientesController::class, 'update'])->name('clientes.update');
+        Route::delete('/clientes/{id}', [ClientesController::class, 'destroy'])->name('clientes.destroy');
+
+        Route::get('/reporte', [ReporteController::class, 'index'])->name('reporte');
+        Route::post('/reporte/filtrar', [ReporteController::class, 'filtrar'])->name('reporte.filtrar');
     });
 
     // Rutas gerenciales (admin y gerente)
     Route::middleware(['role:admin|gerente'])->prefix('gerencial')->name('gerencial.')->group(function () {
+        // Dashboard del gerente
+        Route::get('/dashboard', function () {
+            return view('dashboard');
+        })->name('dashboard');
+        
         Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes');
         Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
     });
@@ -324,41 +357,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/{emergency}/assign-to-me', [EmergencyStaffController::class, 'assignToMe'])->name('assign-to-me');
         Route::get('/pending', [EmergencyStaffController::class, 'pending'])->name('pending');
     });
-
-// Rutas de farmacia organizadas por controlador modular
-Route::middleware(['auth', 'role:admin'])->prefix('farmacia')->name('farmacia.')->group(function () {
-
-    // URL: /farmacia -> Llama a FarmaciaDashboardController
-    Route::get('/', [FarmaciaDashboardController::class, 'index'])->name('index');
-
-    // URL: /farmacia/punto-de-venta -> Llama a PuntoVentaController
-    Route::get('/punto-de-venta', [PuntoVentaController::class, 'index'])->name('pos');
-    Route::post('/punto-de-venta/procesar', [PuntoVentaController::class, 'procesarVenta'])->name('pos.procesar');
-
-    // NUEVA RUTA: URL: /farmacia/inventario -> Llama a InventarioController
-    // El nombre de la ruta será 'farmacia.inventario' automáticamente por el name('farmacia.')
-    Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario');
-       Route::post('/inventario', [InventarioController::class, 'store'])->name('inventario.store');
-       Route::put('/inventario/{id}', [InventarioController::class, 'update'])->name('inventario.update');
-       Route::delete('/inventario/{id}', [InventarioController::class, 'destroy'])->name('inventario.destroy');
-
-       Route::get('/ventas', [VentasController::class, 'index'])->name('ventas');
-       Route::get('/ventas/{codigoVenta}', [VentasController::class, 'show'])->name('ventas.show');
-       Route::delete('/ventas/{codigoVenta}', [VentasController::class, 'destroy'])->name('ventas.destroy');
-
-         Route::get('/clientes', [ClientesController::class, 'index'])->name('clientes');
-       Route::post('/clientes', [ClientesController::class, 'store'])->name('clientes.store');
-       Route::put('/clientes/{id}', [ClientesController::class, 'update'])->name('clientes.update');
-       Route::delete('/clientes/{id}', [ClientesController::class, 'destroy'])->name('clientes.destroy');
-
-         Route::get('/reporte', [ReporteController::class, 'index'])->name('reporte');
-       Route::post('/reporte/filtrar', [ReporteController::class, 'filtrar'])->name('reporte.filtrar');
-
-         });
-
-
 });
 
-
+// Ruta de prueba para farmacia
+Route::get('/test-farmacia', function() {
+    if (!auth()->check()) {
+        return 'No autenticado';
+    }
+    
+    $user = auth()->user();
+    return 'Usuario: ' . $user->name . ', Rol: ' . $user->role . ', isFarmacia: ' . ($user->isFarmacia() ? 'true' : 'false');
+})->middleware('auth');
 
 require __DIR__.'/auth.php';

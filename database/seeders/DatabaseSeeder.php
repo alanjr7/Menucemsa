@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             ServicioSeeder::class,
             AdminSeeder::class,
+            FarmaciaRoleSeeder::class,
             UsuariosSeeder::class,
             QuirofanosSeeder::class,
             
