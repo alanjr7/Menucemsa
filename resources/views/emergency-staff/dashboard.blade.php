@@ -1,170 +1,452 @@
 @extends('layouts.app')
 
-@section('title', 'Panel de Emergencias')
-
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0 text-gray-800">Panel de Emergencias</h1>
+<div class="p-6 bg-gray-50/50 min-h-screen">
+    <!-- Header -->
+    <div class="flex justify-between items-end mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Dashboard de Emergencias</h1>
+            <p class="text-sm text-gray-500">Usuario Emergencia - Atención en tiempo real</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="cargarEmergencias()" class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all shadow-sm">
+                <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Actualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
+            <span class="text-gray-500 text-sm font-medium mb-1">Pacientes Activos</span>
+            <span class="text-3xl font-bold text-red-600" id="stat-activos">0</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
+            <span class="text-gray-500 text-sm font-medium mb-1">En Espera</span>
+            <span class="text-3xl font-bold text-yellow-600" id="stat-espera">0</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
+            <span class="text-gray-500 text-sm font-medium mb-1">En Atención</span>
+            <span class="text-3xl font-bold text-blue-600" id="stat-atencion">0</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
+            <span class="text-gray-500 text-sm font-medium mb-1">Hoy Ingresados</span>
+            <span class="text-3xl font-bold text-green-600" id="stat-hoy">0</span>
+        </div>
+    </div>
+
+    <!-- Alertas de Recursos -->
+    <div id="alertas-recursos" class="mb-6 hidden">
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+            <div class="flex items-center">
+                <svg class="w-6 h-6 text-yellow-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
                 <div>
-                    <a href="{{ route('emergency-staff.pending') }}" class="btn btn-warning">
-                        <i class="fas fa-exclamation-triangle"></i> Emergencias Pendientes ({{ $pendingCount }})
-                    </a>
-                    <a href="{{ route('emergency-staff.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Nueva Emergencia
-                    </a>
-                </div>
-            </div>
-
-            <!-- Estadísticas -->
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <h5 class="card-title">Pendientes de Asignar</h5>
-                            <h3>{{ $pendingCount }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <h5 class="card-title">Mis Activas</h5>
-                            <h3>{{ $myActiveCount }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-success text-white">
-                        <div class="card-body">
-                            <h5 class="card-title">Total Hoy</h5>
-                            <h3>{{ $emergencies->count() }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mis Emergencias -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Mis Emergencias Asignadas</h5>
-                </div>
-                <div class="card-body">
-                    @if($emergencies->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Paciente</th>
-                                    <th>Estado</th>
-                                    <th>Síntomas</th>
-                                    <th>Fecha</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($emergencies as $emergency)
-                                <tr>
-                                    <td><strong>{{ $emergency->code }}</strong></td>
-                                    <td>{{ $emergency->patient->name }}</td>
-                                    <td>
-                                        <span class="badge badge-{{ $emergency->status_color }}">
-                                            {{ ucfirst($emergency->status) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 200px;">
-                                            {{ Str::limit($emergency->symptoms, 50) }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $emergency->created_at->format('d/m H:i') }}</td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="{{ route('emergency-staff.show', $emergency) }}" 
-                                               class="btn btn-sm btn-info" title="Ver">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{{ route('emergency-staff.edit', $emergency) }}" 
-                                               class="btn btn-sm btn-warning" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-success" 
-                                                    title="Actualizar Estado"
-                                                    onclick="showStatusModal({{ $emergency->id }}, '{{ $emergency->status }}')">
-                                                <i class="fas fa-sync"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    {{ $emergencies->links() }}
-                    @else
-                    <div class="text-center py-4">
-                        <i class="fas fa-ambulance fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No tienes emergencias asignadas</h5>
-                        <p class="text-muted">Revisa las emergencias pendientes para asignarte una.</p>
-                        <a href="{{ route('emergency-staff.pending') }}" class="btn btn-primary">
-                            Ver Emergencias Pendientes
-                        </a>
-                    </div>
-                    @endif
+                    <h3 class="text-yellow-800 font-bold">Alerta de Recursos</h3>
+                    <p class="text-yellow-700 text-sm" id="alerta-mensaje"></p>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal para actualizar estado -->
-<div class="modal fade" id="statusModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Actualizar Estado</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+    <!-- Lista de Pacientes en Emergencia -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-bold text-gray-800">Pacientes en Emergencia</h2>
+            <div class="flex gap-2">
+                <select id="filtro-estado" onchange="cargarEmergencias()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-500">
+                    <option value="todos">Todos los estados</option>
+                    <option value="recibido">Recibidos</option>
+                    <option value="en_evaluacion">En Evaluación</option>
+                    <option value="estabilizado">Estabilizados</option>
+                </select>
             </div>
-            <form id="statusForm" method="POST" action="">
-                @csrf
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="status">Nuevo Estado</label>
-                        <select name="status" id="status" class="form-control" required>
-                            <option value="recibido">Recibido</option>
-                            <option value="en_evaluacion">En Evaluación</option>
-                            <option value="estabilizado">Estabilizado</option>
-                            <option value="uti">UTI</option>
-                            <option value="cirugia">Cirugía</option>
-                            <option value="alta">Alta</option>
-                            <option value="fallecido">Fallecido</option>
-                        </select>
+        </div>
+
+        <!-- Tabla de Pacientes -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 rounded-l-lg">Código</th>
+                        <th scope="col" class="px-6 py-3">Paciente</th>
+                        <th scope="col" class="px-6 py-3">Tipo Ingreso</th>
+                        <th scope="col" class="px-6 py-3">Destino Inicial</th>
+                        <th scope="col" class="px-6 py-3">Hora Ingreso</th>
+                        <th scope="col" class="px-6 py-3">Estado</th>
+                        <th scope="col" class="px-6 py-3 rounded-r-lg">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-emergencias">
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+                            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <p>Cargando pacientes...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Acciones -->
+    <div id="modalAcciones" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-t-2xl">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold">Acciones del Paciente</h3>
+                        <p class="text-red-100 text-sm mt-1" id="modal-paciente-nombre"></p>
                     </div>
+                    <button onclick="cerrarModal()" class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Actualizar</button>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 gap-3">
+                    <button onclick="cambiarEstado('en_evaluacion')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all text-left">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800">Iniciar Evaluación</span>
+                            <p class="text-xs text-gray-500">Comenzar atención médica</p>
+                        </div>
+                    </button>
+
+                    <button onclick="cambiarEstado('estabilizado')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800">Marcar Estabilizado</span>
+                            <p class="text-xs text-gray-500">Paciente estable para decisión</p>
+                        </div>
+                    </button>
+
+                    <button onclick="derivarA('cirugia')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition-all text-left">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800">Enviar a Cirugía</span>
+                            <p class="text-xs text-gray-500">Derivar a quirófano</p>
+                        </div>
+                    </button>
+
+                    <button onclick="derivarA('uti')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-left">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800">Enviar a UTI</span>
+                            <p class="text-xs text-gray-500">Unidad de Terapia Intensiva</p>
+                        </div>
+                    </button>
+
+                    <button onclick="derivarA('hospitalizacion')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition-all text-left">
+                        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800">Internación</span>
+                            <p class="text-xs text-gray-500">Enviar a hospitalización</p>
+                        </div>
+                    </button>
+
+                    <button onclick="derivarA('observacion')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-yellow-50 hover:border-yellow-300 transition-all text-left">
+                        <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800">Observación</span>
+                            <p class="text-xs text-gray-500">Área de observación/camilla</p>
+                        </div>
+                    </button>
+
+                    <button onclick="darAlta()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800">Dar de Alta</span>
+                            <p class="text-xs text-gray-500">Paciente egresado</p>
+                        </div>
+                    </button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-function showStatusModal(emergencyId, currentStatus) {
-    document.getElementById('statusForm').action = `/emergency-staff/${emergencyId}`;
-    document.getElementById('status').value = currentStatus;
-    $('#statusModal').modal('show');
-}
+    let emergencyIdActual = null;
 
-// Auto-refresh cada 30 segundos para emergencias críticas
-setTimeout(function() {
-    location.reload();
-}, 30000);
+    // Cargar emergencias al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        cargarEmergencias();
+        cargarEstadisticas();
+        // Auto-refresh cada 30 segundos
+        setInterval(cargarEmergencias, 30000);
+    });
+
+    async function cargarEmergencias() {
+        try {
+            const filtro = document.getElementById('filtro-estado').value;
+            const response = await fetch('/emergency-staff/api/emergencias?estado=' + filtro);
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarEmergencias(data.emergencias);
+                actualizarEstadisticas(data.stats);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function cargarEstadisticas() {
+        try {
+            const response = await fetch('/emergency-staff/api/estadisticas');
+            const data = await response.json();
+            
+            if (data.success) {
+                actualizarEstadisticas(data.stats);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function actualizarEstadisticas(stats) {
+        document.getElementById('stat-activos').textContent = stats.activos || 0;
+        document.getElementById('stat-espera').textContent = stats.espera || 0;
+        document.getElementById('stat-atencion').textContent = stats.atencion || 0;
+        document.getElementById('stat-hoy').textContent = stats.hoy || 0;
+    }
+
+    function mostrarEmergencias(emergencias) {
+        const tbody = document.getElementById('tabla-emergencias');
+        
+        if (emergencias.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p>No hay pacientes en emergencia</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = emergencias.map(emp => `
+            <tr class="bg-white border-b hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">${emp.code}</td>
+                <td class="px-6 py-4">
+                    <div class="font-medium text-gray-900">${emp.paciente_nombre}</div>
+                    <div class="text-xs text-gray-500">${emp.is_temp_id ? 'ID Temporal' : 'CI: ' + emp.paciente_id}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${getTipoIngresoClass(emp.tipo_ingreso)}">
+                        ${emp.tipo_ingreso_label}
+                    </span>
+                </td>
+                <td class="px-6 py-4 capitalize">${emp.destino_inicial || 'Pendiente'}</td>
+                <td class="px-6 py-4">${emp.hora_ingreso}</td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${getEstadoClass(emp.status)}">
+                        ${emp.status_label}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <button onclick="abrirModal(${emp.id}, '${emp.paciente_nombre}')" class="text-red-600 hover:text-red-900 font-medium text-sm">
+                        Acciones
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function getTipoIngresoClass(tipo) {
+        const classes = {
+            'soat': 'bg-orange-100 text-orange-800',
+            'parto': 'bg-pink-100 text-pink-800',
+            'general': 'bg-blue-100 text-blue-800'
+        };
+        return classes[tipo] || 'bg-gray-100 text-gray-800';
+    }
+
+    function getEstadoClass(estado) {
+        const classes = {
+            'recibido': 'bg-yellow-100 text-yellow-800',
+            'en_evaluacion': 'bg-blue-100 text-blue-800',
+            'estabilizado': 'bg-green-100 text-green-800',
+            'cirugia': 'bg-purple-100 text-purple-800',
+            'uti': 'bg-red-100 text-red-800',
+            'alta': 'bg-gray-100 text-gray-800'
+        };
+        return classes[estado] || 'bg-gray-100 text-gray-800';
+    }
+
+    function abrirModal(id, nombre) {
+        emergencyIdActual = id;
+        document.getElementById('modal-paciente-nombre').textContent = nombre;
+        document.getElementById('modalAcciones').classList.remove('hidden');
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalAcciones').classList.add('hidden');
+        emergencyIdActual = null;
+    }
+
+    async function cambiarEstado(nuevoEstado) {
+        if (!emergencyIdActual) return;
+        
+        try {
+            const response = await fetch(`/emergency-staff/${emergencyIdActual}/update-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ status: nuevoEstado })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                cerrarModal();
+                cargarEmergencias();
+                alert('Estado actualizado correctamente');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al actualizar estado');
+        }
+    }
+
+    async function derivarA(destino) {
+        if (!emergencyIdActual) return;
+        
+        try {
+            const response = await fetch(`/emergency-staff/${emergencyIdActual}/derivar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ destino: destino })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                cerrarModal();
+                cargarEmergencias();
+                alert(`Paciente derivado a ${destino} correctamente`);
+            } else {
+                if (data.requiere_confirmacion) {
+                    if (confirm(data.message + '\n\n¿Desea continuar de todos modos?')) {
+                        // Reintentar con forzar=true
+                        forzarDerivacion(destino);
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al derivar paciente');
+        }
+    }
+
+    async function forzarDerivacion(destino) {
+        try {
+            const response = await fetch(`/emergency-staff/${emergencyIdActual}/derivar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ destino: destino, forzar: true })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                cerrarModal();
+                cargarEmergencias();
+                alert('Paciente derivado correctamente');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function darAlta() {
+        if (!emergencyIdActual) return;
+        
+        if (!confirm('¿Está seguro de dar de alta a este paciente?')) return;
+        
+        try {
+            const response = await fetch(`/emergency-staff/${emergencyIdActual}/alta`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                cerrarModal();
+                cargarEmergencias();
+                alert('Paciente dado de alta correctamente');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al dar de alta');
+        }
+    }
+
+    // Cerrar modal al hacer click fuera
+    document.getElementById('modalAcciones').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModal();
+        }
+    });
 </script>
 @endsection

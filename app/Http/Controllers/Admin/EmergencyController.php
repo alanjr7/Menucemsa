@@ -8,120 +8,118 @@ use App\Models\Emergency;
 use App\Models\Paciente;
 use App\Models\User;
 use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 class EmergencyController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:admin|dirmedico')->only(['index', 'show']);
-        $this->middleware('role:admin|dirmedico')->only(['create', 'store']);
-        $this->middleware('role:admin|dirmedico')->only(['edit', 'update']);
-        $this->middleware('role:admin')->only(['destroy']);
+        $this->middleware('role:admin');
     }
 
+    /**
+     * Vista principal - Solo lectura
+     */
     public function index(): View
     {
-        $emergencies = Emergency::with(['paciente', 'user'])
+        return view('admin.emergencies.index');
+    }
+
+    /**
+     * API: Listado de emergencias para admin
+     */
+    public function apiIndex(): JsonResponse
+    {
+        $emergencies = Emergency::with(['paciente'])
             ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->get()
+            ->map(function($emg) {
+                return [
+                    'id' => $emg->id,
+                    'code' => $emg->code,
+                    'patient_id' => $emg->patient_id,
+                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                    'is_temp_id' => $emg->is_temp_id,
+                    'tipo_ingreso' => $emg->tipo_ingreso,
+                    'tipo_ingreso_label' => $emg->tipo_ingreso_label,
+                    'destino_inicial' => $emg->destino_inicial,
+                    'ubicacion_actual' => $emg->ubicacion_actual,
+                    'ubicacion_label' => $emg->ubicacion_label,
+                    'status' => $emg->status,
+                    'admission_date' => $emg->admission_date,
+                    'flujo_historial' => $emg->flujo_historial ?? [],
+                    'cost' => $emg->cost ?? 0,
+                    'total_pagado' => $emg->total_pagado ?? 0,
+                    'deuda' => $emg->deuda ?? 0,
+                    'es_parto' => $emg->es_parto,
+                    'sintomas' => $emg->symptoms,
+                    'nro_cirugia' => $emg->nro_cirugia,
+                    'nro_hospitalizacion' => $emg->nro_hospitalizacion,
+                    'nro_uti' => $emg->nro_uti,
+                ];
+            });
 
         $stats = [
             'total' => Emergency::count(),
-            'active' => Emergency::whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])->count(),
-            'uti' => Emergency::where('status', 'uti')->count(),
-            'surgery' => Emergency::where('status', 'cirugia')->count(),
-            'discharged' => Emergency::where('status', 'alta')->count(),
+            'activos' => Emergency::whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])->count(),
+            'uti' => Emergency::where('ubicacion_actual', 'uti')->count(),
+            'cirugia' => Emergency::where('ubicacion_actual', 'cirugia')->count(),
+            'alta' => Emergency::where('status', 'alta')->count(),
+            'deuda_total' => Emergency::sum('deuda'),
         ];
 
-        return view('admin.emergencies.index', compact('emergencies', 'stats'));
-    }
-
-    public function create(): View
-    {
-        $pacientes = Paciente::orderBy('name')->get();
-        $users = User::role('emergency')->orderBy('name')->get();
-        
-        return view('admin.emergencies.create', compact('pacientes', 'users'));
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'patient_id' => 'required|exists:pacientes,id',
-            'user_id' => 'required|exists:users,id',
-            'symptoms' => 'required|string',
-            'initial_assessment' => 'nullable|string',
-            'vital_signs' => 'nullable|string',
-            'treatment' => 'nullable|string',
-            'observations' => 'nullable|string',
-            'destination' => 'nullable|in:observacion,uti,cirugia,consulta_externa,alta',
-            'cost' => 'required|numeric|min:0',
+        return response()->json([
+            'success' => true,
+            'emergencias' => $emergencies,
+            'stats' => $stats
         ]);
-
-        $validated['code'] = Emergency::generateCode();
-        $validated['status'] = 'recibido';
-        $validated['admission_date'] = now();
-
-        Emergency::create($validated);
-
-        return redirect()->route('admin.emergencies.index')
-            ->with('success', 'Emergencia creada exitosamente.');
     }
 
+    /**
+     * API: Ver detalle de emergencia
+     */
+    public function apiShow(Emergency $emergency): JsonResponse
+    {
+        $emergency->load(['paciente', 'user']);
+
+        return response()->json([
+            'success' => true,
+            'emergencia' => [
+                'id' => $emergency->id,
+                'code' => $emergency->code,
+                'patient_id' => $emergency->patient_id,
+                'paciente_nombre' => $emergency->is_temp_id ? 'Paciente Temporal' : ($emergency->paciente?->nombre ?? 'Desconocido'),
+                'is_temp_id' => $emergency->is_temp_id,
+                'tipo_ingreso' => $emergency->tipo_ingreso,
+                'tipo_ingreso_label' => $emergency->tipo_ingreso_label,
+                'destino_inicial' => $emergency->destino_inicial,
+                'ubicacion_actual' => $emergency->ubicacion_actual,
+                'ubicacion_label' => $emergency->ubicacion_label,
+                'status' => $emergency->status,
+                'admission_date' => $emergency->admission_date,
+                'discharge_date' => $emergency->discharge_date,
+                'flujo_historial' => $emergency->flujo_historial ?? [],
+                'cost' => $emergency->cost ?? 0,
+                'total_pagado' => $emergency->total_pagado ?? 0,
+                'deuda' => $emergency->deuda ?? 0,
+                'es_parto' => $emergency->es_parto,
+                'sintomas' => $emergency->symptoms,
+                'initial_assessment' => $emergency->initial_assessment,
+                'vital_signs' => $emergency->vital_signs,
+                'nro_cirugia' => $emergency->nro_cirugia,
+                'nro_hospitalizacion' => $emergency->nro_hospitalizacion,
+                'nro_uti' => $emergency->nro_uti,
+                'user_name' => $emergency->user?->name ?? 'No asignado',
+            ]
+        ]);
+    }
+
+    /**
+     * Vista show - Solo lectura
+     */
     public function show(Emergency $emergency): View
     {
         $emergency->load(['paciente', 'user']);
-        
         return view('admin.emergencies.show', compact('emergency'));
-    }
-
-    public function edit(Emergency $emergency): View
-    {
-        $pacientes = Paciente::orderBy('name')->get();
-        $users = User::role('emergency')->orderBy('name')->get();
-        
-        return view('admin.emergencies.edit', compact('emergency', 'pacientes', 'users'));
-    }
-
-    public function update(Request $request, Emergency $emergency): RedirectResponse
-    {
-        $validated = $request->validate([
-            'patient_id' => 'required|exists:patients,id',
-            'user_id' => 'required|exists:users,id',
-            'status' => 'required|in:recibido,en_evaluacion,estabilizado,uti,cirugia,alta,fallecido',
-            'symptoms' => 'required|string',
-            'initial_assessment' => 'nullable|string',
-            'vital_signs' => 'nullable|string',
-            'treatment' => 'nullable|string',
-            'observations' => 'nullable|string',
-            'destination' => 'nullable|in:observacion,uti,cirugia,consulta_externa,alta',
-            'cost' => 'required|numeric|min:0',
-        ]);
-
-        $emergency->update($validated);
-
-        if ($emergency->status === 'alta' && !$emergency->discharge_date) {
-            $emergency->update(['discharge_date' => now()]);
-        }
-
-        return redirect()->route('admin.emergencies.index')
-            ->with('success', 'Emergencia actualizada exitosamente.');
-    }
-
-    public function destroy(Emergency $emergency): RedirectResponse
-    {
-        $emergency->delete();
-
-        return redirect()->route('admin.emergencies.index')
-            ->with('success', 'Emergencia eliminada exitosamente.');
-    }
-
-    public function markAsPaid(Emergency $emergency): RedirectResponse
-    {
-        $emergency->update(['paid' => true]);
-
-        return redirect()->back()
-            ->with('success', 'Emergencia marcada como pagada.');
     }
 }

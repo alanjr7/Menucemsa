@@ -12,14 +12,28 @@ class Emergency extends Model
         'user_id',
         'code',
         'status',
+        'tipo_ingreso',
+        'destino_inicial',
+        'is_temp_id',
+        'temp_id',
         'symptoms',
         'initial_assessment',
         'vital_signs',
         'treatment',
         'observations',
         'destination',
+        'flujo_historial',
+        'ubicacion_actual',
+        'nro_cirugia',
+        'nro_hospitalizacion',
+        'nro_uti',
         'cost',
         'paid',
+        'deuda',
+        'total_pagado',
+        'detalle_costos',
+        'es_parto',
+        'estado_parto',
         'admission_date',
         'discharge_date',
     ];
@@ -29,11 +43,17 @@ class Emergency extends Model
         'discharge_date' => 'datetime',
         'cost' => 'decimal:2',
         'paid' => 'boolean',
+        'is_temp_id' => 'boolean',
+        'es_parto' => 'boolean',
+        'deuda' => 'decimal:2',
+        'total_pagado' => 'decimal:2',
+        'flujo_historial' => 'array',
+        'detalle_costos' => 'array',
     ];
 
-    public function patient(): BelongsTo
+    public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Patient::class);
+        return $this->belongsTo(Paciente::class, 'patient_id', 'ci');
     }
 
     public function user(): BelongsTo
@@ -60,5 +80,54 @@ class Emergency extends Model
         $date = now()->format('Ymd');
         $last = static::whereDate('created_at', today())->count();
         return 'EMG-' . $date . '-' . str_pad($last + 1, 3, '0', STR_PAD_LEFT);
+    }
+
+    public function getTipoIngresoLabelAttribute(): string
+    {
+        return match($this->tipo_ingreso) {
+            'soat' => 'SOAT (Accidente)',
+            'parto' => 'Parto',
+            'general' => 'Emergencia General',
+            default => 'No especificado',
+        };
+    }
+
+    public function getUbicacionColorAttribute(): string
+    {
+        return match($this->ubicacion_actual) {
+            'emergencia' => 'red',
+            'cirugia' => 'purple',
+            'uti' => 'orange',
+            'hospitalizacion' => 'blue',
+            'observacion' => 'yellow',
+            'alta' => 'green',
+            default => 'gray',
+        };
+    }
+
+    public function getUbicacionLabelAttribute(): string
+    {
+        return match($this->ubicacion_actual) {
+            'emergencia' => 'Emergencia',
+            'cirugia' => 'Quirófano',
+            'uti' => 'UTI',
+            'hospitalizacion' => 'Hospitalización',
+            'observacion' => 'Observación',
+            'alta' => 'Dado de Alta',
+            default => 'Desconocido',
+        };
+    }
+
+    public function registrarMovimiento(string $desde, string $hasta, ?string $notas = null): void
+    {
+        $historial = $this->flujo_historial ?? [];
+        $historial[] = [
+            'fecha' => now()->toDateTimeString(),
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'usuario_id' => auth()->id(),
+            'notas' => $notas,
+        ];
+        $this->update(['flujo_historial' => $historial]);
     }
 }

@@ -30,6 +30,29 @@
         @endif
 
 
+        @if(Auth::user()->isEmergencia())
+        <a href="{{ route('emergency-staff.dashboard') }}"
+           class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('emergency-staff.*') ? 'bg-red-600 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800/50' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span class="text-sm font-medium">Dashboard Emergencia</span>
+        </a>
+        @endif
+
+        @if(Auth::user()->isAdmin())
+        <div x-data="{ open: {{ request()->is('admin/emergencies*') ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
+                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span class="text-sm font-medium flex-1 text-left">Emergencias</span>
+                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
+                <a href="{{ route('admin.emergencies.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.emergencies.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                    Gestión de Emergencias (Solo Lectura)
+                </a>
+            </div>
+        </div>
+        @endif
+
         <hr class="border-blue-800/50 my-2 mx-4">
 
         @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isDoctor())

@@ -16,6 +16,7 @@ use App\Models\Cita;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use App\Models\Emergency;
 
 class ReceptionController extends Controller
 {
@@ -759,13 +760,18 @@ class ReceptionController extends Controller
     {
         $hoy = Carbon::today();
         
+        // Contar emergencias activas del día
+        $emergenciasActivas = Emergency::whereDate('created_at', $hoy)
+            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])
+            ->count();
+        
         $stats = [
             'citas_programadas' => Cita::delDia()->count(),
-            'en_atencion' => Cita::enAtencion()->count(),
+            'en_atencion' => Cita::enAtencion()->count() + $emergenciasActivas,
             'en_espera' => Cita::enEspera()->count(),
             'admisiones' => Caja::whereDate('fecha', $hoy)
                 ->where('tipo', 'CONSULTA_EXTERNA')
-                ->count(),
+                ->count() + $emergenciasActivas,
             'por_confirmar' => Cita::porConfirmar()->count(),
             'llamadas_pendientes' => Cita::pendientesLlamada()->count(),
         ];

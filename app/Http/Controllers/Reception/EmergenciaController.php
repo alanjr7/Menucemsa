@@ -58,7 +58,7 @@ class EmergenciaController extends Controller
             $paciente = $this->crearOActualizarPaciente($request);
 
             // 2. Crear triage de emergencia
-            $triage = $this->crearTriagePorTipo($request->nivel_emergencia);
+            $triage = $this->crearTriagePorTipo($request->tipo_emergencia ?? 'amarillo');
             $paciente->update(['id_triage' => $triage->id]);
 
             // 3. Crear registro de emergencia
@@ -72,6 +72,7 @@ class EmergenciaController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Emergencia registrada exitosamente',
+                'emergency_code' => $emergencia->nro,
                 'emergencia' => $emergencia->load(['paciente', 'triage']),
                 'acciones' => $acciones
             ]);
@@ -126,6 +127,24 @@ class EmergenciaController extends Controller
     private function crearOActualizarPaciente($request)
     {
         $ci = $request->ci;
+        $usarTempId = $request->boolean('usar_temp_id');
+        
+        if ($usarTempId) {
+            // Crear paciente con ID temporal y datos mínimos
+            $tempId = $request->temp_id ?? 'TEMP-' . now()->format('Ymd') . '-' . random_int(100, 999);
+            
+            return Paciente::create([
+                'ci' => $tempId,
+                'nombre' => 'Paciente Temporal - Emergencia',
+                'sexo' => 'No especificado',
+                'direccion' => 'Por especificar - ID Temporal',
+                'telefono' => 0,
+                'correo' => 'temporal@emergencia.com',
+                'codigo_seguro' => $this->obtenerOCrearSeguro('particular'),
+                'id_triage' => null, // Se asignará después
+                'codigo_registro' => $this->obtenerOCrearRegistro(),
+            ]);
+        }
         
         // Buscar paciente existente
         $paciente = Paciente::find($ci);
@@ -245,6 +264,23 @@ class EmergenciaController extends Controller
     {
         $currentUser = Auth::user();
 
+        // Mapeo de tipos de emergencia a niveles de triage
+        $emergenciaToTriage = [
+            'trauma' => 'rojo',
+            'accidente' => 'rojo', 
+            'cardiaco' => 'rojo',
+            'respiratorio' => 'naranja',
+            'neurologico' => 'naranja',
+            'obstetrico' => 'naranja',
+            'pediatrico' => 'amarillo',
+            'quemadura' => 'amarillo',
+            'intoxicacion' => 'amarillo',
+            'otro' => 'amarillo'
+        ];
+
+        // Determinar el nivel de triage basado en el tipo de emergencia
+        $nivelTriage = $emergenciaToTriage[$tipo] ?? 'amarillo';
+
         $map = [
             'rojo' => ['color' => 'red', 'descripcion' => 'Emergencia Inmediata', 'prioridad' => 'alta'],
             'naranja' => ['color' => 'orange', 'descripcion' => 'Emergencia Urgente', 'prioridad' => 'alta'],
@@ -252,9 +288,9 @@ class EmergenciaController extends Controller
             'verde' => ['color' => 'green', 'descripcion' => 'Emergencia Baja', 'prioridad' => 'baja'],
         ];
 
-        $cfg = $map[$tipo] ?? $map['amarillo'];
+        $cfg = $map[$nivelTriage] ?? $map['amarillo'];
         return Triage::create([
-            'id' => 'TRIAGE-' . strtoupper($tipo) . '-' . now()->format('YmdHis') . '-' . random_int(100, 999),
+            'id' => 'TRIAGE-' . strtoupper($nivelTriage) . '-' . now()->format('YmdHis') . '-' . random_int(100, 999),
             'color' => $cfg['color'],
             'descripcion' => $cfg['descripcion'],
             'prioridad' => $cfg['prioridad'],

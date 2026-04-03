@@ -7,7 +7,7 @@ use App\Http\Controllers\QuirofanoController;
 use App\Http\Controllers\QuirofanoManagementController;
 use App\Http\Controllers\Reception\ConsultaExternaController;
 use App\Http\Controllers\Reception\EmergenciaController;
-use App\Http\Controllers\Reception\HospitalizacionController;
+use App\Http\Controllers\Reception\EmergencyIngresoController;
 use App\Http\Controllers\Medical\EmergencyController;
 use App\Http\Controllers\Medical\NursingController;
 use App\Http\Controllers\Medical\UtiController;
@@ -51,9 +51,21 @@ Route::middleware('auth')->group(function () {
 
     // Rutas para quirofano (acceso para admin, reception y dirmedico)
     Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
+        // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
         Route::get('/quirofano/historial', [QuirofanoController::class, 'historial'])->name('quirofano.historial');
         Route::get('/quirofano/create', [QuirofanoController::class, 'create'])->name('quirofano.create');
+        Route::get('/quirofano/calendario', [QuirofanoController::class, 'calendario'])->name('quirofano.calendario');
+        
+        // API routes (antes que las rutas con parámetros)
+        Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
+        Route::get('/api/quirofanos-disponibles', [QuirofanoController::class, 'getQuirofanosDisponibles'])->name('api.quirofanos-disponibles');
+        Route::get('/api/paciente/{ci}', [QuirofanoController::class, 'getPaciente'])->name('api.paciente');
+        Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
+        Route::get('/api/pacientes-lista', [QuirofanoController::class, 'getListaPacientes'])->name('api.pacientes-lista');
+        Route::get('/api/medicos-lista', [QuirofanoController::class, 'getListaMedicos'])->name('api.medicos-lista');
+        
+        // Rutas con parámetros {cita} al FINAL
         Route::post('/quirofano', [QuirofanoController::class, 'store'])->name('quirofano.store');
         Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show');
         Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit');
@@ -61,13 +73,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/quirofano/{cita}/iniciar', [QuirofanoController::class, 'iniciarCirugia'])->name('quirofano.iniciar');
         Route::post('/quirofano/{cita}/finalizar', [QuirofanoController::class, 'finalizarCirugia'])->name('quirofano.finalizar');
         Route::post('/quirofano/{cita}/cancelar', [QuirofanoController::class, 'cancelar'])->name('quirofano.cancelar');
-        Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
-        Route::get('/quirofano/calendario', [QuirofanoController::class, 'calendario'])->name('quirofano.calendario');
-        
-        // API routes for surgical appointments
-        Route::get('/api/quirofanos-disponibles', [QuirofanoController::class, 'getQuirofanosDisponibles'])->name('api.quirofanos-disponibles');
-        Route::get('/api/paciente/{ci}', [QuirofanoController::class, 'getPaciente'])->name('api.paciente');
-        Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
 
         // Rutas para gestión de quirófanos (solo admin)
         Route::middleware(['role:admin'])->group(function () {
@@ -103,7 +108,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/triage-general', [ConsultaExternaController::class, 'procesarTriageGeneral'])->name('reception.triage-general');
         Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
         
-        // Rutas API para emergencia
+        // Rutas API para emergencia - Nuevo flujo
+        Route::post('/api/emergency-ingreso', [EmergencyIngresoController::class, 'registrarIngreso'])->name('reception.emergency-ingreso');
+        Route::get('/api/emergency-activas', [EmergencyIngresoController::class, 'getEmergenciasActivas'])->name('reception.emergency-activas');
         Route::post('/api/registrar-emergencia', [EmergenciaController::class, 'registrarEmergencia'])->name('reception.registrar-emergencia');
         Route::get('/api/emergencias-activas', [EmergenciaController::class, 'getEmergenciasActivas'])->name('reception.emergencias-activas');
         Route::put('/api/emergencia/{nroEmergencia}/estado', [EmergenciaController::class, 'actualizarEstadoEmergencia'])->name('reception.actualizar-emergencia');
@@ -147,11 +154,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/servicios-disponibles', [\App\Http\Controllers\CajaController::class, 'getServiciosDisponibles'])->name('servicios-disponibles');
     });
 
-    // Rutas médicas (admin, dirmedico y doctor)
+    // Rutas médicas (admin, dirmedico y doctor) - SIN duplicar rutas de quirofano
     Route::middleware(['role:admin|dirmedico|doctor'])->group(function () {
         Route::get('/enfermeria', [NursingController::class, 'index'])->name('enfermeria.index');
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
-        Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
         Route::get('/hospitalizacion', [MedicalHospitalizacionController::class, 'index'])->name('hospitalizacion.index');
         // Rutas de control administrativo para consulta externa (solo admin)
         Route::get('/consulta-externa/historial/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verHistorialMedico'])->name('consulta.historial-medico');
@@ -321,17 +327,15 @@ Route::middleware('auth')->group(function () {
         Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
     });
 
-    // Rutas de gestión de emergencias (admin)
+    // Rutas de gestión de emergencias (admin - SOLO LECTURA)
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/emergencies', [AdminEmergencyController::class, 'index'])->name('emergencies.index');
-        Route::get('/emergencies/create', [AdminEmergencyController::class, 'create'])->name('emergencies.create');
-        Route::post('/emergencies', [AdminEmergencyController::class, 'store'])->name('emergencies.store');
         Route::get('/emergencies/{emergency}', [AdminEmergencyController::class, 'show'])->name('emergencies.show');
-        Route::get('/emergencies/{emergency}/edit', [AdminEmergencyController::class, 'edit'])->name('emergencies.edit');
-        Route::put('/emergencies/{emergency}', [AdminEmergencyController::class, 'update'])->name('emergencies.update');
-        Route::delete('/emergencies/{emergency}', [AdminEmergencyController::class, 'destroy'])->name('emergencies.destroy');
-        Route::post('/emergencies/{emergency}/mark-paid', [AdminEmergencyController::class, 'markAsPaid'])->name('emergencies.mark-paid');
-
+        
+        // API routes para admin (solo lectura)
+        Route::get('/api/emergencias', [AdminEmergencyController::class, 'apiIndex'])->name('emergencies.api.index');
+        Route::get('/api/emergencias/{emergency}', [AdminEmergencyController::class, 'apiShow'])->name('emergencies.api.show');
+        
         // Rutas para almacén de medicamentos
         Route::get('/almacen-medicamentos', [AlmacenMedicamentosController::class, 'index'])->name('almacen-medicamentos.index');
         Route::get('/almacen-medicamentos/create', [AlmacenMedicamentosController::class, 'create'])->name('almacen-medicamentos.create');
@@ -346,18 +350,49 @@ Route::middleware('auth')->group(function () {
         Route::get('/almacen-medicamentos/area/{area}', [AlmacenMedicamentosController::class, 'porArea'])->name('almacen-medicamentos.por-area');
     });
 
-    // Rutas para personal de emergencias
-    Route::middleware(['role:emergency|admin|dirmedico'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+    // Rutas para personal de emergencias - SOLO ROL EMERGENCIA (sin admin/dirmdico)
+    Route::middleware(['role:emergencia'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+        // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
-        Route::post('/', [EmergencyStaffController::class, 'store'])->name('store');
+        Route::get('/pending', [EmergencyStaffController::class, 'pending'])->name('pending');
+        
+        // API routes (antes que las rutas con parámetros)
+        Route::get('/api/emergencias', [EmergencyStaffController::class, 'apiEmergencias'])->name('api.emergencias');
+        Route::get('/api/estadisticas', [EmergencyStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
+        
+        // Rutas con parámetros {emergency} al FINAL
+        Route::post('/{emergency}/update-status', [EmergencyStaffController::class, 'updateStatus'])->name('update-status');
+        Route::post('/{emergency}/derivar', [EmergencyStaffController::class, 'derivar'])->name('derivar');
+        Route::post('/{emergency}/alta', [EmergencyStaffController::class, 'darAlta'])->name('alta');
         Route::get('/{emergency}', [EmergencyStaffController::class, 'show'])->name('show');
         Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
-        Route::put('/{emergency}', [EmergencyStaffController::class, 'update'])->name('update');
-        Route::post('/{emergency}/assign-to-me', [EmergencyStaffController::class, 'assignToMe'])->name('assign-to-me');
-        Route::get('/pending', [EmergencyStaffController::class, 'pending'])->name('pending');
     });
 });
+
+// Ruta de diagnóstico específico para emergency-staff
+Route::get('/test-emergency-access', function() {
+    if (!auth()->check()) {
+        return 'No autenticado';
+    }
+    $user = auth()->user();
+    $userRole = $user->role;
+    $allowedRoles = ['emergencia'];
+    $hasAccess = in_array($userRole, $allowedRoles);
+    
+    return json_encode([
+        'usuario' => $user->name,
+        'rol_bd' => $userRole,
+        'roles_permitidos' => $allowedRoles,
+        'tiene_acceso' => $hasAccess,
+        'isEmergencia()' => $user->isEmergencia()
+    ], JSON_PRETTY_PRINT);
+})->middleware('auth');
+
+// Ruta de prueba CON middleware role:emergencia (igual que emergency-staff)
+Route::get('/test-role-middleware', function() {
+    return 'Middleware role:emergencia funcionó correctamente';
+})->middleware(['auth', 'role:emergencia']);
 
 // Ruta de prueba para farmacia
 Route::get('/test-farmacia', function() {

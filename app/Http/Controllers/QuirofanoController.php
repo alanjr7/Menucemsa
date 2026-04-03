@@ -535,4 +535,52 @@ class QuirofanoController extends Controller
 
         return view('quirofano.historial', compact('citas', 'stats'));
     }
+
+    // Métodos API para búsqueda en formulario de quirófano
+    public function getListaPacientes(): JsonResponse
+    {
+        try {
+            $pacientes = Paciente::select('ci', 'nombre', 'telefono')
+                ->orderBy('nombre')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'pacientes' => $pacientes
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar pacientes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getListaMedicos(): JsonResponse
+    {
+        try {
+            $medicos = Medico::with('usuario', 'especialidad')
+                ->whereHas('usuario', function($q) {
+                    $q->where('role', 'doctor');
+                })
+                ->get()
+                ->map(function($medico) {
+                    return [
+                        'ci' => $medico->ci,
+                        'nombre' => $medico->usuario->name ?? 'Sin nombre',
+                        'especialidad' => $medico->especialidad->nombre ?? 'Sin especialidad'
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'medicos' => $medicos
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar médicos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
