@@ -26,7 +26,7 @@ class DashboardController extends Controller
                 return redirect()->route('reception');
                 
             case 'caja':
-                return redirect()->route('caja.dashboard');
+                return redirect()->route('caja.operativa.index');
                 
             case 'dirmedico':
                 return redirect()->route('medico.dashboard');

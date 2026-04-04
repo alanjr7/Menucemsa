@@ -24,18 +24,8 @@
         </div>
     </div>
 
-    <!-- Alerta de Solo Lectura -->
-    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-lg">
-        <div class="flex items-center">
-            <svg class="w-6 h-6 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <div>
-                <h3 class="text-blue-800 font-bold">VISTA DE MONITOREO - SOLO LECTURA</h3>
-                <p class="text-blue-700 text-sm">Esta vista permite monitorear todas las emergencias del sistema. No se pueden crear, editar ni eliminar registros.</p>
-            </div>
-        </div>
-    </div>
+   
+
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">

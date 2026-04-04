@@ -97,4 +97,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Medico::class, 'id_usuario', 'id');
     }
+
+    public function cajaSessions()
+    {
+        return $this->hasMany(CajaSession::class, 'usuario_id');
+    }
 }

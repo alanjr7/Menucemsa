@@ -31,7 +31,8 @@ use App\Http\Controllers\Farmacia\InventarioController;
 use App\Http\Controllers\Farmacia\VentasController;
 use App\Http\Controllers\Farmacia\ClientesController;
 use App\Http\Controllers\Farmacia\ReporteController;
-use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Caja\CajaOperativaController;
+use App\Http\Controllers\Caja\CajaGestionController;
 use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
 use App\Http\Controllers\EmergencyStaffController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
@@ -100,7 +101,7 @@ Route::middleware('auth')->group(function () {
         // Rutas para las nuevas páginas separadas
         Route::get('/reception/consulta-externa', [ConsultaExternaController::class, 'index'])->name('reception.consulta-externa');
         Route::get('/reception/emergencia', [EmergenciaController::class, 'index'])->name('reception.emergencia');
-        Route::get('/reception/hospitalizacion', [HospitalizacionController::class, 'index'])->name('reception.hospitalizacion');
+        Route::get('/reception/hospitalizacion', [MedicalHospitalizacionController::class, 'index'])->name('reception.hospitalizacion');
         
         // Rutas API para consulta externa
         Route::post('/api/buscar-paciente', [ConsultaExternaController::class, 'buscarPaciente'])->name('reception.buscar-paciente');
@@ -116,10 +117,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/api/emergencia/{nroEmergencia}/estado', [EmergenciaController::class, 'actualizarEstadoEmergencia'])->name('reception.actualizar-emergencia');
         
         // Rutas API para hospitalización
-        Route::post('/api/registrar-hospitalizacion', [HospitalizacionController::class, 'registrarHospitalizacion'])->name('reception.registrar-hospitalizacion');
-        Route::get('/api/hospitalizaciones-activas', [HospitalizacionController::class, 'getHospitalizacionesActivas'])->name('reception.hospitalizaciones-activas');
-        Route::post('/api/hospitalizacion/{id}/alta', [HospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
-        Route::put('/api/hospitalizacion/{id}/actualizar', [HospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
+        Route::post('/api/registrar-hospitalizacion', [MedicalHospitalizacionController::class, 'registrarHospitalizacion'])->name('reception.registrar-hospitalizacion');
+        Route::get('/api/hospitalizaciones-activas', [MedicalHospitalizacionController::class, 'getHospitalizacionesActivas'])->name('reception.hospitalizaciones-activas');
+        Route::post('/api/hospitalizacion/{id}/alta', [MedicalHospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
+        Route::put('/api/hospitalizacion/{id}/actualizar', [MedicalHospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
         
         // Rutas API para gestión de citas
         Route::get('/api/agenda-dia', [ReceptionController::class, 'getAgendaDia'])->name('reception.agenda-dia');
@@ -143,16 +144,36 @@ Route::middleware('auth')->group(function () {
     });
 
 
-    // Rutas para caja (admin y caja) - Sistema Anterior (mantener por compatibilidad)
-    Route::middleware(['auth', 'role:admin|caja'])->prefix('caja')->name('caja.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\CajaController::class, 'index'])->name('dashboard');
-        Route::post('/procesar-pago/{id}', [\App\Http\Controllers\CajaController::class, 'procesarPago'])->name('procesar-pago');
-        Route::get('/detalles/{id}', [\App\Http\Controllers\CajaController::class, 'verDetalles'])->name('detalles');
-        Route::get('/reporte-diario', [\App\Http\Controllers\CajaController::class, 'reporteDiario'])->name('reporte');
-        Route::get('/pacientes-registrados', [\App\Http\Controllers\CajaController::class, 'getPacientesRegistrados'])->name('pacientes-registrados');
-        Route::get('/pacientes-pendientes', [\App\Http\Controllers\CajaController::class, 'getPacientesPendientes'])->name('pacientes-pendientes');
-        Route::get('/servicios-disponibles', [\App\Http\Controllers\CajaController::class, 'getServiciosDisponibles'])->name('servicios-disponibles');
+    // NUEVAS RUTAS DE CAJA - Sistema Integrado (2026)
+    // Caja Operativa - Para usuarios con rol CAJA
+    Route::middleware(['auth', 'role:admin|caja'])->prefix('caja-operativa')->name('caja.operativa.')->group(function () {
+        Route::get('/', [CajaOperativaController::class, 'index'])->name('index');
+        Route::post('/abrir', [CajaOperativaController::class, 'abrirCaja'])->name('abrir');
+        Route::post('/cerrar', [CajaOperativaController::class, 'cerrarCaja'])->name('cerrar');
+        Route::get('/pacientes-pendientes', [CajaOperativaController::class, 'getPacientesPendientes'])->name('pacientes-pendientes');
+        Route::get('/detalle-cuenta/{id}', [CajaOperativaController::class, 'getDetalleCuenta'])->name('detalle-cuenta');
+        Route::post('/procesar-cobro', [CajaOperativaController::class, 'procesarCobro'])->name('procesar-cobro');
+        Route::get('/resumen-dia', [CajaOperativaController::class, 'getResumenDia'])->name('resumen-dia');
+        Route::get('/buscar-paciente', [CajaOperativaController::class, 'buscarPaciente'])->name('buscar-paciente');
+        Route::get('/tarifas', [CajaOperativaController::class, 'getTarifas'])->name('tarifas');
     });
+
+    // Gestión de Caja - Para usuarios con rol ADMIN
+    Route::middleware(['auth', 'role:admin'])->prefix('caja-gestion')->name('caja.gestion.')->group(function () {
+        Route::get('/', [CajaGestionController::class, 'index'])->name('index');
+        Route::get('/transacciones', [CajaGestionController::class, 'getTransacciones'])->name('transacciones');
+        Route::get('/transaccion/{id}', [CajaGestionController::class, 'getDetalleTransaccion'])->name('detalle-transaccion');
+        Route::get('/control-cajas', [CajaGestionController::class, 'getControlCajas'])->name('control-cajas');
+        Route::get('/resumen-financiero', [CajaGestionController::class, 'getResumenFinanciero'])->name('resumen-financiero');
+        Route::get('/auditoria', [CajaGestionController::class, 'getAuditoria'])->name('auditoria');
+        Route::get('/datos-facturacion', [CajaGestionController::class, 'getDatosFacturacion'])->name('datos-facturacion');
+        Route::get('/usuarios-caja', [CajaGestionController::class, 'getUsuariosCaja'])->name('usuarios-caja');
+    });
+
+    // Sistema antiguo de caja ELIMINADO - usar /caja-operativa o /caja-gestion
+    // Route::middleware(['auth', 'role:admin|caja'])->prefix('caja')->name('caja.')->group(function () {
+    //     Route::get('/', [\App\Http\Controllers\CajaController::class, 'index'])->name('dashboard');
+    // });
 
     // Rutas médicas (admin, dirmedico y doctor) - SIN duplicar rutas de quirofano
     Route::middleware(['role:admin|dirmedico|doctor'])->group(function () {
@@ -208,18 +229,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/emergencias', [EmergencyController::class, 'index'])->name('emergencias.index');
     });
 
-    // Rutas de administración (admin y caja)
+    // Rutas de administración (admin y caja) - SIN caja antigua (usar nuevo sistema)
     Route::middleware(['role:admin|caja'])->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/caja', [\App\Http\Controllers\Admin\CajaController::class, 'index'])->name('caja.index');
-        Route::get('/nuevo-cobro', [\App\Http\Controllers\Admin\CajaController::class, 'nuevoCobro'])->name('caja.nuevo-cobro');
-
-        // API routes para caja
-        Route::get('/api/pacientes-registrados', [\App\Http\Controllers\Admin\CajaController::class, 'getPacientesRegistrados'])->name('caja.api.pacientes-registrados');
-        Route::get('/api/pacientes-pendientes', [\App\Http\Controllers\Admin\CajaController::class, 'getPacientesPendientes'])->name('caja.api.pacientes-pendientes');
-        Route::get('/api/servicios-disponibles', [\App\Http\Controllers\Admin\CajaController::class, 'getServiciosDisponibles'])->name('caja.api.servicios-disponibles');
-        Route::post('/api/procesar-cobro', [\App\Http\Controllers\Admin\CajaController::class, 'procesarCobro'])->name('caja.api.procesar-cobro');
-        Route::post('/api/imprimir-cierre', [\App\Http\Controllers\Admin\CajaController::class, 'imprimirCierre'])->name('caja.api.imprimir-cierre');
-
+        // Caja Central antiguo ELIMINADO - usar /caja-operativa o /caja-gestion
+        
         Route::get('/facturacion', function () {
             return view('admin.facturacion');
         })->name('facturacion.index');

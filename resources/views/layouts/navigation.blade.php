@@ -38,25 +38,8 @@
         </a>
         @endif
 
-        @if(Auth::user()->isAdmin())
-        <div x-data="{ open: {{ request()->is('admin/emergencies*') ? 'true' : 'false' }} }">
-            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
-                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span class="text-sm font-medium flex-1 text-left">Emergencias</span>
-                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
-                <a href="{{ route('admin.emergencies.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.emergencies.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
-                    Gestión de Emergencias (Solo Lectura)
-                </a>
-            </div>
-        </div>
-        @endif
-
-        <hr class="border-blue-800/50 my-2 mx-4">
-
         @if(Auth::user()->isAdmin() || Auth::user()->isDirMedico() || Auth::user()->isDoctor())
-        <div x-data="{ open: {{ request()->is('patients*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*') ? 'true' : 'false' }} }">
+        <div x-data="{ open: {{ request()->is('patients*', 'consulta*', 'enfermeria*', 'uti*', 'quirofano*', 'hospitalizacion*', 'admin/emergencies*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span class="text-sm font-medium flex-1 text-left">Pacientes</span>
@@ -75,6 +58,7 @@
                             ['r' => 'uti.index', 'l' => 'UTI'],
                             ['r' => 'quirofano.index', 'l' => 'Quirófano'],
                             ['r' => 'hospitalizacion.index', 'l' => 'Hospitalización'],
+                            ['r' => 'admin.emergencies.index', 'l' => 'Gestión de Emergencias (Solo Lectura)'],
                         ]);
                     // Doctor role puede ver Consulta Externa y Historial de Consultas
                     elseif(Auth::user()->isDoctor()):
@@ -93,7 +77,22 @@
         </div>
         @endif
 
-        @if(Auth::user()->isAdmin() || Auth::user()->isCaja())
+        @if(Auth::user()->isCaja() && !Auth::user()->isAdmin())
+        <div x-data="{ open: {{ request()->is('caja-operativa*') ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
+                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z"/>
+                </svg>
+                <span class="text-sm font-medium flex-1 text-left">Caja Operativa</span>
+                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
+                <a href="{{ route('caja.operativa.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('caja.operativa.*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Cobro de Pacientes</a>
+            </div>
+        </div>
+        @endif
+
+        @if(Auth::user()->isAdmin())
         <div x-data="{ open: {{ request()->is('caja*', 'facturacion*', 'admin*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -103,13 +102,13 @@
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
                 <a href="{{ route('admin.especialidades.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.especialidades*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Especialidades</a>
                 <a href="{{ route('admin.doctors.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.doctors*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Doctores</a>
-                <a href="{{ route('admin.caja.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.caja.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Caja Central</a>
                 <a href="{{ route('admin.facturacion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.facturacion.index') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Facturación</a>
                 <a href="{{ route('admin.consulta-externa-gestion') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.consulta-externa-gestion') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Gestionar Consulta Externa</a>
                 <a href="{{ route('admin.tarifarios') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.tarifarios') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Tarifarios</a>
                 <a href="{{ route('admin.seguros') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.seguros') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Seguros</a>
                 <a href="{{ route('admin.cuentas') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.cuentas') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Cuentas por Cobrar</a>
                 <a href="{{ route('admin.almacen-medicamentos.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.almacen-medicamentos*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Almacén de Medicamentos</a>
+                <a href="{{ route('caja.gestion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('caja.gestion.*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Control de Caja</a>
             </div>
         </div>
         @endif
