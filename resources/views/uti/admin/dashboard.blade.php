@@ -1,17 +1,96 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UTI - Panel Administrativo</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <style>[x-cloak] { display: none !important; }</style>
-</head>
-<body class="bg-gray-50">
-    <div class="flex h-screen" x-data="utiAdmin()">
-        @include('layouts.navigation')
+@extends('layouts.app')
 
+@section('content')
+    <script>
+        function utiAdmin() {
+            return {
+                activeTab: 'dashboard',
+                stats: null,
+                camas: [],
+                pacientesList: [],
+                tarifario: [],
+                alertas: [],
+                alertasCount: 0,
+                filtros: { estado_clinico: 'todos', tipo_pago: 'todos', dias_estancia: 'todos' },
+                showNuevaCamaModal: false,
+                showNuevaTarifaModal: false,
+                nuevaCama: { bed_number: '', tipo: '', equipamiento: '', precio_dia: '' },
+
+                init() {
+                    this.loadStats();
+                    this.loadCamas();
+                    this.loadAlertas();
+                },
+
+                async loadStats() {
+                    try {
+                        const response = await fetch('/uti-admin/api/estadisticas');
+                        const data = await response.json();
+                        if (data.success) this.stats = data;
+                    } catch (error) { console.error('Error:', error); }
+                },
+
+                async loadCamas() {
+                    try {
+                        const response = await fetch('/uti-admin/api/camas-grid');
+                        const data = await response.json();
+                        if (data.success) this.camas = data.camas;
+                    } catch (error) { console.error('Error:', error); }
+                },
+
+                async loadPacientes() {
+                    try {
+                        const params = new URLSearchParams(this.filtros);
+                        const response = await fetch(`/uti-admin/api/pacientes?${params}`);
+                        const data = await response.json();
+                        if (data.success) this.pacientesList = data.pacientes;
+                    } catch (error) { console.error('Error:', error); }
+                },
+
+                async loadAlertas() {
+                    try {
+                        const response = await fetch('/uti-admin/api/alertas');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.alertas = data.alertas;
+                            this.alertasCount = data.total;
+                        }
+                    } catch (error) { console.error('Error:', error); }
+                },
+
+                verCostos(id) {
+                    window.open(`/uti-admin/costos/${id}`, '_blank');
+                },
+
+                async crearCama() {
+                    try {
+                        const response = await fetch('/uti-admin/api/camas', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify(this.nuevaCama)
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showNuevaCamaModal = false;
+                            this.nuevaCama = { bed_number: '', tipo: '', equipamiento: '', precio_dia: '' };
+                            this.loadCamas();
+                            this.loadStats();
+                        } else {
+                            alert('Error: ' + (data.message || 'No se pudo crear la cama'));
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error al crear la cama');
+                    }
+                }
+            }
+        }
+    </script>
+
+    <div class="flex h-screen" x-data="utiAdmin()" x-init="init()">
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header del Sistema -->
             <div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
@@ -30,17 +109,16 @@
             <!-- Navigation Tabs -->
             <div class="bg-white border-b border-gray-200 px-6 py-2">
                 <div class="flex gap-2">
-                        <button @click="activeTab = 'dashboard'" :class="{'bg-blue-600 text-white': activeTab === 'dashboard', 'bg-gray-200': activeTab !== 'dashboard'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Dashboard</button>
-                        <button @click="activeTab = 'camas'" :class="{'bg-blue-600 text-white': activeTab === 'camas', 'bg-gray-200': activeTab !== 'camas'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Camas</button>
-                        <button @click="activeTab = 'pacientes'" :class="{'bg-blue-600 text-white': activeTab === 'pacientes', 'bg-gray-200': activeTab !== 'pacientes'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Pacientes</button>
-                        <button @click="activeTab = 'tarifario'" :class="{'bg-blue-600 text-white': activeTab === 'tarifario', 'bg-gray-200': activeTab !== 'tarifario'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Tarifario</button>
-                        <button @click="activeTab = 'alertas'" :class="{'bg-blue-600 text-white': activeTab === 'alertas', 'bg-gray-200': activeTab !== 'alertas'}" class="px-4 py-2 rounded-lg text-sm font-medium transition relative">
-                            Alertas
-                            <span x-show="alertasCount > 0" x-text="alertasCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center"></span>
-                        </button>
-                    </div>
+                    <button @click="activeTab = 'dashboard'" :class="{'bg-blue-600 text-white': activeTab === 'dashboard', 'bg-gray-200': activeTab !== 'dashboard'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Dashboard</button>
+                    <button @click="activeTab = 'camas'" :class="{'bg-blue-600 text-white': activeTab === 'camas', 'bg-gray-200': activeTab !== 'camas'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Camas</button>
+                    <button @click="activeTab = 'pacientes'" :class="{'bg-blue-600 text-white': activeTab === 'pacientes', 'bg-gray-200': activeTab !== 'pacientes'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Pacientes</button>
+                    <button @click="activeTab = 'tarifario'" :class="{'bg-blue-600 text-white': activeTab === 'tarifario', 'bg-gray-200': activeTab !== 'tarifario'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Tarifario</button>
+                    <button @click="activeTab = 'alertas'" :class="{'bg-blue-600 text-white': activeTab === 'alertas', 'bg-gray-200': activeTab !== 'alertas'}" class="px-4 py-2 rounded-lg text-sm font-medium transition relative">
+                        Alertas
+                        <span x-show="alertasCount > 0" x-text="alertasCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center"></span>
+                    </button>
                 </div>
-            </header>
+            </div>
 
             <!-- Main Content -->
             <main class="flex-1 overflow-auto p-6">
@@ -336,129 +414,39 @@
                 </div>
             </main>
         </div>
-    </div>
 
-    <!-- Modal Nueva Cama -->
-    <div x-show="showNuevaCamaModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.away="showNuevaCamaModal = false">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md" @click.stop>
-            <h3 class="text-lg font-semibold mb-4">Nueva Cama UTI</h3>
-            <form @submit.prevent="crearCama()">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Número de Cama</label>
-                    <input type="text" x-model="nuevaCama.bed_number" class="w-full border-gray-300 rounded-lg" required>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                    <select x-model="nuevaCama.tipo" class="w-full border-gray-300 rounded-lg" required>
-                        <option value="">Seleccionar tipo</option>
-                        <option value="UCI">UCI</option>
-                        <option value="UCIM">UCIM</option>
-                        <option value="INTERMEDIA">Intermedia</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Equipamiento</label>
-                    <textarea x-model="nuevaCama.equipamiento" class="w-full border-gray-300 rounded-lg" rows="2"></textarea>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio por Día</label>
-                    <input type="number" x-model="nuevaCama.precio_dia" step="0.01" min="0" class="w-full border-gray-300 rounded-lg" required>
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" @click="showNuevaCamaModal = false" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Crear Cama</button>
-                </div>
-            </form>
+        <!-- Modal Nueva Cama -->
+        <div x-show="showNuevaCamaModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.away="showNuevaCamaModal = false">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md" @click.stop>
+                <h3 class="text-lg font-semibold mb-4">Nueva Cama UTI</h3>
+                <form @submit.prevent="crearCama()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Número de Cama</label>
+                        <input type="text" x-model="nuevaCama.bed_number" class="w-full border-gray-300 rounded-lg" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                        <select x-model="nuevaCama.tipo" class="w-full border-gray-300 rounded-lg" required>
+                            <option value="">Seleccionar tipo</option>
+                            <option value="UCI">UCI</option>
+                            <option value="UCIM">UCIM</option>
+                            <option value="INTERMEDIA">Intermedia</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Equipamiento</label>
+                        <textarea x-model="nuevaCama.equipamiento" class="w-full border-gray-300 rounded-lg" rows="2"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Precio por Día</label>
+                        <input type="number" x-model="nuevaCama.precio_dia" step="0.01" min="0" class="w-full border-gray-300 rounded-lg" required>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="showNuevaCamaModal = false" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Crear Cama</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-
-    <script>
-        function utiAdmin() {
-            return {
-                activeTab: 'dashboard',
-                stats: null,
-                camas: [],
-                pacientesList: [],
-                tarifario: [],
-                alertas: [],
-                alertasCount: 0,
-                filtros: { estado_clinico: 'todos', tipo_pago: 'todos', dias_estancia: 'todos' },
-                showNuevaCamaModal: false,
-                showNuevaTarifaModal: false,
-                nuevaCama: { bed_number: '', tipo: '', equipamiento: '', precio_dia: '' },
-
-                init() {
-                    this.loadStats();
-                    this.loadCamas();
-                    this.loadAlertas();
-                },
-
-                async loadStats() {
-                    try {
-                        const response = await fetch('/uti-admin/api/estadisticas');
-                        const data = await response.json();
-                        if (data.success) this.stats = data;
-                    } catch (error) { console.error('Error:', error); }
-                },
-
-                async loadCamas() {
-                    try {
-                        const response = await fetch('/uti-admin/api/camas-grid');
-                        const data = await response.json();
-                        if (data.success) this.camas = data.camas;
-                    } catch (error) { console.error('Error:', error); }
-                },
-
-                async loadPacientes() {
-                    try {
-                        const params = new URLSearchParams(this.filtros);
-                        const response = await fetch(`/uti-admin/api/pacientes?${params}`);
-                        const data = await response.json();
-                        if (data.success) this.pacientesList = data.pacientes;
-                    } catch (error) { console.error('Error:', error); }
-                },
-
-                async loadAlertas() {
-                    try {
-                        const response = await fetch('/uti-admin/api/alertas');
-                        const data = await response.json();
-                        if (data.success) {
-                            this.alertas = data.alertas;
-                            this.alertasCount = data.total;
-                        }
-                    } catch (error) { console.error('Error:', error); }
-                },
-
-                verCostos(id) {
-                    window.open(`/uti-admin/costos/${id}`, '_blank');
-                },
-
-                async crearCama() {
-                    try {
-                        const response = await fetch('/uti-admin/api/camas', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            },
-                            body: JSON.stringify(this.nuevaCama)
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            this.showNuevaCamaModal = false;
-                            this.nuevaCama = { bed_number: '', tipo: '', equipamiento: '', precio_dia: '' };
-                            this.loadCamas();
-                            this.loadStats();
-                        } else {
-                            alert('Error: ' + (data.message || 'No se pudo crear la cama'));
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error al crear la cama');
-                    }
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+@endsection
