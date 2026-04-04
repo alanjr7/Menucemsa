@@ -139,20 +139,46 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-100">
                         @forelse($pacientes as $paciente)
-                            <tr class="hover:bg-gray-50/50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{{ $paciente->codigo_registro }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $paciente->nombre }}</td>
+                            <tr class="hover:bg-gray-50/50 transition-colors {{ isset($paciente->is_temporal) && $paciente->is_temporal ? 'bg-red-50/30' : '' }}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                                    @if(isset($paciente->is_temporal) && $paciente->is_temporal)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                            {{ $paciente->emergency_code }}
+                                        </span>
+                                    @else
+                                        {{ $paciente->codigo_registro }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    <div class="flex items-center">
+                                        @if(isset($paciente->is_temporal) && $paciente->is_temporal)
+                                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                                            <span class="font-medium text-red-700">{{ $paciente->nombre }}</span>
+                                        @else
+                                            {{ $paciente->nombre }}
+                                        @endif
+                                    </div>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ $paciente->ci }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->telefono ?? '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->seguro->nombre_empresa ?? 'Particular' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @if(isset($paciente->is_temporal) && $paciente->is_temporal)
+                                        <span class="text-xs text-red-500">Emergencia - {{ $paciente->tipo_ingreso }}</span>
+                                    @else
+                                        {{ $paciente->seguro->nombre_empresa ?? 'Particular' }}
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @php
                                         $estado = 'Activo';
                                         $estadoColor = 'green';
-                                        if ($paciente->hospitalizaciones()->where('estado', 'Activo')->exists()) {
+                                        if (isset($paciente->is_temporal) && $paciente->is_temporal) {
+                                            $estado = 'Emergencia';
+                                            $estadoColor = 'red';
+                                        } elseif (!isset($paciente->is_temporal) && $paciente->hospitalizaciones()->where('estado', 'Activo')->exists()) {
                                             $estado = 'Hospitalizado';
                                             $estadoColor = 'yellow';
-                                        } elseif ($paciente->emergencias()->where('estado', 'Activo')->exists()) {
+                                        } elseif (!isset($paciente->is_temporal) && $paciente->emergencias()->where('estado', 'Activo')->exists()) {
                                             $estado = 'Emergencia';
                                             $estadoColor = 'red';
                                         }
@@ -162,16 +188,31 @@
                                         {{ $estado }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->registro->usuario->name ?? 'Sistema' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @if(isset($paciente->is_temporal) && $paciente->is_temporal)
+                                        <span class="text-xs text-gray-400">Emergencia</span>
+                                    @else
+                                        {{ $paciente->registro->usuario->name ?? 'Sistema' }}
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex justify-end gap-2">
-                                        <a href="{{ route('patients.show', $paciente->ci) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all">
-                                            <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                            Ver
-                                        </a>
+                                        @if(isset($paciente->is_temporal) && $paciente->is_temporal)
+                                            <a href="{{ route('emergency-staff.historial', $paciente->emergency_id) }}" class="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all">
+                                                <svg class="w-4 h-4 mr-1.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                Ver Emergencia
+                                            </a>
+                                        @else
+                                            <a href="{{ route('patients.show', $paciente->ci) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all">
+                                                <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                                Ver
+                                            </a>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

@@ -93,10 +93,18 @@
         @endif
 
         @if(Auth::user()->isAdmin())
+        @php
+            $cajasAbiertasCount = \App\Models\CajaSession::where('estado', 'abierta')->count();
+        @endphp
         <div x-data="{ open: {{ request()->is('caja*', 'facturacion*', 'admin*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
                 <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span class="text-sm font-medium flex-1 text-left">Administración</span>
+                @if($cajasAbiertasCount > 0)
+                    <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse mr-2">
+                        {{ $cajasAbiertasCount }} caja{{ $cajasAbiertasCount > 1 ? 's' : '' }}
+                    </span>
+                @endif
                 <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
@@ -108,7 +116,14 @@
                 <a href="{{ route('admin.seguros') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.seguros') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Seguros</a>
                 <a href="{{ route('admin.cuentas') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.cuentas') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Cuentas por Cobrar</a>
                 <a href="{{ route('admin.almacen-medicamentos.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('admin.almacen-medicamentos*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Almacén de Medicamentos</a>
-                <a href="{{ route('caja.gestion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('caja.gestion.*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Control de Caja</a>
+                <a href="{{ route('caja.gestion.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('caja.gestion.*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }} flex items-center justify-between">
+                    <span>Control de Caja</span>
+                    @if($cajasAbiertasCount > 0)
+                        <span class="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                            {{ $cajasAbiertasCount }}
+                        </span>
+                    @endif
+                </a>
             </div>
         </div>
         @endif

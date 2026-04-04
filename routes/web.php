@@ -36,6 +36,7 @@ use App\Http\Controllers\Caja\CajaGestionController;
 use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
 use App\Http\Controllers\EmergencyStaffController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
+use App\Http\Controllers\ActivityLogController;
 
 
 
@@ -138,6 +139,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/medicos-disponibles', [ReceptionController::class, 'buscarMedicosDisponibles'])->name('reception.medicos-disponibles');
         Route::get('/api/especialidades', [ReceptionController::class, 'getEspecialidades'])->name('reception.especialidades');
 
+        // Rutas para completar datos de paciente temporal
+        Route::get('/reception/completar-datos-paciente/{emergencyId}', [EmergencyIngresoController::class, 'mostrarFormularioCompletarDatos'])->name('reception.completar-datos-paciente');
+        Route::post('/reception/completar-datos-paciente', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal'])->name('reception.completar-datos-paciente.store');
+        
         // Rutas para flujo de pago en recepción
         Route::post('/reception/procesar-pago/{id}', [ReceptionController::class, 'procesarPago'])->name('reception.procesar-pago');
         Route::get('/reception/confirmacion/{id}', [ReceptionController::class, 'confirmacion'])->name('reception.confirmacion');
@@ -363,18 +368,28 @@ Route::middleware('auth')->group(function () {
         Route::get('/almacen-medicamentos/area/{area}', [AlmacenMedicamentosController::class, 'porArea'])->name('almacen-medicamentos.por-area');
     });
 
+    // API routes accesibles por recepción y emergencia (fuera del middleware de emergencia)
+    Route::middleware(['auth'])->prefix('api')->group(function () {
+        Route::get('/emergencias-temporales', [EmergencyStaffController::class, 'apiEmergenciasTemporales']);
+        Route::post('/completar-datos-paciente-temporal', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal']);
+    });
+
     // Rutas para personal de emergencias - SOLO ROL EMERGENCIA (sin admin/dirmdico)
     Route::middleware(['role:emergencia'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
         Route::get('/pending', [EmergencyStaffController::class, 'pending'])->name('pending');
-        
+
         // API routes (antes que las rutas con parámetros)
         Route::get('/api/emergencias', [EmergencyStaffController::class, 'apiEmergencias'])->name('api.emergencias');
         Route::get('/api/estadisticas', [EmergencyStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
-        
+        Route::get('/api/medicamentos-disponibles', [EmergencyStaffController::class, 'apiMedicamentosDisponibles'])->name('api.medicamentos');
+
         // Rutas con parámetros {emergency} al FINAL
+        Route::get('/{emergency}/evaluacion', [EmergencyStaffController::class, 'evaluacion'])->name('evaluacion');
+        Route::post('/{emergency}/guardar-evaluacion', [EmergencyStaffController::class, 'guardarEvaluacion'])->name('guardar-evaluacion');
+        Route::get('/{emergency}/historial', [EmergencyStaffController::class, 'historial'])->name('historial');
         Route::post('/{emergency}/update-status', [EmergencyStaffController::class, 'updateStatus'])->name('update-status');
         Route::post('/{emergency}/derivar', [EmergencyStaffController::class, 'derivar'])->name('derivar');
         Route::post('/{emergency}/alta', [EmergencyStaffController::class, 'darAlta'])->name('alta');

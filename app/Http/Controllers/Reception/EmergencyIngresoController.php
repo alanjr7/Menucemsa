@@ -289,4 +289,131 @@ class EmergencyIngresoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Mostrar formulario para completar datos de paciente temporal
+     */
+    public function mostrarFormularioCompletarDatos($emergencyId)
+    {
+        $emergency = Emergency::findOrFail($emergencyId);
+        
+        // Verificar que sea un paciente temporal
+        if (!$emergency->is_temp_id) {
+            return redirect()->route('reception.dashboard')
+                ->with('error', 'Esta emergencia ya tiene datos completos del paciente');
+        }
+        
+        return view('reception.completar-datos-paciente', compact('emergency'));
+    }
+
+    /**
+     * Completar datos de paciente temporal
+     */
+    public function completarDatosPacienteTemporal(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'emergency_id' => 'required|string|exists:emergencies,id',
+                'ci' => 'required|string|unique:pacientes,ci',
+                'nombres' => 'required|string|max:80',
+                'apellidos' => 'required|string|max:80',
+                'sexo' => 'required|string|in:Masculino,Femenino',
+                'telefono' => 'nullable|string',
+                'correo' => 'nullable|email',
+                'direccion' => 'nullable|string',
+            ]);
+
+            DB::beginTransaction();
+
+            // 1. Buscar la emergencia
+            $emergency = Emergency::findOrFail($validated['emergency_id']);
+
+            // 2. Crear el paciente con datos completos
+            $registroCodigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
+            
+            $registro = Registro::create([
+                'codigo' => $registroCodigo,
+                'fecha' => now()->toDateString(),
+                'hora' => now()->toTimeString(),
+                'motivo' => 'Registro completado desde paciente temporal de emergencia',
+                'id_usuario' => Auth::id()
+            ]);
+
+            $seguroCodigo = $this->obtenerOCrearSeguro('particular');
+
+            $paciente = Paciente::create([
+                'ci' => $validated['ci'],
+                'nombre' => trim($validated['nombres'] . ' ' . $validated['apellidos']),
+                'sexo' => $validated['sexo'],
+                'direccion' => $validated['direccion'] ?? 'Sin especificar',
+                'telefono' => $validated['telefono'] ? (int)$validated['telefono'] : 0,
+                'correo' => $validated['correo'] ?? 'sin@email.com',
+                'codigo_seguro' => $seguroCodigo,
+                'codigo_registro' => $registroCodigo,
+                'id_triage' => $this->obenerOCrearTriage(),
+            ]);
+
+            // 3. Actualizar la emergencia con el nuevo CI y marcar como no temporal
+            $tempIdAnterior = $emergency->temp_id;
+            $emergency->update([
+                'patient_id' => $validated['ci'],
+                'is_temp_id' => false,
+                'temp_id' => null,
+            ]);
+
+            // 4. Registrar en el historial
+            $emergency->registrarMovimiento(
+                'emergencia',
+                'emergencia',
+                'Datos del paciente completados. CI asignado: ' . $validated['ci'] . ' (anterior: ' . $tempIdAnterior . ')'
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Datos del paciente completados exitosamente',
+                'paciente' => [
+                    'ci' => $paciente->ci,
+                    'nombre' => $paciente->nombre,
+                ],
+                'emergency_id' => $emergency->id,
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación: ' . $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error al completar datos del paciente temporal: ' . $e->getMessage(), [
+                'emergency_id' => $request->emergency_id ?? 'unknown',
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al completar los datos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function obenerOCrearTriage()
+    {
+        $currentUser = Auth::user();
+        
+        $triage = Triage::firstOrCreate(
+            ['id' => 'TRIAGE-CONSULTA'],
+            [
+                'color' => 'green',
+                'descripcion' => 'Consulta Externa - No Urgente',
+                'prioridad' => 'baja',
+                'id_usuario' => $currentUser->id
+            ]
+        );
+        
+        return $triage->id;
+    }
 }

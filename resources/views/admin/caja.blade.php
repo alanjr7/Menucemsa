@@ -69,6 +69,61 @@
             </div>
         </div>
 
+        {{-- Cajas Abiertas (Rol Caja) --}}
+        @if($cajasAbiertas->count() > 0)
+        <div class="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-slate-700 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                        Cajas Abiertas - Control Operativo
+                    </h3>
+                    <p class="text-slate-500 text-sm mt-1">Sesiones de caja activas desde el rol caja</p>
+                </div>
+                <span class="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-bold">
+                    {{ $cajasAbiertas->count() }} activa{{ $cajasAbiertas->count() > 1 ? 's' : '' }}
+                </span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="text-slate-400 text-[12px] uppercase font-bold tracking-wider">
+                        <tr class="border-b border-slate-50">
+                            <th class="px-8 py-5">Cajero</th>
+                            <th class="px-8 py-5">Apertura</th>
+                            <th class="px-8 py-5">Monto Inicial</th>
+                            <th class="px-8 py-5">Estado</th>
+                            <th class="px-8 py-5 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-[14px] divide-y divide-slate-50">
+                        @foreach($cajasAbiertas as $caja)
+                            <tr class="hover:bg-slate-50/50 transition-all">
+                                <td class="px-8 py-5 font-bold text-slate-700">
+                                    {{ $caja->usuario->name ?? 'N/A' }}
+                                </td>
+                                <td class="px-8 py-5 text-slate-600">
+                                    {{ $caja->fecha_apertura->format('d/m/Y H:i') }}
+                                </td>
+                                <td class="px-8 py-5 font-bold text-green-600">
+                                    S/ {{ number_format($caja->monto_inicial, 2) }}
+                                </td>
+                                <td class="px-8 py-5">
+                                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit">
+                                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                        Abierta
+                                    </span>
+                                </td>
+                                <td class="px-8 py-5 text-right">
+                                    <span class="text-slate-400 text-sm">Sesión activa</span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
         <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-8 flex items-center gap-4">
             <div class="relative flex-1">
                 <input type="text" placeholder="Buscar por paciente, historia clínica o número de recibo..." class="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-50 outline-none transition-all">

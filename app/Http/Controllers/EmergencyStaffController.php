@@ -10,12 +10,14 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Models\AlmacenMedicamento;
+use App\Services\CuentaCobroService;
 
 class EmergencyStaffController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:emergencia|admin|dirmedico');
+        $this->middleware('role:emergencia|admin|dirmedico')->except(['apiEmergenciasTemporales']);
     }
 
     public function index(): View
@@ -305,5 +307,281 @@ class EmergencyStaffController extends Controller
     public function pending(): View
     {
         return view('emergency-staff.pending');
+    }
+
+    /**
+     * Mostrar formulario de evaluación de emergencia
+     */
+    public function evaluacion(Emergency $emergency): View
+    {
+        // Cargar medicamentos disponibles del área de emergencia
+        $medicamentos = AlmacenMedicamento::activos()
+            ->porArea('emergencia')
+            ->where('cantidad', '>', 0)
+            ->orderBy('nombre')
+            ->get();
+
+        // Decodificar signos vitales actuales si existen
+        $vitalSigns = [];
+        if ($emergency->vital_signs) {
+            $vitalSigns = is_string($emergency->vital_signs)
+                ? json_decode($emergency->vital_signs, true)
+                : $emergency->vital_signs;
+        }
+
+        return view('emergency-staff.evaluacion', compact('emergency', 'medicamentos', 'vitalSigns'));
+    }
+
+    /**
+     * Guardar evaluación de emergencia con signos vitales, gravedad y medicamentos
+     */
+    public function guardarEvaluacion(Request $request, Emergency $emergency): JsonResponse
+    {
+        $validated = $request->validate([
+            'presion_arterial' => 'nullable|string|max:20',
+            'frecuencia_cardiaca' => 'nullable|string|max:20',
+            'frecuencia_respiratoria' => 'nullable|string|max:20',
+            'temperatura' => 'nullable|string|max:20',
+            'saturacion_o2' => 'nullable|string|max:20',
+            'glucosa' => 'nullable|string|max:20',
+            'nivel_gravedad' => 'required|in:leve,moderado,grave,critico',
+            'motivo_consulta' => 'nullable|string',
+            'observaciones' => 'nullable|string',
+            'medicamentos' => 'nullable|array',
+            'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_medicamentos,id',
+            'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // 1. Actualizar signos vitales
+            $vitalSigns = [
+                'presion_arterial' => $validated['presion_arterial'] ?? null,
+                'frecuencia_cardiaca' => $validated['frecuencia_cardiaca'] ?? null,
+                'frecuencia_respiratoria' => $validated['frecuencia_respiratoria'] ?? null,
+                'temperatura' => $validated['temperatura'] ?? null,
+                'saturacion_o2' => $validated['saturacion_o2'] ?? null,
+                'glucosa' => $validated['glucosa'] ?? null,
+                'fecha_registro' => now()->toDateTimeString(),
+            ];
+
+            // 2. Actualizar estado a "en_evaluacion"
+            $estadoAnterior = $emergency->status;
+            $emergency->update([
+                'status' => 'en_evaluacion',
+                'vital_signs' => $vitalSigns,
+                'initial_assessment' => $validated['motivo_consulta'] ?? $emergency->initial_assessment,
+                'observations' => $validated['observaciones'] ?? $emergency->observations,
+            ]);
+
+            // Registrar en flujo historial
+            $emergency->registrarMovimiento('emergencia', 'emergencia',
+                'Inicio de evaluación médica. Gravedad: ' . strtoupper($validated['nivel_gravedad']));
+
+            // 3. Procesar medicamentos seleccionados
+            $medicamentosAplicados = [];
+            $totalMedicamentos = 0;
+
+            if (!empty($validated['medicamentos'])) {
+                foreach ($validated['medicamentos'] as $med) {
+                    $medicamento = AlmacenMedicamento::find($med['id']);
+
+                    if ($medicamento && $medicamento->cantidad >= $med['cantidad']) {
+                        // Descontar del inventario
+                        $cantidadAnterior = $medicamento->cantidad;
+                        $medicamento->cantidad -= $med['cantidad'];
+                        $medicamento->save();
+
+                        // Registrar uso
+                        $medicamentosAplicados[] = [
+                            'id' => $medicamento->id,
+                            'nombre' => $medicamento->nombre,
+                            'cantidad' => $med['cantidad'],
+                            'precio_unitario' => $medicamento->precio ?? 0,
+                            'subtotal' => ($medicamento->precio ?? 0) * $med['cantidad'],
+                            'unidad_medida' => $medicamento->unidad_medida,
+                        ];
+
+                        $totalMedicamentos += ($medicamento->precio ?? 0) * $med['cantidad'];
+
+                        // Log del consumo
+                        \Log::info('Medicamento aplicado en emergencia', [
+                            'emergency_id' => $emergency->id,
+                            'medicamento_id' => $medicamento->id,
+                            'medicamento_nombre' => $medicamento->nombre,
+                            'cantidad' => $med['cantidad'],
+                            'stock_anterior' => $cantidadAnterior,
+                            'stock_nuevo' => $medicamento->cantidad,
+                            'usuario_id' => auth()->id(),
+                        ]);
+                    }
+                }
+            }
+
+            // 4. Crear o actualizar cuenta de cobro para la emergencia
+            $pacienteCi = $emergency->is_temp_id
+                ? $emergency->temp_id
+                : $emergency->patient_id;
+
+            $cuenta = CuentaCobroService::obtenerOCrearCuentaEmergencia(
+                $pacienteCi,
+                $emergency->id
+            );
+
+            // Agregar cargos por medicamentos a la cuenta
+            if (!empty($medicamentosAplicados)) {
+                foreach ($medicamentosAplicados as $med) {
+                    if ($med['subtotal'] > 0) {
+                        CuentaCobroService::agregarCargo(
+                            $cuenta->id,
+                            'medicamento',
+                            'Emergencia - ' . $med['nombre'] . ' (' . $med['cantidad'] . ' ' . $med['unidad_medida'] . ')',
+                            $med['precio_unitario'],
+                            $med['cantidad'],
+                            null,
+                            AlmacenMedicamento::class,
+                            $med['id']
+                        );
+                    }
+                }
+            }
+
+            // 5. Actualizar costo total de la emergencia
+            $emergency->update([
+                'cost' => $cuenta->total_calculado,
+                'detalle_costos' => array_merge($emergency->detalle_costos ?? [], [
+                    [
+                        'tipo' => 'evaluacion',
+                        'fecha' => now()->toDateTimeString(),
+                        'nivel_gravedad' => $validated['nivel_gravedad'],
+                        'medicamentos' => $medicamentosAplicados,
+                        'total_medicamentos' => $totalMedicamentos,
+                        'usuario_id' => auth()->id(),
+                    ]
+                ]),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Evaluación guardada correctamente',
+                'emergency_id' => $emergency->id,
+                'status' => $emergency->status,
+                'medicamentos_aplicados' => count($medicamentosAplicados),
+                'total_medicamentos' => $totalMedicamentos,
+                'redirect' => route('emergency-staff.dashboard'),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error al guardar evaluación de emergencia: ' . $e->getMessage(), [
+                'emergency_id' => $emergency->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar la evaluación: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Obtener medicamentos disponibles en almacén de emergencia
+     */
+    public function apiMedicamentosDisponibles(): JsonResponse
+    {
+        $medicamentos = AlmacenMedicamento::activos()
+            ->porArea('emergencia')
+            ->where('cantidad', '>', 0)
+            ->orderBy('nombre')
+            ->get()
+            ->map(function($med) {
+                return [
+                    'id' => $med->id,
+                    'nombre' => $med->nombre,
+                    'descripcion' => $med->descripcion,
+                    'tipo' => $med->tipo,
+                    'tipo_label' => $med->tipo_label,
+                    'cantidad_disponible' => $med->cantidad,
+                    'unidad_medida' => $med->unidad_medida,
+                    'precio' => $med->precio,
+                    'stock_minimo' => $med->stock_minimo,
+                    'esta_bajo_stock' => $med->estaBajoStock(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'medicamentos' => $medicamentos,
+            'total' => $medicamentos->count(),
+        ]);
+    }
+
+    /**
+     * API: Obtener emergencias con ID temporal
+     */
+    public function apiEmergenciasTemporales(): JsonResponse
+    {
+        $emergencias = Emergency::where('is_temp_id', true)
+            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])
+            ->where('ubicacion_actual', 'emergencia')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($emg) {
+                return [
+                    'id' => $emg->id,
+                    'code' => $emg->code,
+                    'temp_id' => $emg->temp_id,
+                    'tipo_ingreso' => $emg->tipo_ingreso,
+                    'tipo_ingreso_label' => $emg->tipo_ingreso_label,
+                    'status' => $emg->status,
+                    'status_label' => $this->getStatusLabel($emg->status),
+                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                    'fecha_ingreso' => $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'emergencias' => $emergencias,
+            'total' => $emergencias->count(),
+        ]);
+    }
+
+    /**
+     * Mostrar historial completo de evaluaciones de una emergencia
+     */
+    public function historial(Emergency $emergency): View
+    {
+        // Cargar relaciones necesarias
+        $emergency->load(['paciente', 'user']);
+
+        // Decodificar datos almacenados
+        $detalleCostos = $emergency->detalle_costos ?? [];
+        $flujoHistorial = $emergency->flujo_historial ?? [];
+        $vitalSigns = [];
+
+        if ($emergency->vital_signs) {
+            $vitalSigns = is_string($emergency->vital_signs)
+                ? json_decode($emergency->vital_signs, true)
+                : $emergency->vital_signs;
+        }
+
+        // Obtener cuenta de cobro asociada si existe
+        $cuenta = \App\Models\CuentaCobro::where('referencia_id', $emergency->id)
+            ->where('referencia_type', Emergency::class)
+            ->with('detalles')
+            ->first();
+
+        return view('emergency-staff.historial', compact(
+            'emergency',
+            'detalleCostos',
+            'flujoHistorial',
+            'vitalSigns',
+            'cuenta'
+        ));
     }
 }

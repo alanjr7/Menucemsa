@@ -13,27 +13,27 @@
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Total Hoy</p>
-                    <p class="text-xl font-bold text-gray-900" id="statTotalHoy">S/ 0.00</p>
+                    <p class="text-xl font-bold text-gray-900" id="statTotalHoy">S/ {{ number_format($estadisticas['total_recaudado_hoy'], 2) }}</p>
                 </div>
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Transacciones</p>
-                    <p class="text-xl font-bold text-gray-900" id="statTransacciones">0</p>
+                    <p class="text-xl font-bold text-gray-900" id="statTransacciones">{{ $estadisticas['transacciones_hoy'] }}</p>
                 </div>
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Cajas Abiertas</p>
-                    <p class="text-xl font-bold text-green-600" id="statCajasAbiertas">0</p>
+                    <p class="text-xl font-bold text-green-600" id="statCajasAbiertas">{{ $estadisticas['cajas_abiertas'] }}</p>
                 </div>
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Cajas Cerradas</p>
-                    <p class="text-xl font-bold text-blue-600" id="statCajasCerradas">0</p>
+                    <p class="text-xl font-bold text-blue-600" id="statCajasCerradas">{{ $estadisticas['cajas_cerradas_hoy'] }}</p>
                 </div>
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Pendientes</p>
-                    <p class="text-xl font-bold text-yellow-600" id="statPendientes">0</p>
+                    <p class="text-xl font-bold text-yellow-600" id="statPendientes">{{ $estadisticas['cuentas_pendientes'] }}</p>
                 </div>
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Emergencias</p>
-                    <p class="text-xl font-bold text-red-600" id="statEmergencias">0</p>
+                    <p class="text-xl font-bold text-red-600" id="statEmergencias">{{ $estadisticas['emergencias_pendientes'] }}</p>
                 </div>
             </div>
 
@@ -46,7 +46,12 @@
                     </div>
                     <div class="p-4">
                         <div class="space-y-3" id="metodosPagoContainer">
-                            <!-- Se llena con JS -->
+                            @foreach($metodosPagoHoy as $metodo => $monto)
+                            <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                <span class="text-sm text-gray-600 capitalize">{{ $metodo }}:</span>
+                                <span class="font-medium">S/ {{ number_format($monto, 2) }}</span>
+                            </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>
@@ -58,7 +63,20 @@
                     </div>
                     <div class="p-4">
                         <div class="space-y-3" id="cajasAbiertasContainer">
-                            <!-- Se llena con JS -->
+                            @forelse($cajasAbiertas as $caja)
+                            <div class="flex justify-between items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div>
+                                    <p class="font-medium text-gray-900">{{ $caja['usuario'] }}</p>
+                                    <p class="text-sm text-gray-500">{{ $caja['fecha_apertura'] }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-600">Inicial: <span class="font-medium">S/ {{ number_format($caja['monto_inicial'], 2) }}</span></p>
+                                    <p class="text-sm text-green-600">+ S/ {{ number_format($caja['total_ingresos'], 2) }}</p>
+                                </div>
+                            </div>
+                            @empty
+                            <p class="text-gray-500 text-center py-4">No hay cajas abiertas</p>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -303,13 +321,27 @@
             if (tab === 'auditoria') cargarAuditoria();
         }
 
-        // Cargar estadísticas principales
+        // Cargar estadísticas principales desde el servidor
         async function cargarEstadisticas() {
             try {
-                // Simular carga de estadísticas (en producción sería una llamada API)
-                // Por ahora usamos datos del DOM inicial
+                const response = await fetch('{{ route('caja.gestion.resumen-financiero') }}?fecha_inicio={{ now()->toDateString() }}&fecha_fin={{ now()->toDateString() }}');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const r = data.resumen;
+                    document.getElementById('statTotalHoy').textContent = 'S/ ' + parseFloat(r.totales_generales.total_recaudado).toFixed(2);
+                    document.getElementById('statTransacciones').textContent = r.totales_generales.total_transacciones;
+                    
+                    // Actualizar métodos de pago
+                    document.getElementById('metodosPagoContainer').innerHTML = Object.entries(r.por_metodo_pago).map(([k, v]) => `
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span class="text-sm text-gray-600 capitalize">${k}:</span>
+                            <span class="font-medium">S/ ${parseFloat(v).toFixed(2)}</span>
+                        </div>
+                    `).join('');
+                }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error cargando estadísticas:', error);
             }
         }
 
@@ -527,7 +559,7 @@
         // Ver detalle de transacción
         async function verDetalleTransaccion(id) {
             try {
-                const response = await fetch(`{{ url('/caja/gestion/transaccion') }}/${id}`);
+                const response = await fetch(`/caja-gestion/transaccion/${id}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -633,10 +665,12 @@
                 if (t.estado === 'pagado') {
                     totalHoy += parseFloat(t.monto);
                 }
-                t.metodos_pago.forEach(m => {
-                    if (metodos.hasOwnProperty(m)) {
-                        // Approximation as we don't have per-transaction method amounts
-                        metodos[m] += parseFloat(t.total_pagado) / t.metodos_pago.length;
+                // metodos_pago es un array de strings
+                const metodosArray = t.metodos_pago || [];
+                metodosArray.forEach(m => {
+                    const metodo = m.toLowerCase();
+                    if (metodos.hasOwnProperty(metodo)) {
+                        metodos[metodo] += parseFloat(t.total_pagado) / metodosArray.length;
                     }
                 });
             });

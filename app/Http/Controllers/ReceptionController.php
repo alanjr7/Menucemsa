@@ -558,8 +558,8 @@ class ReceptionController extends Controller
         $stats = [
             'total' => $citas->count(),
             'confirmados' => $citas->where('confirmado', true)->count(),
-            'en_espera' => $citas->enEspera()->count(),
-            'en_atencion' => $citas->enAtencion()->count(),
+            'en_espera' => $citas->where('estado', 'programado')->where('confirmado', true)->count(),
+            'en_atencion' => $citas->where('estado', 'en_atencion')->count(),
             'atendidos' => $citas->where('estado', 'atendido')->count(),
             'cancelados' => $citas->where('estado', 'cancelado')->count(),
         ];

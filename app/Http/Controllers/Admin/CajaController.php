@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Caja;
+use App\Models\CajaSession;
 use App\Models\Paciente;
 use App\Models\Consulta;
 use App\Models\Tarifario;
@@ -24,6 +25,12 @@ class CajaController extends Controller
             ->limit(20)
             ->get();
 
+        // Cajas abiertas desde el rol caja (caja_sessions)
+        $cajasAbiertas = CajaSession::with('usuario')
+            ->where('estado', 'abierta')
+            ->orderByDesc('fecha_apertura')
+            ->get();
+
         $ingresos = $movimientos->where('total_dia', '>=', 0);
         $egresos = $movimientos->where('total_dia', '<', 0);
 
@@ -42,12 +49,14 @@ class CajaController extends Controller
         // Debug: mostrar información
         \Log::info('Caja Index - Fecha: ' . $fecha->format('Y-m-d'));
         \Log::info('Total movimientos: ' . $movimientos->count());
+        \Log::info('Cajas abiertas (sessions): ' . $cajasAbiertas->count());
         \Log::info('Ingresos: ' . $ingresos->sum('total_dia'));
         \Log::info('Egresos: ' . abs($egresos->sum('total_dia')));
 
         return view('admin.caja', [
             'fecha' => $fecha,
             'movimientos' => $movimientos,
+            'cajasAbiertas' => $cajasAbiertas,
             'resumen' => [
                 'ingresos' => $ingresos->sum('total_dia'),
                 'ingresos_count' => $ingresos->count(),
