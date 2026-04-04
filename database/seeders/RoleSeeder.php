@@ -78,5 +78,16 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // Crear usuario UTI
+        User::firstOrCreate(
+            ['email' => 'uti@menucemsa.com'],
+            [
+                'name' => 'UTI',
+                'password' => bcrypt('uti123'),
+                'role' => 'uti',
+                'is_active' => true,
+            ]
+        );
     }
 }//hol

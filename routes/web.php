@@ -37,6 +37,10 @@ use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
 use App\Http\Controllers\EmergencyStaffController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Medical\UtiOperativoController;
+use App\Http\Controllers\Admin\UtiAdminController;
+use App\Http\Controllers\Caja\UtiCajaController;
+use App\Http\Controllers\Reception\UtiRecepcionController;
 
 
 
@@ -431,5 +435,74 @@ Route::get('/test-farmacia', function() {
     $user = auth()->user();
     return 'Usuario: ' . $user->name . ', Rol: ' . $user->role . ', isFarmacia: ' . ($user->isFarmacia() ? 'true' : 'false');
 })->middleware('auth');
+
+// Rutas UTI - Módulo de Terapia Intensiva
+// =================================================================================================
+
+// UTI Operativo - Vista clínica (admin, dirmedico, doctor, enfermeria, uti)
+Route::middleware(['auth', 'role:admin|dirmedico|doctor|enfermeria|uti'])->prefix('uti-operativo')->name('uti.operativa.')->group(function () {
+    Route::get('/', [UtiOperativoController::class, 'index'])->name('index');
+    Route::get('/paciente/{id}', [UtiOperativoController::class, 'show'])->name('paciente.show');
+    
+    // API routes
+    Route::get('/api/pacientes', [UtiOperativoController::class, 'getPacientesUti']);
+    Route::get('/api/paciente/{id}/detalle', [UtiOperativoController::class, 'getPacienteDetalle']);
+    Route::post('/api/paciente/{id}/signos', [UtiOperativoController::class, 'guardarSignosVitales']);
+    Route::post('/api/paciente/{id}/evolucion', [UtiOperativoController::class, 'guardarEvolucion']);
+    Route::post('/api/paciente/{id}/validar-dia', [UtiOperativoController::class, 'validarDia']);
+    Route::post('/api/paciente/{id}/medicamento', [UtiOperativoController::class, 'registrarMedicamento']);
+    Route::post('/api/paciente/{id}/insumo', [UtiOperativoController::class, 'registrarInsumo']);
+    Route::post('/api/paciente/{id}/alimentacion', [UtiOperativoController::class, 'registrarAlimentacion']);
+    Route::put('/api/paciente/{id}/estado-clinico', [UtiOperativoController::class, 'cambiarEstadoClinico']);
+    Route::post('/api/paciente/{id}/alta-clinica', [UtiOperativoController::class, 'darAltaClinica']);
+    Route::post('/api/paciente/{id}/trasladar', [UtiOperativoController::class, 'trasladarPaciente']);
+    Route::get('/api/camas-disponibles', [UtiOperativoController::class, 'getCamasDisponibles']);
+    Route::post('/api/paciente/{id}/asignar-cama', [UtiOperativoController::class, 'asignarCama']);
+    Route::get('/api/medicamentos', [UtiOperativoController::class, 'getMedicamentosDisponibles']);
+    Route::get('/api/insumos', [UtiOperativoController::class, 'getInsumosDisponibles']);
+});
+
+// UTI Administración - Solo admin
+Route::middleware(['auth', 'role:admin'])->prefix('uti-admin')->name('uti.admin.')->group(function () {
+    Route::get('/', [UtiAdminController::class, 'index'])->name('index');
+    Route::get('/camas', [UtiAdminController::class, 'camas'])->name('camas');
+    Route::get('/control-financiero', [UtiAdminController::class, 'controlFinanciero'])->name('control-financiero');
+    Route::get('/tarifario', [UtiAdminController::class, 'tarifario'])->name('tarifario');
+    
+    // API routes
+    Route::get('/api/estadisticas', [UtiAdminController::class, 'getEstadisticas']);
+    Route::get('/api/camas-grid', [UtiAdminController::class, 'getCamasGrid']);
+    Route::get('/api/pacientes', [UtiAdminController::class, 'getPacientes']);
+    Route::get('/api/costos/{admissionId}', [UtiAdminController::class, 'getCostosPaciente']);
+    Route::post('/api/camas', [UtiAdminController::class, 'crearCama']);
+    Route::put('/api/camas/{id}', [UtiAdminController::class, 'actualizarCama']);
+    Route::post('/api/camas/{id}/estado', [UtiAdminController::class, 'cambiarEstadoCama']);
+    Route::get('/api/tarifario', [UtiAdminController::class, 'getTarifario']);
+    Route::post('/api/tarifario', [UtiAdminController::class, 'crearTarifa']);
+    Route::put('/api/tarifario/{id}', [UtiAdminController::class, 'actualizarTarifa']);
+    Route::get('/api/alertas', [UtiAdminController::class, 'getAlertas']);
+    Route::post('/api/preautorizacion/{admissionId}', [UtiAdminController::class, 'actualizarPreautorizacion']);
+});
+
+// UTI Caja - Admin y caja
+Route::middleware(['auth', 'role:admin|caja'])->prefix('uti-caja')->name('uti.caja.')->group(function () {
+    Route::get('/', [UtiCajaController::class, 'index'])->name('index');
+    Route::get('/api/pacientes', [UtiCajaController::class, 'getPacientesUti']);
+    Route::get('/api/detalle-cuenta/{id}', [UtiCajaController::class, 'getDetalleCuenta']);
+    Route::post('/api/procesar-cobro/{id}', [UtiCajaController::class, 'procesarCobro']);
+    Route::post('/api/deposito/{id}', [UtiCajaController::class, 'registrarDeposito']);
+});
+
+// UTI Recepción - Admin, reception, dirmedico
+Route::middleware(['auth', 'role:admin|reception|dirmedico'])->prefix('reception/uti')->name('reception.uti.')->group(function () {
+    Route::get('/ingreso', [UtiRecepcionController::class, 'index'])->name('ingreso');
+    
+    // API routes
+    Route::post('/api/buscar-paciente', [UtiRecepcionController::class, 'buscarPaciente']);
+    Route::post('/api/registrar-ingreso', [UtiRecepcionController::class, 'registrarIngreso']);
+    Route::get('/api/camas-disponibles', [UtiRecepcionController::class, 'getCamasDisponibles']);
+    Route::get('/api/emergencias-pendientes', [UtiRecepcionController::class, 'getEmergenciasPendientes']);
+    Route::get('/api/seguros', [UtiRecepcionController::class, 'getSeguros']);
+});
 
 require __DIR__.'/auth.php';

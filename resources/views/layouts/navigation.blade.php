@@ -55,7 +55,7 @@
                     if(Auth::user()->isAdmin() || Auth::user()->isDirMedico()):
                         $pacientesLinks = array_merge($pacientesLinks, [
                             ['r' => 'enfermeria.index', 'l' => 'Enfermería'],
-                            ['r' => 'uti.index', 'l' => 'UTI'],
+                            ['r' => 'uti.admin.index', 'l' => 'UTI - Administración'],
                             ['r' => 'quirofano.index', 'l' => 'Quirófano'],
                             ['r' => 'hospitalizacion.index', 'l' => 'Hospitalización'],
                             ['r' => 'admin.emergencies.index', 'l' => 'Gestión de Emergencias (Solo Lectura)'],
@@ -137,6 +137,19 @@
             </button>
             <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
                 <a href="{{ route('farmacia.reporte') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('farmacia.reporte') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Reporte</a>
+            </div>
+        </div>
+        @endif
+
+        @if(Auth::user()->isUti())
+        <div x-data="{ open: {{ request()->is('uti*') ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full flex items-center px-4 py-3 text-blue-100 hover:bg-blue-800/50 rounded-lg transition group">
+                <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                <span class="text-sm font-medium flex-1 text-left">UTI - Terapia Intensiva</span>
+                <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-4 mt-1 space-y-1 border-l-2 border-blue-700/50 ml-6">
+                <a href="{{ route('uti.operativa.index') }}" class="block px-3 py-2 text-xs rounded-md {{ request()->routeIs('uti.operativa.*') ? 'text-white bg-blue-700/60 font-bold' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">Panel de Pacientes</a>
             </div>
         </div>
         @endif

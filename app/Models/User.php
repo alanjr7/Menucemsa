@@ -88,6 +88,11 @@ class User extends Authenticatable
         return $this->role === 'farmacia';
     }
 
+    public function isUti(): bool
+    {
+        return $this->role === 'uti';
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
