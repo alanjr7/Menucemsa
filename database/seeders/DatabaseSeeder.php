@@ -18,32 +18,32 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // First run user-related seeders
             RoleSeeder::class,
-            ServicioSeeder::class,
-            AdminSeeder::class,
-            FarmaciaRoleSeeder::class,
-            UsuariosSeeder::class,
-            QuirofanosSeeder::class,
+            // ServicioSeeder::class,
+            // AdminSeeder::class,
+            // FarmaciaRoleSeeder::class,
+            // UsuariosSeeder::class,
+            // QuirofanosSeeder::class,
             
-            // Farmacia tables
-            FarmaciaTableSeeder::class,
-            MedicamentosTableSeeder::class,
-            DetalleMedicamentosTableSeeder::class,
-            InsumosTableSeeder::class,
-            DetalleInsumosTableSeeder::class,
-            DetalleRecetaTableSeeder::class,
-            InventarioTableSeeder::class,
-            CajaFarmaciaTableSeeder::class,
-            VentasFarmaciaTableSeeder::class,
-            DetalleVentasFarmaciaTableSeeder::class,
-            ClientesTableSeeder::class,
-            CajaDiariasTableSeeder::class,
+            // // Farmacia tables
+            // FarmaciaTableSeeder::class,
+            // MedicamentosTableSeeder::class,
+            // DetalleMedicamentosTableSeeder::class,
+            // InsumosTableSeeder::class,
+            // DetalleInsumosTableSeeder::class,
+            // DetalleRecetaTableSeeder::class,
+            // InventarioTableSeeder::class,
+            // CajaFarmaciaTableSeeder::class,
+            // VentasFarmaciaTableSeeder::class,
+            // DetalleVentasFarmaciaTableSeeder::class,
+            // ClientesTableSeeder::class,
+            // CajaDiariasTableSeeder::class,
             
-            // Medical tables (except MedicosTableSeeder for now)
-            BitacorasTableSeeder::class,
-            TurnosTableSeeder::class,
-            AsistenteQuirofanosTableSeeder::class,
-            EspecialidadesTableSeeder::class,
-            ConsultasTableSeeder::class,
+            // // Medical tables (except MedicosTableSeeder for now)
+            // BitacorasTableSeeder::class,
+            // TurnosTableSeeder::class,
+            // AsistenteQuirofanosTableSeeder::class,
+            // EspecialidadesTableSeeder::class,
+            // ConsultasTableSeeder::class,
             // MedicosTableSeeder::class, // Temporarily commented
             // InternosTableSeeder::class, // Temporarily commented
             // TurnoInternosTableSeeder::class, // Temporarily commented
