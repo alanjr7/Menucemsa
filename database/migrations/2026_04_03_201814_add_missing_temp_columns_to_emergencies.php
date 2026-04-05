@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::table('emergencies', function (Blueprint $table) {
             // Check if columns don't exist before adding
             if (!Schema::hasColumn('emergencies', 'is_temp_id')) {
-                $table->boolean('is_temp_id')->default(false)->after('patient_id');
+                $table->boolean('is_temp_id')->default(false)->after('ci_paciente');
             }
             if (!Schema::hasColumn('emergencies', 'temp_id')) {
-                $table->string('temp_id')->nullable()->after('patient_id');
+                $table->string('temp_id')->nullable()->after('ci_paciente');
             }
         });
     }

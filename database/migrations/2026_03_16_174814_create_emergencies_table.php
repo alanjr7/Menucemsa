@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('emergencies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('patient_id')->constrained('patients');
+            $table->integer('ci_paciente');
+            $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('user_id')->constrained('users')->comment('Personal de emergencias que atiende');
             $table->string('code')->unique()->comment('Código único de emergencia');
             $table->enum('status', ['recibido', 'en_evaluacion', 'estabilizado', 'uti', 'cirugia', 'alta', 'fallecido'])->default('recibido');

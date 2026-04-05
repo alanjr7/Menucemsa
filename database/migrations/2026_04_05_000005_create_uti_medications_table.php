@@ -8,27 +8,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('uti_supplies', function (Blueprint $table) {
+        Schema::create('uti_medications', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('uti_admission_id');
-            $table->unsignedBigInteger('insumo_id');
-            $table->unsignedBigInteger('used_by');
+            $table->string('medicamento_id', 15);
+            $table->unsignedBigInteger('administered_by');
             $table->date('fecha');
             $table->time('hora');
-            $table->decimal('cantidad', 8, 2);
+            $table->decimal('dosis', 8, 2);
+            $table->string('unidad', 20);
+            $table->string('via_administracion', 50);
             $table->text('observaciones')->nullable();
             $table->boolean('cargo_generado')->default(false);
             $table->unsignedBigInteger('cuenta_cobro_detalle_id')->nullable();
             $table->timestamps();
 
             $table->foreign('uti_admission_id')->references('id')->on('uti_admissions')->onDelete('cascade');
-            $table->foreign('insumo_id')->references('id')->on('insumos');
-            $table->foreign('used_by')->references('id')->on('users');
+            $table->foreign('medicamento_id')->references('CODIGO')->on('MEDICAMENTOS');
+            $table->foreign('administered_by')->references('id')->on('users');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('uti_supplies');
+        Schema::dropIfExists('uti_medications');
     }
 };

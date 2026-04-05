@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('uti_recipes', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('uti_admission_id');
-            $table->unsignedBigInteger('medico_id');
+            $table->integer('medico_id');
             $table->string('nro_receta', 20)->unique();
             $table->date('fecha');
             $table->text('indicaciones_generales');
@@ -19,13 +19,13 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('uti_admission_id')->references('id')->on('uti_admissions')->onDelete('cascade');
-            $table->foreign('medico_id')->references('id')->on('medicos');
+            $table->foreign('medico_id')->references('ci')->on('medicos');
         });
 
         Schema::create('uti_recipe_details', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('uti_recipe_id');
-            $table->unsignedBigInteger('medicamento_id');
+            $table->string('medicamento_id', 15);
             $table->decimal('dosis', 8, 2);
             $table->string('unidad', 20);
             $table->string('frecuencia', 50);
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('uti_recipe_id')->references('id')->on('uti_recipes')->onDelete('cascade');
-            $table->foreign('medicamento_id')->references('id')->on('medicamentos');
+            $table->foreign('medicamento_id')->references('CODIGO')->on('MEDICAMENTOS');
         });
     }
 

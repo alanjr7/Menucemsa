@@ -19,7 +19,7 @@ return new class extends Migration
             $table->enum('destino_inicial', ['cirugia', 'camilla', 'uti', 'observacion', 'hospitalizacion', 'alta'])->nullable()->after('tipo_ingreso');
             
             // Campos para paciente temporal
-            $table->boolean('is_temp_id')->default(false)->after('patient_id');
+            $table->boolean('is_temp_id')->default(false)->after('ci_paciente');
             $table->string('temp_id')->nullable()->after('is_temp_id');
             
             // Campos para trazabilidad del flujo
