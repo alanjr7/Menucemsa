@@ -5,94 +5,86 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'Clínica CEMSA') }}</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         <style>
             [x-cloak] { display: none !important; }
-            /* Estilo para personalizar el scroll del menú si es muy largo */
             .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: #1e3a8a; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
         </style>
     </head>
 
-    <body class="font-sans antialiased text-gray-900 bg-gray-100" x-data="{ sidebarOpen: true }">
-        <div class="flex min-h-screen">
+    <body class="font-sans antialiased text-slate-700 bg-slate-50"
+          x-data="{ sidebarOpen: window.innerWidth >= 1024, isMobile: window.innerWidth < 1024 }"
+          @resize.window="isMobile = window.innerWidth < 1024; if(isMobile) sidebarOpen = false;">
 
-            <aside class="bg-[#1e3a8a] fixed h-full shadow-2xl text-white transition-all duration-300 ease-in-out z-10" 
-                   :class="sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'">
+        <div class="flex min-h-screen relative">
+
+            <!-- Fondo oscuro para móviles -->
+            <div x-show="sidebarOpen && isMobile"
+                 x-cloak
+                 @click="sidebarOpen = false"
+                 x-transition.opacity.duration.300ms
+                 class="fixed inset-0 bg-slate-900/60 z-40 backdrop-blur-sm lg:hidden">
+            </div>
+
+            <!-- Sidebar (w-72 abierto, w-20 cerrado en PC) -->
+            <aside class="fixed inset-y-0 left-0 z-50 flex flex-col h-full bg-gradient-to-b from-[#1a306d] to-[#112048] shadow-2xl text-white transition-all duration-300 ease-in-out overflow-hidden"
+                   :class="isMobile ? (sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72') : (sidebarOpen ? 'translate-x-0 w-72' : 'translate-x-0 w-20')">
                 @include('layouts.navigation')
             </aside>
 
-            <div class="flex-1 flex flex-col transition-all duration-300 ease-in-out" 
-                 :class="sidebarOpen ? 'ml-64' : 'ml-0'">
+            <!-- Contenedor Principal (Ajusta margen ml-72 o ml-20 en PC) -->
+            <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out"
+                 :class="isMobile ? 'ml-0' : (sidebarOpen ? 'ml-72' : 'ml-20')">
 
-                <header class="bg-white shadow-sm h-16 flex items-center justify-between px-8 sticky top-0 z-10">
-                    <div class="flex items-center gap-4">
-                        <button @click="sidebarOpen = !sidebarOpen" 
-                                class="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md relative z-20">
-                            <!-- Hamburger icon when sidebar is open -->
-                            <svg x-show="sidebarOpen" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
-                            </svg>
-                            <!-- Menu icon when sidebar is closed -->
-                            <svg x-show="!sidebarOpen" x-cloak class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                <!-- Header -->
+                <header class="bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30">
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <button @click="sidebarOpen = !sidebarOpen"
+                                class="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all duration-200 shadow-sm focus:outline-none">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"/>
                             </svg>
                         </button>
-                        <div class="text-blue-900 font-medium tracking-tight">
-                            <span class="font-bold text-lg">🏥 Clínica CEMSA</span>
-                            <span class="mx-2 text-gray-300">|</span>
-                            <span class="text-sm text-gray-500 uppercase font-semibold">Sede Principal</span>
+
+                        <div class="hidden sm:flex flex-col justify-center">
+                            <div class="text-slate-800 font-bold text-lg leading-tight flex items-center gap-2">
+                                🏥 Clínica CEMSA
+                            </div>
+                            <span class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Sede Principal</span>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3 sm:gap-5">
                         <div class="text-right hidden sm:block">
-                            <p class="text-sm font-bold text-gray-800 leading-none">
+                            <p class="text-sm font-bold text-slate-800 leading-none">
                                 {{ Auth::user()->name }}
                             </p>
-                            <p class="text-[10px] text-green-600 font-bold uppercase mt-1 tracking-wider">
-                                En línea
-                            </p>
+                            <div class="flex items-center justify-end gap-1.5 mt-1">
+                                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">En línea</p>
+                            </div>
                         </div>
-                        
-                        <!-- Dropdown menu for user actions -->
+
                         <div x-data="{ open: false }" class="relative">
-                            <button @click="open = !open" class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold border-2 border-blue-50 shadow-sm uppercase hover:bg-blue-700 transition-colors">
+                            <button @click="open = !open" class="w-10 h-10 bg-gradient-to-tr from-blue-700 to-blue-500 rounded-full flex items-center justify-center text-white font-bold ring-2 ring-blue-100 shadow-md hover:scale-105 transition-all">
                                 {{ substr(Auth::user()->name, 0, 1) }}
                             </button>
-                            
-                            <div x-show="open" 
-                                 x-cloak
-                                 @click.away="open = false"
-                                 x-transition:enter="transition ease-out duration-200"
-                                 x-transition:enter-start="opacity-0 scale-95"
-                                 x-transition:enter-end="opacity-100 scale-100"
-                                 x-transition:leave="transition ease-in duration-75"
-                                 x-transition:leave-start="opacity-100 scale-100"
-                                 x-transition:leave-end="opacity-0 scale-95"
-                                 class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+
+                            <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 mt-3 w-48 rounded-xl shadow-xl bg-white ring-1 ring-slate-900/5 z-50">
                                 <div class="py-1">
-                                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                        </svg>
-                                        Perfil
-                                    </a>
-                                    <form method="POST" action="{{ route('logout') }}" class="block">
+                                    <a href="{{ route('profile.edit') }}" class="flex items-center px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Mi Perfil</a>
+                                    <form method="POST" action="{{ route('logout') }}">
                                         @csrf
-                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                                            </svg>
-                                            Cerrar Sesión
-                                        </button>
+                                        <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Cerrar Sesión</button>
                                     </form>
                                 </div>
                             </div>
@@ -100,15 +92,12 @@
                     </div>
                 </header>
 
-                <main class="p-8">
-                    <div class="w-full">
+                <main class="flex-1 p-4 sm:p-6 lg:p-8">
+                    <div class="w-full mx-auto max-w-7xl">
                         @yield('content')
                     </div>
                 </main>
 
-                <footer class="mt-auto py-4 px-8 text-center text-xs text-gray-400">
-                    &copy; {{ date('Y') }} - HIS / ERP CEMSA - Todos los derechos reservados.
-                </footer>
             </div>
         </div>
 
