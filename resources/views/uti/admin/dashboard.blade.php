@@ -15,11 +15,13 @@
                 showNuevaCamaModal: false,
                 showNuevaTarifaModal: false,
                 nuevaCama: { bed_number: '', tipo: '', equipamiento: '', precio_dia: '' },
+                nuevaTarifa: { concepto: '', tipo: '', precio: '', unidad: '', descripcion: '' },
 
                 init() {
                     this.loadStats();
                     this.loadCamas();
                     this.loadAlertas();
+                    this.loadTarifario();
                 },
 
                 async loadStats() {
@@ -85,6 +87,54 @@
                         console.error('Error:', error);
                         alert('Error al crear la cama');
                     }
+                },
+
+                async loadTarifario() {
+                    try {
+                        const response = await fetch('/uti-admin/api/tarifario');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.tarifario = data.tarifas.map(t => ({
+                                ...t,
+                                tipo_label: {
+                                    'estadia': '🛏️ Estadía',
+                                    'alimentacion': '🍽️ Alimentación',
+                                    'procedimiento': '🔧 Procedimiento',
+                                    'insumo': '📦 Insumo',
+                                    'medicamento': '💊 Medicamento'
+                                }[t.tipo] || t.tipo
+                            }));
+                        }
+                    } catch (error) { console.error('Error:', error); }
+                },
+
+                async crearTarifa() {
+                    try {
+                        const response = await fetch('/uti-admin/api/tarifario', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify(this.nuevaTarifa)
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showNuevaTarifaModal = false;
+                            this.nuevaTarifa = { concepto: '', tipo: '', precio: '', unidad: '', descripcion: '' };
+                            this.loadTarifario();
+                        } else {
+                            alert('Error: ' + (data.message || 'No se pudo crear la tarifa'));
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error al crear la tarifa');
+                    }
+                },
+
+                editarTarifa(tarifa) {
+                    // TODO: Implementar edición
+                    alert('Función de editar en desarrollo');
                 }
             }
         }
@@ -444,6 +494,46 @@
                     <div class="flex justify-end gap-2">
                         <button type="button" @click="showNuevaCamaModal = false" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Crear Cama</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Nueva Tarifa -->
+        <div x-show="showNuevaTarifaModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.away="showNuevaTarifaModal = false">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md" @click.stop>
+                <h3 class="text-lg font-semibold mb-4">Nueva Tarifa UTI</h3>
+                <form @submit.prevent="crearTarifa()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Concepto</label>
+                        <input type="text" x-model="nuevaTarifa.concepto" class="w-full border-gray-300 rounded-lg" placeholder="Ej: Ventilación Mecánica" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                        <select x-model="nuevaTarifa.tipo" class="w-full border-gray-300 rounded-lg" required>
+                            <option value="">Seleccionar tipo</option>
+                            <option value="estadia">Estadía</option>
+                            <option value="alimentacion">Alimentación</option>
+                            <option value="procedimiento">Procedimiento</option>
+                            <option value="insumo">Insumo</option>
+                            <option value="medicamento">Medicamento</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                        <input type="number" x-model="nuevaTarifa.precio" step="0.01" min="0" class="w-full border-gray-300 rounded-lg" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Unidad</label>
+                        <input type="text" x-model="nuevaTarifa.unidad" class="w-full border-gray-300 rounded-lg" placeholder="Ej: día, hora, unidad, dosis" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción (opcional)</label>
+                        <textarea x-model="nuevaTarifa.descripcion" class="w-full border-gray-300 rounded-lg" rows="2"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="showNuevaTarifaModal = false" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Crear Tarifa</button>
                     </div>
                 </form>
             </div>

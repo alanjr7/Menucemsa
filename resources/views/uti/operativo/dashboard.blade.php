@@ -1,11 +1,6 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UTI - Panel Operativo</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+@extends('layouts.app')
+
+@push('styles')
     <style>
         [x-cloak] { display: none !important; }
         .pulse-red { animation: pulse-red 2s infinite; }
@@ -19,12 +14,63 @@
             50% { background-color: #fde68a; }
         }
     </style>
-</head>
-<body class="bg-gray-50">
-    <div class="flex h-screen" x-data="utiOperativo()">
-        <!-- Sidebar -->
-        @include('layouts.navigation')
+@endpush
 
+@section('content')
+    <script>
+        function utiOperativo() {
+            return {
+                loading: false,
+                viewMode: 'cards',
+                filterEstado: 'todos',
+                pacientes: [],
+                stats: {
+                    total: 0,
+                    estables: 0,
+                    criticos: 0,
+                    muy_criticos: 0,
+                    camas_disponibles: 0,
+                    camas_ocupadas: 0,
+                },
+                currentDate: new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                showModal: false,
+                selectedPaciente: null,
+
+                init() {
+                    this.loadPacientes();
+                },
+
+                async loadPacientes() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`/api/uti-operativo/pacientes?estado_clinico=${this.filterEstado}`);
+                        const data = await response.json();
+                        if (data.success) {
+                            this.pacientes = data.pacientes;
+                            this.stats = data.stats;
+                        }
+                    } catch (error) {
+                        console.error('Error cargando pacientes:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                showQuickActions(paciente) {
+                    this.selectedPaciente = paciente;
+                    this.showModal = true;
+                },
+
+                quickAction(action) {
+                    if (this.selectedPaciente) {
+                        window.location.href = `/uti-operativo/paciente/${this.selectedPaciente.id}?action=${action}`;
+                    }
+                }
+            }
+        }
+    </script>
+
+    <div class="flex h-screen" x-data="utiOperativo()">
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
@@ -263,58 +309,4 @@
             </div>
         </div>
     </div>
-
-    <script>
-        function utiOperativo() {
-            return {
-                loading: false,
-                viewMode: 'cards',
-                filterEstado: 'todos',
-                pacientes: [],
-                stats: {
-                    total: 0,
-                    estables: 0,
-                    criticos: 0,
-                    muy_criticos: 0,
-                    camas_disponibles: 0,
-                    camas_ocupadas: 0,
-                },
-                currentDate: new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                showModal: false,
-                selectedPaciente: null,
-
-                init() {
-                    this.loadPacientes();
-                },
-
-                async loadPacientes() {
-                    this.loading = true;
-                    try {
-                        const response = await fetch(`/api/uti-operativo/pacientes?estado_clinico=${this.filterEstado}`);
-                        const data = await response.json();
-                        if (data.success) {
-                            this.pacientes = data.pacientes;
-                            this.stats = data.stats;
-                        }
-                    } catch (error) {
-                        console.error('Error cargando pacientes:', error);
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-
-                showQuickActions(paciente) {
-                    this.selectedPaciente = paciente;
-                    this.showModal = true;
-                },
-
-                quickAction(action) {
-                    if (this.selectedPaciente) {
-                        window.location.href = `/uti-operativo/paciente/${this.selectedPaciente.id}?action=${action}`;
-                    }
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+@endsection

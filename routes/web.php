@@ -13,6 +13,7 @@ use App\Http\Controllers\Medical\NursingController;
 use App\Http\Controllers\Medical\UtiController;
 use App\Http\Controllers\Medical\QuirofanoController as MedicalQuirofanoController;
 use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitalizacionController;
+use App\Http\Controllers\Reception\HospitalizacionController as ReceptionHospitalizacionController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
@@ -106,7 +107,7 @@ Route::middleware('auth')->group(function () {
         // Rutas para las nuevas páginas separadas
         Route::get('/reception/consulta-externa', [ConsultaExternaController::class, 'index'])->name('reception.consulta-externa');
         Route::get('/reception/emergencia', [EmergenciaController::class, 'index'])->name('reception.emergencia');
-        Route::get('/reception/hospitalizacion', [MedicalHospitalizacionController::class, 'index'])->name('reception.hospitalizacion');
+        Route::get('/reception/hospitalizacion', [ReceptionHospitalizacionController::class, 'index'])->name('reception.hospitalizacion');
         
         // Rutas API para consulta externa
         Route::post('/api/buscar-paciente', [ConsultaExternaController::class, 'buscarPaciente'])->name('reception.buscar-paciente');
@@ -122,10 +123,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/api/emergencia/{nroEmergencia}/estado', [EmergenciaController::class, 'actualizarEstadoEmergencia'])->name('reception.actualizar-emergencia');
         
         // Rutas API para hospitalización
-        Route::post('/api/registrar-hospitalizacion', [MedicalHospitalizacionController::class, 'registrarHospitalizacion'])->name('reception.registrar-hospitalizacion');
-        Route::get('/api/hospitalizaciones-activas', [MedicalHospitalizacionController::class, 'getHospitalizacionesActivas'])->name('reception.hospitalizaciones-activas');
-        Route::post('/api/hospitalizacion/{id}/alta', [MedicalHospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
-        Route::put('/api/hospitalizacion/{id}/actualizar', [MedicalHospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
+        Route::post('/api/registrar-hospitalizacion', [ReceptionHospitalizacionController::class, 'registrarHospitalizacion'])->name('reception.registrar-hospitalizacion');
+        Route::get('/api/hospitalizaciones-activas', [ReceptionHospitalizacionController::class, 'getHospitalizacionesActivas'])->name('reception.hospitalizaciones-activas');
+        Route::post('/api/hospitalizacion/{id}/alta', [ReceptionHospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
+        Route::put('/api/hospitalizacion/{id}/actualizar', [ReceptionHospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
         
         // Rutas API para gestión de citas
         Route::get('/api/agenda-dia', [ReceptionController::class, 'getAgendaDia'])->name('reception.agenda-dia');
