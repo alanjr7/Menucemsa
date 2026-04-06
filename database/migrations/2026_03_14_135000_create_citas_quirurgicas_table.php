@@ -31,6 +31,10 @@ return new class extends Migration
             $table->enum('tipo_final', ['menor', 'mediana', 'mayor', 'ambulatoria'])->nullable();
             $table->text('descripcion_cirugia')->nullable();
             
+            // Nombres de equipo quirúrgico (texto libre para casos externos)
+            $table->string('nombre_instrumentista')->nullable();
+            $table->string('nombre_anestesiologo')->nullable();
+            
             // Quirófano
             $table->integer('nro_quirofano');
             

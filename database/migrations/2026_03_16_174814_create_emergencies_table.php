@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->integer('ci_paciente');
             $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade')->onUpdate('cascade');
+            $table->boolean('is_temp_id')->default(false);
+            $table->string('temp_id')->nullable();
             $table->foreignId('user_id')->constrained('users')->comment('Personal de emergencias que atiende');
             $table->string('code')->unique()->comment('Código único de emergencia');
             $table->enum('status', ['recibido', 'en_evaluacion', 'estabilizado', 'uti', 'cirugia', 'alta', 'fallecido'])->default('recibido');

@@ -12,6 +12,7 @@ return new class extends Migration
             $table->string('CODIGO', 15)->primary();
             $table->string('DETALLE', 80)->nullable();
             $table->float('TOTAL')->nullable();
+            $table->date('FECHA')->nullable();
             $table->string('ID_CAJA', 15)->nullable();
         });
     }

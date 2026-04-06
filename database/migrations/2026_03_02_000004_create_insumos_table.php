@@ -12,6 +12,7 @@ return new class extends Migration
             $table->string('CODIGO', 15)->primary();
             $table->string('NOMBRE', 80);
             $table->string('DESCRIPCION', 80)->nullable();
+            $table->decimal('PRECIO', 10, 2)->default(0);
         });
     }
 

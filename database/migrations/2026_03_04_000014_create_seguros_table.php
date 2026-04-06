@@ -15,7 +15,7 @@ return new class extends Migration
             $table->integer('codigo')->primary();
             $table->string('nombre_empresa', 80);
             $table->string('tipo', 80);
-            $table->string('cobertura', 15);
+            $table->string('cobertura', 80);
             $table->integer('telefono')->nullable();
             $table->string('formulario', 80);
             $table->string('estado', 80);

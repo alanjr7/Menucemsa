@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('STOCK_DISPONIBLE', 80)->nullable();
             $table->string('REPOSICION', 80)->nullable();
             $table->date('FECHA_INGRESO')->nullable();
+            $table->date('FECHA_VENCIMIENTO')->nullable();
+            $table->string('LOTE', 50)->nullable();
             
             $table->primary(['ID', 'ID_FARMACIA']);
             

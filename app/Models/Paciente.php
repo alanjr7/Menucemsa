@@ -57,9 +57,9 @@ class Paciente extends Model
         return $this->hasOne(HistorialMedico::class, 'ci_paciente', 'ci');
     }
 
-    public function emergencias()
+    public function emergencies()
     {
-        return $this->hasMany(Emergencia::class, 'ci_paciente', 'ci');
+        return $this->hasMany(Emergency::class, 'patient_id', 'ci');
     }
 
     public function hospitalizaciones()

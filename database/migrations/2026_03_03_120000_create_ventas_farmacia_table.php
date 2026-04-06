@@ -18,6 +18,7 @@ return new class extends Migration
             $table->boolean('REQUIERE_RECETA')->default(false);
             $table->timestamp('FECHA_VENTA')->useCurrent();
             $table->string('ESTADO', 20)->default('COMPLETADA');
+            $table->foreignId('caja_diaria_id')->nullable();
             $table->text('OBSERVACIONES')->nullable();
             
             $table->foreign('ID_FARMACIA')->references('ID')->on('FARMACIA')->onDelete('set null');

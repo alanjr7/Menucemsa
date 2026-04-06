@@ -12,13 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('cajas', function (Blueprint $table) {
-            $table->string('id', 15)->primary();
+            $table->string('id', 250)->primary();
             $table->timestamp('fecha');
             $table->float('total_dia');
             $table->string('tipo', 80);
+            $table->string('metodo_pago')->nullable();
+            $table->string('referencia')->nullable();
+            $table->string('estado', 250)->nullable()->default('pendiente');
             $table->integer('nro_factura');
-            $table->string('id_farmacia', 15)->nullable();
-            $table->string('nro_pago_internos', 15);
+            $table->string('id_farmacia', 250)->nullable();
+            $table->string('nro_pago_internos', 250);
+            $table->decimal('monto_pagado', 10, 2)->default(0);
             // Claves foráneas comentadas ya que las tablas referenciadas no existen o tienen nombres diferentes
             // $table->foreign('nro_factura')->references('nro')->on('facturas')->onDelete('cascade')->onUpdate('cascade');
             // $table->foreign('id_farmacia')->references('id')->on('farmacias')->onDelete('cascade')->onUpdate('cascade');

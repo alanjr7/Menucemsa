@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('triages', function (Blueprint $table) {
-            $table->string('id', 15)->primary();
+            $table->string('id', 50)->primary();
             $table->string('color', 15);
             $table->string('descripcion', 80);
             $table->string('prioridad', 15);

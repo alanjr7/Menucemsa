@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Reception;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Paciente;
-use App\Models\Emergencia;
+use App\Models\Emergency;
 use App\Models\Triage;
 use App\Models\Registro;
 use Illuminate\Support\Facades\DB;
@@ -61,8 +61,8 @@ class EmergenciaController extends Controller
             $triage = $this->crearTriagePorTipo($request->tipo_emergencia ?? 'amarillo');
             $paciente->update(['id_triage' => $triage->id]);
 
-            // 3. Crear registro de emergencia
-            $emergencia = $this->crearEmergencia($request, $paciente, $triage);
+            // 3. Crear registro de emergencia usando modelo Emergency
+            $emergencia = $this->crearEmergency($request, $paciente, $triage);
 
             // 4. Procesar acciones adicionales según el nivel
             $acciones = $this->procesarAccionesEmergencia($request, $paciente, $emergencia, $triage);
@@ -73,7 +73,7 @@ class EmergenciaController extends Controller
                 'success' => true,
                 'message' => 'Emergencia registrada exitosamente',
                 'emergency_code' => $emergencia->nro,
-                'emergencia' => $emergencia->load(['paciente', 'triage']),
+                'emergencia' => $emergencia->load(['paciente']),
                 'acciones' => $acciones
             ]);
 
@@ -90,7 +90,7 @@ class EmergenciaController extends Controller
     public function getEmergenciasActivas()
     {
         try {
-            $emergencias = Emergencia::with(['paciente', 'triage'])
+            $emergencias = Emergency::with(['paciente'])
                 ->where('estado', 'INGRESADO')
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -103,7 +103,7 @@ class EmergenciaController extends Controller
                         'nombre' => $emergencia->paciente->nombre,
                         'ci' => $emergencia->paciente->ci
                     ],
-                    'nivel' => strtolower($emergencia->triage->color),
+                    'nivel' => strtolower($emergencia->status ?? 'yellow'),
                     'tipo_emergencia' => $emergencia->tipo,
                     'descripcion' => $emergencia->descripcion,
                     'hora_ingreso' => $emergencia->created_at->format('H:i'),
@@ -181,23 +181,20 @@ class EmergenciaController extends Controller
         return $paciente;
     }
 
-    private function crearEmergencia($request, $paciente, $triage)
+    private function crearEmergency($request, $paciente, $triage)
     {
         $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
         
-        return Emergencia::create([
-            'nro' => $nroEmergencia,
-            'descripcion' => $request->descripcion,
-            'estado' => 'INGRESADO',
-            'tipo' => strtoupper($request->tipo_emergencia),
-            'id_triage' => $triage->id,
-            'ci_paciente' => $paciente->ci,
-            'presion_arterial' => $request->presion_arterial,
-            'frecuencia_cardiaca' => $request->frecuencia_cardiaca,
-            'frecuencia_respiratoria' => $request->frecuencia_respiratoria,
-            'temperatura' => $request->temperatura,
-            'alergias' => $request->alergias,
-            'medicamentos' => $request->medicamentos,
+        return Emergency::create([
+            'user_id' => Auth::user()->id,
+            'code' => $nroEmergencia,
+            'status' => 'recibido',
+            'tipo_ingreso' => strtoupper($request->tipo_emergencia) === 'SOAT' ? 'soat' : 'general',
+            'symptoms' => $request->descripcion,
+            'initial_assessment' => $request->motivo,
+            'is_temp_id' => $usarTempId,
+            'temp_id' => $usarTempId ? $tempId : null,
+            'ubicacion_actual' => 'emergencia',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -228,7 +225,7 @@ class EmergenciaController extends Controller
                     'hora' => now()->toTimeString(),
                     'tipo' => 'CIRUGIA_INMEDIATA',
                     'descripcion' => $request->descripcion,
-                    'nro_emergencia' => $emergencia->nro,
+                    'nro_emergencia' => $emergencia->code,
                     'nro_quirofano' => $quirofano->nro,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -349,10 +346,10 @@ class EmergenciaController extends Controller
     public function actualizarEstadoEmergencia(Request $request, $nroEmergencia)
     {
         try {
-            $emergencia = Emergencia::where('nro', $nroEmergencia)->firstOrFail();
+            $emergencia = Emergency::where('code', $nroEmergencia)->firstOrFail();
             
             $emergencia->update([
-                'estado' => $request->estado,
+                'status' => $this->mapEstadoToStatus($request->estado),
                 'updated_at' => now(),
             ]);
 
@@ -368,5 +365,16 @@ class EmergenciaController extends Controller
                 'message' => 'Error al actualizar estado: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function mapEstadoToStatus(string $estado): string
+    {
+        $map = [
+            'INGRESADO' => 'recibido',
+            'ATENDIDO' => 'estabilizado',
+            'ALTA' => 'alta',
+            'DERIVADO' => 'estabilizado',
+        ];
+        return $map[$estado] ?? 'recibido';
     }
 }

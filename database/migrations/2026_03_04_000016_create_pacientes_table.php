@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('telefono');
             $table->string('correo', 80)->nullable();
             $table->integer('codigo_seguro');
-            $table->string('id_triage', 15);
+            $table->string('id_triage', 50);
             $table->string('codigo_registro', 80);
             $table->foreign('codigo_seguro')->references('codigo')->on('seguros')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('id_triage')->references('id')->on('triages')->onDelete('cascade')->onUpdate('cascade');

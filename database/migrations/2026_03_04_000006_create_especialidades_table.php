@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('especialidades', function (Blueprint $table) {
             $table->string('codigo', 15)->primary();
             $table->string('nombre', 80);
-            $table->string('descripcion', 80);
+            $table->string('descripcion', 255)->nullable();
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo');
             $table->timestamps();
         });
     }

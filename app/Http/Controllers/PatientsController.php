@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Paciente;
 use App\Models\Consulta;
-use App\Models\Emergencia;
 use App\Models\Hospitalizacion;
 use App\Models\Caja;
 use App\Models\Emergency;
@@ -36,8 +35,8 @@ class PatientsController extends Controller
                     $q->where('estado', 'Activo');
                 });
             } elseif ($estado === 'emergencia') {
-                $query->whereHas('emergencias', function($q) {
-                    $q->where('estado', 'Activo');
+                $query->whereHas('emergencies', function($q) {
+                    $q->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
                 });
             }
         }
@@ -103,8 +102,8 @@ class PatientsController extends Controller
             'hospitalizados' => Paciente::whereHas('hospitalizaciones', function($q) {
                 $q->where('estado', 'Activo');
             })->count(),
-            'emergencias' => Paciente::whereHas('emergencias', function($q) {
-                $q->where('estado', 'Activo');
+            'emergencias' => Paciente::whereHas('emergencies', function($q) {
+                $q->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
             })->count() + $pacientesTemporales->count(),
             'pagados' => Paciente::whereHas('consultas.caja', function($q) {
                 $q->whereNotNull('nro_factura');
@@ -124,9 +123,9 @@ class PatientsController extends Controller
                 $q->with(['medico.usuario', 'especialidad', 'caja'])
                   ->orderBy('fecha', 'desc');
             },
-            'emergencias' => function($q) {
-                $q->with(['medico.usuario'])
-                  ->orderBy('fecha', 'desc');
+            'emergencies' => function($q) {
+                $q->with(['user'])
+                  ->orderBy('created_at', 'desc');
             },
             'hospitalizaciones' => function($q) {
                 $q->with(['medico.usuario'])

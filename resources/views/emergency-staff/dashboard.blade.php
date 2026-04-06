@@ -357,7 +357,7 @@
                         <button onclick="abrirModal(${emp.id}, '${emp.code} - ID Temporal')" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
                             Acciones
                         </button>
-                        <a href="{{ route('emergency-staff.historial', '') }}/${emp.id}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                        <a href="/emergency-staff/${emp.id}/historial" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
                             Ver
                         </a>
                     </div>
