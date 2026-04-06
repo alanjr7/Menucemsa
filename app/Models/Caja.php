@@ -21,7 +21,6 @@ class Caja extends Model
         'tipo',
         'nro_factura',
         'id_farmacia',
-        'nro_pago_internos',
         'metodo_pago',
         'referencia',
         'estado',
@@ -32,7 +31,6 @@ class Caja extends Model
         'fecha' => 'datetime',
         'total_dia' => 'float',
         'nro_factura' => 'integer',
-        'nro_pago_internos' => 'string',
     ];
 
     public function factura()
@@ -44,12 +42,6 @@ class Caja extends Model
     public function farmacia()
     {
         // Relación deshabilitada ya que la tabla farmacias tiene nombre diferente
-        return $this;
-    }
-
-    public function pagoInterno()
-    {
-        // Relación deshabilitada ya que la tabla pago_internos no existe
         return $this;
     }
 

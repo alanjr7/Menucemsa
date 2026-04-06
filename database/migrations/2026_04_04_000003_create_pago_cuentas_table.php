@@ -14,17 +14,14 @@ return new class extends Migration
             $table->decimal('monto', 10, 2);
             $table->enum('metodo_pago', ['efectivo', 'transferencia', 'tarjeta', 'qr']);
             $table->string('referencia')->nullable();
-            $table->foreignId('usuario_id')->constrained('users');
+            $table->foreignId('user_id')->constrained('users');
             $table->foreignId('caja_session_id')->nullable()->constrained('caja_sessions');
             $table->text('observaciones')->nullable();
             $table->timestamps();
 
-            // Foreign keys
             $table->foreign('cuenta_cobro_id')->references('id')->on('cuenta_cobros')->onDelete('cascade');
             
-            // Índices
             $table->index(['cuenta_cobro_id', 'created_at']);
-            $table->index(['metodo_pago', 'created_at']);
             $table->index(['caja_session_id', 'created_at']);
         });
     }

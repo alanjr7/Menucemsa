@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('uti_medications', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('uti_admission_id');
-            $table->string('medicamento_id', 15);
+            $table->string('codigo_medicamento', 20);
             $table->unsignedBigInteger('administered_by');
             $table->date('fecha');
             $table->time('hora');
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('uti_admission_id')->references('id')->on('uti_admissions')->onDelete('cascade');
-            $table->foreign('medicamento_id')->references('CODIGO')->on('MEDICAMENTOS');
+            $table->foreign('codigo_medicamento')->references('codigo')->on('medicamentos');
             $table->foreign('administered_by')->references('id')->on('users');
         });
     }

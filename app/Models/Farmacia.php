@@ -9,35 +9,18 @@ class Farmacia extends Model
 {
     use HasFactory;
 
-    protected $table = 'FARMACIA';
-    protected $primaryKey = 'ID';
+    protected $table = 'farmacias';
+    protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'ID',
-        'DETALLE'
+        'id',
+        'detalle'
     ];
 
-    public $timestamps = false;
-
-    public function detalleMedicamentos()
+    public function ventas()
     {
-        return $this->hasMany(DetalleMedicamentos::class, 'ID_FARMACIA', 'ID');
-    }
-
-    public function detalleInsumos()
-    {
-        return $this->hasMany(DetalleInsumos::class, 'ID_FARMACIA', 'ID');
-    }
-
-    public function detalleRecetas()
-    {
-        return $this->hasMany(DetalleReceta::class, 'ID_FARMACIA', 'ID');
-    }
-
-    public function inventarios()
-    {
-        return $this->hasMany(Inventario::class, 'ID_FARMACIA', 'ID');
+        return $this->hasMany(VentaFarmacia::class, 'farmacia_id');
     }
 }

@@ -10,12 +10,12 @@ class Consulta extends Model
     use HasFactory;
 
     protected $table = 'consultas';
-    protected $primaryKey = 'nro';
-    protected $keyType = 'string';
-    public $incrementing = false;
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = [
-        'nro',
+        'codigo',
         'fecha',
         'hora',
         'motivo',
@@ -24,7 +24,7 @@ class Consulta extends Model
         'ci_paciente',
         'ci_medico',
         'estado_pago',
-        'id_caja',
+        'caja_id',
         'estado',
     ];
 
@@ -50,22 +50,11 @@ class Consulta extends Model
 
     public function caja()
     {
-        return $this->belongsTo(Caja::class, 'id_caja', 'id');
+        return $this->belongsTo(Caja::class, 'caja_id');
     }
 
     public function recetas()
     {
-        return $this->hasMany(Receta::class, 'nro_consulta', 'nro');
-    }
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($consulta) {
-            if (empty($consulta->nro)) {
-                $consulta->nro = 'CONS-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT);
-            }
-        });
+        return $this->hasMany(Receta::class, 'consulta_id');
     }
 }

@@ -160,7 +160,6 @@ class ConsultaExternaController extends Controller
             'tipo' => 'CONSULTA_EXTERNA',
             'nro_factura' => null,
             'id_farmacia' => null,
-            'nro_pago_internos' => 'CONSULTA-' . date('YmdHis'),
             'monto_pagado' => $costoConsulta,
         ]);
     }

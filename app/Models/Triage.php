@@ -19,26 +19,20 @@ class Triage extends Model
         'color',
         'descripcion',
         'prioridad',
-        'id_usuario',
+        'user_id',
     ];
 
     protected $casts = [
         'id' => 'string',
-        'id_usuario' => 'integer',
     ];
 
     public function pacientes()
     {
-        return $this->hasMany(Paciente::class, 'id_triage', 'id');
+        return $this->hasMany(Paciente::class, 'triage_id', 'id');
     }
 
-    public function emergencias()
+    public function user()
     {
-        return $this->hasMany(Emergencia::class, 'id_triage', 'id');
-    }
-
-    public function usuario()
-    {
-        return $this->belongsTo(User::class, 'id_usuario', 'id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

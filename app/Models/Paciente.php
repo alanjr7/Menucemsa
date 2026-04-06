@@ -12,39 +12,41 @@ class Paciente extends Model
     protected $table = 'pacientes';
     protected $primaryKey = 'ci';
     public $incrementing = false;
-    protected $keyType = 'integer';
+    protected $keyType = 'int';
 
     protected $fillable = [
         'ci',
         'nombre',
         'sexo',
+        'fecha_nacimiento',
         'direccion',
         'telefono',
         'correo',
-        'codigo_seguro',
-        'id_triage',
-        'codigo_registro',
+        'seguro_id',
+        'triage_id',
+        'registro_codigo',
     ];
 
     protected $casts = [
         'ci' => 'integer',
-        'telefono' => 'integer',
-        'codigo_seguro' => 'integer',
+        'telefono' => 'string',
+        'fecha_nacimiento' => 'date',
+        'sexo' => 'string',
     ];
 
     public function seguro()
     {
-        return $this->belongsTo(Seguro::class, 'codigo_seguro', 'codigo');
+        return $this->belongsTo(Seguro::class, 'seguro_id');
     }
 
     public function triage()
     {
-        return $this->belongsTo(Triage::class, 'id_triage', 'id');
+        return $this->belongsTo(Triage::class, 'triage_id');
     }
 
     public function registro()
     {
-        return $this->belongsTo(Registro::class, 'codigo_registro', 'codigo');
+        return $this->belongsTo(Registro::class, 'registro_codigo', 'codigo');
     }
 
     public function consultas()

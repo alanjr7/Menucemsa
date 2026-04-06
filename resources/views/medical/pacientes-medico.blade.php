@@ -154,9 +154,9 @@
                                 {{ $paciente->telefono ?? 'No registrado' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @if($paciente->id_seguro)
+                                @if($paciente->seguro_id)
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        {{ $paciente->seguro->nombre ?? 'Con seguro' }}
+                                        {{ $paciente->seguro->nombre_empresa ?? 'Con seguro' }}
                                     </span>
                                 @else
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">

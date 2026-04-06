@@ -9,51 +9,44 @@ class VentaFarmacia extends Model
 {
     use HasFactory;
 
-    protected $table = 'VENTAS_FARMACIA';
+    protected $table = 'ventas_farmacia';
     protected $primaryKey = 'id';
     public $incrementing = true;
     protected $keyType = 'int';
 
-    public $timestamps = false;
-
     protected $fillable = [
-        'CODIGO_VENTA',
-        'ID_FARMACIA',
-        'CLIENTE',
-        'TOTAL',
-        'METODO_PAGO',
-        'REQUIERE_RECETA',
-        'FECHA_VENTA',
-        'ESTADO',
-        'OBSERVACIONES',
+        'codigo_venta',
+        'farmacia_id',
+        'cliente',
+        'total',
+        'metodo_pago',
+        'requiere_receta',
+        'fecha_venta',
+        'estado',
+        'observaciones',
         'caja_diaria_id'
     ];
 
     protected $casts = [
-        'TOTAL' => 'decimal:2',
-        'REQUIERE_RECETA' => 'boolean',
-        'FECHA_VENTA' => 'datetime',
+        'total' => 'decimal:2',
+        'requiere_receta' => 'boolean',
+        'fecha_venta' => 'datetime',
+        'metodo_pago' => 'string',
+        'estado' => 'string',
     ];
 
     public function detalles()
     {
-        return $this->hasMany(DetalleVentaFarmacia::class, 'CODIGO_VENTA', 'CODIGO_VENTA');
+        return $this->hasMany(DetalleVentaFarmacia::class, 'codigo_venta', 'codigo_venta');
     }
 
     public function farmacia()
     {
-        return $this->belongsTo(Farmacia::class, 'ID_FARMACIA', 'ID');
+        return $this->belongsTo(Farmacia::class, 'farmacia_id');
     }
 
     public function cajaDiaria()
     {
         return $this->belongsTo(CajaDiaria::class);
-    }
-
-    public static function generarCodigoVenta()
-    {
-        $ultimo = self::orderBy('id', 'desc')->first();
-        $numero = $ultimo ? $ultimo->id + 1 : 1;
-        return 'VTA-' . str_pad($numero, 6, '0', STR_PAD_LEFT);
     }
 }

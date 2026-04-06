@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('altas', function (Blueprint $table) {
-            $table->string('id', 15)->primary();
+            $table->id();
             $table->date('fecha')->nullable();
             $table->time('hora')->nullable();
-            $table->string('estado', 80);
-            $table->string('observaciones', 80)->nullable();
-            $table->string('id_hospitalizacion', 15);
-            $table->integer('nro_factura');
-            $table->foreign('id_hospitalizacion')->references('id')->on('hospitalizaciones')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('nro_factura')->references('nro')->on('facturas')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('estado', 60);
+            $table->text('observaciones')->nullable();
+            $table->string('hospitalizacion_id', 30);
+            $table->integer('factura_nro');
+            $table->foreign('hospitalizacion_id')->references('id')->on('hospitalizaciones')->onDelete('cascade');
+            $table->foreign('factura_nro')->references('nro')->on('facturas')->onDelete('cascade');
             $table->timestamps();
         });
     }

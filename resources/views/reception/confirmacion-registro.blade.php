@@ -62,7 +62,7 @@
                             <div class="space-y-2">
                                 <div class="flex justify-between">
                                     <span class="text-sm text-gray-600">Médico:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->medico->usuario->name ?? 'N/A' }}</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->medico->user->name ?? 'N/A' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-sm text-gray-600">Especialidad:</span>

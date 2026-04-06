@@ -11,54 +11,33 @@ class Receta extends Model
 
     protected $table = 'recetas';
     protected $primaryKey = 'id';
-    protected $keyType = 'string';
-    public $incrementing = false;
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = [
-        'id',
-        'nro_consulta',
-        'ci_medico',
-        'ci_paciente',
+        'nro',
         'fecha',
         'indicaciones',
-        'estado',
+        'user_medico_id',
+        'consulta_id',
     ];
 
     protected $casts = [
         'fecha' => 'date',
-        'nro_consulta' => 'string',
-        'ci_medico' => 'integer',
-        'ci_paciente' => 'integer',
     ];
 
     public function consulta()
     {
-        return $this->belongsTo(Consulta::class, 'nro_consulta', 'nro');
+        return $this->belongsTo(Consulta::class, 'consulta_id');
     }
 
-    public function medico()
+    public function userMedico()
     {
-        return $this->belongsTo(Medico::class, 'ci_medico', 'ci');
-    }
-
-    public function paciente()
-    {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(User::class, 'user_medico_id');
     }
 
     public function detalles()
     {
-        return $this->hasMany(DetalleReceta::class, 'id_receta', 'id');
-    }
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($receta) {
-            if (empty($receta->id)) {
-                $receta->id = 'REC-' . date('Y') . '-' . str_pad(Receta::count() + 1, 6, '0', STR_PAD_LEFT);
-            }
-        });
+        return $this->hasMany(DetalleReceta::class, 'receta_id');
     }
 }

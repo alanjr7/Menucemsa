@@ -9,31 +9,29 @@ class DetalleVentaFarmacia extends Model
 {
     use HasFactory;
 
-    protected $table = 'DETALLE_VENTAS_FARMACIA';
+    protected $table = 'detalle_ventas_farmacia';
     protected $primaryKey = 'id';
     public $incrementing = true;
     protected $keyType = 'int';
 
-    public $timestamps = false;
-
     protected $fillable = [
-        'CODIGO_VENTA',
-        'CODIGO_PRODUCTO',
-        'TIPO_PRODUCTO',
-        'NOMBRE_PRODUCTO',
-        'CANTIDAD',
-        'PRECIO_UNITARIO',
-        'SUBTOTAL'
+        'codigo_venta',
+        'codigo_producto',
+        'tipo_producto',
+        'nombre_producto',
+        'cantidad',
+        'precio_unitario',
+        'subtotal'
     ];
 
     protected $casts = [
-        'CANTIDAD' => 'integer',
-        'PRECIO_UNITARIO' => 'decimal:2',
-        'SUBTOTAL' => 'decimal:2',
+        'cantidad' => 'integer',
+        'precio_unitario' => 'decimal:2',
+        'subtotal' => 'decimal:2',
     ];
 
     public function venta()
     {
-        return $this->belongsTo(VentaFarmacia::class, 'CODIGO_VENTA', 'CODIGO_VENTA');
+        return $this->belongsTo(VentaFarmacia::class, 'codigo_venta', 'codigo_venta');
     }
 }

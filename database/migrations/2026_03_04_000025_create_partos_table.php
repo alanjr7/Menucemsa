@@ -12,13 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('partos', function (Blueprint $table) {
-            $table->string('nro', 15)->primary();
-            $table->string('tipo', 15);
-            $table->string('observaciones', 80)->nullable();
-            $table->string('id_hospitalizacion', 15);
-            $table->string('nro_cirugia', 15);
-            $table->foreign('id_hospitalizacion')->references('id')->on('hospitalizaciones')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('nro_cirugia')->references('nro')->on('cirugias')->onDelete('cascade')->onUpdate('cascade');
+            $table->id();
+            $table->string('codigo', 20)->unique();
+            $table->string('tipo', 20);
+            $table->text('observaciones')->nullable();
+            $table->string('hospitalizacion_id', 30);
+            $table->unsignedBigInteger('cirugia_id')->nullable();
+            $table->foreign('hospitalizacion_id')->references('id')->on('hospitalizaciones')->onDelete('cascade');
+            $table->foreign('cirugia_id')->references('id')->on('cirugias')->onDelete('set null');
             $table->timestamps();
         });
     }

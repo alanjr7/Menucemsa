@@ -19,12 +19,14 @@ class CitaQuirurgica extends Model
         'hora_inicio_real',
         'hora_fin_real',
         'ci_cirujano',
+        'ci_instrumentista',
+        'ci_anestesiologo',
         'nombre_instrumentista',
         'nombre_anestesiologo',
         'tipo_cirugia',
         'tipo_final',
         'descripcion_cirugia',
-        'nro_quirofano',
+        'quirofano_id',
         'estado',
         'timestamp_inicio',
         'timestamp_fin',
@@ -33,7 +35,7 @@ class CitaQuirurgica extends Model
         'costo_minuto_extra',
         'observaciones',
         'motivo_cancelacion',
-        'id_usuario_registro',
+        'user_registro_id',
     ];
 
     protected $casts = [
@@ -71,12 +73,12 @@ class CitaQuirurgica extends Model
 
     public function quirofano()
     {
-        return $this->belongsTo(Quirofano::class, 'nro_quirofano', 'nro');
+        return $this->belongsTo(Quirofano::class, 'quirofano_id');
     }
 
     public function usuarioRegistro()
     {
-        return $this->belongsTo(User::class, 'id_usuario_registro');
+        return $this->belongsTo(User::class, 'user_registro_id');
     }
 
     // Métodos de negocio
@@ -174,7 +176,7 @@ class CitaQuirurgica extends Model
             ]);
             
             // Si es una cita nueva, no tiene ID aún
-            $query = self::where('nro_quirofano', $this->nro_quirofano)
+            $query = self::where('quirofano_id', $this->quirofano_id)
                 ->where('fecha', $this->fecha)
                 ->where('estado', '!=', 'cancelada');
 

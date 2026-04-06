@@ -256,7 +256,6 @@ class CajaController extends Controller
                 'tipo' => $request->tipo_servicio,
                 'nro_factura' => $this->generarNumeroFactura(),
                 'id_farmacia' => null,
-                'nro_pago_internos' => 'COBRO-' . date('YmdHis'),
                 'metodo_pago' => $request->metodo_pago,
                 'referencia' => $request->referencia,
                 'estado' => 'pagado'

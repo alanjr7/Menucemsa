@@ -10,12 +10,11 @@ class Seguro extends Model
     use HasFactory;
 
     protected $table = 'seguros';
-    protected $primaryKey = 'codigo';
-    protected $keyType = 'integer';
-    public $incrementing = false;
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = [
-        'codigo',
         'nombre_empresa',
         'tipo',
         'cobertura',
@@ -25,12 +24,11 @@ class Seguro extends Model
     ];
 
     protected $casts = [
-        'codigo' => 'integer',
-        'telefono' => 'integer',
+        'telefono' => 'string',
     ];
 
     public function pacientes()
     {
-        return $this->hasMany(Paciente::class, 'codigo_seguro', 'codigo');
+        return $this->hasMany(Paciente::class, 'seguro_id');
     }
 }

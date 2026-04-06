@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('medicos', function (Blueprint $table) {
             $table->integer('ci')->primary();
-            $table->foreignId('id_usuario')->nullable(); // Temporalmente nullable y sin constraint
-            $table->integer('telefono')->nullable();
-            $table->string('estado', 80);
-            $table->string('id_asistente', 15)->nullable();
-            $table->string('codigo_especialidad', 15)->nullable();
-            // $table->foreign('id_asistente')->references('id')->on('asistente_quirofanos')->onDelete('cascade')->onUpdate('cascade');
-            // $table->foreign('codigo_especialidad')->references('codigo')->on('especialidades')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->string('telefono', 20)->nullable();
+            $table->enum('estado', ['activo', 'inactivo', 'vacaciones'])->default('activo');
+            $table->string('asistente_id', 20)->nullable();
+            $table->string('codigo_especialidad', 20)->nullable();
+            $table->foreign('asistente_id')->references('id')->on('asistente_quirofanos')->onDelete('set null');
+            $table->foreign('codigo_especialidad')->references('codigo')->on('especialidades');
             $table->timestamps();
         });
     }

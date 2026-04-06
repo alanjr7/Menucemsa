@@ -29,8 +29,8 @@ class Cita extends Model
         'llamado',
         'fecha_llamada',
         'notas_llamada',
-        'id_usuario_registro',
-        'id_usuario_confirmacion'
+        'user_registro_id',
+        'user_confirmacion_id'
     ];
 
     protected $casts = [
@@ -70,12 +70,12 @@ class Cita extends Model
 
     public function usuarioRegistro(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'id_usuario_registro');
+        return $this->belongsTo(User::class, 'user_registro_id');
     }
 
     public function usuarioConfirmacion(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'id_usuario_confirmacion');
+        return $this->belongsTo(User::class, 'user_confirmacion_id');
     }
 
     // Scopes para consultas comunes

@@ -32,11 +32,11 @@ return new class extends Migration
             $table->text('descripcion_cirugia')->nullable();
             
             // Nombres de equipo quirúrgico (texto libre para casos externos)
-            $table->string('nombre_instrumentista')->nullable();
-            $table->string('nombre_anestesiologo')->nullable();
+            $table->string('nombre_instrumentista', 255)->nullable();
+            $table->string('nombre_anestesiologo', 255)->nullable();
             
             // Quirófano
-            $table->integer('nro_quirofano');
+            $table->unsignedBigInteger('quirofano_id');
             
             // Estados y timestamps
             $table->enum('estado', ['programada', 'en_curso', 'finalizada', 'cancelada'])->default('programada');
@@ -53,24 +53,20 @@ return new class extends Migration
             $table->text('motivo_cancelacion')->nullable();
             
             // Usuario que registra
-            $table->unsignedBigInteger('id_usuario_registro');
+            $table->unsignedBigInteger('user_registro_id');
             
             $table->timestamps();
             
             // Índices
             $table->index(['fecha', 'hora_inicio_estimada']);
             $table->index('ci_paciente');
-            $table->index('nro_quirofano');
-            $table->index('estado');
-            $table->index('tipo_cirugia');
+            $table->index('ci_cirujano');
+            $table->index('quirofano_id');
             
-            // Claves foráneas (comentadas temporalmente)
-            // $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade');
-            // $table->foreign('ci_cirujano')->references('ci')->on('medicos')->onDelete('restrict');
-            // $table->foreign('ci_instrumentista')->references('ci')->on('medicos')->onDelete('set null');
-            // $table->foreign('ci_anestesiologo')->references('ci')->on('medicos')->onDelete('set null');
-            // $table->foreign('nro_quirofano')->references('nro')->on('quirofanos')->onDelete('restrict');
-            // $table->foreign('id_usuario_registro')->references('id')->on('users')->onDelete('restrict');
+            // Claves foráneas
+            $table->foreign('ci_paciente')->references('ci')->on('pacientes');
+            $table->foreign('ci_cirujano')->references('ci')->on('medicos');
+            $table->foreign('quirofano_id')->references('id')->on('quirofanos');
         });
     }
 

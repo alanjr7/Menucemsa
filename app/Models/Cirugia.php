@@ -11,51 +11,27 @@ class Cirugia extends Model
 
     protected $table = 'cirugias';
     protected $primaryKey = 'id';
-    protected $keyType = 'string';
-    public $incrementing = false;
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = [
-        'id',
-        'ci_paciente',
-        'ci_medico',
-        'codigo_especialidad',
-        'fecha_programada',
-        'hora_programada',
-        'tipo_cirugia',
+        'codigo',
+        'fecha',
+        'hora',
+        'tipo',
         'descripcion',
-        'estado',
-        'quirofano',
+        'emergencia_id',
+        'quirofano_id',
     ];
 
     protected $casts = [
-        'fecha_programada' => 'date',
-        'ci_paciente' => 'integer',
-        'ci_medico' => 'integer',
+        'fecha' => 'date',
+        'emergencia_id' => 'integer',
+        'quirofano_id' => 'integer',
     ];
 
-    public function paciente()
+    public function quirofano()
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
-    }
-
-    public function medico()
-    {
-        return $this->belongsTo(Medico::class, 'ci_medico', 'ci');
-    }
-
-    public function especialidad()
-    {
-        return $this->belongsTo(Especialidad::class, 'codigo_especialidad', 'codigo');
-    }
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($cirugia) {
-            if (empty($cirugia->id)) {
-                $cirugia->id = 'CIR-' . date('Y') . '-' . str_pad(Cirugia::count() + 1, 6, '0', STR_PAD_LEFT);
-            }
-        });
+        return $this->belongsTo(Quirofano::class, 'quirofano_id');
     }
 }

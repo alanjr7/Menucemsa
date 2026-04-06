@@ -232,7 +232,6 @@ class CajaController extends Controller
                 'tipo' => $request->concepto . ' - ' . $request->metodo_pago,
                 'nro_factura' => $this->generarNumeroFactura(),
                 'id_farmacia' => null, // No aplica para caja central
-                'nro_pago_internos' => $request->paciente_ci . ' - ' . $request->paciente_nombre . ' - Dr: ' . $request->medico_ci
             ]);
 
             // Procesar según tipo de servicio

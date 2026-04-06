@@ -10,33 +10,33 @@ class Medico extends Model
     use HasFactory;
 
     protected $table = 'medicos';
-    protected $primaryKey = 'id_usuario';
-    public $incrementing = true;
-    protected $keyType = 'integer';
+    protected $primaryKey = 'ci';
+    public $incrementing = false;
+    protected $keyType = 'int';
 
     protected $fillable = [
-        'id_usuario',
         'ci',
+        'user_id',
         'telefono',
         'estado',
-        'id_asistente',
+        'asistente_id',
         'codigo_especialidad',
     ];
 
     protected $casts = [
-        'id_usuario' => 'integer',
         'ci' => 'integer',
-        'telefono' => 'integer',
+        'user_id' => 'integer',
+        'telefono' => 'string',
     ];
 
-    public function usuario()
+    public function user()
     {
-        return $this->belongsTo(User::class, 'id_usuario', 'id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function asistenteQuirofano()
     {
-        return $this->belongsTo(AsistenteQuirofano::class, 'id_asistente', 'id');
+        return $this->belongsTo(AsistenteQuirofanos::class, 'asistente_id');
     }
 
     public function especialidad()
@@ -49,22 +49,22 @@ class Medico extends Model
         return $this->hasMany(Consulta::class, 'ci_medico', 'ci');
     }
 
-    public function cirugias()
+    public function citas()
     {
-        return $this->hasMany(Cirugia::class, 'ci_medico', 'ci');
+        return $this->hasMany(Cita::class, 'ci_medico', 'ci');
     }
 
     public function getNombreCompletoAttribute()
     {
-        return $this->usuario ? $this->usuario->name : 'N/A';
+        return $this->user ? $this->user->name : 'N/A';
     }
 
     public function getEstadoColorAttribute()
     {
         return match($this->estado) {
-            'Activo' => 'green',
-            'Inactivo' => 'red',
-            'En Espera' => 'yellow',
+            'activo' => 'green',
+            'inactivo' => 'red',
+            'vacaciones' => 'yellow',
             default => 'gray'
         };
     }

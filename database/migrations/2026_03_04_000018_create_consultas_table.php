@@ -12,18 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('consultas', function (Blueprint $table) {
-            $table->string('nro', 250)->primary();
+            $table->id();
+            $table->string('codigo', 30)->unique();
             $table->date('fecha');
             $table->time('hora');
-            $table->string('motivo', 80);
-            $table->string('observaciones', 80);
-            $table->string('codigo_especialidad', 150);
-            $table->foreign('codigo_especialidad')->references('codigo')->on('especialidades')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('motivo', 255);
+            $table->text('observaciones')->nullable();
+            $table->string('codigo_especialidad', 20);
             $table->integer('ci_paciente')->nullable();
             $table->integer('ci_medico')->nullable();
             $table->boolean('estado_pago')->default(false);
-            $table->string('id_caja', 250)->nullable();
-            $table->string('estado')->default('pendiente');
+            $table->string('caja_id', 250)->nullable();
+            $table->enum('estado', ['pendiente', 'en_atencion', 'atendido', 'cancelado'])->default('pendiente');
+            $table->foreign('codigo_especialidad')->references('codigo')->on('especialidades');
+            $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('set null');
+            $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null');
             $table->timestamps();
         });
     }

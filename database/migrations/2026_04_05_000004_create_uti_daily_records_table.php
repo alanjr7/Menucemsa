@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('uti_admission_id');
             $table->date('fecha');
-            $table->integer('medico_id');
+            $table->integer('medico_ci');
             $table->text('evolucion_medica')->nullable();
             $table->text('indicaciones')->nullable();
             $table->text('plan_tratamiento')->nullable();
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('uti_admission_id')->references('id')->on('uti_admissions')->onDelete('cascade');
-            $table->foreign('medico_id')->references('ci')->on('medicos');
+            $table->foreign('medico_ci')->references('ci')->on('medicos');
             $table->unique(['uti_admission_id', 'fecha']);
         });
     }

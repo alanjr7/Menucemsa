@@ -9,26 +9,15 @@ class Insumos extends Model
 {
     use HasFactory;
 
-    protected $table = 'INSUMOS';
-    protected $primaryKey = 'CODIGO';
+    protected $table = 'insumos';
+    protected $primaryKey = 'codigo';
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'CODIGO',
-        'NOMBRE',
-        'DESCRIPCION',
-        'PRECIO'
+        'codigo',
+        'nombre',
+        'descripcion',
+        'precio'
     ];
-
-    protected $hidden = [
-        'detalleInsumos'
-    ];
-
-    public $timestamps = false;
-
-    public function detalleInsumos()
-    {
-        return $this->hasMany(DetalleInsumos::class, 'CODIGO_INSUMOS', 'CODIGO');
-    }
 }

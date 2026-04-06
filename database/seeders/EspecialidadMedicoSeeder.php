@@ -35,7 +35,7 @@ class EspecialidadMedicoSeeder extends Seeder
         ];
 
         foreach ($especialidades as $esp) {
-            Especialidad::create($esp);
+            Especialidad::firstOrCreate(['codigo' => $esp['codigo']], $esp);
         }
 
         // 3 Doctores (usuarios + médicos)
@@ -64,23 +64,27 @@ class EspecialidadMedicoSeeder extends Seeder
         ];
 
         foreach ($doctores as $doc) {
-            // Crear usuario con rol doctor
-            $user = User::create([
-                'name' => $doc['name'],
-                'email' => $doc['email'],
-                'password' => Hash::make('password'),
-                'role' => 'doctor',
-                'is_active' => true,
-            ]);
+            // Crear usuario con rol doctor (evitar duplicados)
+            $user = User::firstOrCreate(
+                ['email' => $doc['email']],
+                [
+                    'name' => $doc['name'],
+                    'password' => Hash::make('password'),
+                    'role' => 'doctor',
+                    'is_active' => true,
+                ]
+            );
 
-            // Crear médico asociado
-            Medico::create([
-                'ci' => $doc['ci'],
-                'id_usuario' => $user->id,
-                'telefono' => $doc['telefono'],
-                'estado' => 'Activo',
-                'codigo_especialidad' => $doc['codigo_especialidad'],
-            ]);
+            // Crear médico asociado (evitar duplicados)
+            Medico::firstOrCreate(
+                ['ci' => $doc['ci']],
+                [
+                    'user_id' => $user->id,
+                    'telefono' => $doc['telefono'],
+                    'estado' => 'activo',
+                    'codigo_especialidad' => $doc['codigo_especialidad'],
+                ]
+            );
         }
     }
 }

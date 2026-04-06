@@ -17,21 +17,21 @@ class Hospitalizacion extends Model
     protected $fillable = [
         'id',
         'ci_paciente',
+        'ci_medico',
+        'habitacion_id',
+        'cama_id',
         'fecha_ingreso',
-        'hora_ingreso',
         'fecha_alta',
-        'hora_alta',
-        'motivo',
         'diagnostico',
         'tratamiento',
-        'ci_medico',
         'estado',
-        'cama',
+        'motivo',
+        'nro_emergencia',
     ];
 
     protected $casts = [
-        'fecha_ingreso' => 'date',
-        'fecha_alta' => 'date',
+        'fecha_ingreso' => 'datetime',
+        'fecha_alta' => 'datetime',
         'ci_paciente' => 'integer',
         'ci_medico' => 'integer',
     ];
@@ -46,14 +46,13 @@ class Hospitalizacion extends Model
         return $this->belongsTo(Medico::class, 'ci_medico', 'ci');
     }
 
-    public static function boot()
+    public function habitacion()
     {
-        parent::boot();
+        return $this->belongsTo(Habitacion::class, 'habitacion_id');
+    }
 
-        static::creating(function ($hospitalizacion) {
-            if (empty($hospitalizacion->id)) {
-                $hospitalizacion->id = 'HOSP-' . date('Y') . '-' . str_pad(Hospitalizacion::count() + 1, 6, '0', STR_PAD_LEFT);
-            }
-        });
+    public function cama()
+    {
+        return $this->belongsTo(Cama::class, 'cama_id');
     }
 }

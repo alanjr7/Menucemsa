@@ -13,17 +13,18 @@ return new class extends Migration
     {
         Schema::create('pacientes', function (Blueprint $table) {
             $table->integer('ci')->primary();
-            $table->string('nombre', 80);
-            $table->char('sexo', 10);
-            $table->string('direccion', 80)->nullable();
-            $table->integer('telefono');
-            $table->string('correo', 80)->nullable();
-            $table->integer('codigo_seguro');
-            $table->string('id_triage', 50);
-            $table->string('codigo_registro', 80);
-            $table->foreign('codigo_seguro')->references('codigo')->on('seguros')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('id_triage')->references('id')->on('triages')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('codigo_registro')->references('codigo')->on('registros')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('nombre', 120);
+            $table->enum('sexo', ['M', 'F', 'otro']);
+            $table->date('fecha_nacimiento')->nullable();
+            $table->string('direccion', 120)->nullable();
+            $table->string('telefono', 20);
+            $table->string('correo', 100)->nullable();
+            $table->unsignedBigInteger('seguro_id')->nullable();
+            $table->string('triage_id', 50)->nullable();
+            $table->string('registro_codigo', 80)->nullable();
+            $table->foreign('seguro_id')->references('id')->on('seguros')->onDelete('set null');
+            $table->foreign('triage_id')->references('id')->on('triages')->onDelete('set null');
+            $table->foreign('registro_codigo')->references('codigo')->on('registros')->onDelete('set null');
             $table->timestamps();
         });
     }

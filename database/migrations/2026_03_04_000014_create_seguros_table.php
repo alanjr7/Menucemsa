@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('seguros', function (Blueprint $table) {
-            $table->integer('codigo')->primary();
-            $table->string('nombre_empresa', 80);
+            $table->id();
+            $table->string('nombre_empresa', 120);
             $table->string('tipo', 80);
-            $table->string('cobertura', 80);
-            $table->integer('telefono')->nullable();
+            $table->string('cobertura', 120);
+            $table->string('telefono', 20)->nullable();
             $table->string('formulario', 80);
-            $table->string('estado', 80);
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo');
             $table->timestamps();
         });
     }

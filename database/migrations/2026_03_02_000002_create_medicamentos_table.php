@@ -8,15 +8,16 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('MEDICAMENTOS', function (Blueprint $table) {
-            $table->string('CODIGO', 15)->primary();
-            $table->string('DESCRIPCION', 80);
-            $table->float('PRECIO');
+        Schema::create('medicamentos', function (Blueprint $table) {
+            $table->string('codigo', 20)->primary();
+            $table->string('descripcion', 120);
+            $table->decimal('precio', 10, 2)->default(0);
+            $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('MEDICAMENTOS');
+        Schema::dropIfExists('medicamentos');
     }
 };

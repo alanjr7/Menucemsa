@@ -12,14 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('enfermeras', function (Blueprint $table) {
-            $table->foreignId('id_usuario')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->integer('ci');
-            $table->integer('telefono')->nullable();
+            $table->string('telefono', 20)->nullable();
             $table->string('tipo', 80);
-            $table->string('estado', 80);
-            $table->string('id_asistente', 15);
-            $table->primary(['id_usuario', 'ci']);
-            $table->foreign('id_asistente')->references('id')->on('asistente_quirofanos')->onDelete('cascade')->onUpdate('cascade');
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo');
+            $table->string('asistente_id', 20)->nullable();
+            $table->primary('user_id');
+            $table->unique('ci');
+            $table->foreign('asistente_id')->references('id')->on('asistente_quirofanos')->onDelete('set null');
             $table->timestamps();
         });
     }

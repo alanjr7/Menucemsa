@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('cirugias', function (Blueprint $table) {
-            $table->string('nro', 250)->primary();
+            $table->id();
+            $table->string('codigo', 30)->unique();
             $table->date('fecha');
             $table->time('hora');
             $table->string('tipo', 80);
-            $table->string('descripcion', 80);
-            $table->string('nro_emergencia', 250);
-            $table->integer('nro_quirofano');
-            $table->foreign('nro_emergencia')->references('nro')->on('emergencias')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('nro_quirofano')->references('nro')->on('quirofanos')->onDelete('cascade')->onUpdate('cascade');
+            $table->text('descripcion');
+            $table->unsignedBigInteger('emergencia_id')->nullable();
+            $table->unsignedBigInteger('quirofano_id');
+            $table->foreign('quirofano_id')->references('id')->on('quirofanos')->onDelete('cascade');
             $table->timestamps();
         });
     }

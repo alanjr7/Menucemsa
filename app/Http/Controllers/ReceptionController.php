@@ -138,11 +138,11 @@ class ReceptionController extends Controller
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
                 'sexo' => $request->sexo,
                 'direccion' => $request->direccion ?? 'Sin especificar',
-                'telefono' => $request->telefono ?? 0, // Valor por defecto para NOT NULL
-                'correo' => $request->correo ?? 'sin@email.com', // Valor por defecto para NOT NULL
-                'codigo_seguro' => $this->obtenerOCrearSeguro($request->seguro),
-                'id_triage' => $this->obenerOCrearTriage(),
-                'codigo_registro' => $this->obtenerOCrearRegistro(),
+                'telefono' => $request->telefono ?? null,
+                'correo' => $request->correo ?? null,
+                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
+                'triage_id' => $this->obenerOCrearTriage(),
+                'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
             // Permitir múltiples consultas sin límite
@@ -177,10 +177,9 @@ class ReceptionController extends Controller
             'fecha' => now(),
             'total_dia' => $costoConsulta,
             'tipo' => 'CONSULTA_EXTERNA',
-            'nro_factura' => null, // Ahora es nullable, pendiente de pago
-            'id_farmacia' => null, // No aplica para consultas externas
-            'nro_pago_internos' => 'CONSULTA-' . date('YmdHis'), // Referencia temporal
-            'monto_pagado' => $costoConsulta, // Add this field for the view
+            'nro_factura' => null,
+            'caja_diaria_id' => null,
+            'monto_pagado' => $costoConsulta,
         ]);
     }
 
@@ -190,6 +189,7 @@ class ReceptionController extends Controller
         $medicoId = $this->obtenerMedicoId($request->medico);
         
         return Consulta::create([
+            'codigo' => 'CONS-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT),
             'fecha' => now()->toDateString(),
             'hora' => now()->toTimeString(),
             'motivo' => $request->motivo,
@@ -198,7 +198,7 @@ class ReceptionController extends Controller
             'ci_paciente' => $paciente->ci,
             'ci_medico' => $medicoId,
             'estado_pago' => false,
-            'id_caja' => $caja->id,
+            'caja_id' => $caja->id,
             'estado' => 'pendiente',
         ]);
     }
@@ -208,16 +208,15 @@ class ReceptionController extends Controller
         $seguro = Seguro::firstOrCreate(
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
-                'codigo' => Seguro::max('codigo') + 1,
                 'tipo' => 'CONSULTA',
                 'cobertura' => 'Consulta Externa',
                 'telefono' => null,
                 'formulario' => 'ESTANDAR',
-                'estado' => 'ACTIVO'
+                'estado' => 'activo'
             ]
         );
         
-        return $seguro->codigo;
+        return $seguro->id;
     }
 
     private function obenerOCrearTriage()
@@ -230,7 +229,7 @@ class ReceptionController extends Controller
                 'color' => 'green',
                 'descripcion' => 'Consulta Externa - No Urgente',
                 'prioridad' => 'baja',
-                'id_usuario' => $currentUser->id
+                'id_iduauuorio' => $currentUser->id
             ]
         );
         
@@ -248,7 +247,7 @@ class ReceptionController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Consulta Externa',
-                'id_usuario' => $currentUser->id
+                'user_id' => $currentUser->id
             ]
         );
         
@@ -361,7 +360,11 @@ class ReceptionController extends Controller
 
             $paciente = $this->crearOActualizarPaciente($request);
             $triage = $this->crearTriagePorTipo($request->triage_tipo);
-            $paciente->update(['id_triage' => $triage->id]);
+            $paciente->update([
+                'telefono' => $request->telefono ?? $paciente->telefono,
+                'correo' => $request->correo ?? $paciente->correo,
+                'triage_id' => $triage->id,
+            ]);
 
             if ($request->triage_tipo === 'verde') {
                 $caja = $this->crearRegistroCajaPendiente($request, $paciente);
@@ -526,7 +529,7 @@ class ReceptionController extends Controller
             'color' => $cfg['color'],
             'descripcion' => $cfg['descripcion'],
             'prioridad' => $cfg['prioridad'],
-            'id_usuario' => $currentUser->id,
+            'user_id' => $currentUser->id,
         ]);
     }
 
@@ -538,7 +541,7 @@ class ReceptionController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => $motivo,
-                'id_usuario' => Auth::id(),
+                'user_id' => Auth::id(),
             ]
         );
     }
@@ -601,7 +604,7 @@ class ReceptionController extends Controller
                 'motivo' => $request->motivo,
                 'observaciones' => $request->observaciones ?? '',
                 'estado' => 'programado',
-                'id_usuario_registro' => Auth::id(),
+                'user_registro_id' => Auth::id(),
             ]);
 
             DB::commit();

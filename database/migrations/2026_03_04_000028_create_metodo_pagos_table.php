@@ -12,11 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('metodo_pagos', function (Blueprint $table) {
-            $table->string('id', 15);
-            $table->integer('nro_pago');
-            $table->string('tipo', 15);
-            $table->primary(['id', 'nro_pago']);
-            $table->foreign('nro_pago')->references('nro')->on('pagos')->onDelete('cascade')->onUpdate('cascade');
+            $table->id();
+            $table->integer('pago_nro');
+            $table->enum('tipo', ['efectivo', 'transferencia', 'tarjeta', 'qr']);
+            $table->foreign('pago_nro')->references('nro')->on('pagos')->onDelete('cascade');
             $table->timestamps();
         });
     }

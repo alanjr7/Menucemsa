@@ -37,7 +37,7 @@ class QuirofanoController extends Controller
         foreach ($citasSemana as $cita) {
             $dia = $cita->fecha->format('Y-m-d');
             $hora = $cita->hora_inicio_estimada->format('H:00');
-            $citasPorDiaHora[$dia][$hora][$cita->nro_quirofano][] = $cita;
+            $citasPorDiaHora[$dia][$hora][$cita->quirofano_id][] = $cita;
         }
 
         // Generar los días de la semana
@@ -76,7 +76,7 @@ class QuirofanoController extends Controller
     public function getQuirofanosDisponibles(): JsonResponse
     {
         try {
-            $quirofanos = Quirofano::where('estado', 'Activo')->get();
+            $quirofanos = Quirofano::where('estado', 'activo')->get();
             return response()->json([
                 'success' => true,
                 'quirofanos' => $quirofanos
@@ -367,7 +367,6 @@ class QuirofanoController extends Controller
             'tipo' => 'CIRUGIA',
             'nro_factura' => null, // Pendiente de pago en caja
             'id_farmacia' => null,
-            'nro_pago_internos' => 'CIRUGIA-' . $cita->id,
             'metodo_pago' => null,
             'referencia' => 'Cita Quirúrgica ID: ' . $cita->id,
         ]);

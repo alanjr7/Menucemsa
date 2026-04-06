@@ -12,12 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('asistente_quirofanos', function (Blueprint $table) {
-            $table->string('id', 15);
-            $table->integer('nro_quirofano');
-            $table->string('descripcion', 80);
-            $table->primary(['id', 'nro_quirofano']);
-            $table->unique('id');
-            $table->foreign('nro_quirofano')->references('nro')->on('quirofanos')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('id', 20)->primary();
+            $table->unsignedBigInteger('quirofano_id');
+            $table->string('descripcion', 120);
+            $table->foreign('quirofano_id')->references('id')->on('quirofanos')->onDelete('cascade');
             $table->timestamps();
         });
     }

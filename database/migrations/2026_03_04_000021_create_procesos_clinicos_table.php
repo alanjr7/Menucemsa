@@ -12,13 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('procesos_clinicos', function (Blueprint $table) {
-            $table->string('id', 15);
-            $table->string('id_hospitalizacion', 15);
+            $table->id();
+            $table->string('hospitalizacion_id', 30);
             $table->date('fecha')->nullable();
             $table->string('estado', 80);
-            $table->string('descripcion', 80);
-            $table->primary(['id', 'id_hospitalizacion']);
-            $table->foreign('id_hospitalizacion')->references('id')->on('hospitalizaciones')->onDelete('cascade')->onUpdate('cascade');
+            $table->text('descripcion');
+            $table->foreign('hospitalizacion_id')->references('id')->on('hospitalizaciones')->onDelete('cascade');
             $table->timestamps();
         });
     }

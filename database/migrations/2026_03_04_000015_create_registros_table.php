@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('fecha');
             $table->time('hora');
             $table->string('motivo', 80);
-            $table->foreignId('id_usuario')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

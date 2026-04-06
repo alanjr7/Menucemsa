@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('pagos', function (Blueprint $table) {
-            $table->integer('nro')->primary();
+            $table->integer('nro')->autoIncrement();
             $table->timestamp('fecha')->nullable();
-            $table->float('monto');
-            $table->string('concepto', 80);
-            $table->string('estado', 15);
-            $table->string('id_hospitalizacion', 15);
-            $table->foreign('id_hospitalizacion')->references('id')->on('hospitalizaciones')->onDelete('cascade')->onUpdate('cascade');
+            $table->decimal('monto', 10, 2);
+            $table->string('concepto', 120);
+            $table->enum('estado', ['pendiente', 'pagado', 'anulado'])->default('pendiente');
+            $table->string('hospitalizacion_id', 30);
+            $table->foreign('hospitalizacion_id')->references('id')->on('hospitalizaciones')->onDelete('cascade');
             $table->timestamps();
         });
     }

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('caja_sessions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('usuario_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->dateTime('fecha_apertura');
             $table->dateTime('fecha_cierre')->nullable();
             $table->decimal('monto_inicial', 10, 2)->default(0);
@@ -22,8 +22,7 @@ return new class extends Migration
             $table->text('observaciones')->nullable();
             $table->timestamps();
             
-            $table->index(['usuario_id', 'estado']);
-            $table->index('fecha_apertura');
+            $table->index(['user_id', 'estado']);
         });
     }
 

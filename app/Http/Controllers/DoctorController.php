@@ -29,7 +29,7 @@ class DoctorController extends Controller
         }
         
         // Obtener el médico asociado al usuario actual
-        $medico = Medico::where('id_usuario', $user->id)->first();
+        $medico = Medico::where('user_id', $user->id)->first();
         
         if (!$medico) {
             // Return view with error message instead of aborting
@@ -59,7 +59,7 @@ class DoctorController extends Controller
             ->whereExists(function($query) {
                 $query->select(DB::raw(1))
                       ->from('cajas')
-                      ->whereColumn('cajas.id', 'consultas.id_caja')
+                      ->whereColumn('cajas.id', 'consultas.caja_id')
                       ->whereNotNull('cajas.nro_factura');
             })
             ->orderBy('hora')
@@ -87,7 +87,7 @@ class DoctorController extends Controller
             ->whereExists(function($query) {
                 $query->select(DB::raw(1))
                       ->from('cajas')
-                      ->whereColumn('cajas.id', 'consultas.id_caja')
+                      ->whereColumn('cajas.id', 'consultas.caja_id')
                       ->whereNotNull('cajas.nro_factura');
             })
             ->orderBy('hora')
@@ -111,7 +111,7 @@ class DoctorController extends Controller
         // Obtener todos los médicos del sistema
         $medicos = Medico::with(['usuario', 'especialidad'])
             ->orderBy('codigo_especialidad')
-            ->orderByRaw('(SELECT name FROM users WHERE id = medicos.id_usuario)')
+            ->orderByRaw('(SELECT name FROM users WHERE id = medicos.user_id)')
             ->get();
 
         // Obtener todas las consultas de hoy con información completa
@@ -120,7 +120,7 @@ class DoctorController extends Controller
             ->whereExists(function($query) {
                 $query->select(DB::raw(1))
                       ->from('cajas')
-                      ->whereColumn('cajas.id', 'consultas.id_caja')
+                      ->whereColumn('cajas.id', 'consultas.caja_id')
                       ->whereNotNull('cajas.nro_factura');
             })
             ->orderBy('hora')
@@ -329,14 +329,14 @@ class DoctorController extends Controller
     private function crearReceta($consulta, $request)
     {
         $user = Auth::user();
-        $medico = Medico::where('id_usuario', $user->id)->first();
+        $medico = Medico::where('user_id', $user->id)->first();
         
         $receta = Receta::create([
             'nro' => 'REC-' . date('Y') . '-' . str_pad(Receta::count() + 1, 6, '0', STR_PAD_LEFT),
-            'nro_consulta' => $consulta->nro,
+            'consulta_id' => $consulta->id,
             'fecha' => now(),
             'indicaciones' => $request->indicaciones ?? '',
-            'id_usuario_medico' => $medico->id_usuario ?? null,
+            'user_medico_id' => $medico->user_id ?? null,
         ]);
 
         // Aquí se podrían agregar los detalles de los medicamentos si existe la tabla detalle_receta
@@ -365,7 +365,7 @@ class DoctorController extends Controller
         // Si no se especifica médico (y es admin), mostrar lista para seleccionar
         if (!$ci_medico && $user->role === 'admin') {
             $medicos = Medico::with(['usuario', 'especialidad'])
-                ->orderByRaw('(SELECT name FROM users WHERE id = medicos.id_usuario)')
+                ->orderByRaw('(SELECT name FROM users WHERE id = medicos.user_id)')
                 ->get();
                 
             return view('medical.historial-medicos', compact('medicos'));
@@ -434,7 +434,7 @@ class DoctorController extends Controller
         // Si no se especifica médico (y es admin), mostrar lista para seleccionar
         if (!$ci_medico && $user->role === 'admin') {
             $medicos = Medico::with(['usuario', 'especialidad'])
-                ->orderByRaw('(SELECT name FROM users WHERE id = medicos.id_usuario)')
+                ->orderByRaw('(SELECT name FROM users WHERE id = medicos.user_id)')
                 ->get();
                 
             return view('medical.pacientes-medicos', compact('medicos'));
@@ -474,7 +474,7 @@ class DoctorController extends Controller
                             $query->whereNotNull('nro_factura');
                         });
                 })->count(),
-            'pacientesConSeguro' => $pacientes->whereNotNull('id_seguro')->count(),
+            'pacientesConSeguro' => $pacientes->whereNotNull('seguro_id')->count(),
             'promedioConsultasPorPaciente' => $pacientes->avg(function($paciente) {
                 return $paciente->consultas->count();
             }),
@@ -508,7 +508,7 @@ class DoctorController extends Controller
     {
         $consulta = Consulta::with([
             'paciente',
-            'medico.usuario',
+            'medico.user',
             'especialidad',
             'caja',
             'recetas'
@@ -536,7 +536,7 @@ class DoctorController extends Controller
         }
         
         // Para médicos y dirmedico, verificar que la consulta pertenezca al médico actual
-        $medico = Medico::where('id_usuario', $user->id)->first();
+        $medico = Medico::where('user_id', $user->id)->first();
         
         // Debug: Check if medico was found
         if (!$medico) {

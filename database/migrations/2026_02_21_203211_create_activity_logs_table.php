@@ -14,16 +14,16 @@ return new class extends Migration
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('action'); // login, logout, create, update, delete, access
-            $table->string('model_type')->nullable(); // App\Models\User, App\Models\Patient
+            $table->string('action');
+            $table->string('model_type')->nullable();
             $table->unsignedBigInteger('model_id')->nullable();
             $table->text('description');
             $table->json('old_values')->nullable();
             $table->json('new_values')->nullable();
-            $table->string('ip_address');
-            $table->string('user_agent');
+            $table->string('ip_address', 45);
+            $table->string('user_agent', 512);
             $table->timestamps();
-            
+
             $table->index(['user_id', 'created_at']);
             $table->index(['model_type', 'model_id']);
         });

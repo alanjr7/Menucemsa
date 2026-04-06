@@ -10,26 +10,22 @@ class Quirofano extends Model
     use HasFactory;
 
     protected $table = 'quirofanos';
-    
-    protected $primaryKey = 'nro';
-    
-    public $incrementing = false;
-    
+    protected $primaryKey = 'id';
+    public $incrementing = true;
     protected $keyType = 'int';
-    
+
     protected $fillable = [
-        'nro',
         'tipo',
         'estado',
     ];
 
     public function asistentes()
     {
-        return $this->hasMany(AsistenteQuirofanos::class, 'nro_quirofano', 'nro');
+        return $this->hasMany(AsistenteQuirofanos::class, 'quirofano_id');
     }
 
     public function citasQuirurgicas()
     {
-        return $this->hasMany(CitaQuirurgica::class, 'nro_quirofano', 'nro');
+        return $this->hasMany(CitaQuirurgica::class, 'quirofano_id');
     }
 }

@@ -9,31 +9,19 @@ class Medicamentos extends Model
 {
     use HasFactory;
 
-    protected $table = 'MEDICAMENTOS';
-    protected $primaryKey = 'CODIGO';
+    protected $table = 'medicamentos';
+    protected $primaryKey = 'codigo';
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'CODIGO',
-        'DESCRIPCION',
-        'PRECIO'
+        'codigo',
+        'descripcion',
+        'precio'
     ];
-
-    protected $hidden = [
-        'detalleMedicamentos',
-        'detalleRecetas'
-    ];
-
-    public $timestamps = false;
-
-    public function detalleMedicamentos()
-    {
-        return $this->hasMany(DetalleMedicamentos::class, 'CODIGO_MEDICAMENTOS', 'CODIGO');
-    }
 
     public function detalleRecetas()
     {
-        return $this->hasMany(DetalleReceta::class, 'CODIGO_MEDICAMENTOS', 'CODIGO');
+        return $this->hasMany(DetalleReceta::class, 'codigo_medicamento', 'codigo');
     }
 }

@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('triages', function (Blueprint $table) {
             $table->string('id', 50)->primary();
-            $table->string('color', 15);
-            $table->string('descripcion', 80);
-            $table->string('prioridad', 15);
-            $table->foreignId('id_usuario')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('color', 20);
+            $table->string('descripcion', 120);
+            $table->string('prioridad', 20);
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

@@ -12,12 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('turnos', function (Blueprint $table) {
-            $table->string('nro', 15);
-            $table->foreignId('id_usuario')->constrained('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->time('hora_inicio');
             $table->time('hora_fin');
             $table->string('tipo', 80);
-            $table->primary(['nro', 'id_usuario']);
             $table->timestamps();
         });
     }

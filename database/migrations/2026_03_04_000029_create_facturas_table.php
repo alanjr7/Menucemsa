@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('facturas', function (Blueprint $table) {
-            $table->integer('nro')->primary();
+            $table->integer('nro')->autoIncrement();
             $table->date('fecha');
             $table->time('hora');
-            $table->integer('nit')->nullable();
-            $table->integer('nro_pago');
-            $table->foreign('nro_pago')->references('nro')->on('pagos')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('nit', 20)->nullable();
+            $table->integer('pago_nro');
+            $table->foreign('pago_nro')->references('nro')->on('pagos')->onDelete('cascade');
             $table->timestamps();
         });
     }

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('quirofanos', function (Blueprint $table) {
-            $table->integer('nro')->primary();
+            $table->id();
             $table->string('tipo', 80);
-            $table->string('estado', 80);
+            $table->enum('estado', ['disponible', 'ocupado', 'mantenimiento'])->default('disponible');
             $table->timestamps();
         });
     }

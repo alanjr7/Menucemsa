@@ -17,14 +17,13 @@ return new class extends Migration
             $table->enum('tipo', ['ingreso', 'egreso']);
             $table->string('concepto', 255);
             $table->decimal('monto', 10, 2);
-            $table->string('referencia')->nullable(); // Nro factura, recibo, etc.
-            $table->string('metodo_pago')->nullable(); // EFECTIVO, TARJETA, etc.
-            $table->morphs('movable'); // Polimórfico: puede ser Consulta, VentaFarmacia, etc.
+            $table->string('referencia', 255)->nullable();
+            $table->string('metodo_pago', 50)->nullable();
+            $table->morphs('movable');
             $table->text('observaciones')->nullable();
             $table->timestamps();
             
             $table->index(['caja_session_id', 'tipo']);
-            $table->index('created_at');
         });
     }
 

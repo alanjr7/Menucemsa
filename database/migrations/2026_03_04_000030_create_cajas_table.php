@@ -14,19 +14,14 @@ return new class extends Migration
         Schema::create('cajas', function (Blueprint $table) {
             $table->string('id', 250)->primary();
             $table->timestamp('fecha');
-            $table->float('total_dia');
+            $table->decimal('total_dia', 10, 2);
             $table->string('tipo', 80);
-            $table->string('metodo_pago')->nullable();
-            $table->string('referencia')->nullable();
-            $table->string('estado', 250)->nullable()->default('pendiente');
-            $table->integer('nro_factura');
-            $table->string('id_farmacia', 250)->nullable();
-            $table->string('nro_pago_internos', 250);
+            $table->enum('metodo_pago', ['efectivo', 'transferencia', 'tarjeta', 'qr'])->nullable();
+            $table->string('referencia', 255)->nullable();
+            $table->enum('estado', ['pendiente', 'pagado', 'anulado'])->default('pendiente');
+            $table->integer('nro_factura')->nullable();
+            $table->string('farmacia_id', 20)->nullable();
             $table->decimal('monto_pagado', 10, 2)->default(0);
-            // Claves foráneas comentadas ya que las tablas referenciadas no existen o tienen nombres diferentes
-            // $table->foreign('nro_factura')->references('nro')->on('facturas')->onDelete('cascade')->onUpdate('cascade');
-            // $table->foreign('id_farmacia')->references('id')->on('farmacias')->onDelete('cascade')->onUpdate('cascade');
-            // $table->foreign('nro_pago_internos')->references('nro')->on('pago_internos')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

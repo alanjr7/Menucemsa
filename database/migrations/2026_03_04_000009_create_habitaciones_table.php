@@ -12,12 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('habitaciones', function (Blueprint $table) {
-            $table->string('id', 15)->primary();
-            $table->string('estado', 80);
-            $table->string('detalle', 80)->nullable();
+            $table->string('id', 20)->primary();
+            $table->enum('estado', ['disponible', 'ocupada', 'mantenimiento'])->default('disponible');
+            $table->string('detalle', 120)->nullable();
             $table->integer('capacidad');
-            $table->string('id_hospitalizacion', 15)->nullable();
-            $table->foreign('id_hospitalizacion')->references('id')->on('hospitalizaciones')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

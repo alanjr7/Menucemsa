@@ -19,22 +19,21 @@ class Registro extends Model
         'fecha',
         'hora',
         'motivo',
-        'id_usuario',
+        'user_id',
     ];
 
     protected $casts = [
         'codigo' => 'string',
         'fecha' => 'date',
-        'id_usuario' => 'integer',
     ];
 
     public function pacientes()
     {
-        return $this->hasMany(Paciente::class, 'codigo_registro', 'codigo');
+        return $this->hasMany(Paciente::class, 'registro_codigo', 'codigo');
     }
 
-    public function usuario()
+    public function user()
     {
-        return $this->belongsTo(User::class, 'id_usuario', 'id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

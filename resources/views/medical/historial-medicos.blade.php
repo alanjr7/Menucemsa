@@ -38,10 +38,10 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                {{ substr($medico->usuario->name, 0, 1) }}{{ substr(explode(' ', $medico->usuario->name)[1] ?? '', 0, 1) }}
+                                {{ substr($medico->user->name, 0, 1) }}{{ substr(explode(' ', $medico->user->name ?? 'Sin usuario')[1] ?? '', 0, 1) }}
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-800">{{ $medico->usuario->name }}</h3>
+                                <h3 class="text-lg font-semibold text-gray-800">{{ $medico->user->name }}</h3>
                                 <p class="text-sm text-gray-600">{{ $medico->especialidad->nombre ?? 'Sin especialidad' }}</p>
                                 <p class="text-xs text-gray-500">CI: {{ $medico->ci }}</p>
                             </div>

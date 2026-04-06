@@ -8,16 +8,17 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('INSUMOS', function (Blueprint $table) {
-            $table->string('CODIGO', 15)->primary();
-            $table->string('NOMBRE', 80);
-            $table->string('DESCRIPCION', 80)->nullable();
-            $table->decimal('PRECIO', 10, 2)->default(0);
+        Schema::create('insumos', function (Blueprint $table) {
+            $table->string('codigo', 20)->primary();
+            $table->string('nombre', 80);
+            $table->string('descripcion', 120)->nullable();
+            $table->decimal('precio', 10, 2)->default(0);
+            $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('INSUMOS');
+        Schema::dropIfExists('insumos');
     }
 };

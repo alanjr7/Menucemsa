@@ -10,25 +10,31 @@ class HistorialMedico extends Model
     use HasFactory;
 
     protected $table = 'historial_medicos';
-    protected $primaryKey = 'ci_paciente';
-    public $incrementing = false;
-    protected $keyType = 'integer';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = [
         'ci_paciente',
-        'alergias',
-        'enfermedades_cronicas',
-        'medicamentos_actuales',
-        'antecedentes_familiares',
+        'fecha',
+        'detalle',
         'observaciones',
+        'alergias',
+        'user_medico_id',
     ];
 
     protected $casts = [
         'ci_paciente' => 'integer',
+        'fecha' => 'date',
     ];
 
     public function paciente()
     {
         return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+    }
+
+    public function userMedico()
+    {
+        return $this->belongsTo(User::class, 'user_medico_id', 'id');
     }
 }
