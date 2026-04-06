@@ -366,7 +366,7 @@ class QuirofanoController extends Controller
             'total_dia' => $cita->costo_final,
             'tipo' => 'CIRUGIA',
             'nro_factura' => null, // Pendiente de pago en caja
-            'id_farmacia' => null,
+            'farmacia_id' => null,
             'metodo_pago' => null,
             'referencia' => 'Cita Quirúrgica ID: ' . $cita->id,
         ]);

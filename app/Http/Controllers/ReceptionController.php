@@ -102,7 +102,7 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Consulta externa registrada exitosamente. El paciente debe pasar a caja para realizar el pago.',
-                'consulta' => $consulta->load(['paciente', 'medico.usuario', 'especialidad']),
+                'consulta' => $consulta->load(['paciente', 'medico.user', 'especialidad']),
                 'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id])
             ]);
 
@@ -287,7 +287,7 @@ class ReceptionController extends Controller
 
     public function mostrarFormaPago($id)
     {
-        $caja = Caja::with(['consulta.paciente', 'consulta.medico.usuario', 'consulta.especialidad'])
+        $caja = Caja::with(['consulta.paciente', 'consulta.medico.user', 'consulta.especialidad'])
                      ->findOrFail($id);
         
         return view('reception.pago', compact('caja'));
@@ -332,7 +332,7 @@ class ReceptionController extends Controller
 
     public function confirmacionRegistro($id)
     {
-        $caja = Caja::with(['consulta.paciente', 'consulta.medico.usuario', 'consulta.especialidad'])
+        $caja = Caja::with(['consulta.paciente', 'consulta.medico.user', 'consulta.especialidad'])
                      ->findOrFail($id);
         
         return view('reception.confirmacion-registro', compact('caja'));
@@ -340,7 +340,7 @@ class ReceptionController extends Controller
 
     public function confirmacion($id)
     {
-        $caja = Caja::with(['consulta.paciente', 'consulta.medico.usuario', 'consulta.especialidad'])
+        $caja = Caja::with(['consulta.paciente', 'consulta.medico.user', 'consulta.especialidad'])
                      ->findOrFail($id);
 
         return view('reception.confirmacion', compact('caja'));
@@ -553,7 +553,7 @@ class ReceptionController extends Controller
         $fecha = $request->get('fecha', Carbon::today()->toDateString());
         
         $citas = Cita::delDia($fecha)
-            ->with(['paciente', 'medico.usuario', 'especialidad'])
+            ->with(['paciente', 'medico.user', 'especialidad'])
             ->orderBy('hora')
             ->get();
 
@@ -612,7 +612,9 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Cita creada exitosamente',
-                'cita' => $cita->load(['paciente', 'medico.usuario', 'especialidad'])
+                'cita' => $cita->load(['paciente', 'medico' => function ($query) {
+                    $query->with('user');
+                }, 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
@@ -642,7 +644,9 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Cita confirmada exitosamente',
-                'cita' => $cita->load(['paciente', 'medico.usuario', 'especialidad'])
+                'cita' => $cita->load(['paciente', 'medico' => function ($query) {
+                    $query->with('user');
+                }, 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
@@ -667,7 +671,9 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Llegada del paciente registrada. En atención ahora.',
-                'cita' => $cita->load(['paciente', 'medico.usuario', 'especialidad'])
+                'cita' => $cita->load(['paciente', 'medico' => function ($query) {
+                    $query->with('user');
+                }, 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
@@ -695,7 +701,9 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Cita cancelada exitosamente',
-                'cita' => $cita->load(['paciente', 'medico.usuario', 'especialidad'])
+                'cita' => $cita->load(['paciente', 'medico' => function ($query) {
+                    $query->with('user');
+                }, 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
@@ -711,7 +719,9 @@ class ReceptionController extends Controller
     public function getPendientesLlamada()
     {
         $citas = Cita::pendientesLlamada()
-            ->with(['paciente', 'medico.usuario', 'especialidad'])
+            ->with(['paciente', 'medico' => function ($query) {
+                $query->with('user');
+            }, 'especialidad'])
             ->orderBy('fecha')
             ->orderBy('hora')
             ->get();
@@ -748,7 +758,9 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Llamada registrada exitosamente',
-                'cita' => $cita->load(['paciente', 'medico.usuario', 'especialidad'])
+                'cita' => $cita->load(['paciente', 'medico' => function ($query) {
+                    $query->with('user');
+                }, 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
@@ -806,7 +818,7 @@ class ReceptionController extends Controller
             }
         }
 
-        $medicos = Medico::with(['usuario', 'especialidad'])
+        $medicos = Medico::with(['user', 'especialidad'])
             ->when(!empty($codigosEspecialidad), function ($query) use ($codigosEspecialidad) {
                 return $query->whereIn('codigo_especialidad', $codigosEspecialidad);
             })
@@ -830,7 +842,7 @@ class ReceptionController extends Controller
             'medicos' => $medicosDisponibles->map(function($medico) {
                 return [
                     'ci' => $medico->ci,
-                    'nombre' => $medico->usuario ? $medico->usuario->name : 'Sin usuario',
+                    'nombre' => $medico->user ? $medico->user->name : 'Sin usuario',
                     'especialidad' => $medico->especialidad ? $medico->especialidad->nombre : 'Sin especialidad',
                 ];
             })

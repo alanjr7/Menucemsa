@@ -100,7 +100,7 @@ class User extends Authenticatable
 
     public function medico()
     {
-        return $this->hasOne(Medico::class, 'id_usuario', 'id');
+        return $this->hasOne(Medico::class, 'user_id', 'id');
     }
 
     public function cajaSessions()

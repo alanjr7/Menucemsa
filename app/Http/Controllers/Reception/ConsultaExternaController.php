@@ -8,6 +8,7 @@ use App\Models\Paciente;
 use App\Models\Consulta;
 use App\Models\Medico;
 use App\Models\Especialidad;
+use App\Models\CuentaCobro;
 use App\Models\Caja;
 use App\Models\Seguro;
 use App\Models\Triage;
@@ -90,12 +91,15 @@ class ConsultaExternaController extends Controller
             // 4. Crear consulta
             $consulta = $this->crearConsulta($request, $paciente, $caja);
 
+            // 5. Crear cuenta por cobrar para caja
+            $this->crearCuentaCobro($paciente, $consulta, $caja);
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Consulta externa registrada exitosamente. El paciente debe pasar a caja para realizar el pago.',
-                'consulta' => $consulta->load(['paciente', 'medico.usuario', 'especialidad']),
+                'consulta' => $consulta->load(['paciente', 'medico.user', 'especialidad']),
                 'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id])
             ]);
 
@@ -129,13 +133,13 @@ class ConsultaExternaController extends Controller
             $paciente = Paciente::create([
                 'ci' => $ci,
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
-                'sexo' => $request->sexo,
+                'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'codigo_seguro' => $this->obtenerOCrearSeguro($request->seguro),
+                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
                 'id_triage' => $this->obenerOCrearTriage(),
-                'codigo_registro' => $this->obtenerOCrearRegistro(),
+                'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
             // Actualizar datos si es necesario
@@ -159,7 +163,7 @@ class ConsultaExternaController extends Controller
             'total_dia' => $costoConsulta,
             'tipo' => 'CONSULTA_EXTERNA',
             'nro_factura' => null,
-            'id_farmacia' => null,
+            'farmacia_id' => null,
             'monto_pagado' => $costoConsulta,
         ]);
     }
@@ -170,6 +174,7 @@ class ConsultaExternaController extends Controller
         $medicoId = $this->obtenerMedicoId($request->medico);
         
         return Consulta::create([
+            'codigo' => 'CONS-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT),
             'fecha' => now()->toDateString(),
             'hora' => now()->toTimeString(),
             'motivo' => $request->motivo,
@@ -178,9 +183,35 @@ class ConsultaExternaController extends Controller
             'ci_paciente' => $paciente->ci,
             'ci_medico' => $medicoId,
             'estado_pago' => false,
-            'id_caja' => $caja->id,
+            'caja_id' => $caja->id,
             'estado' => 'pendiente',
         ]);
+    }
+
+    private function crearCuentaCobro($paciente, $consulta, $caja)
+    {
+        $servicio = \App\Models\Servicio::getServicioPorTipo('CONSULTA_EXTERNA');
+        $costoConsulta = $servicio ? $servicio->precio : 50.00;
+        
+        $cuenta = \App\Models\CuentaCobro::create([
+            'paciente_ci' => $paciente->ci,
+            'tipo_atencion' => 'consulta',
+            'total_calculado' => $costoConsulta,
+            'total_pagado' => 0,
+            'estado' => 'pendiente',
+        ]);
+        
+        // Crear detalle de la cuenta
+        \App\Models\CuentaCobroDetalle::create([
+            'cuenta_cobro_id' => $cuenta->id,
+            'tipo_item' => 'servicio',
+            'descripcion' => 'Consulta Externa - ' . $consulta->codigo,
+            'cantidad' => 1,
+            'precio_unitario' => $costoConsulta,
+            'subtotal' => $costoConsulta,
+        ]);
+        
+        return $cuenta;
     }
 
     private function obtenerOCrearSeguro($seguroNombre)
@@ -188,16 +219,15 @@ class ConsultaExternaController extends Controller
         $seguro = Seguro::firstOrCreate(
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
-                'codigo' => Seguro::max('codigo') + 1,
                 'tipo' => 'CONSULTA',
                 'cobertura' => 'Consulta Externa',
                 'telefono' => null,
                 'formulario' => 'ESTANDAR',
-                'estado' => 'ACTIVO'
+                'estado' => 'activo'
             ]
         );
         
-        return $seguro->codigo;
+        return $seguro->id;
     }
 
     private function obenerOCrearTriage()
@@ -210,7 +240,7 @@ class ConsultaExternaController extends Controller
                 'color' => 'green',
                 'descripcion' => 'Consulta Externa - No Urgente',
                 'prioridad' => 'baja',
-                'id_usuario' => $currentUser->id
+                'user_id' => $currentUser->id
             ]
         );
         
@@ -228,7 +258,7 @@ class ConsultaExternaController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Consulta Externa',
-                'id_usuario' => $currentUser->id
+                'user_id' => $currentUser->id
             ]
         );
         
@@ -237,14 +267,16 @@ class ConsultaExternaController extends Controller
 
     private function obtenerMedicoId($medicoSeleccionado)
     {
-        // Mapeo de selección del formulario a CI del médico
-        $medicos = [
-            'dr_ramirez' => 12345678,
-            'dra_torres' => 87654321,
-            'dr_silva' => 11223344,
-        ];
-        
-        return $medicos[$medicoSeleccionado] ?? 12345678;
+        // Si viene un CI numérico directo, usarlo
+        if (is_numeric($medicoSeleccionado)) {
+            return (int) $medicoSeleccionado;
+        }
+
+        // Si viene formato dr_nombre, buscar el primer médico activo disponible
+        // basado en la especialidad o cualquier médico activo
+        $medico = Medico::where('estado', 'activo')->first();
+
+        return $medico ? $medico->ci : null;
     }
 
     private function obtenerEspecialidadCodigo($especialidadCodigo)
@@ -277,6 +309,9 @@ class ConsultaExternaController extends Controller
             if ($request->triage_tipo === 'verde') {
                 $caja = $this->crearRegistroCajaPendiente($request, $paciente);
                 $consulta = $this->crearConsulta($request, $paciente, $caja);
+                
+                // Crear cuenta por cobrar para caja
+                $this->crearCuentaCobro($paciente, $consulta, $caja);
 
                 DB::commit();
                 return response()->json([
@@ -437,7 +472,7 @@ class ConsultaExternaController extends Controller
             'color' => $cfg['color'],
             'descripcion' => $cfg['descripcion'],
             'prioridad' => $cfg['prioridad'],
-            'id_usuario' => $currentUser->id,
+            'user_id' => $currentUser->id,
         ]);
     }
 
@@ -449,7 +484,7 @@ class ConsultaExternaController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => $motivo,
-                'id_usuario' => Auth::id(),
+                'user_id' => Auth::id(),
             ]
         );
     }

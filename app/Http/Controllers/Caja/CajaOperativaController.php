@@ -90,7 +90,7 @@ class CajaOperativaController extends Controller
             }
 
             $caja = CajaSession::create([
-                'usuario_id' => Auth::id(),
+                'user_id' => Auth::id(),
                 'fecha_apertura' => now(),
                 'monto_inicial' => $request->monto_inicial,
                 'estado' => 'abierta',
@@ -258,7 +258,7 @@ class CajaOperativaController extends Controller
                     'estado_label' => $cuenta->estado_label,
                     'total_calculado' => $cuenta->total_calculado,
                     'total_pagado' => $cuenta->total_pagado,
-                    'saldo_pendiente' => $cuenta->saldo_pendiente,
+                    'saldo_pendiente' => $cuenta->total_calculado - $cuenta->total_pagado,
                     'ci_nit_facturacion' => $cuenta->ci_nit_facturacion,
                     'razon_social' => $cuenta->razon_social,
                     'detalles' => $cuenta->detalles->map(function ($detalle) {
@@ -328,13 +328,14 @@ class CajaOperativaController extends Controller
 
             $cuenta = CuentaCobro::findOrFail($request->cuenta_cobro_id);
 
-            // Si es pago total, usar el saldo pendiente
+            // Si es pago total, usar el saldo pendiente calculado
+            $saldoPendiente = $cuenta->total_calculado - $cuenta->total_pagado;
             $montoPagar = $request->es_pago_total 
-                ? $cuenta->saldo_pendiente 
+                ? $saldoPendiente 
                 : $request->monto;
 
             // Validar que no pague más de lo pendiente
-            if ($montoPagar > $cuenta->saldo_pendiente) {
+            if ($montoPagar > $saldoPendiente) {
                 return response()->json([
                     'success' => false,
                     'message' => 'El monto a pagar no puede ser mayor al saldo pendiente'
@@ -349,7 +350,6 @@ class CajaOperativaController extends Controller
                 $cuenta->razon_social = $request->razon_social;
             }
             $cuenta->caja_session_id = $cajaAbierta->id;
-            $cuenta->usuario_caja_id = Auth::id();
             $cuenta->save();
 
             // Registrar el pago
@@ -358,17 +358,16 @@ class CajaOperativaController extends Controller
                 'monto' => $montoPagar,
                 'metodo_pago' => $request->metodo_pago,
                 'referencia' => $request->referencia,
-                'usuario_id' => Auth::id(),
+                'user_id' => Auth::id(),
                 'caja_session_id' => $cajaAbierta->id,
             ]);
 
             // Actualizar totales de la cuenta
             $cuenta->total_pagado += $montoPagar;
-            $cuenta->saldo_pendiente = $cuenta->total_calculado - $cuenta->total_pagado;
+            $nuevoSaldo = $cuenta->total_calculado - $cuenta->total_pagado;
 
-            if ($cuenta->saldo_pendiente <= 0) {
+            if ($nuevoSaldo <= 0) {
                 $cuenta->estado = 'pagado';
-                $cuenta->saldo_pendiente = 0;
             } else {
                 $cuenta->estado = 'parcial';
             }
@@ -382,8 +381,8 @@ class CajaOperativaController extends Controller
                 'monto' => $montoPagar,
                 'metodo_pago' => $request->metodo_pago,
                 'referencia' => $request->referencia,
-                'movable_type' => PagoCuenta::class,
-                'movable_id' => $pago->id,
+                'movable_type' => 'App\Models\PagoCuenta',
+                'movable_id' => 0,
             ]);
 
             // Si es emergencia post-pago y ya está pagado completamente,

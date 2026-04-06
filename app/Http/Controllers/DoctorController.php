@@ -109,13 +109,13 @@ class DoctorController extends Controller
     public function vistaControlTotal()
     {
         // Obtener todos los médicos del sistema
-        $medicos = Medico::with(['usuario', 'especialidad'])
+        $medicos = Medico::with(['user', 'especialidad'])
             ->orderBy('codigo_especialidad')
             ->orderByRaw('(SELECT name FROM users WHERE id = medicos.user_id)')
             ->get();
 
         // Obtener todas las consultas de hoy con información completa
-        $consultasHoy = Consulta::with(['paciente', 'medico.usuario', 'especialidad', 'caja'])
+        $consultasHoy = Consulta::with(['paciente', 'medico.user', 'especialidad', 'caja'])
             ->where('fecha', date('Y-m-d'))
             ->whereExists(function($query) {
                 $query->select(DB::raw(1))
@@ -179,7 +179,7 @@ class DoctorController extends Controller
                 ], 401);
             }
 
-            $medico = Medico::where('id_usuario', $user->id)->first();
+            $medico = Medico::where('user_id', $user->id)->first();
             
             if (!$medico) {
                 return response()->json([
@@ -258,7 +258,7 @@ class DoctorController extends Controller
                 ], 401);
             }
 
-            $medico = Medico::where('id_usuario', $user->id)->first();
+            $medico = Medico::where('user_id', $user->id)->first();
             
             if (!$medico) {
                 \Log::error('No medico found for user', ['user_id' => $user->id]);
@@ -348,7 +348,7 @@ class DoctorController extends Controller
         $user = Auth::user();
         
         // Obtener el médico asociado al usuario actual
-        $medicoUsuario = Medico::where('id_usuario', $user->id)->first();
+        $medicoUsuario = Medico::where('user_id', $user->id)->first();
         
         // Solo administradores pueden ver historial de otros médicos
         // Los doctores solo pueden ver su propio historial
@@ -364,7 +364,7 @@ class DoctorController extends Controller
         
         // Si no se especifica médico (y es admin), mostrar lista para seleccionar
         if (!$ci_medico && $user->role === 'admin') {
-            $medicos = Medico::with(['usuario', 'especialidad'])
+            $medicos = Medico::with(['user', 'especialidad'])
                 ->orderByRaw('(SELECT name FROM users WHERE id = medicos.user_id)')
                 ->get();
                 
@@ -372,7 +372,7 @@ class DoctorController extends Controller
         }
         
         // Obtener el médico específico
-        $medico = Medico::with(['usuario', 'especialidad'])
+        $medico = Medico::with(['user', 'especialidad'])
             ->where('ci', $ci_medico)
             ->firstOrFail();
         
@@ -417,7 +417,7 @@ class DoctorController extends Controller
         $user = Auth::user();
         
         // Obtener el médico asociado al usuario actual
-        $medicoUsuario = Medico::where('id_usuario', $user->id)->first();
+        $medicoUsuario = Medico::where('user_id', $user->id)->first();
         
         // Solo administradores pueden ver pacientes de otros médicos
         // Los doctores solo pueden ver sus propios pacientes
@@ -433,7 +433,7 @@ class DoctorController extends Controller
         
         // Si no se especifica médico (y es admin), mostrar lista para seleccionar
         if (!$ci_medico && $user->role === 'admin') {
-            $medicos = Medico::with(['usuario', 'especialidad'])
+            $medicos = Medico::with(['user', 'especialidad'])
                 ->orderByRaw('(SELECT name FROM users WHERE id = medicos.user_id)')
                 ->get();
                 
@@ -441,7 +441,7 @@ class DoctorController extends Controller
         }
         
         // Obtener el médico específico
-        $medico = Medico::with(['usuario', 'especialidad'])
+        $medico = Medico::with(['user', 'especialidad'])
             ->where('ci', $ci_medico)
             ->firstOrFail();
         

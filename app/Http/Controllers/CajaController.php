@@ -138,7 +138,7 @@ class CajaController extends Controller
             ->get()
             ->map(function ($caja) {
                 return [
-                    'id' => $caja->id,
+                    'caja_id' => $caja->id,
                     'ci' => $caja->consulta->ci_paciente,
                     'nombre' => $caja->consulta->paciente->nombre,
                     'telefono' => $caja->consulta->paciente->telefono ?? 'N/A',
@@ -271,6 +271,7 @@ class CajaController extends Controller
                     $doctor = \App\Models\Medico::first();
                     
                     Consulta::create([
+                        'codigo' => 'CONS-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT),
                         'fecha' => now()->toDateString(),
                         'hora' => now()->toTimeString(),
                         'motivo' => 'Cobro directo en caja - ' . $servicio->nombre,
@@ -279,7 +280,7 @@ class CajaController extends Controller
                         'ci_paciente' => $request->ci_paciente,
                         'ci_medico' => $doctor->ci,
                         'estado_pago' => true,
-                        'id_caja' => $caja->id,
+                        'caja_id' => $caja->id,
                     ]);
                 }
                 // If no doctors available, we skip consultation creation

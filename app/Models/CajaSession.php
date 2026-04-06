@@ -12,7 +12,7 @@ class CajaSession extends Model
     use HasFactory;
 
     protected $fillable = [
-        'usuario_id',
+        'user_id',
         'fecha_apertura',
         'fecha_cierre',
         'monto_inicial',
@@ -29,7 +29,7 @@ class CajaSession extends Model
     ];
 
     // Relaciones
-    public function usuario(): BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
@@ -62,7 +62,7 @@ class CajaSession extends Model
 
     public function scopeDelUsuario($query, $userId)
     {
-        return $query->where('usuario_id', $userId);
+        return $query->where('user_id', $userId);
     }
 
     // Métodos de estado

@@ -21,7 +21,7 @@ class PagoCuenta extends Model
         'monto',
         'metodo_pago',
         'referencia',
-        'usuario_id',
+        'user_id',
         'caja_session_id',
         'observaciones',
     ];
@@ -36,7 +36,7 @@ class PagoCuenta extends Model
         return $this->belongsTo(CuentaCobro::class);
     }
 
-    public function usuario(): BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

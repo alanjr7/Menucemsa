@@ -77,8 +77,8 @@ class UtiRecepcionController extends Controller
                 'telefono' => $paciente->telefono,
                 'direccion' => $paciente->direccion,
                 'seguro' => $paciente->seguro ? [
-                    'codigo' => $paciente->seguro->codigo,
-                    'nombre' => $paciente->seguro->nombre,
+                    'id' => $paciente->seguro->id,
+                    'nombre' => $paciente->seguro->nombre_empresa,
                 ] : null,
             ],
         ]);
@@ -93,7 +93,7 @@ class UtiRecepcionController extends Controller
             'patient_id' => 'required|exists:pacientes,ci',
             'tipo_ingreso' => 'required|in:emergencia,quirofano,derivacion_interna',
             'tipo_pago' => 'required|in:particular,seguro',
-            'seguro_id' => 'nullable|exists:seguros,codigo',
+            'seguro_id' => 'nullable|exists:seguros,id',
             'nro_autorizacion' => 'nullable|string|max:50',
             'emergency_id' => 'nullable|exists:emergencies,id',
             'diagnostico_principal' => 'nullable|string|max:500',
@@ -221,9 +221,9 @@ class UtiRecepcionController extends Controller
      */
     public function getSeguros(): JsonResponse
     {
-        $seguros = Seguro::where('activo', true)
-            ->orderBy('nombre')
-            ->get(['codigo', 'nombre', 'cobertura']);
+        $seguros = Seguro::where('estado', 'activo')
+            ->orderBy('nombre_empresa')
+            ->get(['id', 'nombre_empresa', 'cobertura']);
 
         return response()->json([
             'success' => true,

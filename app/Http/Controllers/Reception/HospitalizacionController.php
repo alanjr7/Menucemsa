@@ -162,13 +162,13 @@ class HospitalizacionController extends Controller
             $paciente = Paciente::create([
                 'ci' => $ci,
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
-                'sexo' => $request->sexo,
+                'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'codigo_seguro' => $this->obtenerOCrearSeguro($request->seguro),
+                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
                 'id_triage' => null, // Se asignará después
-                'codigo_registro' => $this->obtenerOCrearRegistro(),
+                'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
             // Actualizar datos si es necesario
@@ -176,7 +176,7 @@ class HospitalizacionController extends Controller
                 'telefono' => $request->telefono ?? $paciente->telefono,
                 'correo' => $request->correo ?? $paciente->correo,
                 'direccion' => $request->direccion ?? $paciente->direccion,
-                'codigo_seguro' => $this->obtenerOCrearSeguro($request->seguro),
+                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
             ]);
         }
         
@@ -283,7 +283,7 @@ class HospitalizacionController extends Controller
             'color' => $cfg['color'],
             'descripcion' => $cfg['descripcion'],
             'prioridad' => $cfg['prioridad'],
-            'id_usuario' => $currentUser->id,
+            'user_id' => $currentUser->id,
         ]);
     }
 
@@ -292,16 +292,15 @@ class HospitalizacionController extends Controller
         $seguro = Seguro::firstOrCreate(
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
-                'codigo' => Seguro::max('codigo') + 1,
                 'tipo' => 'HOSPITALIZACION',
                 'cobertura' => 'Cobertura de Hospitalización',
                 'telefono' => null,
                 'formulario' => 'HOSPITALIZACION',
-                'estado' => 'ACTIVO'
+                'estado' => 'activo'
             ]
         );
         
-        return $seguro->codigo;
+        return $seguro->id;
     }
 
     private function obtenerOCrearRegistro()
@@ -315,7 +314,7 @@ class HospitalizacionController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Hospitalización',
-                'id_usuario' => $currentUser->id
+                'user_id' => $currentUser->id
             ]
         );
         
@@ -330,7 +329,7 @@ class HospitalizacionController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => $motivo,
-                'id_usuario' => Auth::id(),
+                'user_id' => Auth::id(),
             ]
         );
     }

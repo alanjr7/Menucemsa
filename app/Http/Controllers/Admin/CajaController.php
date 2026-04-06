@@ -251,7 +251,7 @@ class CajaController extends Controller
             } else {
                 // Crear consulta médica asociada
                 $consulta = Consulta::create([
-                    'nro' => 'CONS-' . date('YmdHis') . '-' . rand(100, 999),
+                    'codigo' => 'CONS-' . date('YmdHis') . '-' . rand(100, 999),
                     'fecha' => now()->toDateString(),
                     'hora' => now()->toTimeString(),
                     'motivo' => $request->concepto,
@@ -260,7 +260,7 @@ class CajaController extends Controller
                     'ci_paciente' => $request->paciente_ci,
                     'ci_medico' => $request->medico_ci,
                     'estado_pago' => true, // Pagado
-                    'id_caja' => $movimiento->id,
+                    'caja_id' => $movimiento->id,
                     'estado' => 'pendiente' // Pendiente de atención médica
                 ]);
 

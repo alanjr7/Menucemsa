@@ -140,9 +140,9 @@ class EmergenciaController extends Controller
                 'direccion' => 'Por especificar - ID Temporal',
                 'telefono' => 0,
                 'correo' => 'temporal@emergencia.com',
-                'codigo_seguro' => $this->obtenerOCrearSeguro('particular'),
+                'seguro_id' => $this->obtenerOCrearSeguro('particular'),
                 'id_triage' => null, // Se asignará después
-                'codigo_registro' => $this->obtenerOCrearRegistro(),
+                'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         }
         
@@ -161,13 +161,13 @@ class EmergenciaController extends Controller
             $paciente = Paciente::create([
                 'ci' => $ci,
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
-                'sexo' => $request->sexo,
+                'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'codigo_seguro' => $this->obtenerOCrearSeguro($request->seguro ?? 'particular'),
+                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro ?? 'particular'),
                 'id_triage' => null, // Se asignará después
-                'codigo_registro' => $this->obtenerOCrearRegistro(),
+                'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
             // Actualizar datos si es necesario
@@ -291,7 +291,7 @@ class EmergenciaController extends Controller
             'color' => $cfg['color'],
             'descripcion' => $cfg['descripcion'],
             'prioridad' => $cfg['prioridad'],
-            'id_usuario' => $currentUser->id,
+            'user_id' => $currentUser->id,
         ]);
     }
 
@@ -300,16 +300,15 @@ class EmergenciaController extends Controller
         $seguro = \App\Models\Seguro::firstOrCreate(
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
-                'codigo' => \App\Models\Seguro::max('codigo') + 1,
                 'tipo' => 'EMERGENCIA',
                 'cobertura' => 'Cobertura de Emergencia',
                 'telefono' => null,
                 'formulario' => 'EMERGENCIA',
-                'estado' => 'ACTIVO'
+                'estado' => 'activo'
             ]
         );
         
-        return $seguro->codigo;
+        return $seguro->id;
     }
 
     private function obtenerOCrearRegistro()
@@ -323,7 +322,7 @@ class EmergenciaController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Emergencia',
-                'id_usuario' => $currentUser->id
+                'user_id' => $currentUser->id
             ]
         );
         
@@ -338,7 +337,7 @@ class EmergenciaController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => $motivo,
-                'id_usuario' => Auth::id(),
+                'user_id' => Auth::id(),
             ]
         );
     }

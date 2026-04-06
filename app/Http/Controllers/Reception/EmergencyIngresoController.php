@@ -165,7 +165,7 @@ class EmergencyIngresoController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Emergencia',
-                'id_usuario' => Auth::id()
+                'user_id' => Auth::id()
             ]);
 
             $seguroCodigo = $this->obtenerOCrearSeguro('particular');
@@ -173,12 +173,12 @@ class EmergencyIngresoController extends Controller
             $paciente = Paciente::create([
                 'ci' => $ci,
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
-                'sexo' => $request->sexo,
+                'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ? (int)$request->telefono : 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'codigo_seguro' => $seguroCodigo,
-                'codigo_registro' => $registroCodigo,
+                'seguro_id' => $seguroCodigo,
+                'registro_codigo' => $registroCodigo,
             ]);
         } else {
             // Actualizar datos si es necesario
@@ -226,21 +226,20 @@ class EmergencyIngresoController extends Controller
     /**
      * Obtener o crear seguro
      */
-    private function obtenerOCrearSeguro($seguroNombre): int
+    private function obtenerOCrearSeguro($seguroNombre)
     {
         $seguro = Seguro::firstOrCreate(
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
-                'codigo' => Seguro::max('codigo') + 1,
                 'tipo' => 'EMERGENCIA',
                 'cobertura' => 'Cobertura de Emergencia',
                 'telefono' => null,
                 'formulario' => 'EMERGENCIA',
-                'estado' => 'ACTIVO'
+                'estado' => 'activo'
             ]
         );
         
-        return $seguro->codigo;
+        return $seguro->id;
     }
 
     /**
@@ -336,7 +335,7 @@ class EmergencyIngresoController extends Controller
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro completado desde paciente temporal de emergencia',
-                'id_usuario' => Auth::id()
+                'user_id' => Auth::id()
             ]);
 
             $seguroCodigo = $this->obtenerOCrearSeguro('particular');
@@ -348,8 +347,8 @@ class EmergencyIngresoController extends Controller
                 'direccion' => $validated['direccion'] ?? 'Sin especificar',
                 'telefono' => $validated['telefono'] ? (int)$validated['telefono'] : 0,
                 'correo' => $validated['correo'] ?? 'sin@email.com',
-                'codigo_seguro' => $seguroCodigo,
-                'codigo_registro' => $registroCodigo,
+                'seguro_id' => $seguroCodigo,
+                'registro_codigo' => $registroCodigo,
                 'id_triage' => $this->obenerOCrearTriage(),
             ]);
 
@@ -410,7 +409,7 @@ class EmergencyIngresoController extends Controller
                 'color' => 'green',
                 'descripcion' => 'Consulta Externa - No Urgente',
                 'prioridad' => 'baja',
-                'id_usuario' => $currentUser->id
+                'user_id' => $currentUser->id
             ]
         );
         

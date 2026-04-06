@@ -47,12 +47,12 @@ class Caja extends Model
 
     public function consultas()
     {
-        return $this->hasMany(Consulta::class, 'id_caja', 'id');
+        return $this->hasMany(Consulta::class, 'caja_id', 'id');
     }
 
     public function consulta()
     {
-        return $this->hasOne(Consulta::class, 'id_caja', 'id');
+        return $this->hasOne(Consulta::class, 'caja_id', 'id');
     }
 
     // Métodos para simular estado (ya que no existe en la BD)

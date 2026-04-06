@@ -282,6 +282,21 @@
         let cuentaActual = null;
         let pacientesData = [];
 
+        // Definir componente Alpine.js
+        function cajaOperativa() {
+            return {
+                open: false,
+                sidebarOpen: true,
+                init() {
+                    this.cargarDatos();
+                },
+                async cargarDatos() {
+                    await cargarPacientesPendientes();
+                    await cargarResumenDia();
+                }
+            };
+        }
+
         // Cargar datos al iniciar
         document.addEventListener('DOMContentLoaded', function() {
             cargarPacientesPendientes();
@@ -407,7 +422,7 @@
         // Abrir modal de cobro
         async function abrirModalCobro(cuentaId) {
             try {
-                const response = await fetch(`{{ url('/caja/operativa/detalle-cuenta') }}/${cuentaId}`);
+                const response = await fetch(`{{ url('/caja-operativa/detalle-cuenta') }}/${cuentaId}`);
                 const data = await response.json();
                 
                 if (data.success) {

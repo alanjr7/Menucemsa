@@ -11,6 +11,8 @@ class MovimientoCaja extends Model
 {
     use HasFactory;
 
+    protected $table = 'movimientos_caja';
+
     protected $fillable = [
         'caja_session_id',
         'tipo',

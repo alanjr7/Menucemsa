@@ -43,12 +43,12 @@ class CajaGestionController extends Controller
 
         // Cajas abiertas actualmente
         $cajasAbiertas = CajaSession::abierta()
-            ->with(['usuario', 'movimientos'])
+            ->with(['user', 'movimientos'])
             ->get()
             ->map(function ($caja) {
                 return [
                     'id' => $caja->id,
-                    'usuario' => $caja->usuario->name ?? 'N/A',
+                    'usuario' => $caja->user->name ?? 'N/A',
                     'fecha_apertura' => $caja->fecha_apertura->format('d/m/Y H:i'),
                     'monto_inicial' => $caja->monto_inicial,
                     'total_ingresos' => $caja->ingresos()->sum('monto'),
@@ -58,7 +58,7 @@ class CajaGestionController extends Controller
             });
 
         // Transacciones recientes
-        $transaccionesRecientes = PagoCuenta::with(['cuentaCobro.paciente', 'usuario'])
+        $transaccionesRecientes = PagoCuenta::with(['cuentaCobro.paciente', 'user'])
             ->delDia($hoy)
             ->orderBy('created_at', 'desc')
             ->limit(20)
@@ -86,7 +86,7 @@ class CajaGestionController extends Controller
                 'metodo_pago' => 'nullable|in:efectivo,transferencia,tarjeta,qr,todos',
             ]);
 
-            $query = CuentaCobro::with(['paciente', 'pagos.usuario', 'cajaSession.usuario']);
+            $query = CuentaCobro::with(['paciente', 'pagos.user', 'cajaSession.user']);
 
             // Filtro por fecha
             if ($request->fecha_inicio && $request->fecha_fin) {
@@ -135,7 +135,7 @@ class CajaGestionController extends Controller
                         'estado_label' => $cuenta->estado_label,
                         'estado_color' => $cuenta->estado_color,
                         'metodos_pago' => $cuenta->pagos->pluck('metodo_pago')->unique()->values(),
-                        'usuario_caja' => $cuenta->cajaSession?->usuario?->name ?? 'N/A',
+                        'usuario_caja' => $cuenta->cajaSession?->user?->name ?? 'N/A',
                         'fecha' => $cuenta->created_at->format('d/m/Y H:i'),
                         'fecha_pago' => $cuenta->pagos->last()?->created_at?->format('d/m/Y H:i'),
                     ];
@@ -163,8 +163,8 @@ class CajaGestionController extends Controller
             $cuenta = CuentaCobro::with([
                 'paciente',
                 'detalles.tarifa',
-                'pagos.usuario',
-                'cajaSession.usuario',
+                'pagos.user',
+                'cajaSession.user',
                 'referencia'
             ])->findOrFail($id);
 
@@ -208,7 +208,7 @@ class CajaGestionController extends Controller
                     'ci_nit_facturacion' => $cuenta->ci_nit_facturacion,
                     'razon_social' => $cuenta->razon_social,
                     'fecha_creacion' => $cuenta->created_at->format('d/m/Y H:i'),
-                    'usuario_creacion' => $cuenta->cajaSession?->usuario?->name ?? 'Sistema',
+                    'usuario_creacion' => $cuenta->cajaSession?->user?->name ?? 'Sistema',
                     'detalles' => $cuenta->detalles->map(function ($detalle) {
                         return [
                             'id' => $detalle->id,
@@ -226,7 +226,7 @@ class CajaGestionController extends Controller
                             'metodo_pago' => $pago->metodo_pago_label,
                             'metodo_pago_icon' => $pago->metodo_pago_icon,
                             'referencia' => $pago->referencia,
-                            'usuario' => $pago->usuario->name ?? 'N/A',
+                            'usuario' => $pago->user->name ?? 'N/A',
                             'fecha' => $pago->created_at->format('d/m/Y H:i'),
                         ];
                     }),
@@ -253,10 +253,10 @@ class CajaGestionController extends Controller
                 'fecha_inicio' => 'nullable|date',
                 'fecha_fin' => 'nullable|date',
                 'estado' => 'nullable|in:abierta,cerrada,todas',
-                'usuario_id' => 'nullable|integer|exists:users,id',
+                'user_id' => 'nullable|integer|exists:users,id',
             ]);
 
-            $query = CajaSession::with(['usuario', 'movimientos']);
+            $query = CajaSession::with(['user', 'movimientos']);
 
             // Filtros de fecha
             if ($request->fecha_inicio && $request->fecha_fin) {
@@ -271,8 +271,8 @@ class CajaGestionController extends Controller
             }
 
             // Filtro por usuario
-            if ($request->usuario_id) {
-                $query->where('usuario_id', $request->usuario_id);
+            if ($request->user_id) {
+                $query->where('user_id', $request->user_id);
             }
 
             $cajas = $query->orderBy('fecha_apertura', 'desc')
@@ -284,17 +284,14 @@ class CajaGestionController extends Controller
                     $diferencia = $caja->monto_final !== null 
                         ? $caja->monto_final - $totalEsperado 
                         : null;
-
+                    
                     return [
                         'id' => $caja->id,
-                        'usuario' => [
-                            'id' => $caja->usuario_id,
-                            'nombre' => $caja->usuario->name ?? 'N/A',
+                        'user' => [
+                            'id' => $caja->user_id,
+                            'nombre' => $caja->user->name ?? 'N/A',
                         ],
                         'fecha_apertura' => $caja->fecha_apertura->format('d/m/Y H:i'),
-                        'fecha_cierre' => $caja->fecha_cierre?->format('d/m/Y H:i'),
-                        'duracion' => $caja->duracion,
-                        'estado' => $caja->estado,
                         'monto_inicial' => $caja->monto_inicial,
                         'monto_final' => $caja->monto_final,
                         'total_ingresos' => $totalIngresos,
@@ -429,11 +426,11 @@ class CajaGestionController extends Controller
             $request->validate([
                 'fecha_inicio' => 'nullable|date',
                 'fecha_fin' => 'nullable|date',
-                'usuario_id' => 'nullable|integer|exists:users,id',
+                'user_id' => 'nullable|integer|exists:users,id',
                 'tipo_accion' => 'nullable|in:apertura,cierre,pago,ingreso,egreso,todos',
             ]);
 
-            $query = MovimientoCaja::with(['cajaSession.usuario', 'movable']);
+            $query = MovimientoCaja::with(['cajaSession.user', 'movable']);
 
             // Filtros de fecha
             if ($request->fecha_inicio && $request->fecha_fin) {
@@ -443,9 +440,9 @@ class CajaGestionController extends Controller
             }
 
             // Filtro por usuario (a través de caja session)
-            if ($request->usuario_id) {
+            if ($request->user_id) {
                 $query->whereHas('cajaSession', function ($q) use ($request) {
-                    $q->where('usuario_id', $request->usuario_id);
+                    $q->where('user_id', $request->user_id);
                 });
             }
 
@@ -460,7 +457,7 @@ class CajaGestionController extends Controller
                     return [
                         'id' => $mov->id,
                         'fecha' => $mov->created_at->format('d/m/Y H:i'),
-                        'usuario' => $mov->cajaSession?->usuario?->name ?? 'N/A',
+                        'usuario' => $mov->cajaSession?->user?->name ?? 'N/A',
                         'tipo' => $mov->tipo,
                         'tipo_label' => ucfirst($mov->tipo),
                         'concepto' => $mov->concepto,
