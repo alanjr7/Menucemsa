@@ -287,7 +287,7 @@
     </nav>
 
     <!-- Footer de Usuario en Sidebar (Inferior) -->
-    <div class="py-4 bg-black/20 border-t border-white/5 shrink-0 transition-all duration-300"
+    {{-- <div class="py-4 bg-black/20 border-t border-white/5 shrink-0 transition-all duration-300"
          :class="sidebarOpen ? 'px-4' : 'px-0 flex justify-center'">
         <div class="flex items-center gap-3">
             <div class="relative shrink-0">
@@ -303,5 +303,5 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 </div>
