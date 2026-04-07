@@ -10,8 +10,8 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ventas Hoy</p>
-                    <h3 class="text-3xl font-black text-gray-800 mt-2">${{ number_format($ingresosHoy, 2) }}</h3>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">ventas hoy</p>
+                    <p class="font-black text-gray-800 text-2xl">${{ number_format($ingresosHoy, 2) }}</p>
                     <p class="text-[11px] text-gray-400 mt-1 font-bold">{{ $ventasHoy }} transacciones</p>
                 </div>
                 <div class="p-3 bg-green-500 rounded-xl text-white shadow-lg shadow-green-100">
@@ -21,7 +21,7 @@
 
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Productos en Stock</p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">productos en stock</p>
                     <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $totalMedicamentos }}</h3>
                     <p class="text-[11px] text-gray-400 mt-1 font-bold">{{ $medicamentosDistintos }} productos distintos</p>
                 </div>
@@ -32,7 +32,7 @@
 
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Alertas de Stock</p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">alertas de stock</p>
                     <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $alertasStock->count() }}</h3>
                     <p class="text-[11px] text-gray-400 mt-1 font-bold">Requieren reabastecimiento</p>
                 </div>
@@ -43,8 +43,8 @@
 
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-start transition-transform hover:scale-[1.02]">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Ventas</p>
-                    <h3 class="text-3xl font-black text-gray-800 mt-2">{{ $totalVentas }}</h3>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">total ventas</p>
+                    <p class="font-black text-gray-800 text-2xl">{{ $totalVentas }}</p>
                     <p class="text-[11px] text-gray-400 mt-1 font-bold">Historial completo</p>
                 </div>
                 <div class="p-3 bg-purple-500 rounded-xl text-white shadow-lg shadow-purple-100">
@@ -94,12 +94,12 @@
                             @foreach($ultimasVentas as $venta)
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                     <div>
-                                        <p class="font-semibold text-gray-800">{{ $venta->CODIGO_VENTA }}</p>
-                                        <p class="text-xs text-gray-500">{{ $venta->FECHA_VENTA->format('d/m/Y H:i') }}</p>
-                                        <p class="text-xs text-gray-400">{{ $venta->CLIENTE ?: 'Cliente General' }}</p>
+                                        <p class="font-semibold text-gray-800">{{ $venta->codigo_venta }}</p>
+                                        <p class="text-xs text-gray-500">{{ $venta->fecha_venta ? $venta->fecha_venta->format('d/m/Y H:i') : 'N/A' }}</p>
+                                        <p class="text-xs text-gray-400">{{ $venta->cliente ?: 'Cliente General' }}</p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="font-bold text-green-600">${{ number_format($venta->TOTAL, 2) }}</p>
+                                        <p class="font-bold text-green-600">${{ number_format($venta->total, 2) }}</p>
                                         <p class="text-xs text-gray-400">{{ $venta->detalles->count() }} productos</p>
                                     </div>
                                 </div>

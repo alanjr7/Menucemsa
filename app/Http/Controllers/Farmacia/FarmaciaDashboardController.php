@@ -3,7 +3,7 @@ namespace App\Http\Controllers\Farmacia;
 
 use App\Http\Controllers\Controller;
 use App\Models\VentaFarmacia;
-use App\Models\DetalleMedicamentos;
+use App\Models\InventarioFarmacia;
 use App\Models\Medicamentos;
 use App\Models\Inventario;
 use App\Models\Cliente;
@@ -18,9 +18,9 @@ class FarmaciaDashboardController extends Controller
         $ventasHoy = VentaFarmacia::whereDate('FECHA_VENTA', $hoy)->count();
         $ingresosHoy = VentaFarmacia::whereDate('FECHA_VENTA', $hoy)->sum('TOTAL');
         
-        // Obtener total de medicamentos en stock
-        $totalMedicamentos = DetalleMedicamentos::count();
-        $medicamentosDistintos = Medicamentos::count();
+        // Obtener total de items en inventario_farmacia
+        $totalMedicamentos = InventarioFarmacia::where('tipo_item', 'medicamento')->count();
+        $medicamentosDistintos = InventarioFarmacia::where('tipo_item', 'medicamento')->distinct('codigo_item')->count();
         
         // Obtener alertas de stock (medicamentos con bajo stock)
         $alertasStock = $this->getAlertasStock();
@@ -51,19 +51,33 @@ class FarmaciaDashboardController extends Controller
     
     private function getAlertasStock()
     {
+        // Debug: Obtener todos los productos para ver qué datos hay
+        $todos = InventarioFarmacia::where('tipo_item', 'medicamento')->get();
+        \Log::info('Total productos: ' . $todos->count());
+        \Log::info('Productos sample: ', $todos->take(3)->map(fn($p) => [
+            'codigo' => $p->codigo_item,
+            'stock' => $p->stock_disponible,
+            'minimo' => $p->stock_minimo
+        ])->toArray());
+        
         // Obtener productos con stock bajo (stock actual <= stock mínimo)
-        return Inventario::with(['medicamento'])
-            ->whereRaw('CAST(STOCK_DISPONIBLE AS UNSIGNED) <= CAST(STOCK_MINIMO AS UNSIGNED)')
-            ->get()
-            ->map(function ($inventario) {
-                return [
-                    'id' => $inventario->ID,
-                    'nombre' => $inventario->medicamento->DESCRIPCION ?? 'Producto desconocido',
-                    'stock_actual' => (int) $inventario->STOCK_DISPONIBLE,
-                    'stock_minimo' => (int) $inventario->STOCK_MINIMO,
-                    'tipo' => 'stock_bajo'
-                ];
-            });
+        $alertas = InventarioFarmacia::with('medicamento')
+            ->where('tipo_item', 'medicamento')
+            ->whereColumn('stock_disponible', '<=', 'stock_minimo')
+            ->where('stock_minimo', '>', 0) // Solo si tiene stock mínimo configurado
+            ->get();
+            
+        \Log::info('Alertas encontradas: ' . $alertas->count());
+        
+        return $alertas->map(function ($inventario) {
+            return [
+                'id' => $inventario->codigo_item,
+                'nombre' => $inventario->medicamento->descripcion ?? 'Producto desconocido',
+                'stock_actual' => (int) $inventario->stock_disponible,
+                'stock_minimo' => (int) $inventario->stock_minimo,
+                'tipo' => 'stock_bajo'
+            ];
+        });
     }
     
     private function getAlertasVencimiento()
@@ -71,18 +85,19 @@ class FarmaciaDashboardController extends Controller
         // Obtener productos que vencen en los próximos 30 días
         $fechaLimite = Carbon::now()->addDays(30);
         
-        return DetalleMedicamentos::with('medicamento')
-            ->whereNotNull('FECHA_VENCIMIENTO')
-            ->where('FECHA_VENCIMIENTO', '<=', $fechaLimite)
-            ->where('FECHA_VENCIMIENTO', '>=', Carbon::now())
+        return InventarioFarmacia::with('medicamento')
+            ->where('tipo_item', 'medicamento')
+            ->whereNotNull('fecha_vencimiento')
+            ->where('fecha_vencimiento', '<=', $fechaLimite)
+            ->where('fecha_vencimiento', '>=', Carbon::now())
             ->get()
-            ->map(function ($detalle) {
-                $diasParaVencer = Carbon::parse($detalle->FECHA_VENCIMIENTO)->diffInDays(Carbon::now());
+            ->map(function ($inventario) {
+                $diasParaVencer = Carbon::parse($inventario->fecha_vencimiento)->diffInDays(Carbon::now());
                 
                 return [
-                    'id' => $detalle->CODIGO_MEDICAMENTOS,
-                    'nombre' => $detalle->medicamento->DESCRIPCION ?? 'Producto desconocido',
-                    'fecha_vencimiento' => $detalle->FECHA_VENCIMIENTO,
+                    'id' => $inventario->codigo_item,
+                    'nombre' => $inventario->medicamento->descripcion ?? 'Producto desconocido',
+                    'fecha_vencimiento' => $inventario->fecha_vencimiento,
                     'dias_para_vencer' => $diasParaVencer,
                     'tipo' => 'vencimiento'
                 ];

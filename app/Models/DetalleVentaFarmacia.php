@@ -30,6 +30,8 @@ class DetalleVentaFarmacia extends Model
         'subtotal' => 'decimal:2',
     ];
 
+    public $timestamps = false;
+
     public function venta()
     {
         return $this->belongsTo(VentaFarmacia::class, 'codigo_venta', 'codigo_venta');

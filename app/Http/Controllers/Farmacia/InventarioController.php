@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Inventario;
 use App\Models\Medicamentos;
-use App\Models\DetalleMedicamentos;
+use App\Models\InventarioFarmacia;
 use Illuminate\Support\Facades\Auth;
 
 class InventarioController extends Controller
@@ -25,42 +25,25 @@ class InventarioController extends Controller
 
     public function index()
     {
-        // Obtener todos los medicamentos con sus detalles e inventario
-        $productos = Medicamentos::with('detalleMedicamentos')
+        // Obtener todos los items del inventario_farmacia con sus medicamentos
+        $productos = InventarioFarmacia::with('medicamento')
+            ->where('tipo_item', 'medicamento')
             ->get()
-            ->map(function ($medicamento) {
-                $detalle = $medicamento->detalleMedicamentos->first();
-                
-                // Obtener stock real desde la tabla INVENTARIO
-                $stock = 0;
-                $stockMinimo = 10;
-                $reposicion = 'No';
-                
-                if ($detalle) {
-                    $inventario = \App\Models\Inventario::where('ID', $medicamento->CODIGO)
-                        ->where('ID_FARMACIA', $detalle->ID_FARMACIA)
-                        ->first();
-                    
-                    if ($inventario) {
-                        $stock = (int) $inventario->STOCK_DISPONIBLE;
-                        $stockMinimo = (int) $inventario->STOCK_MINIMO;
-                        $reposicion = $inventario->REPOSICION;
-                    }
-                }
-                
+            ->map(function ($item) {
                 return [
-                    'id' => $medicamento->CODIGO,
-                    'nombre' => $medicamento->DESCRIPCION,
-                    'precio' => $medicamento->PRECIO,
-                    'categoria' => $detalle->TIPO ?? 'Medicamento',
-                    'laboratorio' => $detalle->LABORATORIO ?? 'N/A',
-                    'fecha_vencimiento' => $detalle->FECHA_VENCIMIENTO ?? 'N/A',
-                    'stock' => $stock,
-                    'stockMinimo' => $stockMinimo,
-                    'codigo_barras' => $medicamento->CODIGO,
-                    'proveedor' => $detalle->LABORATORIO ?? 'N/A',
-                    'requerimiento' => $detalle->REQUERIMIENTO ?? 'Normal',
-                    'reposicion' => $reposicion
+                    'id' => $item->codigo_item,
+                    'nombre' => $item->medicamento->descripcion ?? 'Producto desconocido',
+                    'precio' => $item->medicamento->precio ?? 0,
+                    'categoria' => $item->tipo ?? 'Medicamento',
+                    'laboratorio' => $item->laboratorio ?? 'N/A',
+                    'vencimiento' => $item->fecha_vencimiento ?? 'N/A',
+                    'stock' => $item->stock_disponible,
+                    'stockMinimo' => $item->stock_minimo,
+                    'requerimiento' => $item->requerimiento ?? 'Normal',
+                    'requiere_receta' => $item->requerimiento === 'Receta',
+                    'codigo_barras' => $item->codigo_item,
+                    'proveedor' => $item->laboratorio ?? 'N/A',
+                    'reposicion' => $item->reposicion ? 'Si' : 'No'
                 ];
             });
 
@@ -76,11 +59,12 @@ class InventarioController extends Controller
             'categoria' => 'required|string',
             'stock' => 'required|integer|min:0',
             'stockMinimo' => 'required|integer|min:0',
-            'codigo_barras' => 'required|string|unique:medicamentos,CODIGO',
+            'codigo_barras' => 'required|string|unique:medicamentos,codigo',
             'proveedor' => 'nullable|string',
             'vencimiento' => 'nullable|date',
             'lote' => 'nullable|string',
-            'descripcion' => 'nullable|string'
+            'descripcion' => 'nullable|string',
+            'requiere_receta' => 'boolean'
         ]);
 
         try {
@@ -88,37 +72,31 @@ class InventarioController extends Controller
             $farmacia = \App\Models\Farmacia::first();
             if (!$farmacia) {
                 $farmacia = \App\Models\Farmacia::create([
-                    'ID' => 'FARM001',
-                    'DETALLE' => 'Farmacia Principal'
+                    'id' => 'FARM001',
+                    'detalle' => 'Farmacia Principal'
                 ]);
             }
 
             // Crear medicamento
             $medicamento = Medicamentos::create([
-                'CODIGO' => $validated['codigo_barras'],
-                'DESCRIPCION' => $validated['nombre'],
-                'PRECIO' => $validated['precio']
+                'codigo' => $validated['codigo_barras'],
+                'descripcion' => $validated['nombre'],
+                'precio' => $validated['precio']
             ]);
 
-            // Crear detalle del medicamento
-            DetalleMedicamentos::create([
-                'ID_FARMACIA' => $farmacia->ID,
-                'CODIGO_MEDICAMENTOS' => $medicamento->CODIGO,
-                'LABORATORIO' => $validated['proveedor'] ?? null,
-                'FECHA_VENCIMIENTO' => $validated['vencimiento'],
-                'TIPO' => $validated['categoria'],
-                'REQUERIMIENTO' => $validated['categoria'] === 'Receta' ? 'Receta' : 'Normal'
-            ]);
-
-            // Crear registro en inventario con el stock real
-            \App\Models\Inventario::create([
-                'ID' => $medicamento->CODIGO,
-                'ID_FARMACIA' => $farmacia->ID,
-                'TIPO_ITEM' => $validated['categoria'],
-                'STOCK_MINIMO' => (string) $validated['stockMinimo'],
-                'STOCK_DISPONIBLE' => (string) $validated['stock'],
-                'REPOSICION' => $validated['stock'] <= $validated['stockMinimo'] ? 'Si' : 'No',
-                'FECHA_INGRESO' => now()
+            // Crear registro en inventario_farmacia
+            InventarioFarmacia::create([
+                'farmacia_id' => $farmacia->id,
+                'tipo_item' => 'medicamento',
+                'codigo_item' => $medicamento->codigo,
+                'laboratorio' => $validated['proveedor'] ?? null,
+                'fecha_vencimiento' => $validated['vencimiento'],
+                'tipo' => $validated['categoria'],
+                'requerimiento' => $validated['requiere_receta'] ?? false ? 'Receta' : 'Normal',
+                'stock_minimo' => $validated['stockMinimo'],
+                'stock_disponible' => $validated['stock'],
+                'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,
+                'fecha_ingreso' => now()
             ]);
 
             return response()->json(['success' => true, 'message' => 'Producto creado exitosamente', 'producto' => $medicamento]);
@@ -142,47 +120,43 @@ class InventarioController extends Controller
             'proveedor' => 'nullable|string',
             'vencimiento' => 'nullable|string',
             'lote' => 'nullable|string',
-            'descripcion' => 'nullable|string'
+            'descripcion' => 'nullable|string',
+            'requiere_receta' => 'boolean'
         ]);
 
         try {
             $medicamento->update([
-                'DESCRIPCION' => $validated['nombre'],
-                'PRECIO' => $validated['precio']
+                'descripcion' => $validated['nombre'],
+                'precio' => $validated['precio']
             ]);
 
-            $detalle = DetalleMedicamentos::where('CODIGO_MEDICAMENTOS', $id)->first();
-            if ($detalle) {
-                $detalle->update([
-                    'LABORATORIO' => $validated['proveedor'],
-                    'FECHA_VENCIMIENTO' => $validated['vencimiento'],
-                    'TIPO' => $validated['categoria'],
-                    'REQUERIMIENTO' => $validated['categoria'] === 'Receta' ? 'Receta' : 'Normal'
+            $item = InventarioFarmacia::where('codigo_item', $id)->first();
+            if ($item) {
+                $item->update([
+                    'laboratorio' => $validated['proveedor'],
+                    'fecha_vencimiento' => $validated['vencimiento'],
+                    'tipo' => $validated['categoria'],
+                    'requerimiento' => $validated['requiere_receta'] ?? false ? 'Receta' : 'Normal',
+                    'stock_disponible' => $validated['stock'],
+                    'stock_minimo' => $validated['stockMinimo'],
+                    'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0
                 ]);
-
-                // Actualizar inventario con el stock real
-                $inventario = \App\Models\Inventario::where('ID', $id)
-                    ->where('ID_FARMACIA', $detalle->ID_FARMACIA)
-                    ->first();
-                
-                if ($inventario) {
-                    $inventario->update([
-                        'STOCK_DISPONIBLE' => (string) $validated['stock'],
-                        'STOCK_MINIMO' => (string) $validated['stockMinimo'],
-                        'REPOSICION' => $validated['stock'] <= $validated['stockMinimo'] ? 'Si' : 'No'
-                    ]);
-                } else {
-                    // Si no existe, crearlo
-                    \App\Models\Inventario::create([
-                        'ID' => $id,
-                        'ID_FARMACIA' => $detalle->ID_FARMACIA,
-                        'TIPO_ITEM' => $validated['categoria'],
-                        'STOCK_MINIMO' => (string) $validated['stockMinimo'],
-                        'STOCK_DISPONIBLE' => (string) $validated['stock'],
-                        'REPOSICION' => $validated['stock'] <= $validated['stockMinimo'] ? 'Si' : 'No',
-                        'FECHA_INGRESO' => now()
-                    ]);
-                }
+            } else {
+                // Si no existe, crearlo
+                $farmacia = \App\Models\Farmacia::first();
+                InventarioFarmacia::create([
+                    'farmacia_id' => $farmacia->id,
+                    'tipo_item' => 'medicamento',
+                    'codigo_item' => $id,
+                    'laboratorio' => $validated['proveedor'] ?? null,
+                    'fecha_vencimiento' => $validated['vencimiento'] ?? null,
+                    'tipo' => $validated['categoria'],
+                    'requerimiento' => $validated['requiere_receta'] ?? false ? 'Receta' : 'Normal',
+                    'stock_minimo' => $validated['stockMinimo'],
+                    'stock_disponible' => $validated['stock'],
+                    'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,
+                    'fecha_ingreso' => now()
+                ]);
             }
 
             return response()->json(['success' => true, 'message' => 'Producto actualizado exitosamente', 'producto' => $medicamento]);
@@ -198,8 +172,8 @@ class InventarioController extends Controller
             // Lógica para eliminar producto
             $medicamento = Medicamentos::findOrFail($id);
             
-            // Eliminar detalles primero
-            DetalleMedicamentos::where('CODIGO_MEDICAMENTOS', $id)->delete();
+            // Eliminar del inventario_farmacia primero
+            InventarioFarmacia::where('codigo_item', $id)->delete();
             
             // Eliminar medicamento
             $medicamento->delete();

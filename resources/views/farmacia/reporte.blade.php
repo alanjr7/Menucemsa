@@ -55,7 +55,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center transition-transform hover:scale-[1.02]">
                 <div>
                     <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Alertas de Stock</p>
-                    <p class="text-3xl font-black text-orange-500">0</p>
+                    <p class="text-3xl font-black text-orange-500">{{ $alertasStock->count() }}</p>
                 </div>
                 <div class="bg-orange-500 p-4 rounded-2xl shadow-lg shadow-orange-100 text-white">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -105,50 +105,34 @@
             </div>
 
          <div class="absolute inset-0 flex justify-around">
-    @php
-        $dias = [
-            ['fecha' => '19/2', 'valor' => 4],
-            ['fecha' => '20/2', 'valor' => 4],
-            ['fecha' => '21/2', 'valor' => 4],
-            ['fecha' => '22/2', 'valor' => 4],
-            ['fecha' => '23/2', 'valor' => 4],
-            ['fecha' => '24/2', 'valor' => 4],
-            ['fecha' => '25/2', 'valor' => 4],
-        ];
-    @endphp
-
-    @foreach($dias as $dia)
+    @forelse($ventasPorDia as $dia)
         <div class="relative h-full flex flex-col justify-end items-center group flex-1">
-
             <div class="absolute -bottom-[6px] w-px h-[6px] bg-gray-400"></div>
-
             <span class="absolute -bottom-10 text-sm text-gray-500 font-medium">
-                {{ $dia['fecha'] }}
+                {{ Carbon\Carbon::parse($dia->fecha)->format('d/m') }}
             </span>
-
+            @php
+                $maxIngresos = $ventasPorDia->max('total_ingresos') ?: 1;
+                $altura = $maxIngresos > 0 ? ($dia->total_ingresos / $maxIngresos) * 100 : 0;
+            @endphp
             <div class="w-10 relative z-10 cursor-pointer transition-colors duration-200
-                        bg-transparent group-hover:bg-[#cccccc]"
-                 style="height: {{ ($dia['valor'] / 4) * 100 }}%">
-
+                        bg-blue-500 hover:bg-blue-600 rounded-t-sm"
+                 style="height: {{ $altura }}%">
                 <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
                             bg-white border border-gray-200 shadow-md px-4 py-3 min-w-[110px]
                             opacity-0 group-hover:opacity-100 transition-opacity z-50
                             pointer-events-none rounded-sm">
-                    <p class="text-[14px] text-gray-700 font-medium mb-1">{{ $dia['fecha'] }}</p>
-                    <p class="text-[14px] text-blue-500 font-semibold whitespace-nowrap">Total ($) : 0</p>
+                    <p class="text-[14px] text-gray-700 font-medium mb-1">{{ Carbon\Carbon::parse($dia->fecha)->format('d/m/Y') }}</p>
+                    <p class="text-[14px] text-blue-500 font-semibold whitespace-nowrap">Ventas: {{ $dia->total_ventas }}</p>
+                    <p class="text-[14px] text-green-500 font-semibold whitespace-nowrap">Total: ${{ number_format($dia->total_ingresos, 2) }}</p>
                 </div>
             </div>
-
-            @if($dia['valor'] == 0)
-                <div class="absolute inset-0 w-10 mx-auto cursor-pointer group">
-                     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white border border-gray-200 shadow-md px-4 py-3 min-w-[110px] opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none rounded-sm">
-                        <p class="text-[14px] text-gray-700 font-medium mb-1">{{ $dia['fecha'] }}</p>
-                        <p class="text-[14px] text-blue-500 font-semibold">Total ($) : 0</p>
-                    </div>
-                </div>
-            @endif
         </div>
-    @endforeach
+    @empty
+        <div class="flex items-center justify-center w-full h-full text-gray-400">
+            <p>No hay datos de ventas en los últimos 7 días</p>
+        </div>
+    @endforelse
 </div>
         </div>
     </div>
@@ -156,11 +140,36 @@
 
             <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm min-h-[450px] flex flex-col">
                 <h2 class="text-xl font-black text-gray-800 mb-8">Ventas por Método de Pago</h2>
-                <div class="flex-1 flex flex-col items-center justify-center text-center">
-                    <div class="w-40 h-40 border-[12px] border-gray-50 rounded-full mb-6 relative">
+                @if($ventasPorMetodoPago->count() > 0)
+                    <div class="flex-1 flex flex-col justify-center space-y-4">
+                        @foreach($ventasPorMetodoPago as $metodo)
+                            @php
+                                $maxIngresos = $ventasPorMetodoPago->max('total_ingresos') ?: 1;
+                                $porcentaje = $maxIngresos > 0 ? ($metodo->total_ingresos / $maxIngresos) * 100 : 0;
+                            @endphp
+                            <div class="flex items-center gap-4">
+                                <div class="w-24 text-sm font-medium text-gray-600 capitalize">{{ $metodo->metodo_pago }}</div>
+                                <div class="flex-1 h-8 bg-gray-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-blue-500 rounded-full flex items-center justify-end pr-2" style="width: {{ $porcentaje }}%">
+                                        @if($porcentaje > 20)
+                                            <span class="text-xs text-white font-bold">${{ number_format($metodo->total_ingresos, 0) }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="w-16 text-right text-sm font-bold text-gray-800">{{ $metodo->total_ventas }}</div>
+                            </div>
+                        @endforeach
                     </div>
-                    <p class="text-gray-400 font-bold text-sm">Sin datos para mostrar</p>
-                </div>
+                    <div class="mt-6 pt-4 border-t text-center">
+                        <p class="text-sm text-gray-500">Total: ${{ number_format($ventasPorMetodoPago->sum('total_ingresos'), 2) }}</p>
+                    </div>
+                @else
+                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                        <div class="w-40 h-40 border-[12px] border-gray-50 rounded-full mb-6 relative">
+                        </div>
+                        <p class="text-gray-400 font-bold text-sm">Sin datos para mostrar</p>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -183,7 +192,7 @@
                             @foreach($productosMasVendidos as $index => $producto)
                                 <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="px-8 py-4 text-sm font-medium text-gray-900">{{ $index + 1 }}</td>
-                                    <td class="px-8 py-4 text-sm text-gray-700 font-medium">{{ $producto->NOMBRE_PRODUCTO }}</td>
+                                    <td class="px-8 py-4 text-sm text-gray-700 font-medium">{{ $producto->nombre_producto }}</td>
                                     <td class="px-8 py-4 text-sm text-gray-600">{{ $producto->total_vendido }}</td>
                                     <td class="px-8 py-4 text-sm text-right font-bold text-green-600">${{ number_format($producto->total_ingresos, 2) }}</td>
                                 </tr>

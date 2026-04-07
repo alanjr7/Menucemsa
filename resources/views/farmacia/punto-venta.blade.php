@@ -29,8 +29,9 @@
                 @else
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         <template x-for="producto in filteredProducts" :key="producto.id">
-                            <div @click="addToCart(producto.nombre, producto.precio, producto.id)"
-                                 class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between">
+                            <div @click="addToCart(producto.nombre, producto.precio, producto.id, producto.stock, producto.requiere_receta)"
+                                 class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+                                 :class="{ 'opacity-50 cursor-not-allowed hover:border-gray-100 hover:shadow-none': producto.stock <= 0 }">
                                 <div>
                                     <div class="flex justify-between items-start mb-1">
                                         <h3 class="text-[17px] font-bold text-gray-800" x-text="producto.nombre"></h3>
@@ -43,13 +44,13 @@
                                         <p x-text="'Lote: ' + producto.lote"></p>
                                         <p class="flex items-center gap-1">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2"/></svg>
-                                            <span x-text="'Vence: ' + producto.fecha_vencimiento"></span>
+                                            <span x-text="'Vence: ' + producto.vencimiento"></span>
                                         </p>
                                     </div>
                                 </div>
                                 <div class="flex justify-between items-end">
                                     <span class="text-xl font-bold text-blue-600" x-text="'$' + parseFloat(producto.precio).toFixed(2)"></span>
-                                    <span class="text-[12px] text-gray-400 font-medium" x-text="'Stock: ' + producto.stock"></span>
+                                    <span class="text-[12px] font-medium" :class="producto.stock > 0 ? 'text-green-600' : 'text-red-500'" x-text="'Stock: ' + producto.stock"></span>
                                 </div>
                             </div>
                         </template>
@@ -188,17 +189,30 @@
                 get total() {
                     return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
                 },
-                addToCart(name, price, id) {
+                addToCart(name, price, id, stock, requiereReceta) {
+                    if (stock <= 0) return; // No permitir añadir si no hay stock
+                    
                     const existing = this.cart.find(i => i.id === id);
                     if (existing) {
+                        // Verificar que no exceda el stock disponible
+                        if (existing.qty >= stock) return;
                         existing.qty++;
                     } else {
-                        this.cart.push({ name, price, qty: 1, id });
+                        this.cart.push({ name, price, qty: 1, id, stock, requiereReceta });
                     }
                 },
                 updateQty(index, amount) {
-                    this.cart[index].qty += amount;
-                    if (this.cart[index].qty <= 0) this.removeFromCart(index);
+                    const item = this.cart[index];
+                    const newQty = item.qty + amount;
+                    
+                    // Verificar límites de stock
+                    if (amount > 0 && newQty > item.stock) return; // No exceder stock
+                    if (newQty <= 0) {
+                        this.removeFromCart(index);
+                        return;
+                    }
+                    
+                    item.qty = newQty;
                 },
                 removeFromCart(index) {
                     this.cart.splice(index, 1);
@@ -206,6 +220,13 @@
                 async procesarVenta() {
                     if (this.cart.length === 0) {
                         alert('El carrito está vacío');
+                        return;
+                    }
+
+                    // Verificar si hay productos que requieren receta
+                    const productosConReceta = this.cart.filter(item => item.requiereReceta);
+                    if (productosConReceta.length > 0 && !this.requiereReceta) {
+                        alert('⚠️ Hay productos que requieren receta médica. Por favor, marque la casilla "Venta con receta médica" antes de continuar.');
                         return;
                     }
 

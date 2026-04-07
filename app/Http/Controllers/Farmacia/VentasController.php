@@ -29,17 +29,17 @@ class VentasController extends Controller
     {
         // Obtener todas las ventas con sus detalles
         $ventas = VentaFarmacia::with(['detalles'])
-            ->orderBy('FECHA_VENTA', 'desc')
+            ->orderBy('fecha_venta', 'desc')
             ->get();
 
         // Calcular estadísticas
         $totalVentas = $ventas->count();
-        $ingresosTotales = $ventas->sum('TOTAL');
+        $ingresosTotales = $ventas->sum('total');
         $promedioPorVenta = $totalVentas > 0 ? $ingresosTotales / $totalVentas : 0;
 
         // Obtener ventas de hoy
-        $ventasHoy = VentaFarmacia::whereDate('FECHA_VENTA', Carbon::today())->count();
-        $ingresosHoy = VentaFarmacia::whereDate('FECHA_VENTA', Carbon::today())->sum('TOTAL');
+        $ventasHoy = VentaFarmacia::whereDate('fecha_venta', Carbon::today())->count();
+        $ingresosHoy = VentaFarmacia::whereDate('fecha_venta', Carbon::today())->sum('total');
 
         return view('farmacia.ventas', compact(
             'ventas',
@@ -54,7 +54,7 @@ class VentasController extends Controller
     public function show($codigoVenta)
     {
         $venta = VentaFarmacia::with(['detalles'])
-            ->where('CODIGO_VENTA', $codigoVenta)
+            ->where('codigo_venta', $codigoVenta)
             ->firstOrFail();
 
         return response()->json($venta);
@@ -63,10 +63,10 @@ class VentasController extends Controller
     public function destroy($codigoVenta)
     {
         try {
-            $venta = VentaFarmacia::where('CODIGO_VENTA', $codigoVenta)->firstOrFail();
+            $venta = VentaFarmacia::where('codigo_venta', $codigoVenta)->firstOrFail();
             
             // Eliminar detalles primero
-            DetalleVentaFarmacia::where('CODIGO_VENTA', $codigoVenta)->delete();
+            DetalleVentaFarmacia::where('codigo_venta', $codigoVenta)->delete();
             
             // Eliminar venta
             $venta->delete();

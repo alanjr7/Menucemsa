@@ -67,10 +67,10 @@
                             <td class="px-6 py-4 text-sm text-gray-400 font-mono" x-text="p.codigo_barras"></td>
                             <td class="px-6 py-4 text-sm text-gray-500" x-text="p.proveedor"></td>
                             <td class="px-6 py-4 text-sm text-gray-500">
-                                <template x-if="p.fecha_vencimiento && p.fecha_vencimiento !== 'N/A'">
-                                    <span class="text-xs" x-text="new Date(p.fecha_vencimiento).toLocaleDateString('es-PE')"></span>
+                                <template x-if="p.vencimiento && p.vencimiento !== 'N/A'">
+                                    <span class="text-xs" x-text="new Date(p.vencimiento).toLocaleDateString('es-PE')"></span>
                                 </template>
-                                <template x-if="!p.fecha_vencimiento || p.fecha_vencimiento === 'N/A'">
+                                <template x-if="!p.vencimiento || p.vencimiento === 'N/A'">
                                     <span class="text-xs text-gray-400">N/A</span>
                                 </template>
                             </td>
@@ -124,6 +124,13 @@
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Precio</label>
                                 <input type="number" step="0.01" x-model="editingProduct.precio" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+                            <input type="checkbox" x-model="editingProduct.requiere_receta" id="receta-medica" class="w-5 h-5 text-red-600 rounded focus:ring-red-500">
+                            <label for="receta-medica" class="text-sm font-semibold text-red-700 cursor-pointer">
+                                ⚠️ Requiere Receta Médica
+                            </label>
                         </div>
 
                         <div class="grid grid-cols-2 gap-6">
@@ -210,7 +217,7 @@
                     vencimiento: '',
                     lote: '',
                     descripcion: '',
-                    receta: false
+                    requiere_receta: false
                 };
                 this.showEditModal = true;
             },
@@ -228,7 +235,7 @@
                     return;
                 }
 
-                this.editingProduct.requerimiento = (this.editingProduct.categoria === 'Receta');
+                this.editingProduct.requerimiento = this.editingProduct.requiere_receta ? 'Receta' : 'Normal';
 
                 try {
                     let response;

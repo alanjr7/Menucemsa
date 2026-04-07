@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Farmacia;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Medicamentos;
-use App\Models\DetalleMedicamentos;
+use App\Models\InventarioFarmacia;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
 use App\Models\Cliente;
@@ -29,38 +29,25 @@ class PuntoVentaController extends Controller
 
     public function index()
     {
-        // Obtener productos para el punto de venta
-        $productos = Medicamentos::with('detalleMedicamentos')
-            ->get()
-            ->map(function ($medicamento) {
-                $detalle = $medicamento->detalleMedicamentos->first();
-                
-                // Obtener stock real desde la tabla INVENTARIO
-                $stock = 0;
-                
-                if ($detalle) {
-                    $inventario = \App\Models\Inventario::where('ID', $medicamento->CODIGO)
-                        ->where('ID_FARMACIA', $detalle->ID_FARMACIA)
-                        ->first();
-                    
-                    if ($inventario) {
-                        $stock = (int) $inventario->STOCK_DISPONIBLE;
-                    }
-                }
-                
-                return [
-                    'id' => $medicamento->CODIGO,
-                    'nombre' => $medicamento->DESCRIPCION,
-                    'precio' => $medicamento->PRECIO,
-                    'categoria' => $detalle?->TIPO ?? 'Medicamento',
-                    'laboratorio' => $detalle?->LABORATORIO ?? 'N/A',
-                    'fecha_vencimiento' => $detalle?->FECHA_VENCIMIENTO ?? 'N/A',
-                    'stock' => $stock,
-                    'codigo_barras' => $medicamento->CODIGO,
-                    'lote' => 'LOT-' . $medicamento->CODIGO,
-                    'requerimiento' => $detalle?->REQUERIMIENTO ?? 'Normal'
-                ];
-            });
+        // Obtener productos para el punto de venta desde inventario_farmacia
+        $items = InventarioFarmacia::with('medicamento')
+            ->where('tipo_item', 'medicamento')
+            ->get();
+            
+        $productos = $items->map(function ($item) {
+            return [
+                'id' => $item->codigo_item,
+                'nombre' => $item->medicamento->descripcion ?? 'Producto desconocido',
+                'precio' => $item->medicamento->precio ?? 0,
+                'categoria' => $item->tipo ?? 'Medicamento',
+                'laboratorio' => $item->laboratorio ?? 'N/A',
+                'vencimiento' => $item->fecha_vencimiento ?? 'N/A',
+                'stock' => $item->stock_disponible,
+                'codigo_barras' => $item->codigo_item,
+                'lote' => $item->lote ?? 'LOT-' . $item->codigo_item,
+                'requerimiento' => $item->requerimiento ?? 'Normal'
+            ];
+        });
 
         // Obtener clientes para el select
         $clientes = Cliente::orderBy('nombre')->get(['id', 'nombre', 'telefono']);
@@ -84,12 +71,50 @@ class PuntoVentaController extends Controller
         try {
             \DB::beginTransaction();
 
+            // Validar stock disponible y requisito de receta para todos los items
+            $productosRequierenReceta = [];
+            foreach ($validated['items'] as $item) {
+                $inventario = InventarioFarmacia::where('codigo_item', $item['id'])
+                    ->where('tipo_item', 'medicamento')
+                    ->first();
+                
+                if (!$inventario) {
+                    \DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Producto no encontrado en inventario: ' . $item['id']
+                    ], 400);
+                }
+                
+                if ($inventario->stock_disponible < $item['cantidad']) {
+                    \DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Stock insuficiente para "' . ($inventario->medicamento->descripcion ?? $item['id']) . '". Disponible: ' . $inventario->stock_disponible . ', Solicitado: ' . $item['cantidad']
+                    ], 400);
+                }
+                
+                // Verificar si el producto requiere receta
+                if ($inventario->requerimiento === 'Receta') {
+                    $productosRequierenReceta[] = $inventario->medicamento->descripcion ?? $item['id'];
+                }
+            }
+            
+            // Validar que si hay productos con receta, se haya marcado el checkbox
+            if (!empty($productosRequierenReceta) && empty($validated['requiere_receta'])) {
+                \DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los siguientes productos requieren receta médica: ' . implode(', ', $productosRequierenReceta) . '. Por favor, marque la casilla "Venta con receta médica".'
+                ], 400);
+            }
+
             // Obtener o crear una farmacia por defecto
             $farmacia = \App\Models\Farmacia::first();
             if (!$farmacia) {
                 $farmacia = \App\Models\Farmacia::create([
-                    'ID' => 'FARM001',
-                    'DETALLE' => 'Farmacia Principal'
+                    'id' => 'FARM001',
+                    'detalle' => 'Farmacia Principal'
                 ]);
             }
 
@@ -110,15 +135,15 @@ class PuntoVentaController extends Controller
 
             // Crear venta
             $venta = VentaFarmacia::create([
-                'CODIGO_VENTA' => $codigoVenta,
-                'ID_FARMACIA' => $farmacia->ID,
-                'CLIENTE' => $clienteNombre,
-                'TOTAL' => $total,
-                'METODO_PAGO' => $validated['metodo_pago'],
-                'REQUIERE_RECETA' => $validated['requiere_receta'] ?? false,
-                'FECHA_VENTA' => Carbon::now(),
-                'ESTADO' => 'COMPLETADA',
-                'OBSERVACIONES' => $validated['observaciones'] ?? null,
+                'codigo_venta' => $codigoVenta,
+                'farmacia_id' => $farmacia->id,
+                'cliente' => $clienteNombre,
+                'total' => $total,
+                'metodo_pago' => $validated['metodo_pago'],
+                'requiere_receta' => $validated['requiere_receta'] ?? false,
+                'fecha_venta' => Carbon::now(),
+                'estado' => 'COMPLETADA',
+                'observaciones' => $validated['observaciones'] ?? null,
                 'caja_diaria_id' => $this->obtenerOCrearCajaDiaria()->id
             ]);
 
@@ -127,17 +152,27 @@ class PuntoVentaController extends Controller
                 $medicamento = Medicamentos::find($item['id']);
                 
                 DetalleVentaFarmacia::create([
-                    'CODIGO_VENTA' => $codigoVenta,
-                    'CODIGO_PRODUCTO' => $item['id'],
-                    'TIPO_PRODUCTO' => 'Medicamento',
-                    'NOMBRE_PRODUCTO' => $medicamento->DESCRIPCION,
-                    'CANTIDAD' => $item['cantidad'],
-                    'PRECIO_UNITARIO' => $item['precio'],
-                    'SUBTOTAL' => $item['cantidad'] * $item['precio']
+                    'codigo_venta' => $codigoVenta,
+                    'codigo_producto' => $item['id'],
+                    'tipo_producto' => 'Medicamento',
+                    'nombre_producto' => $medicamento->descripcion,
+                    'cantidad' => $item['cantidad'],
+                    'precio_unitario' => $item['precio'],
+                    'subtotal' => $item['cantidad'] * $item['precio']
                 ]);
 
-                // Aquí deberíamos actualizar el stock del producto
-                // $this->actualizarStock($item['id'], $item['cantidad']);
+                // Descontar stock del inventario_farmacia
+                $inventario = InventarioFarmacia::where('codigo_item', $item['id'])
+                    ->where('tipo_item', 'medicamento')
+                    ->first();
+                
+                if ($inventario) {
+                    $nuevoStock = $inventario->stock_disponible - $item['cantidad'];
+                    $inventario->update([
+                        'stock_disponible' => max(0, $nuevoStock),
+                        'reposicion' => $nuevoStock <= $inventario->stock_minimo ? 1 : 0
+                    ]);
+                }
             }
 
             \DB::commit();

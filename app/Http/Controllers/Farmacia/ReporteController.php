@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
+use App\Models\InventarioFarmacia;
 use App\Models\Medicamentos;
 use App\Models\Cliente;
 use Carbon\Carbon;
@@ -29,36 +30,49 @@ class ReporteController extends Controller
     {
         // Obtener estadísticas generales
         $totalVentas = VentaFarmacia::count();
-        $ingresosTotales = VentaFarmacia::sum('TOTAL');
+        $ingresosTotales = VentaFarmacia::sum('total');
         $promedioPorVenta = $totalVentas > 0 ? $ingresosTotales / $totalVentas : 0;
 
         // Obtener ventas del día
         $hoy = Carbon::today();
-        $ventasHoy = VentaFarmacia::whereDate('FECHA_VENTA', $hoy)->count();
-        $ingresosHoy = VentaFarmacia::whereDate('FECHA_VENTA', $hoy)->sum('TOTAL');
+        $ventasHoy = VentaFarmacia::whereDate('fecha_venta', $hoy)->count();
+        $ingresosHoy = VentaFarmacia::whereDate('fecha_venta', $hoy)->sum('total');
 
         // Obtener productos más vendidos
         $productosMasVendidos = DetalleVentaFarmacia::selectRaw('
-                NOMBRE_PRODUCTO,
-                SUM(CANTIDAD) as total_vendido,
-                SUM(SUBTOTAL) as total_ingresos
+                nombre_producto,
+                SUM(cantidad) as total_vendido,
+                SUM(subtotal) as total_ingresos
             ')
-            ->groupBy('NOMBRE_PRODUCTO')
+            ->groupBy('nombre_producto')
             ->orderBy('total_vendido', 'desc')
             ->take(10)
             ->get();
 
         // Obtener ventas por período (últimos 7 días)
-        $ventasPorDia = VentaFarmacia::whereDate('FECHA_VENTA', '>=', Carbon::now()->subDays(7))
-            ->selectRaw('DATE(FECHA_VENTA) as fecha, COUNT(*) as total_ventas, SUM(TOTAL) as total_ingresos')
+        $ventasPorDia = VentaFarmacia::whereDate('fecha_venta', '>=', Carbon::now()->subDays(7))
+            ->selectRaw('DATE(fecha_venta) as fecha, COUNT(*) as total_ventas, SUM(total) as total_ingresos')
             ->groupBy('fecha')
             ->orderBy('fecha')
             ->get();
 
         // Obtener ventas recientes para la tabla
         $ventasRecientes = VentaFarmacia::with(['detalles'])
-            ->orderBy('FECHA_VENTA', 'desc')
+            ->orderBy('fecha_venta', 'desc')
             ->take(10)
+            ->get();
+
+        // Obtener alertas de stock
+        $alertasStock = InventarioFarmacia::with('medicamento')
+            ->where('tipo_item', 'medicamento')
+            ->whereColumn('stock_disponible', '<=', 'stock_minimo')
+            ->where('stock_minimo', '>', 0)
+            ->get();
+
+        // Obtener ventas por método de pago
+        $ventasPorMetodoPago = VentaFarmacia::selectRaw('metodo_pago, COUNT(*) as total_ventas, SUM(total) as total_ingresos')
+            ->groupBy('metodo_pago')
+            ->orderBy('total_ingresos', 'desc')
             ->get();
 
         return view('farmacia.reporte', compact(
@@ -69,7 +83,9 @@ class ReporteController extends Controller
             'ingresosHoy',
             'productosMasVendidos',
             'ventasPorDia',
-            'ventasRecientes'
+            'ventasRecientes',
+            'alertasStock',
+            'ventasPorMetodoPago'
         ));
     }
 
@@ -97,13 +113,13 @@ class ReporteController extends Controller
         $query = VentaFarmacia::with(['detalles']);
 
         if ($fechaInicio && $fechaFin) {
-            $query->whereBetween('FECHA_VENTA', [$fechaInicio, $fechaFin]);
+            $query->whereBetween('fecha_venta', [$fechaInicio, $fechaFin]);
         }
 
-        $ventas = $query->orderBy('FECHA_VENTA', 'desc')->get();
+        $ventas = $query->orderBy('fecha_venta', 'desc')->get();
 
         $totalVentas = $ventas->count();
-        $ingresosTotales = $ventas->sum('TOTAL');
+        $ingresosTotales = $ventas->sum('total');
         $promedioPorVenta = $totalVentas > 0 ? $ingresosTotales / $totalVentas : 0;
 
         return response()->json([
