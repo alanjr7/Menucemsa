@@ -23,7 +23,9 @@ class PatientsController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('nombre', 'LIKE', "%{$search}%")
                   ->orWhere('ci', 'LIKE', "%{$search}%")
-                  ->orWhere('codigo_registro', 'LIKE', "%{$search}%");
+                  ->orWhereHas('registro', function($rq) use ($search) {
+                      $rq->where('codigo', 'LIKE', "%{$search}%");
+                  });
             });
         }
 

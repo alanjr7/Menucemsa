@@ -228,7 +228,7 @@
         </div>
 
         <!-- Modal: Editar Servicio -->
-        <div x-show="editingTarifa" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.away="editingTarifa = null">
+        <div x-show="editingTarifa && editingTarifa.id" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.away="editingTarifa = null">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4" @click.stop>
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="text-lg font-bold text-slate-800">Editar Servicio/Tarifa</h3>

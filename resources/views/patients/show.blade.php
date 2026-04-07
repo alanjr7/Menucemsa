@@ -125,11 +125,11 @@
                 <dl class="space-y-2">
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Código Registro:</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->codigo_registro }}</dd>
+                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->registro_codigo }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Registrado por:</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->registro->usuario->name ?? '-' }}</dd>
+                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->registro->user->name ?? '-' }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Fecha Registro:</dt>

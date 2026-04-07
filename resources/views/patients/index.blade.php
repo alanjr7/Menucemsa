@@ -146,7 +146,7 @@
                                             {{ $paciente->emergency_code }}
                                         </span>
                                     @else
-                                        {{ $paciente->codigo_registro }}
+                                        {{ $paciente->registro_codigo }}
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -192,7 +192,7 @@
                                     @if(isset($paciente->is_temporal) && $paciente->is_temporal)
                                         <span class="text-xs text-gray-400">Emergencia</span>
                                     @else
-                                        {{ $paciente->registro->usuario->name ?? 'Sistema' }}
+                                        {{ $paciente->registro->user->name ?? 'Sistema' }}
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

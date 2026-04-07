@@ -67,7 +67,7 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-gray-800">Dr. {{ $medico->usuario->name ?? 'Sin nombre' }}</h4>
+                                    <h4 class="font-bold text-gray-800">Dr. {{ $medico->user->name ?? 'Sin nombre' }}</h4>
                                     <p class="text-sm text-gray-600">{{ $medico->especialidad->nombre ?? 'Sin especialidad' }}</p>
                                     <p class="text-xs text-gray-400">CI: {{ $medico->ci }}</p>
                                 </div>
