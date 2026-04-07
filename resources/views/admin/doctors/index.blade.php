@@ -40,8 +40,8 @@
                             <td class="px-4 py-3">{{ $doctor->medico->telefono ?? '-' }}</td>
                             <td class="px-4 py-3">{{ $doctor->medico->especialidad->nombre ?? '-' }}</td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full {{ $doctor->medico->estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ $doctor->medico->estado ?? 'Desconocido' }}
+                                <span class="px-2 py-1 text-xs rounded-full {{ optional($doctor->medico)->estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ optional($doctor->medico)->estado ?? 'Desconocido' }}
                                 </span>
                             </td>
                             <td class="px-4 py-3">

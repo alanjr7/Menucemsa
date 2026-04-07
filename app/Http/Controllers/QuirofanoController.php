@@ -26,7 +26,7 @@ class QuirofanoController extends Controller
         $endOfWeek = now()->endOfWeek();
         
         // Obtener todas las citas de la semana
-        $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.usuario', 'quirofano'])
+        $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
             ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
             ->orderBy('fecha')
             ->orderBy('hora_inicio_estimada')
@@ -115,7 +115,7 @@ class QuirofanoController extends Controller
     public function getMedico($ci): JsonResponse
     {
         try {
-            $medico = Medico::with('usuario')->find($ci);
+            $medico = Medico::with('user')->find($ci);
             if (!$medico) {
                 return response()->json([
                     'success' => false,
@@ -233,9 +233,9 @@ class QuirofanoController extends Controller
     {
         $cita->load([
             'paciente.seguro',
-            'cirujano.usuario',
-            'instrumentista.usuario',
-            'anestesiologo.usuario',
+            'cirujano.user',
+            'instrumentista.user',
+            'anestesiologo.user',
             'quirofano',
             'usuarioRegistro'
         ]);
@@ -250,7 +250,7 @@ class QuirofanoController extends Controller
         }
 
         $pacientes = Paciente::all();
-        $medicos = Medico::with('usuario')->get();
+        $medicos = Medico::with('user')->get();
         $quirofanos = Quirofano::where('estado', 'disponible')->get();
         $tiposCirugia = TipoCirugia::activos()->get();
 
@@ -474,7 +474,7 @@ class QuirofanoController extends Controller
             'fecha_fin' => 'required|date|after_or_equal:fecha_inicio'
         ]);
 
-        $query = CitaQuirurgica::with(['paciente', 'cirujano.usuario', 'quirofano'])
+        $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
             ->whereBetween('fecha', [$request->fecha_inicio, $request->fecha_fin]);
 
         if ($request->quirofano) {
@@ -491,7 +491,7 @@ class QuirofanoController extends Controller
                 'borderColor' => $this->getColorPorEstado($cita->estado),
                 'extendedProps' => [
                     'paciente' => $cita->paciente->nombre,
-                    'cirujano' => $cita->cirujano->usuario->name,
+                    'cirujano' => $cita->cirujano->user->name,
                     'quirofano' => $cita->quirofano->nro,
                     'tipo_cirugia' => $cita->tipo_cirugia,
                     'estado' => $cita->estado,
@@ -519,7 +519,7 @@ class QuirofanoController extends Controller
 
     public function historial(): View
     {
-        $citas = CitaQuirurgica::with(['paciente', 'cirujano.usuario', 'quirofano'])
+        $citas = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
             ->orderBy('fecha', 'desc')
             ->orderBy('hora_inicio_estimada', 'desc')
             ->paginate(20);
@@ -558,15 +558,15 @@ class QuirofanoController extends Controller
     public function getListaMedicos(): JsonResponse
     {
         try {
-            $medicos = Medico::with('usuario', 'especialidad')
-                ->whereHas('usuario', function($q) {
+            $medicos = Medico::with('user', 'especialidad')
+                ->whereHas('user', function($q) {
                     $q->where('role', 'doctor');
                 })
                 ->get()
                 ->map(function($medico) {
                     return [
                         'ci' => $medico->ci,
-                        'nombre' => $medico->usuario->name ?? 'Sin nombre',
+                        'nombre' => $medico->user->name ?? 'Sin nombre',
                         'especialidad' => $medico->especialidad->nombre ?? 'Sin especialidad'
                     ];
                 });

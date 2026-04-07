@@ -178,7 +178,7 @@
                                         } elseif (!isset($paciente->is_temporal) && $paciente->hospitalizaciones()->where('estado', 'Activo')->exists()) {
                                             $estado = 'Hospitalizado';
                                             $estadoColor = 'yellow';
-                                        } elseif (!isset($paciente->is_temporal) && $paciente->emergencias()->where('estado', 'Activo')->exists()) {
+                                        } elseif (!isset($paciente->is_temporal) && $paciente->emergencies()->where('status', '!=', 'alta')->exists()) {
                                             $estado = 'Emergencia';
                                             $estadoColor = 'red';
                                         }

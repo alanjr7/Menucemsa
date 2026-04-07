@@ -68,7 +68,7 @@ class UserManagementController extends Controller
             // Crear registro médico solo para roles médicos
             if (in_array($request->role, ['doctor', 'dirmedico'])) {
                 $medico = \App\Models\Medico::create([
-                    'id_usuario' => $user->id,
+                    'user_id' => $user->id,
                     'ci' => $validated['ci'],
                     'telefono' => $validated['telefono'] ?? null,
                     'estado' => 'Activo',

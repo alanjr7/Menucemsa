@@ -233,7 +233,7 @@ class CajaOperativaController extends Controller
     public function getDetalleCuenta(string $id): JsonResponse
     {
         try {
-            $cuenta = CuentaCobro::with(['paciente', 'detalles.tarifa', 'pagos.usuario'])
+            $cuenta = CuentaCobro::with(['paciente', 'detalles.tarifa', 'pagos.user'])
                 ->findOrFail($id);
 
             // Determinar referencia (consulta, emergencia, etc.)
@@ -277,7 +277,7 @@ class CajaOperativaController extends Controller
                             'monto' => $pago->monto,
                             'metodo_pago' => $pago->metodo_pago_label,
                             'referencia' => $pago->referencia,
-                            'usuario' => $pago->usuario->name ?? 'N/A',
+                            'usuario' => $pago->user->name ?? 'N/A',
                             'fecha' => $pago->created_at->format('d/m/Y H:i'),
                         ];
                     }),
@@ -372,6 +372,32 @@ class CajaOperativaController extends Controller
                 $cuenta->estado = 'parcial';
             }
             $cuenta->save();
+
+            // Si está pagado completamente, actualizar Caja y Consulta
+            if ($cuenta->estado === 'pagado') {
+                // Generar número de factura
+                $ultimaFactura = \App\Models\Caja::max('nro_factura') ?? 0;
+                $nroFactura = $ultimaFactura + 1;
+
+                // Buscar y actualizar la Caja asociada
+                $caja = \App\Models\Caja::whereHas('consulta', function($q) use ($cuenta) {
+                    $q->where('ci_paciente', $cuenta->paciente_ci);
+                })->whereNull('nro_factura')->first();
+
+                if ($caja) {
+                    $caja->update(['nro_factura' => $nroFactura]);
+                }
+
+                // Actualizar la Consulta - marcar como pagada
+                $consulta = \App\Models\Consulta::where('ci_paciente', $cuenta->paciente_ci)
+                    ->where('estado_pago', false)
+                    ->whereDate('fecha', today())
+                    ->first();
+
+                if ($consulta) {
+                    $consulta->update(['estado_pago' => true]);
+                }
+            }
 
             // Registrar movimiento en caja
             MovimientoCaja::create([

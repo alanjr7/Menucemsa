@@ -55,7 +55,7 @@ class DoctorController extends Controller
 
             // Crear registro médico
             Medico::create([
-                'id_usuario' => $user->id,
+                'user_id' => $user->id,
                 'ci' => $data['ci'],
                 'telefono' => $data['telefono'] ?? null,
                 'estado' => 'Activo',

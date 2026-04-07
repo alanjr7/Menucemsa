@@ -6,7 +6,7 @@
     <!-- Page Header -->
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Pacientes del Dr. {{ $medico->usuario->name }}</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Pacientes del Dr. {{ $medico->user->name }}</h1>
             <p class="text-sm text-gray-500">{{ $medico->especialidad->nombre ?? 'Sin especialidad' }} | CI: {{ $medico->ci }}</p>
         </div>
         <div class="flex gap-3">

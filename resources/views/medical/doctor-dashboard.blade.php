@@ -109,7 +109,7 @@
                                 Pagado
                             </span>
                             
-                            <button onclick="atenderPaciente('{{ $consulta->nro }}')" 
+                            <button onclick="atenderPaciente('{{ $consulta->codigo }}')" 
                                     class="bg-[#0061df] hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-blue-100 transition-all">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2"/>

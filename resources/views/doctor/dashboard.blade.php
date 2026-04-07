@@ -76,10 +76,10 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <a href="{{ route('consulta.ver', $consulta->nro) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                                        <a href="{{ route('consulta.ver', $consulta->codigo) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                                             Ver Ficha
                                         </a>
-                                        <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleIniciarConsulta(this)" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <button data-consulta-nro="{{ $consulta->codigo }}" onclick="handleIniciarConsulta(this)" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
                                             Iniciar Atención
                                         </button>
                                     </div>
@@ -122,10 +122,10 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <a href="{{ route('consulta.ver', $consulta->nro) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <a href="{{ route('consulta.ver', $consulta->codigo) }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                                             Continuar Consulta
                                         </a>
-                                        <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleCompletarConsulta(this)" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <button data-consulta-nro="{{ $consulta->codigo }}" onclick="handleCompletarConsulta(this)" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
                                             Completar
                                         </button>
                                     </div>
@@ -171,7 +171,7 @@
                                         <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                                             Completada
                                         </span>
-                                        <a href="{{ route('consulta.ver', $consulta->nro) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                                        <a href="{{ route('consulta.ver', $consulta->codigo) }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                                             Ver Detalles
                                         </a>
                                     </div>

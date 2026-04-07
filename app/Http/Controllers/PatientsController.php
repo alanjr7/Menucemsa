@@ -14,7 +14,7 @@ class PatientsController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Paciente::with(['seguro', 'triage', 'registro.usuario'])
+        $query = Paciente::with(['seguro', 'triage', 'registro.user'])
             ->whereHas('registro'); // Solo pacientes con registro
 
         // Búsqueda
@@ -118,9 +118,9 @@ class PatientsController extends Controller
         $paciente = Paciente::with([
             'seguro',
             'triage', 
-            'registro.usuario',
+            'registro.user',
             'consultas' => function($q) {
-                $q->with(['medico.usuario', 'especialidad', 'caja'])
+                $q->with(['medico.user', 'especialidad', 'caja'])
                   ->orderBy('fecha', 'desc');
             },
             'emergencies' => function($q) {
@@ -128,7 +128,7 @@ class PatientsController extends Controller
                   ->orderBy('created_at', 'desc');
             },
             'hospitalizaciones' => function($q) {
-                $q->with(['medico.usuario'])
+                $q->with(['medico.user'])
                   ->orderBy('fecha_ingreso', 'desc');
             }
         ])->findOrFail($ci);

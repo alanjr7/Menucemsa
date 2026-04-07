@@ -15,7 +15,7 @@ class DoctorDashboardController extends Controller
     {
         // Obtener el médico autenticado
         $user = auth()->user();
-        $medico = Medico::where('id_usuario', $user->id)->first();
+        $medico = Medico::where('user_id', $user->id)->first();
         
         if (!$medico) {
             abort(403, 'No se encontró información del médico');
@@ -51,7 +51,7 @@ class DoctorDashboardController extends Controller
 
             // Obtener el médico autenticado
             $user = auth()->user();
-            $medico = Medico::where('id_usuario', $user->id)->first();
+            $medico = Medico::where('user_id', $user->id)->first();
             
             if (!$medico) {
                 return response()->json([
@@ -61,7 +61,7 @@ class DoctorDashboardController extends Controller
             }
 
             // Obtener la consulta
-            $consulta = Consulta::where('nro', $request->consulta_nro)
+            $consulta = Consulta::where('codigo', $request->consulta_nro)
                 ->where('ci_medico', $medico->ci)
                 ->first();
 

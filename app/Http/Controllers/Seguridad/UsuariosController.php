@@ -53,7 +53,7 @@ class UsuariosController extends Controller
 
         if ($role === 'dirmedico') {
             Medico::updateOrCreate(
-                ['id_usuario' => $user->id],
+                ['user_id' => $user->id],
                 [
                     'ci' => $request->ci,
                     'telefono' => $request->telefono,
@@ -71,7 +71,7 @@ class UsuariosController extends Controller
     public function edit(User $user)
     {
         $especialidades = Especialidad::orderBy('nombre')->get();
-        $medico = Medico::where('id_usuario', $user->id)->first();
+        $medico = Medico::where('user_id', $user->id)->first();
 
         return view('seguridad.usuarios-edit', compact('user', 'especialidades', 'medico'));
     }
@@ -110,7 +110,7 @@ class UsuariosController extends Controller
 
             if ($role === 'dirmedico') {
                 Medico::updateOrCreate(
-                    ['id_usuario' => $user->id],
+                    ['user_id' => $user->id],
                     [
                         'ci' => $request->ci,
                         'telefono' => $request->telefono,

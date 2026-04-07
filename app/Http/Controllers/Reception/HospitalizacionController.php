@@ -104,7 +104,7 @@ class HospitalizacionController extends Controller
     public function getHospitalizacionesActivas()
     {
         try {
-            $hospitalizaciones = Hospitalizacion::with(['paciente', 'triage', 'medico.usuario', 'medico.especialidad'])
+            $hospitalizaciones = Hospitalizacion::with(['paciente', 'triage', 'medico.user', 'medico.especialidad'])
                 ->whereNull('fecha_alta')
                 ->orderBy('fecha_ingreso', 'desc')
                 ->get();
@@ -123,7 +123,7 @@ class HospitalizacionController extends Controller
                     'fecha_ingreso' => $hospitalizacion->fecha_ingreso->format('d/m/Y'),
                     'medico' => [
                         'usuario' => [
-                            'name' => $hospitalizacion->medico->usuario->name ?? 'No asignado'
+                            'name' => $hospitalizacion->medico->user->name ?? 'No asignado'
                         ]
                     ],
                     'habitacion' => $hospitalizacion->habitacion ?? 'Por asignar'

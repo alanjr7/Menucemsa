@@ -106,7 +106,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Médico</label>
                                 <div class="bg-gray-50 rounded-lg px-4 py-2">
-                                    <p class="font-medium text-gray-900">{{ $consulta->medico->usuario->name }}</p>
+                                    <p class="font-medium text-gray-900">{{ $consulta->medico->user->name }}</p>
                                 </div>
                             </div>
                         </div>
@@ -175,7 +175,7 @@
                     <div id="formularioCompletar" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hidden">
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Completar Consulta</h3>
                         
-                        <form id="formCompletarConsulta" onsubmit="completarConsulta(event, '{{ $consulta->nro }}')">
+                        <form id="formCompletarConsulta" onsubmit="completarConsulta(event, '{{ $consulta->codigo }}')">
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Diagnóstico</label>
                                 <textarea name="diagnostico" rows="3" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all" placeholder="Ingrese el diagnóstico..."></textarea>

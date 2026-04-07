@@ -170,7 +170,7 @@
 
         <!-- Farmacia (Admin) -->
         @if(Auth::user()->isAdmin())
-        <div x-data="{ open: {{ request()->is('farmacia/reporte*') ? 'true' : 'false' }} }">
+        <div x-data="{ open: {{ request()->is('farmacia*') ? 'true' : 'false' }} }">
             <button @click="if(!sidebarOpen) sidebarOpen = true; else open = !open"
                     class="w-full flex items-center py-2.5 text-blue-100 hover:bg-white/10 hover:text-white rounded-lg transition-all duration-200 group"
                     :class="sidebarOpen ? 'px-3 justify-start' : 'px-0 justify-center'">
@@ -184,6 +184,11 @@
                 </svg>
             </button>
             <div x-show="open && sidebarOpen" x-collapse class="pl-4 mt-1 mb-2 space-y-1 border-l border-blue-500/30 ml-5">
+                <!-- <a href="{{ route('farmacia.index') }}" class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ request()->routeIs('farmacia.index') ? 'text-white bg-blue-600/50 font-bold' : 'text-blue-200 hover:text-white hover:bg-white/5' }}">Dashboard</a> -->
+                <!-- <a href="{{ route('farmacia.pos') }}" class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ request()->routeIs('farmacia.pos') ? 'text-white bg-blue-600/50 font-bold' : 'text-blue-200 hover:text-white hover:bg-white/5' }}">Punto de Venta</a>
+                <a href="{{ route('farmacia.inventario') }}" class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ request()->routeIs('farmacia.inventario') ? 'text-white bg-blue-600/50 font-bold' : 'text-blue-200 hover:text-white hover:bg-white/5' }}">Inventario</a> -->
+                <a href="{{ route('farmacia.ventas') }}" class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ request()->routeIs('farmacia.ventas') ? 'text-white bg-blue-600/50 font-bold' : 'text-blue-200 hover:text-white hover:bg-white/5' }}">Ventas</a>
+                <!-- <a href="{{ route('farmacia.clientes') }}" class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ request()->routeIs('farmacia.clientes') ? 'text-white bg-blue-600/50 font-bold' : 'text-blue-200 hover:text-white hover:bg-white/5' }}">Clientes</a> -->
                 <a href="{{ route('farmacia.reporte') }}" class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ request()->routeIs('farmacia.reporte') ? 'text-white bg-blue-600/50 font-bold' : 'text-blue-200 hover:text-white hover:bg-white/5' }}">Reporte</a>
             </div>
         </div>

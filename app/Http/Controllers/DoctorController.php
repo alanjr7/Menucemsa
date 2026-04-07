@@ -167,7 +167,14 @@ class DoctorController extends Controller
                 'user_id' => Auth::id()
             ]);
 
-            $consulta = Consulta::findOrFail($consultaId);
+            $consulta = Consulta::where('codigo', $consultaId)->first();
+            
+            if (!$consulta) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Consulta no encontrada'
+                ], 404);
+            }
             
             // Verificar que la consulta pertenezca al médico actual
             $user = Auth::user();
@@ -245,7 +252,15 @@ class DoctorController extends Controller
                 'request_data' => $request->all()
             ]);
 
-            $consulta = Consulta::findOrFail($consultaId);
+            $consulta = Consulta::where('codigo', $consultaId)->first();
+            
+            if (!$consulta) {
+                \Log::error('Consulta not found', ['consultaId' => $consultaId]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Consulta no encontrada'
+                ], 404);
+            }
             
             // Verificar que la consulta pertenezca al médico actual
             $user = Auth::user();
@@ -292,8 +307,8 @@ class DoctorController extends Controller
                 ], 400);
             }
 
-            // Actualizar estado a "completada"
-            $consulta->estado = 'completada';
+            // Actualizar estado a "atendido"
+            $consulta->estado = 'atendido';
             $consulta->observaciones = $request->observaciones ?? $consulta->observaciones;
             $consulta->save();
 
@@ -398,7 +413,7 @@ class DoctorController extends Controller
                 ->count(),
             'pacientesUnicos' => $consultas->pluck('paciente.ci')->unique()->count(),
             'consultasCompletadas' => Consulta::where('ci_medico', $medico->ci)
-                ->where('estado', 'completada')
+                ->where('estado', 'atendido')
                 ->whereHas('caja', function($query) {
                     $query->whereNotNull('nro_factura');
                 })
@@ -504,7 +519,7 @@ class DoctorController extends Controller
         ]);
     }
 
-    public function verConsulta($consultaId)
+    public function verConsulta($consultaCodigo)
     {
         $consulta = Consulta::with([
             'paciente',
@@ -512,7 +527,7 @@ class DoctorController extends Controller
             'especialidad',
             'caja',
             'recetas'
-        ])->findOrFail($consultaId);
+        ])->where('codigo', $consultaCodigo)->firstOrFail();
 
         $user = Auth::user();
         
@@ -526,7 +541,7 @@ class DoctorController extends Controller
             'user_id' => $user->id,
             'user_role' => $user->role,
             'user_name' => $user->name,
-            'consulta_id' => $consultaId,
+            'consulta_codigo' => $consultaCodigo,
             'consulta_medico_ci' => $consulta->ci_medico
         ]);
         
