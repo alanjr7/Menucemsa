@@ -924,6 +924,8 @@
                                     <span><strong>Hora:</strong> ${emp.hora_ingreso}</span>
                                     <span>|</span>
                                     <span class="capitalize"><strong>Estado:</strong> ${emp.status_label}</span>
+                                    <span>|</span>
+                                    <span class="capitalize text-orange-600"><strong>Ubicación:</strong> ${emp.ubicacion_actual || 'No especificada'}</span>
                                 </div>
                             </div>
                         </div>

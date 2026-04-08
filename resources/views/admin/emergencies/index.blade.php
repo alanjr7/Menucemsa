@@ -210,7 +210,7 @@
             const matchBuscar = !buscar || 
                 emp.code.toLowerCase().includes(buscar) || 
                 emp.paciente_nombre.toLowerCase().includes(buscar) ||
-                emp.paciente_id.toLowerCase().includes(buscar);
+                emp.patient_id.toLowerCase().includes(buscar);
             
             const matchTipo = !tipo || emp.tipo_ingreso === tipo;
             const matchUbicacion = !ubicacion || emp.ubicacion_actual === ubicacion;
@@ -261,7 +261,7 @@
                 <td class="px-6 py-4 font-medium text-gray-900">${emp.code}</td>
                 <td class="px-6 py-4">
                     <div class="font-medium text-gray-900">${emp.paciente_nombre}</div>
-                    <div class="text-xs text-gray-500">${emp.is_temp_id ? 'ID Temporal' : 'CI: ' + emp.paciente_id}</div>
+                    <div class="text-xs text-gray-500">${emp.is_temp_id ? 'ID Temporal' : 'CI: ' + emp.patient_id}</div>
                 </td>
                 <td class="px-6 py-4">
                     <span class="px-2 py-1 rounded-full text-xs font-medium ${getTipoIngresoClass(emp.tipo_ingreso)}">
@@ -370,7 +370,7 @@
                 <div>
                     <h4 class="font-semibold text-gray-700 mb-2">Información del Paciente</h4>
                     <p><strong>Nombre:</strong> ${emp.paciente_nombre}</p>
-                    <p><strong>ID:</strong> ${emp.paciente_id}</p>
+                    <p><strong>ID:</strong> ${emp.patient_id}</p>
                     <p><strong>Tipo:</strong> ${emp.is_temp_id ? 'ID Temporal' : 'Paciente Registrado'}</p>
                 </div>
                 <div>

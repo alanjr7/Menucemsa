@@ -528,8 +528,7 @@ class EmergencyStaffController extends Controller
     public function apiEmergenciasTemporales(): JsonResponse
     {
         $emergencias = Emergency::where('is_temp_id', true)
-            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])
-            ->where('ubicacion_actual', 'emergencia')
+            ->whereNotIn('status', ['alta', 'fallecido'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($emg) {
@@ -541,6 +540,7 @@ class EmergencyStaffController extends Controller
                     'tipo_ingreso_label' => $emg->tipo_ingreso_label,
                     'status' => $emg->status,
                     'status_label' => $this->getStatusLabel($emg->status),
+                    'ubicacion_actual' => $emg->ubicacion_actual,
                     'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
                     'fecha_ingreso' => $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
                 ];

@@ -380,22 +380,33 @@ class EmergencyIngresoController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Datos del paciente completados exitosamente',
-                'paciente' => [
-                    'ci' => $paciente->ci,
-                    'nombre' => $paciente->nombre,
-                ],
-                'emergency_id' => $emergency->id,
-            ]);
+            // Si es petición AJAX, retornar JSON; si es web, redirigir
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Datos del paciente completados exitosamente',
+                    'paciente' => [
+                        'ci' => $paciente->ci,
+                        'nombre' => $paciente->nombre,
+                    ],
+                    'emergency_id' => $emergency->id,
+                ]);
+            }
+
+            return redirect()->route('reception')
+                ->with('success', 'Datos del paciente completados exitosamente. CI: ' . $paciente->ci);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación: ' . $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación: ' . $e->getMessage(),
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Error al completar datos del paciente temporal: ' . $e->getMessage(), [
@@ -403,10 +414,15 @@ class EmergencyIngresoController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al completar los datos: ' . $e->getMessage(),
-            ], 500);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al completar los datos: ' . $e->getMessage(),
+                ], 500);
+            }
+            return redirect()->back()
+                ->with('error', 'Error al completar los datos: ' . $e->getMessage())
+                ->withInput();
         }
     }
 
