@@ -152,10 +152,20 @@ class DoctorController extends Controller
             'medicosActivos' => $consultasHoy->pluck('ci_medico')->unique()->count()
         ];
 
+        // Historial de consultas (últimos 30 días por defecto)
+        $historialConsultas = Consulta::with(['paciente', 'medico.user', 'especialidad', 'caja'])
+            ->whereHas('caja', function($query) {
+                $query->whereNotNull('nro_factura');
+            })
+            ->orderBy('fecha', 'desc')
+            ->orderBy('hora', 'desc')
+            ->paginate(50);
+
         return view('admin.consulta-externa-gestion', compact(
             'medicos',
             'consultasPorMedico',
-            'stats'
+            'stats',
+            'historialConsultas'
         ));
     }
 

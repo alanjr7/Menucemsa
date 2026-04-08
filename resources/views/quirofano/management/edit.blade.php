@@ -6,8 +6,8 @@
     <!-- Page Header -->
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Nuevo Quirófano</h1>
-            <p class="text-sm text-gray-500">Registrar un nuevo quirófano en el sistema</p>
+            <h1 class="text-2xl font-bold text-gray-800">Editar Quirófano Q{{ $quirofano->id }}</h1>
+            <p class="text-sm text-gray-500">Modificar información del quirófano</p>
         </div>
         <a href="{{ route('quirofanos.management.index') }}" class="flex items-center px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,6 +20,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
         <form id="quirofanoForm" class="p-6">
             @csrf
+            @method('PUT')
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
                 <!-- Información Básica -->
@@ -28,28 +29,25 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Básica</h3>
                         
                         <div class="space-y-4">
-                            {{-- 
-                            <!-- Número de Quirófano - Se asigna automáticamente por la base de datos -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Número de Quirófano *</label>
-                                <input type="number" name="nro" id="nro" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required min="1" placeholder="Ej: 6">
-                                <p class="text-xs text-gray-500 mt-1">Número único identificador del quirófano</p>
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Número de Quirófano</label>
+                                <p class="text-lg font-bold text-gray-900">Q{{ $quirofano->id }}</p>
+                                <p class="text-xs text-gray-500 mt-1">El número se asigna automáticamente por la base de datos</p>
                             </div>
-                            --}}
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Quirófano *</label>
                                 <select name="tipo" id="tipo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                     <option value="">Seleccionar tipo...</option>
-                                    <option value="General">General - Para cirugías comunes</option>
-                                    <option value="Especializado">Especializado - Para procedimientos complejos</option>
-                                    <option value="Urgencias">Urgencias - Para emergencias médicas</option>
-                                    <option value="Pediatrico">Pediatrico - Para pacientes infantiles</option>
-                                    <option value="Cardiologia">Cardiologia - Para procedimientos cardíacos</option>
-                                    <option value="Neurologia">Neurologia - Para procedimientos neurológicos</option>
-                                    <option value="Oftalmologia">Oftalmologia - Para procedimientos oculares</option>
-                                    <option value="Ginecologia">Ginecologia - Para procedimientos ginecológicos</option>
-                                    <option value="Urologia">Urologia - Para procedimientos urológicos</option>
+                                    <option value="General" {{ $quirofano->tipo == 'General' ? 'selected' : '' }}>General - Para cirugías comunes</option>
+                                    <option value="Especializado" {{ $quirofano->tipo == 'Especializado' ? 'selected' : '' }}>Especializado - Para procedimientos complejos</option>
+                                    <option value="Urgencias" {{ $quirofano->tipo == 'Urgencias' ? 'selected' : '' }}>Urgencias - Para emergencias médicas</option>
+                                    <option value="Pediatrico" {{ $quirofano->tipo == 'Pediatrico' ? 'selected' : '' }}>Pediatrico - Para pacientes infantiles</option>
+                                    <option value="Cardiologia" {{ $quirofano->tipo == 'Cardiologia' ? 'selected' : '' }}>Cardiologia - Para procedimientos cardíacos</option>
+                                    <option value="Neurologia" {{ $quirofano->tipo == 'Neurologia' ? 'selected' : '' }}>Neurologia - Para procedimientos neurológicos</option>
+                                    <option value="Oftalmologia" {{ $quirofano->tipo == 'Oftalmologia' ? 'selected' : '' }}>Oftalmologia - Para procedimientos oculares</option>
+                                    <option value="Ginecologia" {{ $quirofano->tipo == 'Ginecologia' ? 'selected' : '' }}>Ginecologia - Para procedimientos ginecológicos</option>
+                                    <option value="Urologia" {{ $quirofano->tipo == 'Urologia' ? 'selected' : '' }}>Urologia - Para procedimientos urológicos</option>
                                 </select>
                             </div>
 
@@ -57,9 +55,9 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
                                 <select name="estado" id="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                     <option value="">Seleccionar estado...</option>
-                                    <option value="disponible">Disponible - Listo para usar</option>
-                                    <option value="ocupado">Ocupado - En uso actualmente</option>
-                                    <option value="mantenimiento">Mantenimiento - En reparación</option>
+                                    <option value="disponible" {{ $quirofano->estado == 'disponible' ? 'selected' : '' }}>Disponible - Listo para usar</option>
+                                    <option value="ocupado" {{ $quirofano->estado == 'ocupado' ? 'selected' : '' }}>Ocupado - En uso actualmente</option>
+                                    <option value="mantenimiento" {{ $quirofano->estado == 'mantenimiento' ? 'selected' : '' }}>Mantenimiento - En reparación</option>
                                 </select>
                             </div>
                         </div>
@@ -84,11 +82,11 @@
                             </div>
 
                             <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                                <h4 class="text-sm font-semibold text-amber-800 mb-2">Recomendaciones</h4>
+                                <h4 class="text-sm font-semibold text-amber-800 mb-2">Estados</h4>
                                 <div class="text-sm text-amber-700 space-y-1">
-                                    <p>• Asigne números secuenciales para mejor organización</p>
-                                    <p>• Considere el flujo de trabajo al asignar tipos</p>
-                                    <p>• Mantenga al menos un quirófano de urgencias activo</p>
+                                    <p><strong>Disponible:</strong> Listo para programar cirugías</p>
+                                    <p><strong>Ocupado:</strong> Actualmente en uso</p>
+                                    <p><strong>Mantenimiento:</strong> No disponible temporalmente</p>
                                 </div>
                             </div>
                         </div>
@@ -102,7 +100,7 @@
                     Cancelar
                 </a>
                 <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
-                    Crear Quirófano
+                    Guardar Cambios
                 </button>
             </div>
         </form>
@@ -113,10 +111,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('quirofanoForm');
     
-    // Eliminar el fetch de next-number ya que no se necesita
-    // El ID se asigna automáticamente por la base de datos
-    
-    // SOLUCIÓN: Submit del formulario con manejo robusto de errores
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -129,11 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // SOLUCIÓN: Usar route() helper de Laravel
-        const submitUrl = '{{ route("quirofanos.management.store") }}';
-        
-        console.log('Enviando POST a:', submitUrl);
-        console.log('Datos:', data);
+        const submitUrl = '{{ route("quirofanos.management.update", $quirofano->id) }}';
         
         fetch(submitUrl, {
             method: 'POST',
@@ -142,36 +132,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                ...data,
+                _method: 'PUT'
+            })
         })
         .then(response => {
-            console.log('Status:', response.status);
-            
-            // Si es 404, mostrar error específico
             if (response.status === 404) {
-                throw new Error('Ruta no encontrada (404) - Contacta al administrador');
+                throw new Error('Ruta no encontrada (404)');
             }
             
             if (!response.ok) {
                 return response.json().then(errorData => {
-                    throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+                    throw new Error(errorData.message || `Error ${response.status}`);
                 });
             }
             
             return response.json();
         })
         .then(data => {
-            console.log('Respuesta:', data);
-            
             if (data.success) {
-                alert(data.message || 'Quirófano creado exitosamente');
+                alert(data.message || 'Quirófano actualizado exitosamente');
                 window.location.href = '{{ route("quirofanos.management.index") }}';
             } else {
-                alert(data.message || 'Error al crear el quirófano');
+                alert(data.message || 'Error al actualizar el quirófano');
             }
         })
         .catch(error => {
-            console.error('Error completo:', error);
+            console.error('Error:', error);
             alert('Error: ' + error.message);
         });
     });

@@ -22,8 +22,14 @@ class QuirofanoController extends Controller
         $quirofanos = Quirofano::all();
         
         // Obtener la fecha actual y el rango de la semana
-        $startOfWeek = now()->startOfWeek();
-        $endOfWeek = now()->endOfWeek();
+        $startOfWeek = now()->startOfWeek()->startOfDay();
+        $endOfWeek = now()->endOfWeek()->endOfDay();
+        
+        \Log::info('Date range', [
+            'start' => $startOfWeek->format('Y-m-d H:i:s'),
+            'end' => $endOfWeek->format('Y-m-d H:i:s'),
+            'today' => now()->format('Y-m-d H:i:s')
+        ]);
         
         // Obtener todas las citas de la semana
         $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
@@ -31,12 +37,22 @@ class QuirofanoController extends Controller
             ->orderBy('fecha')
             ->orderBy('hora_inicio_estimada')
             ->get();
+        
+        \Log::info('Citas loaded', ['count' => $citasSemana->count()]);
 
         // Agrupar citas por día y hora
         $citasPorDiaHora = [];
         foreach ($citasSemana as $cita) {
             $dia = $cita->fecha->format('Y-m-d');
-            $hora = $cita->hora_inicio_estimada->format('H:00');
+            // Handle time safely - it could be null, Carbon, or string
+            $horaStr = $cita->hora_inicio_estimada;
+            if ($horaStr instanceof \Carbon\Carbon) {
+                $hora = $horaStr->format('H:00');
+            } elseif (is_string($horaStr)) {
+                $hora = substr($horaStr, 0, 2) . ':00';
+            } else {
+                $hora = '00:00';
+            }
             $citasPorDiaHora[$dia][$hora][$cita->quirofano_id][] = $cita;
         }
 
@@ -76,7 +92,8 @@ class QuirofanoController extends Controller
     public function getQuirofanosDisponibles(): JsonResponse
     {
         try {
-            $quirofanos = Quirofano::where('estado', 'activo')->get();
+            // Mostrar todos los quirófanos excepto los en mantenimiento
+            $quirofanos = Quirofano::where('estado', '!=', 'mantenimiento')->get();
             return response()->json([
                 'success' => true,
                 'quirofanos' => $quirofanos
@@ -145,7 +162,7 @@ class QuirofanoController extends Controller
             $validated = $request->validate([
                 'ci_paciente' => 'required|exists:pacientes,ci',
                 'ci_cirujano' => 'required|exists:medicos,ci',
-                'nro_quirofano' => 'required|exists:quirofanos,nro',
+                'nro_quirofano' => 'required|exists:quirofanos,id',
                 'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
                 'fecha' => 'required|date|after_or_equal:today',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
@@ -155,7 +172,7 @@ class QuirofanoController extends Controller
             $cita = new CitaQuirurgica();
             $cita->ci_paciente = $validated['ci_paciente'];
             $cita->ci_cirujano = $validated['ci_cirujano'];
-            $cita->nro_quirofano = $validated['nro_quirofano'];
+            $cita->quirofano_id = $validated['nro_quirofano'];
             $cita->tipo_cirugia = $validated['tipo_cirugia'];
             $cita->fecha = $validated['fecha'];
             $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
@@ -168,7 +185,7 @@ class QuirofanoController extends Controller
             
             // Establecer valores por defecto
             $cita->estado = 'programada';
-            $cita->id_usuario_registro = auth()->id();
+            $cita->user_registro_id = auth()->id();
 
             // Obtener tipo de cirugía
             $tipoCirugia = TipoCirugia::where('nombre', $validated['tipo_cirugia'])->first();
@@ -270,7 +287,7 @@ class QuirofanoController extends Controller
             'ci_cirujano' => 'required|exists:medicos,ci',
             'ci_instrumentista' => 'nullable|exists:medicos,ci',
             'ci_anestesiologo' => 'nullable|exists:medicos,ci',
-            'nro_quirofano' => 'required|exists:quirofanos,nro',
+            'nro_quirofano' => 'required|exists:quirofanos,id',
             'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
             'fecha' => 'required|date|after_or_equal:today',
             'hora_inicio_estimada' => 'required|date_format:H:i',
@@ -279,7 +296,7 @@ class QuirofanoController extends Controller
         ]);
 
         // Validar disponibilidad del quirófano
-        $cita->fill($request->except(['id_usuario_registro']));
+        $cita->fill($request->except(['user_registro_id']));
         try {
             if ($cita->validarDisponibilidadQuirofano()) {
                 return response()->json([
@@ -294,7 +311,7 @@ class QuirofanoController extends Controller
             ], 500);
         }
 
-        $cita->update($request->except(['id_usuario_registro']));
+        $cita->update($request->except(['user_registro_id']));
 
         return response()->json([
             'success' => true,
@@ -411,7 +428,7 @@ class QuirofanoController extends Controller
     public function disponibilidad(Request $request): JsonResponse
     {
         $request->validate([
-            'nro_quirofano' => 'required|exists:quirofanos,nro',
+            'nro_quirofano' => 'required|exists:quirofanos,id',
             'fecha' => 'required|date',
             'hora_inicio' => 'required|date_format:H:i',
             'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria'
@@ -423,7 +440,7 @@ class QuirofanoController extends Controller
             $horaFin = $horaInicio->copy()->addMinutes($tipoCirugia->duracion_minutos);
 
             // Buscar citas existentes
-            $citasExistentes = CitaQuirurgica::where('nro_quirofano', $request->nro_quirofano)
+            $citasExistentes = CitaQuirurgica::where('quirofano_id', $request->nro_quirofano)
                 ->where('fecha', $request->fecha)
                 ->where('estado', '!=', 'cancelada')
                 ->get();
@@ -448,7 +465,7 @@ class QuirofanoController extends Controller
                 'conflictos' => $conflictos,
                 'hora_fin_estimada' => $horaFin->format('H:i'),
                 'debug_info' => [
-                    'nro_quirofano' => $request->nro_quirofano,
+                    'quirofano_id' => $request->nro_quirofano,
                     'fecha' => $request->fecha,
                     'hora_inicio' => $request->hora_inicio,
                     'hora_fin' => $horaFin->format('H:i'),
@@ -469,7 +486,7 @@ class QuirofanoController extends Controller
     public function calendario(Request $request): JsonResponse
     {
         $request->validate([
-            'quirofano' => 'nullable|exists:quirofanos,nro',
+            'quirofano' => 'nullable|exists:quirofanos,id',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'required|date|after_or_equal:fecha_inicio'
         ]);
@@ -478,21 +495,21 @@ class QuirofanoController extends Controller
             ->whereBetween('fecha', [$request->fecha_inicio, $request->fecha_fin]);
 
         if ($request->quirofano) {
-            $query->where('nro_quirofano', $request->quirofano);
+            $query->where('quirofano_id', $request->quirofano);
         }
 
         $citas = $query->get()->map(function($cita) {
             return [
                 'id' => $cita->id,
                 'title' => $cita->paciente->nombre . ' - ' . $cita->tipo_cirugia,
-                'start' => $cita->fecha->format('Y-m-d') . ' ' . $cita->hora_inicio_estimada->format('H:i:s'),
-                'end' => $cita->fecha->format('Y-m-d') . ' ' . $cita->hora_fin_estimada->format('H:i:s'),
+                'start' => $cita->fecha->format('Y-m-d') . ' ' . $cita->hora_inicio_estimada,
+                'end' => $cita->fecha->format('Y-m-d') . ' ' . $cita->hora_fin_estimada,
                 'backgroundColor' => $this->getColorPorEstado($cita->estado),
                 'borderColor' => $this->getColorPorEstado($cita->estado),
                 'extendedProps' => [
                     'paciente' => $cita->paciente->nombre,
                     'cirujano' => $cita->cirujano->user->name,
-                    'quirofano' => $cita->quirofano->nro,
+                    'quirofano' => $cita->quirofano->id,
                     'tipo_cirugia' => $cita->tipo_cirugia,
                     'estado' => $cita->estado,
                     'duracion_real' => $cita->duracion_real,

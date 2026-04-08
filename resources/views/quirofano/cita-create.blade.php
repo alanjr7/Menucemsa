@@ -270,8 +270,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.quirofanos && data.quirofanos.length > 0) {
             data.quirofanos.forEach(quirofano => {
                 const option = document.createElement('option');
-                option.value = quirofano.nro;
-                option.textContent = `Quirófano ${quirofano.nro} - ${quirofano.tipo} (${quirofano.estado})`;
+                option.value = quirofano.id;
+                option.textContent = `Quirófano Q${quirofano.id} - ${quirofano.tipo} (${quirofano.estado})`;
                 select.appendChild(option);
             });
         }

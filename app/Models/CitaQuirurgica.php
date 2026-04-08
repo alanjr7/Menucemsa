@@ -40,9 +40,9 @@ class CitaQuirurgica extends Model
 
     protected $casts = [
         'fecha' => 'date',
-        'hora_inicio_estimada' => 'datetime:H:i',
-        'hora_inicio_real' => 'datetime:H:i',
-        'hora_fin_real' => 'datetime:H:i',
+        'hora_inicio_estimada' => 'datetime',
+        'hora_inicio_real' => 'datetime',
+        'hora_fin_real' => 'datetime',
         'timestamp_inicio' => 'datetime',
         'timestamp_fin' => 'datetime',
         'costo_base' => 'decimal:2',
@@ -168,7 +168,7 @@ class CitaQuirurgica extends Model
         try {
             // Log de depuración
             \Log::info('Validando disponibilidad:', [
-                'nro_quirofano' => $this->nro_quirofano,
+                'quirofano_id' => $this->quirofano_id,
                 'fecha' => $this->fecha,
                 'hora_inicio_estimada' => $this->hora_inicio_estimada,
                 'duracion_estimada' => $this->duracion_estimada,

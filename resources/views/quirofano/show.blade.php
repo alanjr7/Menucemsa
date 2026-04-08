@@ -95,7 +95,7 @@
                     @endif
                     <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="text-sm text-gray-500">Quirófano</span>
-                        <span class="font-semibold text-sm">Q{{ $cita->quirofano->nro }} ({{ $cita->quirofano->tipo }})</span>
+                        <span class="font-semibold text-sm">Q{{ $cita->quirofano->id }} ({{ $cita->quirofano->tipo }})</span>
                     </div>
                     <div class="flex justify-between items-center py-2 border-b border-gray-100">
                         <span class="text-sm text-gray-500">Duración Estimada</span>
@@ -133,13 +133,13 @@
                 <div class="space-y-4">
                     <div class="bg-gray-50 rounded-lg p-3">
                         <div class="text-xs text-gray-500 mb-1">Cirujano Responsable</div>
-                        <div class="font-semibold text-sm">{{ $cita->cirujano->usuario->name }}</div>
+                        <div class="font-semibold text-sm">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</div>
                         <div class="text-xs text-gray-600">CI: {{ $cita->cirujano->ci }}</div>
                     </div>
                     @if($cita->instrumentista)
                         <div class="bg-gray-50 rounded-lg p-3">
                             <div class="text-xs text-gray-500 mb-1">Instrumentista</div>
-                            <div class="font-semibold text-sm">{{ $cita->instrumentista->usuario->name }}</div>
+                            <div class="font-semibold text-sm">{{ optional($cita->instrumentista->user)->name ?? 'N/A' }}</div>
                             <div class="text-xs text-gray-600">CI: {{ $cita->instrumentista->ci }}</div>
                         </div>
                     @else
@@ -151,7 +151,7 @@
                     @if($cita->anestesiologo)
                         <div class="bg-gray-50 rounded-lg p-3">
                             <div class="text-xs text-gray-500 mb-1">Anestesiólogo</div>
-                            <div class="font-semibold text-sm">{{ $cita->anestesiologo->usuario->name }}</div>
+                            <div class="font-semibold text-sm">{{ optional($cita->anestesiologo->user)->name ?? 'N/A' }}</div>
                             <div class="text-xs text-gray-600">CI: {{ $cita->anestesiologo->ci }}</div>
                         </div>
                     @else
@@ -300,7 +300,7 @@
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500">Quirófano</label>
-                            <p class="text-gray-900 font-semibold">Quirófano {{ $cita->quirofano->nro }} ({{ $cita->quirofano->tipo }})</p>
+                            <p class="text-gray-900 font-semibold">Quirófano {{ $cita->quirofano->id }} ({{ $cita->quirofano->tipo }})</p>
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500">Duración Estimada</label>
@@ -341,13 +341,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="text-sm font-medium text-gray-500">Cirujano Responsable</label>
-                        <p class="text-gray-900 font-semibold">{{ $cita->cirujano->usuario->name }}</p>
+                        <p class="text-gray-900 font-semibold">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</p>
                         <p class="text-sm text-gray-600">CI: {{ $cita->cirujano->ci }}</p>
                     </div>
                     @if($cita->instrumentista)
                         <div>
                             <label class="text-sm font-medium text-gray-500">Instrumentista</label>
-                            <p class="text-gray-900 font-semibold">{{ $cita->instrumentista->usuario->name }}</p>
+                            <p class="text-gray-900 font-semibold">{{ optional($cita->instrumentista->user)->name ?? 'N/A' }}</p>
                             <p class="text-sm text-gray-600">CI: {{ $cita->instrumentista->ci }}</p>
                         </div>
                     @else
@@ -359,7 +359,7 @@
                     @if($cita->anestesiologo)
                         <div>
                             <label class="text-sm font-medium text-gray-500">Anestesiólogo</label>
-                            <p class="text-gray-900 font-semibold">{{ $cita->anestesiologo->usuario->name }}</p>
+                            <p class="text-gray-900 font-semibold">{{ optional($cita->anestesiologo->user)->name ?? 'N/A' }}</p>
                             <p class="text-sm text-gray-600">CI: {{ $cita->anestesiologo->ci }}</p>
                         </div>
                     @else

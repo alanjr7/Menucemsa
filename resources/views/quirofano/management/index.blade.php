@@ -45,7 +45,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Activos</p>
-                    <p class="text-2xl font-bold text-green-600">{{ $quirofanos->where('estado', 'Activo')->count() }}</p>
+                    <p class="text-2xl font-bold text-green-600">{{ $quirofanos->where('estado', 'disponible')->count() }}</p>
                 </div>
                 <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Inactivos</p>
-                    <p class="text-2xl font-bold text-gray-600">{{ $quirofanos->where('estado', 'Inactivo')->count() }}</p>
+                    <p class="text-2xl font-bold text-gray-600">{{ $quirofanos->where('estado', 'ocupado')->count() }}</p>
                 </div>
                 <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +73,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Mantenimiento</p>
-                    <p class="text-2xl font-bold text-amber-600">{{ $quirofanos->where('estado', 'Mantenimiento')->count() }}</p>
+                    <p class="text-2xl font-bold text-amber-600">{{ $quirofanos->where('estado', 'mantenimiento')->count() }}</p>
                 </div>
                 <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,15 +119,15 @@
                     @foreach($quirofanos as $quirofano)
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-bold text-gray-900">Q{{ $quirofano->nro }}</div>
+                                <div class="text-sm font-bold text-gray-900">Q{{ $quirofano->id }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">{{ $quirofano->tipo }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                    {{ $quirofano->estado === 'Activo' ? 'bg-green-100 text-green-800' : 
-                                       ($quirofano->estado === 'Inactivo' ? 'bg-red-100 text-red-800' : 
+                                    {{ $quirofano->estado === 'disponible' ? 'bg-green-100 text-green-800' : 
+                                       ($quirofano->estado === 'ocupado' ? 'bg-red-100 text-red-800' : 
                                        'bg-amber-100 text-amber-800') }}">
                                     {{ $quirofano->estado }}
                                 </span>
@@ -147,7 +147,7 @@
                                         Editar
                                     </a>
                                     @if($quirofano->citasQuirurgicas()->count() == 0)
-                                        <button onclick="eliminarQuirófano({{ $quirofano->nro }})" class="text-red-600 hover:text-red-900">
+                                        <button onclick="eliminarQuirófano({{ $quirofano->id }})" class="text-red-600 hover:text-red-900">
                                             Eliminar
                                         </button>
                                     @endif

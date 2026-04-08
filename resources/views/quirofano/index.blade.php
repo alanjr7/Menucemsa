@@ -137,14 +137,14 @@
                                     <div class="flex justify-between items-start mb-2">
                                         <div>
                                             <div class="font-semibold text-gray-900 text-sm">{{ $cita->paciente->nombre }}</div>
-                                            <div class="text-xs text-gray-600">{{ $cita->cirujano->usuario->name }}</div>
+                                            <div class="text-xs text-gray-600">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</div>
                                         </div>
                                         <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $cita->estado === 'programada' ? 'bg-blue-100 text-blue-800' : ($cita->estado === 'en_curso' ? 'bg-amber-100 text-amber-800' : ($cita->estado === 'finalizada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')) }}">
                                             {{ ucfirst($cita->estado) }}
                                         </span>
                                     </div>
                                     <div class="flex justify-between items-center text-xs text-gray-500">
-                                        <div>Q{{ $cita->quirofano->nro }} • {{ $cita->hora_inicio_estimada->format('H:i') }}</div>
+                                        <div>Q{{ $cita->quirofano->id }} • {{ $cita->hora_inicio_estimada->format('H:i') }}</div>
                                         <button onclick="verDetalles({{ $cita->id }})" class="text-blue-600 hover:text-blue-800 font-medium">
                                             Ver →
                                         </button>
@@ -207,12 +207,12 @@
                                     <div class="space-y-1">
                                         @if(isset($citasPorDiaHora[$dia['fecha_key']][$hora]))
                                             @foreach($quirofanos as $quirofano)
-                                                @if(isset($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->nro]))
-                                                    @foreach($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->nro] as $cita)
+                                                @if(isset($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->id]))
+                                                    @foreach($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->id] as $cita)
                                                         <div class="p-1 rounded text-xs cursor-pointer hover:shadow-md transition-all {{ $cita->estado === 'programada' ? 'bg-blue-100 border border-blue-300 hover:bg-blue-200' : ($cita->estado === 'en_curso' ? 'bg-amber-100 border border-amber-300 hover:bg-amber-200' : ($cita->estado === 'finalizada' ? 'bg-green-100 border border-green-300 hover:bg-green-200' : 'bg-red-100 border border-red-300 hover:bg-red-200')) }}"
                                                              onclick="verDetalles({{ $cita->id }})"
-                                                             title="{{ $cita->paciente->nombre }} - {{ $cita->cirujano->usuario->name }}">
-                                                            <div class="font-semibold text-gray-900 truncate">Q{{ $quirofano->nro }}</div>
+                                                             title="{{ $cita->paciente->nombre }} - {{ optional($cita->cirujano->user)->name ?? 'N/A' }}">
+                                                            <div class="font-semibold text-gray-900 truncate">Q{{ $quirofano->id }}</div>
                                                             <div class="text-gray-700 truncate">{{ $cita->paciente->nombre }}</div>
                                                             <div class="text-gray-500">{{ $cita->hora_inicio_estimada->format('H:i') }}</div>
                                                             @if($cita->duracion_real && $cita->duracion_real > $cita->duracion_estimada)
@@ -261,7 +261,7 @@
                     @foreach($quirofanos as $quirofano)
                         <tr class="hover:bg-gray-50">
                             <td class="px-3 py-2 font-medium text-gray-900 border-r border-gray-200">
-                                <div>Q{{ $quirofano->nro }}</div>
+                                <div>Q{{ $quirofano->id }}</div>
                                 <div class="text-gray-500">{{ $quirofano->tipo }}</div>
                             </td>
                             
@@ -271,8 +271,8 @@
                                         @php
                                             $citasDelDia = [];
                                             foreach($horasDia as $hora) {
-                                                if(isset($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->nro])) {
-                                                    $citasDelDia = array_merge($citasDelDia, $citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->nro]);
+                                                if(isset($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->id])) {
+                                                    $citasDelDia = array_merge($citasDelDia, $citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->id]);
                                                 }
                                             }
                                         @endphp
@@ -283,7 +283,7 @@
                                                      onclick="verDetalles({{ $cita->id }})">
                                                     <div class="font-semibold text-gray-900 truncate">{{ $cita->paciente->nombre }}</div>
                                                     <div class="text-gray-600">{{ $cita->hora_inicio_estimada->format('H:i') }}-{{ $cita->hora_fin_estimada->format('H:i') }}</div>
-                                                    <div class="text-gray-500 truncate">{{ $cita->cirujano->usuario->name }}</div>
+                                                    <div class="text-gray-500 truncate">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</div>
                                                     <div class="capitalize text-gray-500">{{ $cita->tipo_cirugia }}</div>
                                                     @if($cita->duracion_real && $cita->duracion_real > $cita->duracion_estimada)
                                                         <div class="text-amber-600 font-semibold">+{{ $cita->duracion_real - $cita->duracion_estimada }}min</div>

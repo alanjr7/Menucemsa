@@ -11,7 +11,7 @@ class QuirofanoManagementController extends Controller
 {
     public function index(): View
     {
-        $quirofanos = Quirofano::orderBy('nro')->get();
+        $quirofanos = Quirofano::orderBy('id')->get();
         return view('quirofano.management.index', compact('quirofanos'));
     }
 
@@ -23,8 +23,8 @@ class QuirofanoManagementController extends Controller
     public function getNextNumber(): JsonResponse
     {
         try {
-            // Obtener el último número de quirófano y calcular el siguiente
-            $ultimoNumero = Quirofano::max('nro') ?? 0;
+            // Usar el ID más alto como referencia para el siguiente número
+            $ultimoNumero = Quirofano::max('id') ?? 0;
             $siguienteNumero = $ultimoNumero + 1;
 
             return response()->json([
@@ -41,12 +41,11 @@ class QuirofanoManagementController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'nro' => 'required|integer|unique:quirofanos,nro',
             'tipo' => 'required|string|in:General,Especializado,Urgencias,Pediatrico,Cardiologia,Neurologia,Oftalmologia,Ginecologia,Urologia',
-            'estado' => 'required|string|in:Activo,Inactivo,Mantenimiento',
+            'estado' => 'required|string|in:disponible,ocupado,mantenimiento',
         ]);
 
-        $quirofano = Quirofano::create($request->all());
+        $quirofano = Quirofano::create($request->only(['tipo', 'estado']));
 
         return response()->json([
             'success' => true,
@@ -68,12 +67,11 @@ class QuirofanoManagementController extends Controller
     public function update(Request $request, Quirofano $quirofano): JsonResponse
     {
         $request->validate([
-            'nro' => 'required|integer|unique:quirofanos,nro,' . $quirofano->nro . ',nro',
             'tipo' => 'required|string|in:General,Especializado,Urgencias,Pediatrico,Cardiologia,Neurologia,Oftalmologia,Ginecologia,Urologia',
-            'estado' => 'required|string|in:Activo,Inactivo,Mantenimiento',
+            'estado' => 'required|string|in:disponible,ocupado,mantenimiento',
         ]);
 
-        $quirofano->update($request->all());
+        $quirofano->update($request->only(['tipo', 'estado']));
 
         return response()->json([
             'success' => true,
@@ -105,7 +103,7 @@ class QuirofanoManagementController extends Controller
     public function cambiarEstado(Request $request, Quirofano $quirofano): JsonResponse
     {
         $request->validate([
-            'estado' => 'required|string|in:Activo,Inactivo,Mantenimiento'
+            'estado' => 'required|string|in:disponible,ocupado,mantenimiento'
         ]);
 
         $quirofano->estado = $request->estado;

@@ -2,20 +2,7 @@
 @section('content')
     <div x-data="{ tab: 'medicos', selectedMedico: null }" class="p-6">
 
-        <div class="mb-6 flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">Gestión de Consulta Externa</h1>
-                <p class="text-sm text-gray-500">Panel administrativo - Control total de consultas externas</p>
-            </div>
-            <div class="flex gap-3">
-                <a href="{{ route('reception.consulta-externa') }}" class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 shadow-md transition">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Nueva Consulta
-                </a>
-            </div>
-        </div>
+      
 
         <div class="bg-gray-100 p-1 rounded-xl flex mb-6">
             <button @click="tab = 'medicos'"
@@ -116,21 +103,80 @@
                     <span class="font-bold">Historial General de Consultas</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <select class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
-                        <option>Hoy</option>
-                        <option>Última Semana</option>
-                        <option>Último Mes</option>
-                    </select>
+                    <span class="text-sm text-gray-500">Mostrando {{ $historialConsultas->count() }} de {{ $historialConsultas->total() }} consultas</span>
                 </div>
             </div>
 
-            <div class="p-8 text-center text-gray-500">
-                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <p class="text-lg font-medium">Historial en desarrollo</p>
-                <p class="text-sm mt-2">Esta sección mostrará el historial general de todas las consultas</p>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-bold">
+                        <tr>
+                            <th class="px-4 py-3">Código</th>
+                            <th class="px-4 py-3">Fecha/Hora</th>
+                            <th class="px-4 py-3">Paciente</th>
+                            <th class="px-4 py-3">Médico</th>
+                            <th class="px-4 py-3">Especialidad</th>
+                            <th class="px-4 py-3">Estado</th>
+                            <th class="px-4 py-3 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($historialConsultas as $consulta)
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $consulta->codigo }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    {{ $consulta->fecha?->format('d/m/Y') }}<br>
+                                    <span class="text-xs text-gray-400">{{ $consulta->hora }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-700">
+                                    {{ $consulta->paciente->nombre ?? 'N/A' }}<br>
+                                    <span class="text-xs text-gray-400">CI: {{ $consulta->paciente->ci ?? '-' }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-700">
+                                    Dr. {{ $consulta->medico->user->name ?? 'Sin nombre' }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    {{ $consulta->especialidad->nombre ?? 'Sin especialidad' }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    @php
+                                        $estadoColor = match($consulta->estado) {
+                                            'pendiente' => 'yellow',
+                                            'en_atencion' => 'blue',
+                                            'atendido' => 'green',
+                                            'cancelado' => 'red',
+                                            default => 'gray'
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-{{ $estadoColor }}-100 text-{{ $estadoColor }}-800">
+                                        {{ ucfirst(str_replace('_', ' ', $consulta->estado)) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <a href="{{ route('consulta.ver', $consulta->codigo) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                        Ver Detalle
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <p class="text-sm">No hay consultas registradas</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
+
+            @if($historialConsultas->hasPages())
+                <div class="p-4 border-t border-gray-100">
+                    {{ $historialConsultas->links() }}
+                </div>
+            @endif
         </div>
 
         <!-- Vista de Estadísticas -->
