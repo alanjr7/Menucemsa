@@ -333,37 +333,16 @@
                             <textarea name="descripcion" rows="3" placeholder="Describa detalladamente los síntomas y la situación de emergencia" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all" required></textarea>
                         </div>
 
-                        <!-- Signos Vitales -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Signos Vitales</label>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
                                 <div>
-                                    <label class="block text-xs text-gray-600 mb-1">Presión Arterial</label>
-                                    <input type="text" name="presion_arterial" placeholder="120/80" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all">
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-gray-600 mb-1">Frecuencia Cardíaca</label>
-                                    <input type="text" name="frecuencia_cardiaca" placeholder="80 lpm" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all">
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-gray-600 mb-1">Frecuencia Respiratoria</label>
-                                    <input type="text" name="frecuencia_respiratoria" placeholder="16 rpm" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all">
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-gray-600 mb-1">Temperatura</label>
-                                    <input type="text" name="temperatura" placeholder="37.0°C" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all">
+                                    <p class="text-sm font-medium text-blue-800">Información importante</p>
+                                    <p class="text-sm text-blue-600 mt-1">Los signos vitales, alergias y medicamentos serán registrados por el personal de emergencia durante la evaluación médica inicial.</p>
                                 </div>
                             </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Alergias Conocidas</label>
-                            <input type="text" name="alergias" placeholder="Ej: Penicilina, Aspirina, etc." class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Medicamentos Actuales</label>
-                            <textarea name="medicamentos" rows="2" placeholder="Medicamentos que el paciente está tomando actualmente" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all"></textarea>
                         </div>
                     </div>
                 </div>

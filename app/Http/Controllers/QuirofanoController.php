@@ -20,25 +20,47 @@ class QuirofanoController extends Controller
     public function index(): View
     {
         $quirofanos = Quirofano::all();
-        
+
         // Obtener la fecha actual y el rango de la semana
         $startOfWeek = now()->startOfWeek()->startOfDay();
         $endOfWeek = now()->endOfWeek()->endOfDay();
-        
+
         \Log::info('Date range', [
             'start' => $startOfWeek->format('Y-m-d H:i:s'),
             'end' => $endOfWeek->format('Y-m-d H:i:s'),
             'today' => now()->format('Y-m-d H:i:s')
         ]);
-        
+
         // Obtener todas las citas de la semana
         $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
             ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
             ->orderBy('fecha')
             ->orderBy('hora_inicio_estimada')
             ->get();
-        
+
+        // Obtener emergencias que están actualmente en quirófano
+        $emergenciasEnQuirofano = \App\Models\Emergency::with(['paciente'])
+            ->where('ubicacion_actual', 'cirugia')
+            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($emg) {
+                return [
+                    'id' => $emg->id,
+                    'code' => $emg->code,
+                    'nro_cirugia' => $emg->nro_cirugia,
+                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                    'paciente_ci' => $emg->patient_id,
+                    'status' => $emg->status,
+                    'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
+                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                    'tipo_ingreso' => $emg->tipo_ingreso_label,
+                    'is_emergency' => true,
+                ];
+            });
+
         \Log::info('Citas loaded', ['count' => $citasSemana->count()]);
+        \Log::info('Emergencias en quirofano', ['count' => $emergenciasEnQuirofano->count()]);
 
         // Agrupar citas por día y hora
         $citasPorDiaHora = [];
@@ -79,9 +101,10 @@ class QuirofanoController extends Controller
             'hoy' => CitaQuirurgica::whereDate('fecha', today())->count(),
             'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
             'finalizadas' => CitaQuirurgica::whereDate('fecha', today())->where('estado', 'finalizada')->count(),
+            'emergencias' => $emergenciasEnQuirofano->count(),
         ];
-        
-        return view('quirofano.index', compact('quirofanos', 'diasSemana', 'horasDia', 'citasPorDiaHora', 'stats'));
+
+        return view('quirofano.index', compact('quirofanos', 'diasSemana', 'horasDia', 'citasPorDiaHora', 'stats', 'emergenciasEnQuirofano'));
     }
 
     public function create(): View
@@ -238,6 +261,164 @@ class QuirofanoController extends Controller
                 'errors' => $e->errors(),
                 'debug' => 'Failed fields: ' . implode(', ', array_keys($e->errors()))
             ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mostrar formulario para programar cirugía desde emergencia
+     */
+    public function programarEmergencia(int $emergency_id): View
+    {
+        $emergencia = \App\Models\Emergency::with(['paciente'])->findOrFail($emergency_id);
+
+        // Verificar que la emergencia esté en quirófano
+        if ($emergencia->ubicacion_actual !== 'cirugia') {
+            abort(403, 'La emergencia no está en quirófano.');
+        }
+
+        $quirofanos = Quirofano::where('estado', '!=', 'mantenimiento')->get();
+        $tiposCirugia = TipoCirugia::all();
+        $medicos = Medico::with('user')->get();
+
+        return view('quirofano.programar-emergencia', compact('emergencia', 'quirofanos', 'tiposCirugia', 'medicos'));
+    }
+
+    /**
+     * Guardar cirugía programada desde emergencia
+     */
+    public function storeEmergencia(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'emergency_id' => 'required|exists:emergencies,id',
+                'nro_quirofano' => 'required|exists:quirofanos,id',
+                'ci_cirujano' => 'required|exists:medicos,ci',
+                'ci_instrumentista' => 'nullable|exists:medicos,ci',
+                'ci_anestesiologo' => 'nullable|exists:medicos,ci',
+                'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
+                'fecha' => 'required|date|after_or_equal:today',
+                'hora_inicio_estimada' => 'required|date_format:H:i',
+                'descripcion_cirugia' => 'nullable|string|max:500',
+            ]);
+
+            $emergencia = \App\Models\Emergency::findOrFail($validated['emergency_id']);
+
+            // Crear cita quirúrgica
+            $cita = new CitaQuirurgica();
+            $cita->ci_paciente = $emergencia->patient_id;
+            $cita->ci_cirujano = $validated['ci_cirujano'];
+            $cita->ci_instrumentista = $validated['ci_instrumentista'];
+            $cita->ci_anestesiologo = $validated['ci_anestesiologo'];
+            $cita->quirofano_id = $validated['nro_quirofano'];
+            $cita->tipo_cirugia = $validated['tipo_cirugia'];
+            $cita->fecha = $validated['fecha'];
+            $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
+            $cita->descripcion_cirugia = $validated['descripcion_cirugia'] ?? 'Cirugía derivada desde emergencia ' . $emergencia->code;
+            $cita->estado = 'programada';
+            $cita->user_registro_id = auth()->id();
+
+            // Calcular costo base según tipo
+            $tipoCirugia = TipoCirugia::where('nombre', $validated['tipo_cirugia'])->first();
+            if ($tipoCirugia) {
+                $cita->costo_base = $tipoCirugia->costo_base;
+            }
+
+            // Validar disponibilidad
+            if ($cita->validarDisponibilidadQuirofano()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El quirófano no está disponible en ese horario'
+                ], 422);
+            }
+
+            $cita->save();
+
+            // Actualizar emergencia con referencia a la cita
+            $emergencia->update([
+                'nro_cirugia' => 'CIR-' . $cita->id,
+                'status' => 'cirugia_programada'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cirugía programada exitosamente',
+                'cita' => $cita->fresh(),
+                'redirect' => route('quirofano.index')
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Iniciar cirugía de emergencia inmediatamente (sin programar)
+     */
+    public function iniciarEmergencia(int $emergency_id): JsonResponse
+    {
+        try {
+            $emergencia = \App\Models\Emergency::findOrFail($emergency_id);
+
+            if ($emergencia->ubicacion_actual !== 'cirugia') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La emergencia no está en quirófano'
+                ], 400);
+            }
+
+            // Buscar quirófano disponible
+            $quirofano = Quirofano::where('estado', 'disponible')->first();
+            if (!$quirofano) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay quirófanos disponibles'
+                ], 422);
+            }
+
+            // Crear cita quirúrgica para ahora
+            $cita = new CitaQuirurgica();
+            $cita->ci_paciente = $emergencia->patient_id;
+            $cita->ci_cirujano = auth()->user()->medico?->ci ?? null;
+            $cita->quirofano_id = $quirofano->id;
+            $cita->tipo_cirugia = 'mayor';
+            $cita->fecha = now()->toDateString();
+            $cita->hora_inicio_estimada = now()->format('H:i');
+            $cita->descripcion_cirugia = 'Cirugía de emergencia - ' . $emergencia->code;
+            $cita->estado = 'en_curso';
+            $cita->timestamp_inicio = now();
+            $cita->user_registro_id = auth()->id();
+            $cita->save();
+
+            // Marcar quirófano como ocupado
+            $quirofano->update(['estado' => 'ocupado']);
+
+            // Actualizar emergencia
+            $emergencia->update([
+                'nro_cirugia' => 'CIR-URG-' . $cita->id,
+                'status' => 'cirugia_en_curso'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cirugía iniciada en ' . $quirofano->nombre,
+                'cita_id' => $cita->id,
+                'redirect' => route('quirofano.show', $cita)
+            ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

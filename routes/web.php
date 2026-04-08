@@ -74,6 +74,12 @@ Route::middleware('auth')->group(function () {
         
         // Rutas con parámetros {cita} al FINAL
         Route::post('/quirofano', [QuirofanoController::class, 'store'])->name('quirofano.store');
+
+        // Rutas para programar cirugías desde emergencias
+        Route::get('/quirofano/emergencia/{emergency_id}/programar', [QuirofanoController::class, 'programarEmergencia'])->name('quirofano.programar-emergencia');
+        Route::post('/quirofano/emergencia/store', [QuirofanoController::class, 'storeEmergencia'])->name('quirofano.store-emergencia');
+        Route::post('/quirofano/emergencia/{emergency_id}/iniciar', [QuirofanoController::class, 'iniciarEmergencia'])->name('quirofano.iniciar-emergencia');
+
         Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show');
         Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit');
         Route::put('/quirofano/{cita}', [QuirofanoController::class, 'update'])->name('quirofano.update');
@@ -257,7 +263,24 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiShow'])->name('tarifarios.api.show');
 
         Route::get('/seguros', [SeguroController::class, 'index'])->name('seguros');
+        Route::post('/seguros', [SeguroController::class, 'store'])->name('seguros.store');
+        Route::put('/seguros/{seguro}', [SeguroController::class, 'update'])->name('seguros.update');
+        Route::delete('/seguros/{seguro}', [SeguroController::class, 'destroy'])->name('seguros.destroy');
+        
+        // API routes para seguros
+        Route::get('/api/seguros', [SeguroController::class, 'apiIndex'])->name('seguros.api.index');
+        Route::get('/api/seguros/{seguro}', [SeguroController::class, 'show'])->name('seguros.api.show');
+        Route::get('/api/preautorizaciones', [SeguroController::class, 'getPreautorizaciones'])->name('seguros.api.preautorizaciones');
+        Route::post('/api/preautorizaciones/{cuentaId}/estado', [SeguroController::class, 'cambiarEstadoPreautorizacion'])->name('seguros.api.cambiar-estado');
+
         Route::get('/cuentas-por-cobrar', [CuentaCobrarController::class, 'index'])->name('cuentas');
+        
+        // API routes para cuentas por cobrar
+        Route::get('/api/cuentas', [CuentaCobrarController::class, 'apiIndex'])->name('cuentas.api.index');
+        Route::get('/api/cuentas/{id}', [CuentaCobrarController::class, 'show'])->name('cuentas.api.show');
+        Route::post('/api/cuentas/{id}/pago', [CuentaCobrarController::class, 'registrarPago'])->name('cuentas.api.pago');
+        Route::get('/api/cuentas-emergencias', [CuentaCobrarController::class, 'getCuentasEmergencias'])->name('cuentas.api.emergencias');
+        Route::get('/api/reporte-morosidad', [CuentaCobrarController::class, 'getReporteMorosidad'])->name('cuentas.api.morosidad');
     });
 
     // Rutas de administración (solo admin) - Especialidades CRUD
@@ -379,8 +402,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/completar-datos-paciente-temporal', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal']);
     });
 
-    // Rutas para personal de emergencias - SOLO ROL EMERGENCIA (sin admin/dirmdico)
-    Route::middleware(['role:emergencia'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+    // Rutas para personal de emergencias - EMERGENCIA, ADMIN Y DIR MEDICO
+    Route::middleware(['role:emergencia|admin|dirmedico'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');

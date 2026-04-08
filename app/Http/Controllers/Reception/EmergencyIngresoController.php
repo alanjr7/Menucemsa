@@ -9,6 +9,7 @@ use App\Models\Emergency;
 use App\Models\Triage;
 use App\Models\Registro;
 use App\Models\Seguro;
+use App\Models\CuentaCobro;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -340,16 +341,19 @@ class EmergencyIngresoController extends Controller
 
             $seguroCodigo = $this->obtenerOCrearSeguro('particular');
 
+            // Mapear sexo a formato corto para BD (M/F)
+            $sexoCodigo = $validated['sexo'] === 'Masculino' ? 'M' : 'F';
+
             $paciente = Paciente::create([
                 'ci' => $validated['ci'],
                 'nombre' => trim($validated['nombres'] . ' ' . $validated['apellidos']),
-                'sexo' => $validated['sexo'],
+                'sexo' => $sexoCodigo,
                 'direccion' => $validated['direccion'] ?? 'Sin especificar',
                 'telefono' => $validated['telefono'] ? (int)$validated['telefono'] : 0,
                 'correo' => $validated['correo'] ?? 'sin@email.com',
                 'seguro_id' => $seguroCodigo,
                 'registro_codigo' => $registroCodigo,
-                'id_triage' => $this->obenerOCrearTriage(),
+                'triage_id' => $this->obenerOCrearTriage(),
             ]);
 
             // 3. Actualizar la emergencia con el nuevo CI y marcar como no temporal
@@ -360,7 +364,14 @@ class EmergencyIngresoController extends Controller
                 'temp_id' => null,
             ]);
 
-            // 4. Registrar en el historial
+            // 4. Actualizar la cuenta_cobros asociada con el nuevo CI real
+            CuentaCobro::where('referencia_type', Emergency::class)
+                ->where('referencia_id', $emergency->id)
+                ->update([
+                    'paciente_ci' => $validated['ci'],
+                ]);
+
+            // 5. Registrar en el historial
             $emergency->registrarMovimiento(
                 'emergencia',
                 'emergencia',

@@ -84,7 +84,7 @@ class CuentaCobroService
                 'referencia_type' => \App\Models\Emergency::class,
                 'estado' => 'pendiente',
                 'total_calculado' => 0,
-                'saldo_pendiente' => 0,
+                'total_pagado' => 0,
                 'es_emergencia' => true,
                 'es_post_pago' => $esPostPago,
             ]);
@@ -128,7 +128,6 @@ class CuentaCobroService
 
             $cuenta->update([
                 'total_calculado' => $total,
-                'saldo_pendiente' => $total,
             ]);
 
             return $cuenta;

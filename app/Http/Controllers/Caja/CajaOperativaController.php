@@ -104,6 +104,8 @@ class CajaOperativaController extends Controller
                 'concepto' => 'Apertura de caja',
                 'monto' => $request->monto_inicial,
                 'metodo_pago' => 'efectivo',
+                'movable_type' => 'App\Models\CajaSession',
+                'movable_id' => $caja->id,
             ]);
 
             return response()->json([
@@ -158,7 +160,9 @@ class CajaOperativaController extends Controller
                 'concepto' => 'Cierre de caja',
                 'monto' => $request->monto_final,
                 'metodo_pago' => 'efectivo',
-                'observaciones' => 'Monto final al cierre'
+                'observaciones' => 'Monto final al cierre',
+                'movable_type' => 'App\Models\CajaSession',
+                'movable_id' => $caja->id,
             ]);
 
             DB::commit();
@@ -191,15 +195,37 @@ class CajaOperativaController extends Controller
     public function getPacientesPendientes(): JsonResponse
     {
         try {
-            $cuentas = CuentaCobro::with(['paciente', 'detalles.tarifa', 'pagos'])
+            $cuentas = CuentaCobro::with(['paciente', 'referencia', 'detalles.tarifa', 'pagos'])
                 ->whereIn('estado', ['pendiente', 'parcial'])
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($cuenta) {
+                    // Obtener nombre y CI del paciente
+                    $pacienteNombre = 'N/A';
+                    $pacienteCi = $cuenta->paciente_ci;
+                    
+                    if ($cuenta->paciente) {
+                        $pacienteNombre = $cuenta->paciente->nombre;
+                    } elseif ($cuenta->es_emergencia && $cuenta->referencia) {
+                        // Para emergencias, obtener datos desde la emergencia
+                        $emergency = $cuenta->referencia;
+                        if ($emergency->patient_id) {
+                            // Buscar paciente por patient_id de la emergencia
+                            $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                            if ($paciente) {
+                                $pacienteNombre = $paciente->nombre;
+                                $pacienteCi = $paciente->ci; // Usar CI real del paciente
+                            } else {
+                                $pacienteNombre = 'Paciente Emergencia #' . $emergency->id;
+                                $pacienteCi = $emergency->patient_id; // Al menos mostrar el patient_id
+                            }
+                        }
+                    }
+
                     return [
                         'id' => $cuenta->id,
-                        'paciente_ci' => $cuenta->paciente_ci,
-                        'paciente_nombre' => $cuenta->paciente->nombre ?? 'N/A',
+                        'paciente_ci' => $pacienteCi,
+                        'paciente_nombre' => $pacienteNombre,
                         'tipo_atencion' => $cuenta->tipo_atencion_label,
                         'total_calculado' => $cuenta->total_calculado,
                         'total_pagado' => $cuenta->total_pagado,
@@ -233,7 +259,7 @@ class CajaOperativaController extends Controller
     public function getDetalleCuenta(string $id): JsonResponse
     {
         try {
-            $cuenta = CuentaCobro::with(['paciente', 'detalles.tarifa', 'pagos.user'])
+            $cuenta = CuentaCobro::with(['paciente', 'referencia', 'detalles.tarifa', 'pagos.user'])
                 ->findOrFail($id);
 
             // Determinar referencia (consulta, emergencia, etc.)
@@ -242,14 +268,37 @@ class CajaOperativaController extends Controller
                 $referencia = $cuenta->referencia;
             }
 
+            // Obtener nombre y datos del paciente
+            $pacienteNombre = 'N/A';
+            $pacienteCi = $cuenta->paciente_ci;
+            $pacienteTelefono = 'N/A';
+            
+            if ($cuenta->paciente) {
+                $pacienteNombre = $cuenta->paciente->nombre;
+                $pacienteTelefono = $cuenta->paciente->telefono ?? 'N/A';
+            } elseif ($cuenta->es_emergencia && $referencia) {
+                $emergency = $referencia;
+                if ($emergency->patient_id) {
+                    $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                    if ($paciente) {
+                        $pacienteNombre = $paciente->nombre;
+                        $pacienteCi = $paciente->ci;
+                        $pacienteTelefono = $paciente->telefono ?? 'N/A';
+                    } else {
+                        $pacienteNombre = 'Paciente Emergencia #' . $emergency->id;
+                        $pacienteCi = $emergency->patient_id;
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'cuenta' => [
                     'id' => $cuenta->id,
                     'paciente' => [
-                        'ci' => $cuenta->paciente_ci,
-                        'nombre' => $cuenta->paciente->nombre ?? 'N/A',
-                        'telefono' => $cuenta->paciente->telefono ?? 'N/A',
+                        'ci' => $pacienteCi,
+                        'nombre' => $pacienteNombre,
+                        'telefono' => $pacienteTelefono,
                     ],
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
                     'es_emergencia' => $cuenta->es_emergencia,
@@ -400,10 +449,22 @@ class CajaOperativaController extends Controller
             }
 
             // Registrar movimiento en caja
+            // Obtener nombre del paciente (desde relación o desde emergencia)
+            $nombrePaciente = 'N/A';
+            if ($cuenta->paciente) {
+                $nombrePaciente = $cuenta->paciente->nombre;
+            } elseif ($cuenta->es_emergencia && $cuenta->referencia) {
+                $emergency = $cuenta->referencia;
+                if ($emergency->patient_id) {
+                    $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                    $nombrePaciente = $paciente?->nombre ?? 'Paciente Emergencia #' . $emergency->id;
+                }
+            }
+
             MovimientoCaja::create([
                 'caja_session_id' => $cajaAbierta->id,
                 'tipo' => 'ingreso',
-                'concepto' => 'Cobro ' . $cuenta->tipo_atencion_label . ' - Paciente: ' . $cuenta->paciente->nombre,
+                'concepto' => 'Cobro ' . $cuenta->tipo_atencion_label . ' - Paciente: ' . $nombrePaciente,
                 'monto' => $montoPagar,
                 'metodo_pago' => $request->metodo_pago,
                 'referencia' => $request->referencia,

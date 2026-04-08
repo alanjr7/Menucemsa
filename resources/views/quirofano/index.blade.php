@@ -42,7 +42,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-6 mb-6">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -99,7 +99,106 @@
                 </div>
             </div>
         </div>
+
+        <!-- Emergencias en Quirófano -->
+        <div class="bg-white rounded-xl shadow-sm border border-purple-200 p-4 lg:p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs lg:text-sm font-medium text-purple-600">Emergencias</p>
+                    <p class="text-lg lg:text-2xl font-bold text-purple-700">{{ $stats['emergencias'] }}</p>
+                </div>
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Emergencias en Quirófano -->
+    @if($emergenciasEnQuirofano->count() > 0)
+    <div class="bg-white rounded-xl shadow-sm border border-purple-200 mb-6 overflow-hidden">
+        <div class="p-4 bg-purple-50 border-b border-purple-200 flex items-center justify-between">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <h3 class="font-bold text-purple-800">Pacientes de Emergencia en Quirófano</h3>
+            </div>
+            <span class="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
+                {{ $emergenciasEnQuirofano->count() }} paciente(s)
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Cirugía</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora Ingreso</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @foreach($emergenciasEnQuirofano as $emg)
+                    <tr class="hover:bg-purple-50/50">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="font-mono text-sm font-medium text-purple-600">{{ $emg['code'] }}</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900">{{ $emg['paciente_nombre'] }}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="font-mono text-sm text-gray-600">{{ $emg['nro_cirugia'] ?? 'N/A' }}</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                                {{ $emg['status_label'] }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            {{ $emg['hora_ingreso'] }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="text-sm text-gray-600">{{ $emg['tipo_ingreso'] }}</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            <div class="flex flex-col gap-2">
+                                <a href="{{ route('emergency-staff.show', $emg['id']) }}" class="text-purple-600 hover:text-purple-900 text-sm font-medium">
+                                    Ver detalle
+                                </a>
+                                <a href="{{ route('quirofano.programar-emergencia', $emg['id']) }}" class="inline-flex items-center justify-center px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    Programar
+                                </a>
+                                <button onclick="iniciarEmergencia({{ $emg['id'] }})" class="inline-flex items-center justify-center px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 transition-colors">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                    Iniciar Ahora
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
     <!-- Vista Móvil: Tarjetas por Día -->
     <div class="lg:hidden space-y-4 mb-8">
@@ -336,6 +435,37 @@
 <script>
 function verDetalles(citaId) {
     window.location.href = `/quirofano/${citaId}`;
+}
+
+async function iniciarEmergencia(emergencyId) {
+    if (!confirm('¿Iniciar cirugía de emergencia inmediatamente? Esta acción buscará el primer quirófano disponible.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/quirofano/emergencia/${emergencyId}/iniciar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Cirugía iniciada: ' + result.message);
+            if (result.redirect) {
+                window.location.href = result.redirect;
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('Error: ' + (result.message || 'No se pudo iniciar la cirugía'));
+        }
+    } catch (error) {
+        alert('Error de conexión: ' + error.message);
+    }
 }
 
 // Actualizar cada 30 segundos para mostrar cambios en tiempo real

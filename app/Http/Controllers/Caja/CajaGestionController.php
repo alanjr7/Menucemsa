@@ -21,24 +21,38 @@ class CajaGestionController extends Controller
      */
     public function index(): View
     {
-        // Estadísticas generales
+        // Estadísticas generales - usar MovimientoCaja para reflejar movimientos reales
         $hoy = now()->toDateString();
+        $inicioDia = now()->startOfDay();
+        $finDia = now()->endOfDay();
+        
+        // Obtener todos los ingresos de hoy (excluyendo aperturas de caja)
+        $ingresosHoy = MovimientoCaja::whereDate('created_at', $hoy)
+            ->where('tipo', 'ingreso')
+            ->where('concepto', 'like', 'Cobro%')
+            ->get();
+        
+        // Calcular totales manualmente - usar el valor casteado del modelo
+        $totalRecaudado = 0;
+        $transacciones = $ingresosHoy->count();
+        $metodosPagoHoy = ['efectivo' => 0, 'transferencia' => 0, 'tarjeta' => 0, 'qr' => 0];
+
+        foreach ($ingresosHoy as $mov) {
+            $monto = (float) $mov->monto;
+            $totalRecaudado += $monto;
+            $metodo = $mov->metodo_pago ?? 'efectivo';
+            if (isset($metodosPagoHoy[$metodo])) {
+                $metodosPagoHoy[$metodo] += $monto;
+            }
+        }
         
         $estadisticas = [
-            'total_recaudado_hoy' => PagoCuenta::delDia($hoy)->sum('monto'),
-            'transacciones_hoy' => PagoCuenta::delDia($hoy)->count(),
+            'total_recaudado_hoy' => $totalRecaudado,
+            'transacciones_hoy' => $transacciones,
             'cajas_abiertas' => CajaSession::abierta()->count(),
-            'cajas_cerradas_hoy' => CajaSession::cerrada()->whereDate('fecha_cierre', $hoy)->count(),
+            'cajas_cerradas_hoy' => CajaSession::cerrada()->whereBetween('fecha_cierre', [$inicioDia, $finDia])->count(),
             'cuentas_pendientes' => CuentaCobro::pendiente()->count(),
             'emergencias_pendientes' => CuentaCobro::emergencias()->postPago()->whereIn('estado', ['pendiente', 'parcial'])->count(),
-        ];
-
-        // Desglose por método de pago (hoy)
-        $metodosPagoHoy = [
-            'efectivo' => PagoCuenta::delDia($hoy)->efectivo()->sum('monto'),
-            'transferencia' => PagoCuenta::delDia($hoy)->transferencia()->sum('monto'),
-            'tarjeta' => PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'),
-            'qr' => PagoCuenta::delDia($hoy)->qr()->sum('monto'),
         ];
 
         // Cajas abiertas actualmente
@@ -86,7 +100,7 @@ class CajaGestionController extends Controller
                 'metodo_pago' => 'nullable|in:efectivo,transferencia,tarjeta,qr,todos',
             ]);
 
-            $query = CuentaCobro::with(['paciente', 'pagos.user', 'cajaSession.user']);
+            $query = CuentaCobro::with(['paciente', 'referencia', 'pagos.user', 'cajaSession.user']);
 
             // Filtro por fecha
             if ($request->fecha_inicio && $request->fecha_fin) {
@@ -119,11 +133,23 @@ class CajaGestionController extends Controller
             $transacciones = $query->orderBy('created_at', 'desc')
                 ->paginate(25)
                 ->through(function ($cuenta) {
+                    // Obtener nombre del paciente (desde relación o desde emergencia)
+                    $nombrePaciente = $cuenta->paciente?->nombre;
+                    if (empty($nombrePaciente) && $cuenta->es_emergencia && $cuenta->referencia) {
+                        $emergency = $cuenta->referencia;
+                        if ($emergency->patient_id) {
+                            $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                            $nombrePaciente = $paciente?->nombre ?? 'Paciente Emergencia #' . $emergency->id;
+                        } else {
+                            $nombrePaciente = 'Paciente Emergencia #' . $emergency->id;
+                        }
+                    }
+
                     return [
                         'id' => $cuenta->id,
                         'paciente' => [
                             'ci' => $cuenta->paciente_ci,
-                            'nombre' => $cuenta->paciente->nombre ?? 'N/A',
+                            'nombre' => $nombrePaciente ?? 'N/A',
                         ],
                         'tipo_flujo' => $cuenta->es_emergencia ? 'emergencia' : 'normal',
                         'es_post_pago' => $cuenta->es_post_pago,
@@ -327,22 +353,30 @@ class CajaGestionController extends Controller
                 'fecha_fin' => 'required|date',
             ]);
 
-            $fechaInicio = $request->fecha_inicio;
-            $fechaFin = $request->fecha_fin;
+            $fechaInicio = \Carbon\Carbon::parse($request->fecha_inicio)->startOfDay();
+            $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
 
             // Totales generales
             $totalesGenerales = [
-                'total_recaudado' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->sum('monto'),
+                'total_recaudado' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->sum('monto'),
                 'total_transacciones' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->count(),
             ];
 
             // Desglose por método de pago
             $porMetodoPago = [
-                'efectivo' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->efectivo()->sum('monto'),
-                'transferencia' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->transferencia()->sum('monto'),
-                'tarjeta' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->tarjeta()->sum('monto'),
-                'qr' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->qr()->sum('monto'),
+                'efectivo' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->efectivo()->sum('monto'),
+                'transferencia' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->transferencia()->sum('monto'),
+                'tarjeta' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->tarjeta()->sum('monto'),
+                'qr' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->qr()->sum('monto'),
             ];
+
+            // Debug: obtener pagos individuales para verificar
+            $pagosHoy = PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])
+                ->get(['id', 'monto', 'metodo_pago', 'cuenta_cobro_id', 'created_at']);
+            \Log::info('Fecha inicio: ' . $fechaInicio . ' | Fin: ' . $fechaFin);
+            \Log::info('Total pagos encontrados: ' . $pagosHoy->count());
+            \Log::info('Pagos del día: ' . $pagosHoy->toJson());
+            \Log::info('Sumas por método: E=' . $porMetodoPago['efectivo'] . ' Q=' . $porMetodoPago['qr']);
 
             // Desglose por tipo de atención
             $porTipoAtencion = CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
@@ -388,9 +422,14 @@ class CajaGestionController extends Controller
             ];
 
             // Cuentas pendientes
+            $cuentasPendientes = CuentaCobro::pendiente()->get();
+            $montoPendiente = $cuentasPendientes->sum(function($cuenta) {
+                return $cuenta->saldo_pendiente;
+            });
+            
             $pendientes = [
-                'total' => CuentaCobro::pendiente()->count(),
-                'monto' => CuentaCobro::pendiente()->sum('saldo_pendiente'),
+                'total' => $cuentasPendientes->count(),
+                'monto' => $montoPendiente,
                 'emergencias' => CuentaCobro::emergencias()->postPago()->pendiente()->count(),
             ];
 

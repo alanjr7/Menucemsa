@@ -26,7 +26,6 @@ class CuentaCobro extends Model
         'estado',
         'total_calculado',
         'total_pagado',
-        'saldo_pendiente',
         'es_emergencia',
         'es_post_pago',
         'ci_nit_facturacion',
@@ -39,10 +38,24 @@ class CuentaCobro extends Model
     protected $casts = [
         'total_calculado' => 'decimal:2',
         'total_pagado' => 'decimal:2',
-        'saldo_pendiente' => 'decimal:2',
         'es_emergencia' => 'boolean',
         'es_post_pago' => 'boolean',
     ];
+
+    protected $appends = [
+        'estado_color',
+        'estado_label',
+        'tipo_atencion_label',
+        'saldo_pendiente',
+    ];
+
+    /**
+     * Calcular saldo pendiente dinámicamente
+     */
+    public function getSaldoPendienteAttribute(): float
+    {
+        return max(0, (float) $this->total_calculado - (float) $this->total_pagado);
+    }
 
     // Relaciones
     public function paciente(): BelongsTo
@@ -161,11 +174,10 @@ class CuentaCobro extends Model
     public function recalcularTotales(): void
     {
         $this->total_calculado = $this->detalles->sum('subtotal');
-        $this->saldo_pendiente = $this->total_calculado - $this->total_pagado;
+        $saldoPendiente = (float) $this->total_calculado - (float) $this->total_pagado;
         
-        if ($this->saldo_pendiente <= 0) {
+        if ($saldoPendiente <= 0) {
             $this->estado = 'pagado';
-            $this->saldo_pendiente = 0;
         } elseif ($this->total_pagado > 0) {
             $this->estado = 'parcial';
         } else {

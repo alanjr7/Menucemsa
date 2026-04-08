@@ -420,9 +420,11 @@ class EmergencyStaffController extends Controller
             }
 
             // 4. Crear o actualizar cuenta de cobro para la emergencia
+            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
+            // ya que paciente_ci en BD es integer y temp_id es string
             $pacienteCi = $emergency->is_temp_id
-                ? $emergency->temp_id
-                : $emergency->patient_id;
+                ? (int) $emergency->id  // Usar ID de emergencia como identificador numérico
+                : (int) $emergency->patient_id;
 
             $cuenta = CuentaCobroService::obtenerOCrearCuentaEmergencia(
                 $pacienteCi,

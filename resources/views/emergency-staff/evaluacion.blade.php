@@ -334,7 +334,7 @@
 
 <script>
     let medicamentosSeleccionados = [];
-    let medicamentosDisponibles = {{ $medsArray->toJson() }};
+    let medicamentosDisponibles = @json($medsArray);
 
     function agregarMedicamento() {
         document.getElementById('modalMedicamentos').classList.remove('hidden');
