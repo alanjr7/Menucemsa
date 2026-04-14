@@ -189,6 +189,7 @@ class QuirofanoController extends Controller
                 'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
                 'fecha' => 'required|date|after_or_equal:today',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
+                'costo_base' => 'required|numeric|min:0',
             ]);
 
             // Crear cita sin validación de disponibilidad por ahora
@@ -210,16 +211,8 @@ class QuirofanoController extends Controller
             $cita->estado = 'programada';
             $cita->user_registro_id = auth()->id();
 
-            // Obtener tipo de cirugía
-            $tipoCirugia = TipoCirugia::where('nombre', $validated['tipo_cirugia'])->first();
-            if (!$tipoCirugia) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tipo de cirugía no encontrado.'
-                ], 422);
-            }
-
-            $cita->costo_base = $tipoCirugia->costo_base;
+            // Usar el precio ingresado por el administrador
+            $cita->costo_base = $validated['costo_base'];
 
             // Validar disponibilidad del quirófano (temporalmente desactivada para pruebas)
             /*
@@ -238,14 +231,28 @@ class QuirofanoController extends Controller
             }
             */
 
-            // Guardar cita
-            $cita->save();
+            // Guardar cita y crear registro en caja dentro de una transacción
+            DB::beginTransaction();
+            
+            try {
+                $cita->save();
+                
+                // Crear registro en caja inmediatamente
+                $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
+                
+                DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Cita quirúrgica programada exitosamente.',
-                'cita' => $cita->fresh()
-            ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cita quirúrgica programada exitosamente. Se generó la cuenta de cobro en caja.',
+                    'cita' => $cita->fresh(),
+                    'cuenta_cobro_id' => $cuentaCobro->id
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                \Log::error('Error al crear cita o registro en caja: ' . $e->getMessage());
+                throw $e;
+            }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Log detailed validation errors
@@ -558,29 +565,59 @@ class QuirofanoController extends Controller
 
     private function crearRegistroCajaCirugia(CitaQuirurgica $cita)
     {
-        // Crear registro en caja para la cirugía
-        $caja = Caja::create([
-            'fecha' => now(),
-            'total_dia' => $cita->costo_final,
-            'tipo' => 'CIRUGIA',
-            'nro_factura' => null, // Pendiente de pago en caja
-            'farmacia_id' => null,
-            'metodo_pago' => null,
-            'referencia' => 'Cita Quirúrgica ID: ' . $cita->id,
-        ]);
-
-        // Relacionar la cita con la caja (necesitaríamos agregar el campo id_caja en citas_quirurgicas)
-        // Por ahora, podemos guardar la referencia en observaciones
-        $cita->observaciones = ($cita->observaciones ?? '') . ' | Registro Caja: ' . $caja->id;
-        $cita->save();
+        // Usar costo_base ya que costo_final solo se calcula al finalizar la cirugía
+        $monto = $cita->costo_base ?? 0;
         
-        Log::info('Registro de caja creado para cirugía', [
+        \Log::info('Creando cuenta de cobro para cirugía', [
             'cita_id' => $cita->id,
-            'caja_id' => $caja->id,
-            'monto' => $cita->costo_final
+            'monto' => $monto,
+            'paciente' => $cita->ci_paciente
         ]);
         
-        return $caja;
+        try {
+            // Crear cuenta de cobro para que aparezca en caja operativa
+            $cuentaCobro = \App\Models\CuentaCobro::create([
+                'paciente_ci' => $cita->ci_paciente,
+                'tipo_atencion' => 'CIRUGIA',
+                'referencia_id' => $cita->id,
+                'referencia_type' => CitaQuirurgica::class,
+                'estado' => 'pendiente',
+                'total_calculado' => $monto,
+                'total_pagado' => 0,
+                'es_emergencia' => false,
+                'es_post_pago' => true,
+                'observaciones' => 'Cirugía programada - Quirófano: ' . $cita->quirofano_id,
+            ]);
+
+            // Crear detalle de la cuenta de cobro
+            \App\Models\CuentaCobroDetalle::create([
+                'cuenta_cobro_id' => $cuentaCobro->id,
+                'tipo_item' => 'procedimiento',
+                'descripcion' => 'Cirugía ' . $cita->tipo_cirugia . ' - ' . ($cita->descripcion_cirugia ?? 'Sin descripción'),
+                'cantidad' => 1,
+                'precio_unitario' => $monto,
+                'subtotal' => $monto,
+            ]);
+
+            // Relacionar la cita con la cuenta de cobro
+            $cita->observaciones = ($cita->observaciones ?? '') . ' | Cuenta Cobro: ' . $cuentaCobro->id;
+            $cita->save();
+            
+            \Log::info('Cuenta de cobro creada exitosamente', [
+                'cita_id' => $cita->id,
+                'cuenta_cobro_id' => $cuentaCobro->id,
+                'monto' => $monto
+            ]);
+            
+            return $cuentaCobro;
+        } catch (\Exception $e) {
+            \Log::error('Error al crear cuenta de cobro: ' . $e->getMessage(), [
+                'cita_id' => $cita->id,
+                'monto' => $monto,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     public function cancelar(Request $request, CitaQuirurgica $cita): JsonResponse
