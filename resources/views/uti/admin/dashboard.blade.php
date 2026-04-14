@@ -161,7 +161,7 @@
                 <div class="flex gap-2">
                     <button @click="activeTab = 'dashboard'" :class="{'bg-blue-600 text-white': activeTab === 'dashboard', 'bg-gray-200': activeTab !== 'dashboard'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Dashboard</button>
                     <button @click="activeTab = 'camas'" :class="{'bg-blue-600 text-white': activeTab === 'camas', 'bg-gray-200': activeTab !== 'camas'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Camas</button>
-                    <button @click="activeTab = 'pacientes'" :class="{'bg-blue-600 text-white': activeTab === 'pacientes', 'bg-gray-200': activeTab !== 'pacientes'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Pacientes</button>
+                    <button @click="activeTab = 'pacientes'; loadPacientes()" :class="{'bg-blue-600 text-white': activeTab === 'pacientes', 'bg-gray-200': activeTab !== 'pacientes'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Pacientes</button>
                     <button @click="activeTab = 'tarifario'" :class="{'bg-blue-600 text-white': activeTab === 'tarifario', 'bg-gray-200': activeTab !== 'tarifario'}" class="px-4 py-2 rounded-lg text-sm font-medium transition">Tarifario</button>
                     <button @click="activeTab = 'alertas'" :class="{'bg-blue-600 text-white': activeTab === 'alertas', 'bg-gray-200': activeTab !== 'alertas'}" class="px-4 py-2 rounded-lg text-sm font-medium transition relative">
                         Alertas

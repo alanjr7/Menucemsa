@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('subtotal', 10, 2);
             
             $table->foreign('codigo_venta')->references('codigo_venta')->on('ventas_farmacia')->onDelete('cascade');
+            $table->timestamps();
         });
     }
 

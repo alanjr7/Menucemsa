@@ -40,7 +40,6 @@ use App\Http\Controllers\Admin\AlmacenMedicamentosController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Medical\UtiOperativoController;
 use App\Http\Controllers\Admin\UtiAdminController;
-use App\Http\Controllers\Caja\UtiCajaController;
 use App\Http\Controllers\Reception\UtiRecepcionController;
 
 
@@ -71,7 +70,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
         Route::get('/api/pacientes-lista', [QuirofanoController::class, 'getListaPacientes'])->name('api.pacientes-lista');
         Route::get('/api/medicos-lista', [QuirofanoController::class, 'getListaMedicos'])->name('api.medicos-lista');
-        
+
+        // Rutas para medicamentos de quirófano (solo admin) - DEBEN IR ANTES de rutas con parámetros
+        Route::middleware(['role:admin'])->group(function () {
+            Route::get('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'index'])->name('quirofano.medicamentos.index');
+            Route::get('/quirofano/medicamentos/create', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'create'])->name('quirofano.medicamentos.create');
+            Route::post('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'store'])->name('quirofano.medicamentos.store');
+            Route::get('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'show'])->name('quirofano.medicamentos.show');
+            Route::get('/quirofano/medicamentos/{medicamento}/edit', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'edit'])->name('quirofano.medicamentos.edit');
+            Route::put('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'update'])->name('quirofano.medicamentos.update');
+            Route::delete('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'destroy'])->name('quirofano.medicamentos.destroy');
+            Route::post('/quirofano/medicamentos/{medicamento}/stock', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'actualizarStock'])->name('quirofano.medicamentos.stock');
+        });
+
         // Rutas con parámetros {cita} al FINAL
         Route::post('/quirofano', [QuirofanoController::class, 'store'])->name('quirofano.store');
 
@@ -172,6 +183,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/resumen-dia', [CajaOperativaController::class, 'getResumenDia'])->name('resumen-dia');
         Route::get('/buscar-paciente', [CajaOperativaController::class, 'buscarPaciente'])->name('buscar-paciente');
         Route::get('/tarifas', [CajaOperativaController::class, 'getTarifas'])->name('tarifas');
+        
+        // Rutas UTI integradas en caja operativa
+        Route::get('/uti-pacientes', [CajaOperativaController::class, 'getPacientesUti'])->name('uti-pacientes');
+        Route::get('/uti-detalle-cuenta/{id}', [CajaOperativaController::class, 'getDetalleCuentaUti'])->name('uti-detalle-cuenta');
+        Route::post('/uti-procesar-cobro/{id}', [CajaOperativaController::class, 'procesarCobroUti'])->name('uti-procesar-cobro');
+        Route::post('/uti-deposito/{id}', [CajaOperativaController::class, 'registrarDepositoUti'])->name('uti-deposito');
     });
 
     // Gestión de Caja - Para usuarios con rol ADMIN
@@ -224,7 +241,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Rutas exclusivas para doctores (vista personal de consulta externa)
-    Route::middleware(['role:doctor|dirmedico'])->group(function () {
+    Route::middleware(['role:doctor|dirmedico|admin'])->group(function () {
         Route::get('/consulta-externa', [\App\Http\Controllers\DoctorController::class, 'index'])->name('consulta.index');
         Route::get('/consulta/{consultaCodigo}', [\App\Http\Controllers\DoctorController::class, 'verConsulta'])->name('consulta.ver');
         Route::post('/consulta-externa/iniciar/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'iniciarConsulta'])->name('consulta.iniciar');
@@ -506,15 +523,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('uti-admin')->name('uti.admin.
     Route::put('/api/tarifario/{id}', [UtiAdminController::class, 'actualizarTarifa']);
     Route::get('/api/alertas', [UtiAdminController::class, 'getAlertas']);
     Route::post('/api/preautorizacion/{admissionId}', [UtiAdminController::class, 'actualizarPreautorizacion']);
-});
-
-// UTI Caja - Admin y caja
-Route::middleware(['auth', 'role:admin|caja'])->prefix('uti-caja')->name('uti.caja.')->group(function () {
-    Route::get('/', [UtiCajaController::class, 'index'])->name('index');
-    Route::get('/api/pacientes', [UtiCajaController::class, 'getPacientesUti']);
-    Route::get('/api/detalle-cuenta/{id}', [UtiCajaController::class, 'getDetalleCuenta']);
-    Route::post('/api/procesar-cobro/{id}', [UtiCajaController::class, 'procesarCobro']);
-    Route::post('/api/deposito/{id}', [UtiCajaController::class, 'registrarDeposito']);
 });
 
 // UTI Recepción - Admin, reception, dirmedico

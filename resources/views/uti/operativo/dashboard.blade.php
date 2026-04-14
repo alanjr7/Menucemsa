@@ -43,7 +43,7 @@
                 async loadPacientes() {
                     this.loading = true;
                     try {
-                        const response = await fetch(`/api/uti-operativo/pacientes?estado_clinico=${this.filterEstado}`);
+                        const response = await fetch(`/uti-operativo/api/pacientes?estado_clinico=${this.filterEstado}`);
                         const data = await response.json();
                         if (data.success) {
                             this.pacientes = data.pacientes;

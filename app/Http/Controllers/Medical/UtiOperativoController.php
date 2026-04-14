@@ -132,123 +132,139 @@ class UtiOperativoController extends Controller
      */
     public function getPacienteDetalle($id): JsonResponse
     {
-        $admission = UtiAdmission::with([
-            'paciente.seguro',
-            'bed',
-            'medico',
-            'seguro',
-            'vitalSigns' => function($q) {
-                $q->orderBy('fecha', 'desc')->orderBy('hora', 'desc')->limit(50);
-            },
-            'dailyRecords' => function($q) {
-                $q->orderBy('fecha', 'desc')->limit(30);
-            },
-            'medicaments.medicamento',
-            'supplies.insumo',
-            'catering',
-            'recipes.medico',
-        ])->findOrFail($id);
+        try {
+            $admission = UtiAdmission::with([
+                'paciente.seguro',
+                'bed',
+                'medico',
+                'seguro',
+                'vitalSigns' => function($q) {
+                    $q->orderBy('fecha', 'desc')->orderBy('hora', 'desc')->limit(50);
+                },
+                'dailyRecords' => function($q) {
+                    $q->orderBy('fecha', 'desc')->limit(30);
+                },
+                'medications.medicamento',
+                'supplies.insumo',
+                'catering',
+                'recipes.medico',
+            ])->findOrFail($id);
 
-        $hoy = today()->toDateString();
-        $registroHoy = $admission->dailyRecords->where('fecha', $hoy)->first();
-        $signosHoy = $admission->vitalSigns->where('fecha', $hoy);
+            $hoy = today()->toDateString();
+            $registroHoy = $admission->dailyRecords->where('fecha', $hoy)->first();
+            $signosHoy = $admission->vitalSigns->where('fecha', $hoy);
 
-        return response()->json([
-            'success' => true,
-            'admission' => [
-                'id' => $admission->id,
-                'nro_ingreso' => $admission->nro_ingreso,
-                'estado_clinico' => $admission->estado_clinico,
-                'estado_clinico_color' => $admission->estado_clinico_color,
-                'diagnostico_principal' => $admission->diagnostico_principal,
-                'diagnostico_secundario' => $admission->diagnostico_secundario,
-                'tipo_ingreso' => $admission->tipo_ingreso,
-                'tipo_pago' => $admission->tipo_pago,
-                'estado' => $admission->estado,
-                'fecha_ingreso' => $admission->fecha_ingreso?->format('d/m/Y H:i'),
-                'dias_en_uti' => $admission->dias_en_uti,
-                'tiempo_texto' => $admission->tiempo_en_uti_texto,
-                'nro_autorizacion' => $admission->nro_autorizacion,
-            ],
-            'paciente' => [
-                'ci' => $admission->paciente?->ci,
-                'nombre' => $admission->paciente?->nombre,
-                'sexo' => $admission->paciente?->sexo,
-                'telefono' => $admission->paciente?->telefono,
-                'direccion' => $admission->paciente?->direccion,
-                'seguro' => $admission->paciente?->seguro?->nombre,
-            ],
-            'cama' => $admission->bed ? [
-                'id' => $admission->bed->id,
-                'numero' => $admission->bed->bed_number,
-                'tipo' => $admission->bed->tipo,
-            ] : null,
-            'medico' => $admission->medico ? [
-                'id' => $admission->medico->id,
-                'nombre' => $admission->medico->nombre,
-            ] : null,
-            'validaciones_hoy' => [
-                'ronda_completada' => $registroHoy?->ronda_completada ?? false,
-                'dia_validado' => $registroHoy?->dia_validado ?? false,
-                'tiene_signos_manana' => $signosHoy->where('turno', 'manana')->isNotEmpty(),
-                'tiene_signos_tarde' => $signosHoy->where('turno', 'tarde')->isNotEmpty(),
-                'tiene_signos_noche' => $signosHoy->where('turno', 'noche')->isNotEmpty(),
-                'puede_cerrar_dia' => ($registroHoy?->ronda_completada ?? false) && $signosHoy->isNotEmpty(),
-            ],
-            'signos_vitales' => $admission->vitalSigns->map(fn($s) => [
-                'id' => $s->id,
-                'fecha' => $s->fecha->format('d/m/Y'),
-                'turno' => $s->turno_label,
-                'hora' => $s->hora?->format('H:i'),
-                'presion' => $s->presion_arterial,
-                'fc' => $s->frecuencia_cardiaca,
-                'fr' => $s->frecuencia_respiratoria,
-                'temp' => $s->temperatura,
-                'sat' => $s->saturacion_o2,
-                'glicemia' => $s->glicemia,
-            ]),
-            'evoluciones' => $admission->dailyRecords->map(fn($r) => [
-                'id' => $r->id,
-                'fecha' => $r->fecha->format('d/m/Y'),
-                'evolucion_medica' => $r->evolucion_medica,
-                'indicaciones' => $r->indicaciones,
-                'plan_tratamiento' => $r->plan_tratamiento,
-                'ronda_completada' => $r->ronda_completada,
-                'dia_validado' => $r->dia_validado,
-                'medico' => $r->medico?->nombre,
-            ]),
-            'medicamentos' => $admission->medications->map(fn($m) => [
-                'id' => $m->id,
-                'medicamento' => $m->medicamento?->nombre,
-                'dosis' => $m->dosis . ' ' . $m->unidad,
-                'via' => $m->via_administracion,
-                'fecha' => $m->fecha->format('d/m/Y'),
-                'hora' => $m->hora?->format('H:i'),
-                'cargo_generado' => $m->cargo_generado,
-            ]),
-            'insumos' => $admission->supplies->map(fn($s) => [
-                'id' => $s->id,
-                'insumo' => $s->insumo?->nombre,
-                'cantidad' => $s->cantidad,
-                'fecha' => $s->fecha->format('d/m/Y'),
-                'cargo_generado' => $s->cargo_generado,
-            ]),
-            'alimentacion' => $admission->catering->map(fn($c) => [
-                'id' => $c->id,
-                'tipo_comida' => $c->tipo_comida_label,
-                'estado' => $c->estado,
-                'fecha' => $c->fecha->format('d/m/Y'),
-                'cargo_generado' => $c->cargo_generado,
-            ]),
-            'recetas' => $admission->recipes->map(fn($r) => [
-                'id' => $r->id,
-                'nro_receta' => $r->nro_receta,
-                'fecha' => $r->fecha->format('d/m/Y'),
-                'estado' => $r->estado,
-                'estado_color' => $r->estado_color,
-                'medico' => $r->medico?->nombre,
-            ]),
-        ]);
+            return response()->json([
+                'success' => true,
+                'admission' => [
+                    'id' => $admission->id,
+                    'nro_ingreso' => $admission->nro_ingreso,
+                    'estado_clinico' => $admission->estado_clinico,
+                    'estado_clinico_color' => $admission->estado_clinico_color,
+                    'diagnostico_principal' => $admission->diagnostico_principal,
+                    'diagnostico_secundario' => $admission->diagnostico_secundario,
+                    'tipo_ingreso' => $admission->tipo_ingreso,
+                    'tipo_pago' => $admission->tipo_pago,
+                    'estado' => $admission->estado,
+                    'fecha_ingreso' => $admission->fecha_ingreso?->format('d/m/Y H:i'),
+                    'dias_en_uti' => $admission->dias_en_uti,
+                    'tiempo_texto' => $admission->tiempo_en_uti_texto,
+                    'nro_autorizacion' => $admission->nro_autorizacion,
+                ],
+                'paciente' => [
+                    'ci' => $admission->paciente?->ci,
+                    'nombre' => $admission->paciente?->nombre,
+                    'sexo' => $admission->paciente?->sexo,
+                    'telefono' => $admission->paciente?->telefono,
+                    'direccion' => $admission->paciente?->direccion,
+                    'seguro' => $admission->paciente?->seguro?->nombre,
+                ],
+                'cama' => $admission->bed ? [
+                    'id' => $admission->bed->id,
+                    'numero' => $admission->bed->bed_number,
+                    'tipo' => $admission->bed->tipo,
+                ] : null,
+                'medico' => $admission->medico ? [
+                    'id' => $admission->medico->id,
+                    'nombre' => $admission->medico->nombre,
+                ] : null,
+                'validaciones_hoy' => [
+                    'ronda_completada' => $registroHoy?->ronda_completada ?? false,
+                    'dia_validado' => $registroHoy?->dia_validado ?? false,
+                    'tiene_signos_manana' => $signosHoy->where('turno', 'manana')->isNotEmpty(),
+                    'tiene_signos_tarde' => $signosHoy->where('turno', 'tarde')->isNotEmpty(),
+                    'tiene_signos_noche' => $signosHoy->where('turno', 'noche')->isNotEmpty(),
+                    'puede_cerrar_dia' => ($registroHoy?->ronda_completada ?? false) && $signosHoy->isNotEmpty(),
+                ],
+                'signos_vitales' => $admission->vitalSigns->map(fn($s) => [
+                    'id' => $s->id,
+                    'fecha' => $s->fecha->format('d/m/Y'),
+                    'turno' => $s->turno_label,
+                    'hora' => $s->hora?->format('H:i'),
+                    'presion' => $s->presion_arterial,
+                    'fc' => $s->frecuencia_cardiaca,
+                    'fr' => $s->frecuencia_respiratoria,
+                    'temp' => $s->temperatura,
+                    'sat' => $s->saturacion_o2,
+                    'glicemia' => $s->glicemia,
+                ]),
+                'evoluciones' => $admission->dailyRecords->map(fn($r) => [
+                    'id' => $r->id,
+                    'fecha' => $r->fecha->format('d/m/Y'),
+                    'evolucion_medica' => $r->evolucion_medica,
+                    'indicaciones' => $r->indicaciones,
+                    'plan_tratamiento' => $r->plan_tratamiento,
+                    'ronda_completada' => $r->ronda_completada,
+                    'dia_validado' => $r->dia_validado,
+                    'medico' => $r->medico?->nombre,
+                ]),
+                'medicamentos' => $admission->medications->map(fn($m) => [
+                    'id' => $m->id,
+                    'medicamento' => $m->medicamento?->nombre,
+                    'dosis' => $m->dosis . ' ' . $m->unidad,
+                    'via' => $m->via_administracion,
+                    'fecha' => $m->fecha->format('d/m/Y'),
+                    'hora' => $m->hora?->format('H:i'),
+                    'cargo_generado' => $m->cargo_generado,
+                ]),
+                'insumos' => $admission->supplies->map(fn($s) => [
+                    'id' => $s->id,
+                    'insumo' => $s->insumo?->nombre,
+                    'cantidad' => $s->cantidad,
+                    'fecha' => $s->fecha->format('d/m/Y'),
+                    'cargo_generado' => $s->cargo_generado,
+                ]),
+                'alimentacion' => $admission->catering->map(fn($c) => [
+                    'id' => $c->id,
+                    'tipo_comida' => $c->tipo_comida_label,
+                    'estado' => $c->estado,
+                    'fecha' => $c->fecha->format('d/m/Y'),
+                    'cargo_generado' => $c->cargo_generado,
+                ]),
+                'recetas' => $admission->recipes->map(fn($r) => [
+                    'id' => $r->id,
+                    'nro_receta' => $r->nro_receta,
+                    'fecha' => $r->fecha->format('d/m/Y'),
+                    'estado' => $r->estado,
+                    'estado_color' => $r->estado_color,
+                    'medico' => $r->medico?->nombre,
+                ]),
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admisión UTI no encontrada con ID: ' . $id,
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Error en getPacienteDetalle: ' . $e->getMessage(), [
+                'admission_id' => $id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener detalle del paciente: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

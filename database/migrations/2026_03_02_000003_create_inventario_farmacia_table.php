@@ -20,6 +20,7 @@ return new class extends Migration
             $table->integer('stock_minimo')->default(0);
             $table->integer('stock_disponible')->default(0);
             $table->integer('reposicion')->default(0);
+            $table->decimal('precio_unitario', 10, 2)->default(0);
             $table->string('lote', 50)->nullable();
             $table->date('fecha_ingreso')->nullable();
             $table->foreign('farmacia_id')->references('id')->on('farmacias')->onDelete('cascade');

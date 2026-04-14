@@ -512,7 +512,12 @@
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al derivar paciente');
+            if (error.response) {
+                const data = await error.response.json().catch(() => ({}));
+                alert('Error al derivar paciente: ' + (data.message || error.message || 'Error desconocido'));
+            } else {
+                alert('Error al derivar paciente: ' + (error.message || 'Error de conexión'));
+            }
         }
     }
 
@@ -533,9 +538,12 @@
                 cerrarModal();
                 cargarEmergencias();
                 alert('Paciente derivado correctamente');
+            } else {
+                alert('Error: ' + (data.message || 'No se pudo derivar'));
             }
         } catch (error) {
             console.error('Error:', error);
+            alert('Error al forzar derivación: ' + (error.message || 'Error de conexión'));
         }
     }
 

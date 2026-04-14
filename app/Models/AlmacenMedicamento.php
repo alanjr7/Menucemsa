@@ -122,7 +122,7 @@ class AlmacenMedicamento extends Model
             return null;
         }
         
-        return Carbon::now()->diffInDays($this->fecha_vencimiento, false);
+        return (int) round(Carbon::now()->diffInDays($this->fecha_vencimiento, false));
     }
 
     // Methods

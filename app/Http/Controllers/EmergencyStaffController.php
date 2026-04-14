@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Emergency;
 use App\Models\Paciente;
 use App\Models\Quirofano;
+use App\Models\UtiAdmission;
+use App\Models\UtiBed;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -115,74 +117,120 @@ class EmergencyStaffController extends Controller
      */
     public function derivar(Request $request, Emergency $emergency): JsonResponse
     {
-        $validated = $request->validate([
-            'destino' => 'required|in:cirugia,uti,hospitalizacion,observacion,alta',
-            'forzar' => 'nullable|boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'destino' => 'required|in:cirugia,uti,hospitalizacion,observacion,alta',
+                'forzar' => 'nullable|boolean',
+            ]);
 
-        $destino = $validated['destino'];
-        $forzar = $request->boolean('forzar');
+            $destino = $validated['destino'];
+            $forzar = $request->boolean('forzar');
 
-        // Validar disponibilidad de recursos
-        if (!$forzar) {
-            $validacion = $this->validarRecursos($destino);
-            if (!$validacion['disponible']) {
-                return response()->json([
-                    'success' => false,
-                    'requiere_confirmacion' => true,
-                    'message' => $validacion['mensaje'],
-                ]);
+            // Validar disponibilidad de recursos
+            if (!$forzar) {
+                $validacion = $this->validarRecursos($destino);
+                if (!$validacion['disponible']) {
+                    return response()->json([
+                        'success' => false,
+                        'requiere_confirmacion' => true,
+                        'message' => $validacion['mensaje'],
+                    ]);
+                }
             }
+
+            $ubicacionAnterior = $emergency->ubicacion_actual;
+
+            // Actualizar según destino
+            switch ($destino) {
+                case 'cirugia':
+                    $emergency->update([
+                        'status' => 'cirugia',
+                        'ubicacion_actual' => 'cirugia',
+                        'nro_cirugia' => $this->generarNroCirugia($emergency),
+                    ]);
+                    break;
+                case 'uti':
+                    $nroUti = $this->generarNroUti($emergency);
+                    $emergency->update([
+                        'status' => 'uti',
+                        'ubicacion_actual' => 'uti',
+                        'nro_uti' => $nroUti,
+                    ]);
+
+                    // Buscar cama UTI disponible y crear admisión
+                    $camaUti = UtiBed::where('status', 'disponible')
+                        ->where('activa', true)
+                        ->first();
+
+                    if ($camaUti) {
+                        // Generar número de ingreso UTI (máx 20 chars)
+                        $nroIngreso = 'UTI-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
+
+                        // Crear admisión UTI
+                        UtiAdmission::create([
+                            'patient_id' => $emergency->patient_id,
+                            'bed_id' => $camaUti->id,
+                            'nro_ingreso' => $nroIngreso,
+                            'emergency_id' => $emergency->id,
+                            'estado_clinico' => 'estable',
+                            'tipo_ingreso' => 'emergencia',
+                            'tipo_pago' => 'particular',
+                            'fecha_ingreso' => now(),
+                            'estado' => 'activo',
+                        ]);
+
+                        // Marcar cama como ocupada
+                        $camaUti->update(['status' => 'ocupada']);
+                    }
+                    break;
+                case 'hospitalizacion':
+                    $emergency->update([
+                        'status' => 'hospitalizacion',
+                        'ubicacion_actual' => 'hospitalizacion',
+                        'nro_hospitalizacion' => $this->generarNroHospitalizacion($emergency),
+                    ]);
+                    break;
+                case 'observacion':
+                    $emergency->update([
+                        'status' => 'estabilizado',
+                        'ubicacion_actual' => 'observacion',
+                    ]);
+                    break;
+                case 'alta':
+                    $emergency->update([
+                        'status' => 'alta',
+                        'ubicacion_actual' => 'alta',
+                        'discharge_date' => now(),
+                    ]);
+                    break;
+            }
+
+            // Registrar movimiento
+            $emergency->registrarMovimiento($ubicacionAnterior, $destino, 'Derivación desde emergencia');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Paciente derivado correctamente a ' . $destino,
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación: ' . $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error al derivar paciente: ' . $e->getMessage(), [
+                'emergency_id' => $emergency->id ?? 'unknown',
+                'destino' => $request->input('destino'),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al derivar paciente: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $ubicacionAnterior = $emergency->ubicacion_actual;
-        $statusAnterior = $emergency->status;
-
-        // Actualizar según destino
-        switch ($destino) {
-            case 'cirugia':
-                $emergency->update([
-                    'status' => 'cirugia',
-                    'ubicacion_actual' => 'cirugia',
-                    'nro_cirugia' => $this->generarNroCirugia($emergency),
-                ]);
-                break;
-            case 'uti':
-                $emergency->update([
-                    'status' => 'uti',
-                    'ubicacion_actual' => 'uti',
-                    'nro_uti' => $this->generarNroUti($emergency),
-                ]);
-                break;
-            case 'hospitalizacion':
-                $emergency->update([
-                    'status' => 'hospitalizacion',
-                    'ubicacion_actual' => 'hospitalizacion',
-                    'nro_hospitalizacion' => $this->generarNroHospitalizacion($emergency),
-                ]);
-                break;
-            case 'observacion':
-                $emergency->update([
-                    'status' => 'estabilizado',
-                    'ubicacion_actual' => 'observacion',
-                ]);
-                break;
-            case 'alta':
-                $emergency->update([
-                    'status' => 'alta',
-                    'ubicacion_actual' => 'alta',
-                    'discharge_date' => now(),
-                ]);
-                break;
-        }
-
-        // Registrar movimiento
-        $emergency->registrarMovimiento($ubicacionAnterior, $destino, 'Derivación desde emergencia');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Paciente derivado correctamente a ' . $destino,
-        ]);
     }
 
     /**
@@ -223,8 +271,8 @@ class EmergencyStaffController extends Controller
                 return ['disponible' => true];
 
             case 'uti':
-                // Verificar camas UTI disponibles
-                $camasUti = DB::table('camas')->where('area', 'UTI')->where('estado', 'disponible')->count();
+                // Verificar camas UTI disponibles (tabla uti_beds)
+                $camasUti = DB::table('uti_beds')->where('status', 'disponible')->where('activa', true)->count();
                 if ($camasUti === 0) {
                     return [
                         'disponible' => false,

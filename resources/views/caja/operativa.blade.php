@@ -139,6 +139,48 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Pacientes UTI con Alta Clínica (listos para cobro) -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-lg font-medium text-gray-900">
+                            Pacientes UTI - Listos para Cobro
+                        </h3>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full" id="contadorUti">0</span>
+                    </div>
+                    <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+                        <button onclick="cargarPacientesUti()" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cama</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Días UTI</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Pago</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="tablaPacientesUti">
+                            <tr>
+                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                    Cargando pacientes UTI...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -292,6 +334,7 @@
                 },
                 async cargarDatos() {
                     await cargarPacientesPendientes();
+                    await cargarPacientesUti();
                     await cargarResumenDia();
                 }
             };
@@ -300,6 +343,7 @@
         // Cargar datos al iniciar
         document.addEventListener('DOMContentLoaded', function() {
             cargarPacientesPendientes();
+            cargarPacientesUti();
             cargarResumenDia();
         });
 
@@ -373,11 +417,76 @@
         // Filtrar pacientes
         function filtrarPacientes() {
             const termino = document.getElementById('buscarPaciente').value.toLowerCase();
-            const filtrados = pacientesData.filter(c => 
-                c.paciente_nombre.toLowerCase().includes(termino) || 
+            const filtrados = pacientesData.filter(c =>
+                c.paciente_nombre.toLowerCase().includes(termino) ||
                 c.paciente_ci.toLowerCase().includes(termino)
             );
             renderizarTabla(filtrados);
+        }
+
+        // Cargar pacientes UTI listos para cobro
+        async function cargarPacientesUti() {
+            try {
+                const response = await fetch('/caja-operativa/uti-pacientes?estado=alta_clinica');
+                const data = await response.json();
+
+                const tbody = document.getElementById('tablaPacientesUti');
+
+                if (data.success && data.pacientes.length > 0) {
+                    document.getElementById('contadorUti').textContent = data.pacientes.length;
+
+                    tbody.innerHTML = data.pacientes.map(p => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">${p.paciente?.nombre || 'Sin nombre'}</div>
+                                        <div class="text-sm text-gray-500">CI: ${p.paciente?.ci || '-'}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Cama ${p.cama}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+                                ${p.dias_en_uti} días
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.tipo_pago === 'seguro' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}">
+                                    ${p.tipo_pago === 'seguro' ? 'Seguro: ' + p.seguro : 'Particular'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                                S/ ${parseFloat(p.cuenta?.total || 0).toFixed(2)}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${p.estado_color}-100 text-${p.estado_color}-800">
+                                    ${p.estado_label}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <a href="/uti-caja" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition">
+                                    Ir a Cobro UTI
+                                </a>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('contadorUti').textContent = '0';
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                No hay pacientes UTI con alta clínica pendientes de cobro
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error cargando pacientes UTI:', error);
+                document.getElementById('tablaPacientesUti').innerHTML = `
+                    <tr><td colspan="7" class="px-6 py-4 text-center text-red-500">Error al cargar pacientes UTI</td></tr>
+                `;
+            }
         }
 
         // Cargar resumen del día
@@ -533,6 +642,7 @@
                     alert(data.message);
                     cerrarModalCobro();
                     cargarPacientesPendientes();
+                    cargarPacientesUti();
                     cargarResumenDia();
                 } else {
                     alert(data.message);

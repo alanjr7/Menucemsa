@@ -18,6 +18,7 @@ return new class extends Migration
             $table->boolean('requiere_receta')->default(false);
             $table->timestamp('fecha_venta')->useCurrent();
             $table->enum('estado', ['COMPLETADA', 'ANULADA', 'PENDIENTE'])->default('COMPLETADA');
+            $table->foreignId('usuario_id')->constrained('users');
             $table->foreignId('caja_diaria_id')->nullable()->constrained('caja_diarias');
             $table->text('observaciones')->nullable();
             

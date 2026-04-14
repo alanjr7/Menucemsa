@@ -1,28 +1,200 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UTI - Detalle del Paciente</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <style>[x-cloak] { display: none !important; }</style>
-</head>
-<body class="bg-gray-50">
-    <div class="flex h-screen" x-data="utiPacienteDetalle({{ $admission->id }})">
-        @include('layouts.navigation')
+@extends('layouts.app')
 
-        <div class="flex-1 flex flex-col overflow-hidden">
+@section('title', 'UTI - Detalle del Paciente')
+
+@section('content')
+
+<!-- Script Alpine debe estar antes de x-data -->
+<script>
+    function utiPacienteDetalle(admissionId) {
+        return {
+            admissionId: admissionId,
+            activeTab: 'signos',
+            loading: false,
+            admission: null,
+            paciente: null,
+            cama: null,
+            medico: null,
+            validaciones: null,
+            signosVitales: [],
+            evoluciones: [],
+            medicamentos: [],
+            insumos: [],
+            alimentacion: [],
+            showSignosModal: false,
+            showEvolucionModal: false,
+            showMedicamentoModal: false,
+            showInsumoModal: false,
+            showAltaModal: false,
+            showTrasladarModal: false,
+            showCambiarEstado: false,
+            signosForm: { turno: 'manana', fecha: new Date().toISOString().split('T')[0], hora: new Date().toTimeString().slice(0,5) },
+            evolucionForm: { evolucion_medica: '', indicaciones: '', plan_tratamiento: '' },
+            altaForm: { destino_alta: '', observaciones: '' },
+
+            init() {
+                this.loadDetalle();
+            },
+
+            async loadDetalle() {
+                this.loading = true;
+                try {
+                    const response = await fetch(`/uti-operativo/api/paciente/${this.admissionId}/detalle`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    console.log('API Response:', data);
+                    if (data.success) {
+                        this.admission = data.admission;
+                        this.paciente = data.paciente;
+                        this.cama = data.cama;
+                        this.medico = data.medico;
+                        this.validaciones = data.validaciones_hoy;
+                        this.signosVitales = data.signos_vitales || [];
+                        this.evoluciones = data.evoluciones || [];
+                        this.medicamentos = data.medicamentos || [];
+                        this.insumos = data.insumos || [];
+                        this.alimentacion = data.alimentacion || [];
+                        console.log('Data loaded:', { admission: this.admission, paciente: this.paciente });
+                    } else {
+                        console.error('API returned error:', data.message);
+                        alert('Error al cargar datos: ' + (data.message || 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error('Error loading patient data:', error);
+                    alert('Error al cargar datos del paciente: ' + error.message);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async guardarSignos() {
+                try {
+                    const response = await fetch(`/uti-operativo/api/paciente/${this.admissionId}/signos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+                        body: JSON.stringify(this.signosForm)
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showSignosModal = false;
+                        this.loadDetalle();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            },
+
+            async guardarEvolucion() {
+                try {
+                    this.evolucionForm.fecha = new Date().toISOString().split('T')[0];
+                    this.evolucionForm.medico_id = this.medico?.id;
+                    const response = await fetch(`/uti-operativo/api/paciente/${this.admissionId}/evolucion`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+                        body: JSON.stringify(this.evolucionForm)
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showEvolucionModal = false;
+                        this.loadDetalle();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            },
+
+            async validarDia() {
+                if (!confirm('¿Está seguro de validar el día? Esta acción generará el cargo por estadía.')) return;
+                try {
+                    const response = await fetch(`/uti-operativo/api/paciente/${this.admissionId}/validar-dia`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+                        body: JSON.stringify({ fecha: new Date().toISOString().split('T')[0] })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        this.loadDetalle();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            },
+
+            async cambiarEstadoClinico(estado) {
+                try {
+                    const response = await fetch(`/uti-operativo/api/paciente/${this.admissionId}/estado-clinico`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+                        body: JSON.stringify({ estado_clinico: estado })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showCambiarEstado = false;
+                        this.loadDetalle();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            },
+
+            async darAltaClinica() {
+                try {
+                    const response = await fetch(`/uti-operativo/api/paciente/${this.admissionId}/alta-clinica`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+                        body: JSON.stringify(this.altaForm)
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.href = '{{ route('uti.operativa.index') }}';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            },
+
+            getAlimentacionClase(tipo) {
+                const reg = this.alimentacion.find(a => a.tipo_comida === tipo);
+                if (!reg) return 'border-gray-200';
+                return reg.estado === 'dado' ? 'border-green-400 bg-green-50' : 
+                       reg.estado === 'no_dado' ? 'border-red-400 bg-red-50' : 'border-gray-200';
+            },
+
+            async registrarAlimentacion(tipo, estado) {
+                try {
+                    const response = await fetch(`/uti-operativo/api/paciente/${this.admissionId}/alimentacion`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+                        body: JSON.stringify({ tipo_comida: tipo, estado: estado, fecha: new Date().toISOString().split('T')[0] })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        this.loadDetalle();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+    }
+</script>
+
+<div x-data="utiPacienteDetalle({{ $admission->id }})" class="h-[calc(100vh-4rem)] flex flex-col">
             <!-- Header -->
             <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
                 <div class="flex justify-between items-start">
                     <div class="flex items-center gap-4">
-                        <a href="{{ route('uti.operativo.index') }}" class="text-gray-500 hover:text-gray-700">
+                        <a href="{{ route('uti.operativa.index') }}" class="text-gray-500 hover:text-gray-700">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         </a>
                         <div>
-                            <h1 class="text-2xl font-bold text-gray-900" x-text="paciente?.nombre || 'Cargando...'"></h1>
-                            <p class="text-sm text-gray-500">CI: <span x-text="paciente?.ci"></span> | Ingreso: <span x-text="admission?.nro_ingreso"></span></p>
+                            <h1 class="text-2xl font-bold text-gray-900" x-text="paciente?.nombre || (loading ? 'Cargando...' : 'Sin datos')"></h1>
+                            <p class="text-sm text-gray-500">
+                                CI: <span x-text="paciente?.ci || 'No disponible'"></span> 
+                                | Ingreso: <span x-text="admission?.nro_ingreso || 'No disponible'"></span>
+                            </p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -38,11 +210,22 @@
                 </div>
             </header>
 
+            <!-- Loading Indicator -->
+            <div x-show="loading" class="bg-yellow-50 border-b border-yellow-200 px-6 py-2">
+                <div class="flex items-center gap-2 text-sm text-yellow-700">
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Cargando datos del paciente...</span>
+                </div>
+            </div>
+
             <!-- Patient Info Bar -->
-            <div class="bg-blue-50 border-b border-blue-100 px-6 py-3">
+            <div class="bg-blue-50 border-b border-blue-100 px-6 py-3" x-show="!loading && admission">
                 <div class="flex flex-wrap gap-6 text-sm">
-                    <div><span class="text-gray-500">Cama:</span> <span class="font-medium" x-text="cama?.numero || 'Sin cama'"></span></div>
-                    <div><span class="text-gray-500">Tiempo en UTI:</span> <span class="font-medium" x-text="admission?.tiempo_texto"></span></div>
+                    <div><span class="text-gray-500">Cama:</span> <span class="font-medium" x-text="cama?.numero || 'Sin cama asignada'"></span></div>
+                    <div><span class="text-gray-500">Tiempo en UTI:</span> <span class="font-medium" x-text="admission?.tiempo_texto || 'Calculando...'"></span></div>
                     <div><span class="text-gray-500">Médico:</span> <span class="font-medium" x-text="medico?.nombre || 'No asignado'"></span></div>
                     <div><span class="text-gray-500">Tipo Pago:</span> <span class="font-medium" x-text="admission?.tipo_pago === 'seguro' ? 'Seguro' : 'Particular'"></span></div>
                     <div x-show="admission?.nro_autorizacion"><span class="text-gray-500">Autorización:</span> <span class="font-medium" x-text="admission?.nro_autorizacion"></span></div>
@@ -286,11 +469,10 @@
                     </div>
                 </div>
             </main>
-        </div>
 
-        <!-- Modals -->
-        <!-- Signos Vitales Modal -->
-        <div x-show="showSignosModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <!-- Modals -->
+            <!-- Signos Vitales Modal -->
+            <div x-show="showSignosModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div class="bg-white rounded-lg shadow-xl max-w-lg w-full m-4">
                 <div class="p-6">
                     <h3 class="text-lg font-bold mb-4">Registrar Signos Vitales</h3>
@@ -352,8 +534,8 @@
             </div>
         </div>
 
-        <!-- Evolución Modal -->
-        <div x-show="showEvolucionModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <!-- Evolución Modal -->
+            <div x-show="showEvolucionModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div class="bg-white rounded-lg shadow-xl max-w-lg w-full m-4">
                 <div class="p-6">
                     <h3 class="text-lg font-bold mb-4">Registrar Evolución Médica</h3>
@@ -379,8 +561,8 @@
             </div>
         </div>
 
-        <!-- Alta Modal -->
-        <div x-show="showAltaModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <!-- Alta Modal -->
+            <div x-show="showAltaModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div class="bg-white rounded-lg shadow-xl max-w-md w-full m-4">
                 <div class="p-6">
                     <h3 class="text-lg font-bold text-red-600 mb-4">Dar Alta Clínica</h3>
@@ -407,191 +589,27 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Cambiar Estado Modal -->
-        <div x-show="showCambiarEstado" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full m-4">
-                <div class="p-6">
-                    <h3 class="text-lg font-bold mb-4">Cambiar Estado Clínico</h3>
-                    <div class="space-y-2">
-                        <button @click="cambiarEstadoClinico('estable')" class="w-full px-4 py-3 text-left rounded-lg hover:bg-green-50 border border-green-200">
-                            <span class="font-medium text-green-700">Estable</span>
-                        </button>
-                        <button @click="cambiarEstadoClinico('critico')" class="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 border border-yellow-200">
-                            <span class="font-medium text-yellow-700">Crítico</span>
-                        </button>
-                        <button @click="cambiarEstadoClinico('muy_critico')" class="w-full px-4 py-3 text-left rounded-lg hover:bg-red-50 border border-red-200">
-                            <span class="font-medium text-red-700">Muy Crítico</span>
-                        </button>
-                    </div>
-                    <button @click="showCambiarEstado = false" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg">Cancelar</button>
+    <!-- Cambiar Estado Modal -->
+    <div x-show="showCambiarEstado" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-sm w-full m-4">
+            <div class="p-6">
+                <h3 class="text-lg font-bold mb-4">Cambiar Estado Clínico</h3>
+                <div class="space-y-2">
+                    <button @click="cambiarEstadoClinico('estable')" class="w-full px-4 py-3 text-left rounded-lg hover:bg-green-50 border border-green-200">
+                        <span class="font-medium text-green-700">Estable</span>
+                    </button>
+                    <button @click="cambiarEstadoClinico('critico')" class="w-full px-4 py-3 text-left rounded-lg hover:bg-yellow-50 border border-yellow-200">
+                        <span class="font-medium text-yellow-700">Crítico</span>
+                    </button>
+                    <button @click="cambiarEstadoClinico('muy_critico')" class="w-full px-4 py-3 text-left rounded-lg hover:bg-red-50 border border-red-200">
+                        <span class="font-medium text-red-700">Muy Crítico</span>
+                    </button>
                 </div>
+                <button @click="showCambiarEstado = false" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 rounded-lg">Cancelar</button>
             </div>
         </div>
     </div>
-
-    <script>
-        function utiPacienteDetalle(admissionId) {
-            return {
-                admissionId: admissionId,
-                activeTab: 'signos',
-                loading: false,
-                admission: null,
-                paciente: null,
-                cama: null,
-                medico: null,
-                validaciones: null,
-                signosVitales: [],
-                evoluciones: [],
-                medicamentos: [],
-                insumos: [],
-                alimentacion: [],
-                showSignosModal: false,
-                showEvolucionModal: false,
-                showMedicamentoModal: false,
-                showInsumoModal: false,
-                showAltaModal: false,
-                showTrasladarModal: false,
-                showCambiarEstado: false,
-                signosForm: { turno: 'manana', fecha: new Date().toISOString().split('T')[0], hora: new Date().toTimeString().slice(0,5) },
-                evolucionForm: { evolucion_medica: '', indicaciones: '', plan_tratamiento: '' },
-                altaForm: { destino_alta: '', observaciones: '' },
-
-                init() {
-                    this.loadDetalle();
-                },
-
-                async loadDetalle() {
-                    try {
-                        const response = await fetch(`/api/uti-operativo/paciente/${this.admissionId}/detalle`);
-                        const data = await response.json();
-                        if (data.success) {
-                            this.admission = data.admission;
-                            this.paciente = data.paciente;
-                            this.cama = data.cama;
-                            this.medico = data.medico;
-                            this.validaciones = data.validaciones_hoy;
-                            this.signosVitales = data.signos_vitales;
-                            this.evoluciones = data.evoluciones;
-                            this.medicamentos = data.medicamentos;
-                            this.insumos = data.insumos;
-                            this.alimentacion = data.alimentacion;
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                },
-
-                async guardarSignos() {
-                    try {
-                        const response = await fetch(`/api/uti-operativo/paciente/${this.admissionId}/signos`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                            body: JSON.stringify(this.signosForm)
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            this.showSignosModal = false;
-                            this.loadDetalle();
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                },
-
-                async guardarEvolucion() {
-                    try {
-                        this.evolucionForm.fecha = new Date().toISOString().split('T')[0];
-                        this.evolucionForm.medico_id = this.medico?.id;
-                        const response = await fetch(`/api/uti-operativo/paciente/${this.admissionId}/evolucion`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                            body: JSON.stringify(this.evolucionForm)
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            this.showEvolucionModal = false;
-                            this.loadDetalle();
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                },
-
-                async validarDia() {
-                    if (!confirm('¿Está seguro de validar el día? Esta acción generará el cargo por estadía.')) return;
-                    try {
-                        const response = await fetch(`/api/uti-operativo/paciente/${this.admissionId}/validar-dia`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                            body: JSON.stringify({ fecha: new Date().toISOString().split('T')[0] })
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            this.loadDetalle();
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                },
-
-                async cambiarEstadoClinico(estado) {
-                    try {
-                        const response = await fetch(`/api/uti-operativo/paciente/${this.admissionId}/estado-clinico`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                            body: JSON.stringify({ estado_clinico: estado })
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            this.showCambiarEstado = false;
-                            this.loadDetalle();
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                },
-
-                async darAltaClinica() {
-                    try {
-                        const response = await fetch(`/api/uti-operativo/paciente/${this.admissionId}/alta-clinica`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                            body: JSON.stringify(this.altaForm)
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            window.location.href = '{{ route('uti.operativo.index') }}';
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                },
-
-                getAlimentacionClase(tipo) {
-                    const reg = this.alimentacion.find(a => a.tipo_comida === tipo);
-                    if (!reg) return 'border-gray-200';
-                    return reg.estado === 'dado' ? 'border-green-400 bg-green-50' : 
-                           reg.estado === 'no_dado' ? 'border-red-400 bg-red-50' : 'border-gray-200';
-                },
-
-                async registrarAlimentacion(tipo, estado) {
-                    try {
-                        const response = await fetch(`/api/uti-operativo/paciente/${this.admissionId}/alimentacion`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                            body: JSON.stringify({ tipo_comida: tipo, estado: estado, fecha: new Date().toISOString().split('T')[0] })
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            this.loadDetalle();
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+</div>
+@endsection
