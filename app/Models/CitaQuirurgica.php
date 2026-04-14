@@ -153,13 +153,30 @@ class CitaQuirurgica extends Model
         $duracionReal = $this->duracion_real;
         $duracionEstimada = $tipoCirugia->duracion_minutos;
         
-        if ($duracionReal <= $duracionEstimada) {
-            $this->costo_final = $tipoCirugia->costo_base;
-        } else {
+        // Usar el costo base ingresado por el admin (no el del tipo de cirugía)
+        $costoBase = $this->costo_base ?? 0;
+        
+        // Calcular costo extra por minutos adicionales
+        $costoExtra = 0;
+        if ($duracionReal > $duracionEstimada) {
             $minutosExtras = $duracionReal - $duracionEstimada;
-            $this->costo_final = $tipoCirugia->costo_base + ($minutosExtras * $tipoCirugia->costo_minuto_extra);
+            $costoExtra = $minutosExtras * $tipoCirugia->costo_minuto_extra;
         }
         
+        // Buscar y sumar el costo de medicamentos usados
+        $costoMedicamentos = 0;
+        $cuentaCobro = \App\Models\CuentaCobro::where('referencia_type', self::class)
+            ->where('referencia_id', $this->id)
+            ->first();
+        
+        if ($cuentaCobro) {
+            $costoMedicamentos = $cuentaCobro->detalles()
+                ->where('tipo_item', 'medicamento')
+                ->sum('subtotal');
+        }
+        
+        // Calcular costo final: base + extra + medicamentos
+        $this->costo_final = $costoBase + $costoExtra + $costoMedicamentos;
         $this->costo_minuto_extra = $tipoCirugia->costo_minuto_extra;
     }
 

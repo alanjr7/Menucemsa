@@ -8,6 +8,7 @@ use App\Models\Paciente;
 use App\Models\Medico;
 use App\Models\Quirofano;
 use App\Models\Caja;
+use App\Models\AlmacenMedicamento;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
@@ -317,7 +318,10 @@ class QuirofanoController extends Controller
 
             // Crear cita quirúrgica
             $cita = new CitaQuirurgica();
-            $cita->ci_paciente = $emergencia->patient_id;
+            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
+            $cita->ci_paciente = $emergencia->is_temp_id 
+                ? (int) $emergencia->id  // Usar ID de emergencia como identificador numérico
+                : (int) $emergencia->patient_id;
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->ci_instrumentista = $validated['ci_instrumentista'];
             $cita->ci_anestesiologo = $validated['ci_anestesiologo'];
@@ -398,7 +402,10 @@ class QuirofanoController extends Controller
 
             // Crear cita quirúrgica para ahora
             $cita = new CitaQuirurgica();
-            $cita->ci_paciente = $emergencia->patient_id;
+            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
+            $cita->ci_paciente = $emergencia->is_temp_id 
+                ? (int) $emergencia->id  // Usar ID de emergencia como identificador numérico
+                : (int) $emergencia->patient_id;
             $cita->ci_cirujano = auth()->user()->medico?->ci ?? null;
             $cita->quirofano_id = $quirofano->id;
             $cita->tipo_cirugia = 'mayor';
@@ -568,13 +575,31 @@ class QuirofanoController extends Controller
         // Usar costo_base ya que costo_final solo se calcula al finalizar la cirugía
         $monto = $cita->costo_base ?? 0;
         
-        \Log::info('Creando cuenta de cobro para cirugía', [
+        \Log::info('Verificando cuenta de cobro para cirugía', [
             'cita_id' => $cita->id,
             'monto' => $monto,
             'paciente' => $cita->ci_paciente
         ]);
         
         try {
+            // Buscar si ya existe una cuenta de cobro para esta cirugía
+            $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
+                ->where(function($q) {
+                    $q->where('referencia_type', CitaQuirurgica::class)
+                      ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                })
+                ->where('estado', 'pendiente')
+                ->first();
+            
+            // Si ya existe, no crear duplicado - solo retornar la existente
+            if ($cuentaCobro) {
+                \Log::info('Cuenta de cobro ya existe, usando existente', [
+                    'cita_id' => $cita->id,
+                    'cuenta_cobro_id' => $cuentaCobro->id
+                ]);
+                return $cuentaCobro;
+            }
+            
             // Crear cuenta de cobro para que aparezca en caja operativa
             $cuentaCobro = \App\Models\CuentaCobro::create([
                 'paciente_ci' => $cita->ci_paciente,
@@ -814,6 +839,254 @@ class QuirofanoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cargar médicos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener medicamentos disponibles en quirófano para una cirugía
+     */
+    public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
+    {
+        try {
+            \Log::info('getMedicamentosDisponibles llamado', ['cita_id' => $cita->id, 'estado' => $cita->estado]);
+
+            // Verificar que la cirugía esté programada o en curso
+            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cirugía debe estar programada o en curso'
+                ], 422);
+            }
+
+            \Log::info('Buscando medicamentos de cirugia...');
+
+            $query = AlmacenMedicamento::porArea('cirugia')
+                ->activos()
+                ->where('cantidad', '>', 0)
+                ->orderBy('nombre');
+
+            \Log::info('Query SQL: ' . $query->toSql());
+
+            $medicamentos = $query->get(['id', 'nombre', 'tipo', 'cantidad', 'unidad_medida', 'precio']);
+
+            \Log::info('Medicamentos encontrados: ' . $medicamentos->count());
+
+            return response()->json([
+                'success' => true,
+                'medicamentos' => $medicamentos
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error en getMedicamentosDisponibles: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar medicamentos: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener medicamentos ya usados en una cirugía
+     */
+    public function getMedicamentosUsados(CitaQuirurgica $cita): JsonResponse
+    {
+        try {
+            // Buscar la cuenta de cobro relacionada a esta cita
+            $cuentaCobro = \App\Models\CuentaCobro::where('referencia_type', CitaQuirurgica::class)
+                ->where('referencia_id', $cita->id)
+                ->first();
+
+            if (!$cuentaCobro) {
+                return response()->json([
+                    'success' => true,
+                    'medicamentos' => []
+                ]);
+            }
+
+            // Obtener detalles de tipo medicamento
+            $medicamentos = $cuentaCobro->detalles()
+                ->where('tipo_item', 'medicamento')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'medicamentos' => $medicamentos
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar medicamentos usados: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Agregar medicamento a una cirugía en curso
+     */
+    public function agregarMedicamento(Request $request, CitaQuirurgica $cita): JsonResponse
+    {
+        try {
+            // Verificar que la cirugía esté programada o en curso
+            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cirugía debe estar programada o en curso'
+                ], 422);
+            }
+
+            // Validar input
+            $validated = $request->validate([
+                'almacen_medicamento_id' => 'required|exists:almacen_medicamentos,id',
+                'cantidad' => 'required|integer|min:1'
+            ]);
+
+            $medicamento = AlmacenMedicamento::findOrFail($validated['almacen_medicamento_id']);
+
+            // Verificar que el medicamento sea de cirugía
+            if ($medicamento->area !== 'cirugia') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El medicamento no pertenece al inventario de quirófano'
+                ], 422);
+            }
+
+            // Verificar stock suficiente
+            if ($medicamento->cantidad < $validated['cantidad']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stock insuficiente. Disponible: ' . $medicamento->cantidad . ' ' . $medicamento->unidad_medida
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                // Descontar stock
+                $cantidadAnterior = $medicamento->cantidad;
+                $medicamento->cantidad -= $validated['cantidad'];
+                $medicamento->save();
+
+                // Buscar cuenta de cobro existente - método más flexible
+                $refType = 'App\Models\CitaQuirurgica';
+                \Log::info('Buscando cuenta de cobro', [
+                    'referencia_type' => $refType,
+                    'referencia_id' => $cita->id,
+                    'paciente_ci' => $cita->ci_paciente
+                ]);
+                
+                $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
+                    ->where(function($q) use ($refType) {
+                        $q->where('referencia_type', $refType)
+                          ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                    })
+                    ->where('estado', 'pendiente')
+                    ->first();
+                
+                // Si no existe por referencia, buscar por paciente y tipo
+                if (!$cuentaCobro) {
+                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
+                        ->where('tipo_atencion', 'CIRUGIA')
+                        ->where('estado', 'pendiente')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                    
+                    if ($cuentaCobro) {
+                        \Log::info('Cuenta encontrada por paciente/tipo', [
+                            'cuenta_cobro_id' => $cuentaCobro->id
+                        ]);
+                        // Actualizar la referencia para futuras búsquedas
+                        $cuentaCobro->referencia_id = $cita->id;
+                        $cuentaCobro->referencia_type = $refType;
+                        $cuentaCobro->save();
+                    }
+                } else {
+                    \Log::info('Cuenta encontrada por referencia', [
+                        'cuenta_cobro_id' => $cuentaCobro->id
+                    ]);
+                }
+                
+                // Si aún no existe, crear nueva (no debería pasar si la cita fue creada correctamente)
+                if (!$cuentaCobro) {
+                    \Log::error('No se encontró cuenta de cobro existente para agregar medicamento', [
+                        'cita_id' => $cita->id,
+                        'paciente_ci' => $cita->ci_paciente
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se encontró la cuenta de cobro de la cirugía. Por favor contacte al administrador.'
+                    ], 422);
+                }
+
+                $precioUnitario = $medicamento->precio ?? 0;
+                $subtotal = $precioUnitario * $validated['cantidad'];
+
+                // Crear detalle en cuenta de cobro
+                $detalle = $cuentaCobro->detalles()->create([
+                    'tipo_item' => 'medicamento',
+                    'descripcion' => $medicamento->nombre . ' (' . $medicamento->tipo . ')',
+                    'cantidad' => $validated['cantidad'],
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $subtotal,
+                ]);
+
+                // Actualizar total de cuenta de cobro
+                $cuentaCobro->total_calculado = $cuentaCobro->detalles()->sum('subtotal');
+                $cuentaCobro->save();
+
+                // Registrar en ActivityLog para historial
+                \App\Models\ActivityLog::create([
+                    'user_id' => auth()->id(),
+                    'action' => 'medicamento_cirugia_agregado',
+                    'model_type' => CitaQuirurgica::class,
+                    'model_id' => $cita->id,
+                    'description' => 'Medicamento agregado a cirugía: ' . $medicamento->nombre,
+                    'new_values' => json_encode([
+                        'almacen_medicamento_id' => $medicamento->id,
+                        'nombre' => $medicamento->nombre,
+                        'cantidad' => $validated['cantidad'],
+                        'precio_unitario' => $precioUnitario,
+                        'subtotal' => $subtotal,
+                        'stock_anterior' => $cantidadAnterior,
+                        'stock_nuevo' => $medicamento->cantidad,
+                        'cuenta_cobro_id' => $cuentaCobro->id,
+                        'detalle_id' => $detalle->id
+                    ]),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Medicamento agregado exitosamente',
+                    'medicamento' => [
+                        'nombre' => $medicamento->nombre,
+                        'cantidad' => $validated['cantidad'],
+                        'precio_unitario' => $precioUnitario,
+                        'subtotal' => $subtotal
+                    ],
+                    'stock_restante' => $medicamento->cantidad
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al agregar medicamento: ' . $e->getMessage()
             ], 500);
         }
     }

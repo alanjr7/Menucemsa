@@ -202,6 +202,26 @@
                         <span class="text-sm text-gray-600">Costo Base</span>
                         <span class="font-semibold text-sm">${{ number_format($cita->costo_base, 2) }}</span>
                     </div>
+
+                    @php
+                        $cuentaCobro = \App\Models\CuentaCobro::where('referencia_type', \App\Models\CitaQuirurgica::class)
+                            ->where('referencia_id', $cita->id)
+                            ->first();
+                        $medicamentosCosto = $cuentaCobro ? $cuentaCobro->detalles()->where('tipo_item', 'medicamento')->get() : collect();
+                    @endphp
+
+                    @if($medicamentosCosto->count() > 0)
+                        <div class="pt-2 border-t border-gray-100">
+                            <p class="text-xs font-medium text-gray-500 mb-2">Medicamentos:</p>
+                            @foreach($medicamentosCosto as $med)
+                                <div class="flex justify-between items-center py-1 text-sm">
+                                    <span class="text-gray-600">{{ $med->descripcion }}</span>
+                                    <span class="text-gray-700">${{ number_format($med->subtotal, 2) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+
                     @if($cita->costo_final)
                         <div class="pt-3 border-t border-gray-200">
                             <div class="flex justify-between items-center">
@@ -218,6 +238,70 @@
                     @endif
                 </div>
             </div>
+
+            @if(in_array($cita->estado, ['programada', 'en_curso']) && Auth::user()->isAdmin())
+            <!-- Medicamentos e Insumos -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    </svg>
+                    Medicamentos e Insumos
+                </h3>
+
+                <!-- Lista de medicamentos agregados -->
+                <div id="lista-medicamentos-usados" class="space-y-2 mb-4">
+                    <div class="text-center text-gray-500 text-sm py-4">
+                        Cargando medicamentos...
+                    </div>
+                </div>
+
+                <!-- Formulario para agregar medicamento -->
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Medicamento/Insumo</h4>
+                    <div class="space-y-3">
+                        <!-- Buscador de medicamentos -->
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <input type="text" id="buscar-medicamento"
+                                   class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                   placeholder="Buscar medicamento..." autocomplete="off">
+                            <!-- Dropdown de resultados -->
+                            <div id="resultados-medicamento" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"></div>
+                            <!-- Medicamento seleccionado (oculto) -->
+                            <input type="hidden" id="medicamento-id">
+                            <input type="hidden" id="medicamento-precio">
+                            <input type="hidden" id="medicamento-stock">
+                        </div>
+                        <!-- Info del medicamento seleccionado -->
+                        <div id="info-medicamento" class="hidden bg-green-50 rounded-lg p-2 border border-green-100">
+                            <div class="flex items-center justify-between">
+                                <span id="nombre-medicamento" class="text-sm font-medium text-green-800"></span>
+                                <button onclick="limpiarMedicamento()" class="text-green-600 hover:text-green-800 text-xs">Cambiar</button>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="w-24">
+                                <input type="number" id="cantidad-medicamento" min="1" value="1"
+                                       class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                       placeholder="Cantidad">
+                            </div>
+                            <button onclick="agregarMedicamentoCirugia()"
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Agregar a la Cirugía
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!-- Timeline -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
@@ -418,6 +502,26 @@
                         <span class="text-sm text-gray-600">Costo Base</span>
                         <span class="font-semibold text-gray-900">${{ number_format($cita->costo_base, 2) }}</span>
                     </div>
+
+                    @php
+                        $cuentaCobroDesktop = \App\Models\CuentaCobro::where('referencia_type', \App\Models\CitaQuirurgica::class)
+                            ->where('referencia_id', $cita->id)
+                            ->first();
+                        $medicamentosCostoDesktop = $cuentaCobroDesktop ? $cuentaCobroDesktop->detalles()->where('tipo_item', 'medicamento')->get() : collect();
+                    @endphp
+
+                    @if($medicamentosCostoDesktop->count() > 0)
+                        <div class="pt-2 border-t border-gray-100">
+                            <p class="text-xs font-medium text-gray-500 mb-2">Medicamentos:</p>
+                            @foreach($medicamentosCostoDesktop as $med)
+                                <div class="flex justify-between items-center py-1 text-sm">
+                                    <span class="text-gray-600">{{ $med->descripcion }}</span>
+                                    <span class="text-gray-700">${{ number_format($med->subtotal, 2) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+
                     @if($cita->costo_final)
                         <div class="flex justify-between items-center pt-3 border-t border-gray-200">
                             <span class="text-sm text-gray-600">Costo Final</span>
@@ -432,6 +536,70 @@
                     @endif
                 </div>
             </div>
+
+            @if(in_array($cita->estado, ['programada', 'en_curso']) && Auth::user()->isAdmin())
+            <!-- Medicamentos e Insumos -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    </svg>
+                    Medicamentos e Insumos
+                </h3>
+
+                <!-- Lista de medicamentos agregados -->
+                <div id="lista-medicamentos-usados-desktop" class="space-y-2 mb-4">
+                    <div class="text-center text-gray-500 text-sm py-4">
+                        Cargando medicamentos...
+                    </div>
+                </div>
+
+                <!-- Formulario para agregar medicamento -->
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Medicamento</h4>
+                    <div class="space-y-3">
+                        <!-- Buscador de medicamentos -->
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <input type="text" id="buscar-medicamento-desktop"
+                                   class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                   placeholder="Buscar medicamento..." autocomplete="off">
+                            <!-- Dropdown de resultados -->
+                            <div id="resultados-medicamento-desktop" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"></div>
+                            <!-- Medicamento seleccionado (oculto) -->
+                            <input type="hidden" id="medicamento-id-desktop">
+                            <input type="hidden" id="medicamento-precio-desktop">
+                            <input type="hidden" id="medicamento-stock-desktop">
+                        </div>
+                        <!-- Info del medicamento seleccionado -->
+                        <div id="info-medicamento-desktop" class="hidden bg-green-50 rounded-lg p-2 border border-green-100">
+                            <div class="flex items-center justify-between">
+                                <span id="nombre-medicamento-desktop" class="text-sm font-medium text-green-800"></span>
+                                <button onclick="limpiarMedicamentoDesktop()" class="text-green-600 hover:text-green-800 text-xs">Cambiar</button>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="w-24">
+                                <input type="number" id="cantidad-medicamento-desktop" min="1" value="1"
+                                       class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                       placeholder="Cantidad">
+                            </div>
+                            <button onclick="agregarMedicamentoCirugiaDesktop()"
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!-- Timeline -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -612,5 +780,408 @@ document.getElementById('cancelModal').addEventListener('click', function(e) {
         closeCancelModal();
     }
 });
+
+// Funciones para medicamentos en cirugía
+let medicamentosDisponibles = [];
+let medicamentosDisponiblesDesktop = [];
+
+// Cargar medicamentos disponibles al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    @if(in_array($cita->estado, ['programada', 'en_curso']) && Auth::user()->isAdmin())
+    // Cargar para versión móvil
+    if (document.getElementById('buscar-medicamento')) {
+        cargarMedicamentosDisponibles();
+        cargarMedicamentosUsados();
+        inicializarBuscadorMedicamentos();
+    }
+    // Cargar para versión desktop
+    if (document.getElementById('buscar-medicamento-desktop')) {
+        cargarMedicamentosDisponiblesDesktop();
+        cargarMedicamentosUsadosDesktop();
+        inicializarBuscadorMedicamentosDesktop();
+    }
+    @endif
+});
+
+async function cargarMedicamentosDisponibles() {
+    try {
+        const response = await fetch('{{ route("quirofano.medicamentos.disponibles", $cita) }}', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            medicamentosDisponibles = data.medicamentos;
+        }
+    } catch (error) {
+        console.error('Error cargando medicamentos:', error);
+    }
+}
+
+// Inicializar buscador de medicamentos (móvil)
+function inicializarBuscadorMedicamentos() {
+    const input = document.getElementById('buscar-medicamento');
+    const resultados = document.getElementById('resultados-medicamento');
+    
+    if (!input) return;
+    
+    input.addEventListener('input', function() {
+        const busqueda = this.value.toLowerCase().trim();
+        
+        if (busqueda.length === 0) {
+            resultados.classList.add('hidden');
+            return;
+        }
+        
+        // Filtrar medicamentos
+        const filtrados = medicamentosDisponibles.filter(med => 
+            med.nombre.toLowerCase().includes(busqueda) ||
+            med.tipo.toLowerCase().includes(busqueda)
+        );
+        
+        // Mostrar resultados
+        resultados.innerHTML = '';
+        if (filtrados.length > 0) {
+            filtrados.forEach(med => {
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+                div.innerHTML = `
+                    <div class="font-medium">${med.nombre} (${med.tipo})</div>
+                    <div class="text-xs text-gray-500">Stock: ${med.cantidad} ${med.unidad_medida || 'unidades'} - $${med.precio || 0}</div>
+                `;
+                div.onclick = () => seleccionarMedicamento(med);
+                resultados.appendChild(div);
+            });
+            resultados.classList.remove('hidden');
+        } else {
+            resultados.innerHTML = '<div class="px-4 py-2 text-sm text-gray-500">No se encontraron medicamentos</div>';
+            resultados.classList.remove('hidden');
+        }
+    });
+    
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !resultados.contains(e.target)) {
+            resultados.classList.add('hidden');
+        }
+    });
+}
+
+function seleccionarMedicamento(med) {
+    document.getElementById('medicamento-id').value = med.id;
+    document.getElementById('medicamento-precio').value = med.precio || 0;
+    document.getElementById('medicamento-stock').value = med.cantidad;
+    document.getElementById('buscar-medicamento').value = '';
+    document.getElementById('resultados-medicamento').classList.add('hidden');
+    
+    // Mostrar info del medicamento seleccionado
+    const infoDiv = document.getElementById('info-medicamento');
+    const nombreSpan = document.getElementById('nombre-medicamento');
+    infoDiv.classList.remove('hidden');
+    nombreSpan.textContent = `${med.nombre} (Stock: ${med.cantidad})`;
+}
+
+function limpiarMedicamento() {
+    document.getElementById('medicamento-id').value = '';
+    document.getElementById('medicamento-precio').value = '';
+    document.getElementById('medicamento-stock').value = '';
+    document.getElementById('buscar-medicamento').value = '';
+    document.getElementById('info-medicamento').classList.add('hidden');
+}
+
+async function cargarMedicamentosUsados() {
+    try {
+        const response = await fetch('{{ route("quirofano.medicamentos.usados", $cita) }}', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+        const data = await response.json();
+        
+        const container = document.getElementById('lista-medicamentos-usados');
+        
+        if (data.success && data.medicamentos.length > 0) {
+            container.innerHTML = '';
+            let totalMedicamentos = 0;
+            
+            data.medicamentos.forEach(med => {
+                totalMedicamentos += parseFloat(med.subtotal);
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-gray-50 rounded-lg p-3';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-medium text-sm text-gray-900">${med.descripcion}</p>
+                        <p class="text-xs text-gray-500">${med.cantidad} x $${parseFloat(med.precio_unitario).toFixed(2)}</p>
+                    </div>
+                    <span class="font-semibold text-sm text-gray-900">$${parseFloat(med.subtotal).toFixed(2)}</span>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Agregar total
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'flex justify-between items-center border-t border-gray-200 pt-2 mt-2';
+            totalDiv.innerHTML = `
+                <span class="font-semibold text-sm text-gray-700">Total Medicamentos:</span>
+                <span class="font-bold text-green-600">$${totalMedicamentos.toFixed(2)}</span>
+            `;
+            container.appendChild(totalDiv);
+        } else {
+            container.innerHTML = '<div class="text-center text-gray-400 text-sm py-4">No hay medicamentos agregados aún</div>';
+        }
+    } catch (error) {
+        console.error('Error cargando medicamentos usados:', error);
+        document.getElementById('lista-medicamentos-usados').innerHTML = '<div class="text-center text-red-400 text-sm py-4">Error al cargar medicamentos</div>';
+    }
+}
+
+async function agregarMedicamentoCirugia() {
+    const medicamentoId = document.getElementById('medicamento-id').value;
+    const cantidadInput = document.getElementById('cantidad-medicamento');
+    const cantidad = parseInt(cantidadInput.value);
+    const stockDisponible = parseInt(document.getElementById('medicamento-stock').value || 0);
+    
+    if (!medicamentoId) {
+        alert('Por favor busque y seleccione un medicamento');
+        return;
+    }
+    
+    if (!cantidad || cantidad < 1) {
+        alert('Por favor ingrese una cantidad válida');
+        return;
+    }
+    
+    if (cantidad > stockDisponible) {
+        alert(`Stock insuficiente. Disponible: ${stockDisponible}`);
+        return;
+    }
+    
+    try {
+        const response = await fetch('{{ route("quirofano.medicamentos.agregar", $cita) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                almacen_medicamento_id: medicamentoId,
+                cantidad: cantidad
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Recargar listas
+            cargarMedicamentosDisponibles();
+            cargarMedicamentosUsados();
+            // Resetear formulario
+            limpiarMedicamento();
+            cantidadInput.value = '1';
+        } else {
+            alert(data.message || 'Error al agregar medicamento');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al agregar medicamento');
+    }
+}
+
+// Funciones para versión desktop
+async function cargarMedicamentosDisponiblesDesktop() {
+    try {
+        const response = await fetch('{{ route("quirofano.medicamentos.disponibles", $cita) }}', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            medicamentosDisponiblesDesktop = data.medicamentos;
+        }
+    } catch (error) {
+        console.error('Error cargando medicamentos desktop:', error);
+    }
+}
+
+// Inicializar buscador de medicamentos (desktop)
+function inicializarBuscadorMedicamentosDesktop() {
+    const input = document.getElementById('buscar-medicamento-desktop');
+    const resultados = document.getElementById('resultados-medicamento-desktop');
+    
+    if (!input) return;
+    
+    input.addEventListener('input', function() {
+        const busqueda = this.value.toLowerCase().trim();
+        
+        if (busqueda.length === 0) {
+            resultados.classList.add('hidden');
+            return;
+        }
+        
+        // Filtrar medicamentos
+        const filtrados = medicamentosDisponiblesDesktop.filter(med => 
+            med.nombre.toLowerCase().includes(busqueda) ||
+            med.tipo.toLowerCase().includes(busqueda)
+        );
+        
+        // Mostrar resultados
+        resultados.innerHTML = '';
+        if (filtrados.length > 0) {
+            filtrados.forEach(med => {
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+                div.innerHTML = `
+                    <div class="font-medium">${med.nombre} (${med.tipo})</div>
+                    <div class="text-xs text-gray-500">Stock: ${med.cantidad} ${med.unidad_medida || 'unidades'} - $${med.precio || 0}</div>
+                `;
+                div.onclick = () => seleccionarMedicamentoDesktop(med);
+                resultados.appendChild(div);
+            });
+            resultados.classList.remove('hidden');
+        } else {
+            resultados.innerHTML = '<div class="px-4 py-2 text-sm text-gray-500">No se encontraron medicamentos</div>';
+            resultados.classList.remove('hidden');
+        }
+    });
+    
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !resultados.contains(e.target)) {
+            resultados.classList.add('hidden');
+        }
+    });
+}
+
+function seleccionarMedicamentoDesktop(med) {
+    document.getElementById('medicamento-id-desktop').value = med.id;
+    document.getElementById('medicamento-precio-desktop').value = med.precio || 0;
+    document.getElementById('medicamento-stock-desktop').value = med.cantidad;
+    document.getElementById('buscar-medicamento-desktop').value = '';
+    document.getElementById('resultados-medicamento-desktop').classList.add('hidden');
+    
+    // Mostrar info del medicamento seleccionado
+    const infoDiv = document.getElementById('info-medicamento-desktop');
+    const nombreSpan = document.getElementById('nombre-medicamento-desktop');
+    infoDiv.classList.remove('hidden');
+    nombreSpan.textContent = `${med.nombre} (Stock: ${med.cantidad})`;
+}
+
+function limpiarMedicamentoDesktop() {
+    document.getElementById('medicamento-id-desktop').value = '';
+    document.getElementById('medicamento-precio-desktop').value = '';
+    document.getElementById('medicamento-stock-desktop').value = '';
+    document.getElementById('buscar-medicamento-desktop').value = '';
+    document.getElementById('info-medicamento-desktop').classList.add('hidden');
+}
+
+async function cargarMedicamentosUsadosDesktop() {
+    try {
+        const response = await fetch('{{ route("quirofano.medicamentos.usados", $cita) }}', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+        const data = await response.json();
+        
+        const container = document.getElementById('lista-medicamentos-usados-desktop');
+        if (!container) return;
+        
+        if (data.success && data.medicamentos.length > 0) {
+            container.innerHTML = '';
+            let totalMedicamentos = 0;
+            
+            data.medicamentos.forEach(med => {
+                totalMedicamentos += parseFloat(med.subtotal);
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-gray-50 rounded-lg p-3';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-medium text-sm text-gray-900">${med.descripcion}</p>
+                        <p class="text-xs text-gray-500">${med.cantidad} x $${parseFloat(med.precio_unitario).toFixed(2)}</p>
+                    </div>
+                    <span class="font-semibold text-sm text-gray-900">$${parseFloat(med.subtotal).toFixed(2)}</span>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Agregar total
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'flex justify-between items-center border-t border-gray-200 pt-2 mt-2';
+            totalDiv.innerHTML = `
+                <span class="font-semibold text-sm text-gray-700">Total Medicamentos:</span>
+                <span class="font-bold text-green-600">$${totalMedicamentos.toFixed(2)}</span>
+            `;
+            container.appendChild(totalDiv);
+        } else {
+            container.innerHTML = '<div class="text-center text-gray-400 text-sm py-4">No hay medicamentos agregados aún</div>';
+        }
+    } catch (error) {
+        console.error('Error cargando medicamentos usados desktop:', error);
+        const container = document.getElementById('lista-medicamentos-usados-desktop');
+        if (container) {
+            container.innerHTML = '<div class="text-center text-red-400 text-sm py-4">Error al cargar medicamentos</div>';
+        }
+    }
+}
+
+async function agregarMedicamentoCirugiaDesktop() {
+    const medicamentoId = document.getElementById('medicamento-id-desktop').value;
+    const cantidadInput = document.getElementById('cantidad-medicamento-desktop');
+    const cantidad = parseInt(cantidadInput.value);
+    const stockDisponible = parseInt(document.getElementById('medicamento-stock-desktop').value || 0);
+    
+    if (!medicamentoId) {
+        alert('Por favor busque y seleccione un medicamento');
+        return;
+    }
+    
+    if (!cantidad || cantidad < 1) {
+        alert('Por favor ingrese una cantidad válida');
+        return;
+    }
+    
+    if (cantidad > stockDisponible) {
+        alert(`Stock insuficiente. Disponible: ${stockDisponible}`);
+        return;
+    }
+    
+    try {
+        const response = await fetch('{{ route("quirofano.medicamentos.agregar", $cita) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                almacen_medicamento_id: medicamentoId,
+                cantidad: cantidad
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Recargar listas
+            cargarMedicamentosDisponiblesDesktop();
+            cargarMedicamentosUsadosDesktop();
+            // Resetear formulario
+            limpiarMedicamentoDesktop();
+            cantidadInput.value = '1';
+        } else {
+            alert(data.message || 'Error al agregar medicamento');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al agregar medicamento');
+    }
+}
 </script>
 @endsection
