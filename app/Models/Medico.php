@@ -59,6 +59,11 @@ class Medico extends Model
         return $this->user ? $this->user->name : 'N/A';
     }
 
+    public function getUsuarioAttribute()
+    {
+        return $this->user;
+    }
+
     public function getEstadoColorAttribute()
     {
         return match($this->estado) {

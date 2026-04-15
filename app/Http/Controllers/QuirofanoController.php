@@ -289,7 +289,17 @@ class QuirofanoController extends Controller
             abort(403, 'La emergencia no está en quirófano.');
         }
 
-        $quirofanos = Quirofano::where('estado', '!=', 'mantenimiento')->get();
+        // Obtener quirófanos - todos excepto mantenimiento, ordenados por disponibilidad
+        $quirofanos = Quirofano::where('estado', '!=', 'mantenimiento')
+            ->orderByRaw("CASE WHEN estado = 'disponible' THEN 0 ELSE 1 END")
+            ->orderBy('tipo')
+            ->get();
+        
+        \Log::info('Quirofanos cargados para programar emergencia', [
+            'count' => $quirofanos->count(),
+            'emergency_id' => $emergency_id
+        ]);
+        
         $tiposCirugia = TipoCirugia::all();
         $medicos = Medico::with('user')->get();
 
@@ -302,16 +312,19 @@ class QuirofanoController extends Controller
     public function storeEmergencia(Request $request): JsonResponse
     {
         try {
+            \Log::info('Datos recibidos en storeEmergencia', $request->all());
+
             $validated = $request->validate([
                 'emergency_id' => 'required|exists:emergencies,id',
                 'nro_quirofano' => 'required|exists:quirofanos,id',
                 'ci_cirujano' => 'required|exists:medicos,ci',
-                'ci_instrumentista' => 'nullable|exists:medicos,ci',
-                'ci_anestesiologo' => 'nullable|exists:medicos,ci',
-                'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
+                'ci_instrumentista' => 'nullable|string|max:100',
+                'ci_anestesiologo' => 'nullable|string|max:100',
+                'tipo_cirugia' => 'required|exists:tipos_cirugia,nombre',
                 'fecha' => 'required|date|after_or_equal:today',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
                 'descripcion_cirugia' => 'nullable|string|max:500',
+                'costo_base' => 'required|numeric|min:0',
             ]);
 
             $emergencia = \App\Models\Emergency::findOrFail($validated['emergency_id']);
@@ -319,8 +332,8 @@ class QuirofanoController extends Controller
             // Crear cita quirúrgica
             $cita = new CitaQuirurgica();
             // Para pacientes temporales, usar el ID de emergencia como identificador numérico
-            $cita->ci_paciente = $emergencia->is_temp_id 
-                ? (int) $emergencia->id  // Usar ID de emergencia como identificador numérico
+            $cita->ci_paciente = $emergencia->is_temp_id
+                ? (int) $emergencia->id
                 : (int) $emergencia->patient_id;
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->ci_instrumentista = $validated['ci_instrumentista'];
@@ -332,12 +345,11 @@ class QuirofanoController extends Controller
             $cita->descripcion_cirugia = $validated['descripcion_cirugia'] ?? 'Cirugía derivada desde emergencia ' . $emergencia->code;
             $cita->estado = 'programada';
             $cita->user_registro_id = auth()->id();
+            $cita->costo_base = $validated['costo_base'];
 
-            // Calcular costo base según tipo
-            $tipoCirugia = TipoCirugia::where('nombre', $validated['tipo_cirugia'])->first();
-            if ($tipoCirugia) {
-                $cita->costo_base = $tipoCirugia->costo_base;
-            }
+            // Obtener duración del tipo de cirugía para validación
+            $tipoCirugia = \App\Models\TipoCirugia::where('nombre', $validated['tipo_cirugia'])->first();
+            $cita->duracion_estimada = $tipoCirugia ? $tipoCirugia->duracion_minutos : 60;
 
             // Validar disponibilidad
             if ($cita->validarDisponibilidadQuirofano()) {
@@ -363,6 +375,10 @@ class QuirofanoController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Error de validación en storeEmergencia', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
@@ -377,11 +393,72 @@ class QuirofanoController extends Controller
     }
 
     /**
-     * Iniciar cirugía de emergencia inmediatamente (sin programar)
+     * Obtener médicos disponibles para selección en cirugía de emergencia
      */
-    public function iniciarEmergencia(int $emergency_id): JsonResponse
+    public function getMedicosDisponibles(): JsonResponse
     {
         try {
+            \Log::info('Cargando médicos disponibles');
+            
+            // Obtener todos los médicos activos sin cargar relaciones para evitar errores
+            $medicosQuery = Medico::where('estado', 'activo')
+                ->orderBy('nombre');
+            
+            \Log::info('SQL: ' . $medicosQuery->toSql());
+            
+            $medicos = $medicosQuery->get();
+            
+            \Log::info('Médicos encontrados: ' . $medicos->count());
+            
+            $resultado = $medicos->map(function($medico) {
+                // Obtener nombre del médico o del usuario relacionado
+                $nombre = $medico->nombre;
+                if (empty($nombre) && $medico->user_id) {
+                    $user = \App\Models\User::find($medico->user_id);
+                    $nombre = $user?->name ?? 'Sin nombre';
+                }
+                if (empty($nombre)) {
+                    $nombre = 'Médico CI: ' . $medico->ci;
+                }
+                
+                // Obtener especialidad
+                $especialidad = 'Sin especialidad';
+                if ($medico->codigo_especialidad) {
+                    $esp = \App\Models\Especialidad::where('codigo', $medico->codigo_especialidad)->first();
+                    $especialidad = $esp?->nombre ?? 'Sin especialidad';
+                }
+                
+                return [
+                    'ci' => $medico->ci,
+                    'nombre' => $nombre,
+                    'especialidad' => $especialidad,
+                    'disponible' => true
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'medicos' => $resultado
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error en getMedicosDisponibles: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar médicos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Iniciar cirugía de emergencia inmediatamente (sin programar)
+     */
+    public function iniciarEmergencia(Request $request, int $emergency_id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'ci_cirujano' => 'required|exists:medicos,ci',
+            ]);
+
             $emergencia = \App\Models\Emergency::findOrFail($emergency_id);
 
             if ($emergencia->ubicacion_actual !== 'cirugia') {
@@ -406,7 +483,7 @@ class QuirofanoController extends Controller
             $cita->ci_paciente = $emergencia->is_temp_id 
                 ? (int) $emergencia->id  // Usar ID de emergencia como identificador numérico
                 : (int) $emergencia->patient_id;
-            $cita->ci_cirujano = auth()->user()->medico?->ci ?? null;
+            $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->quirofano_id = $quirofano->id;
             $cita->tipo_cirugia = 'mayor';
             $cita->fecha = now()->toDateString();

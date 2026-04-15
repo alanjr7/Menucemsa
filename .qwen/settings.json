@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php *)",
+      "Bash(select-object *)"
+    ]
+  },
+  "$version": 3
+}

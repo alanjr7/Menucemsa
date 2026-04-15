@@ -190,12 +190,6 @@
                                     </svg>
                                     Programar
                                 </a>
-                                <button onclick="iniciarEmergencia({{ $emg['id'] }})" class="inline-flex items-center justify-center px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 transition-colors">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                    </svg>
-                                    Iniciar Ahora
-                                </button>
                             </div>
                         </td>
                     </tr>
@@ -438,28 +432,186 @@
     </div>
 </div>
 
+<!-- Modal para selección de cirujano -->
+<div id="modalCirujano" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Overlay de fondo -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="cerrarModalCirujano()"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <!-- Contenido del modal -->
+        <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                            Seleccionar Cirujano
+                        </h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500 mb-4">
+                                Seleccione el cirujano que realizará la cirugía de emergencia.
+                            </p>
+                            
+                            <!-- Lista de cirujanos -->
+                            <div id="listaCirujanos" class="space-y-2 max-h-64 overflow-y-auto">
+                                <div class="text-center text-gray-500 py-4">
+                                    Cargando médicos...
+                                </div>
+                            </div>
+
+                            <!-- Cirujano seleccionado -->
+                            <div id="cirujanoSeleccionadoInfo" class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 hidden">
+                                <p class="text-sm text-green-800">
+                                    <span class="font-semibold">Cirujano seleccionado:</span>
+                                    <span id="nombreCirujanoSeleccionado"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" id="btnIniciarCirugia" onclick="confirmarIniciarEmergencia()" disabled
+                    class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    Iniciar Cirugía
+                </button>
+                <button type="button" onclick="cerrarModalCirujano()"
+                    class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+let currentEmergencyId = null;
+let cirujanoSeleccionado = null;
+
 function verDetalles(citaId) {
     window.location.href = `/quirofano/${citaId}`;
 }
 
+// Abrir modal de selección de cirujano
 async function iniciarEmergencia(emergencyId) {
-    if (!confirm('¿Iniciar cirugía de emergencia inmediatamente? Esta acción buscará el primer quirófano disponible.')) {
+    currentEmergencyId = emergencyId;
+    cirujanoSeleccionado = null;
+    
+    // Resetear UI
+    document.getElementById('btnIniciarCirugia').disabled = true;
+    document.getElementById('cirujanoSeleccionadoInfo').classList.add('hidden');
+    document.getElementById('listaCirujanos').innerHTML = '<div class="text-center text-gray-500 py-4">Cargando médicos...</div>';
+    
+    // Mostrar modal
+    document.getElementById('modalCirujano').classList.remove('hidden');
+    
+    // Cargar médicos
+    try {
+        const response = await fetch('{{ route('quirofano.medicos-disponibles') }}', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.medicos.length > 0) {
+            const container = document.getElementById('listaCirujanos');
+            container.innerHTML = '';
+            
+            data.medicos.forEach(medico => {
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${medico.disponible ? 'border-gray-200 hover:border-purple-300 bg-white' : 'border-gray-100 bg-gray-50 opacity-60'}`;
+                div.onclick = () => medico.disponible && seleccionarCirujano(medico, div);
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
+                                ${medico.nombre.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">${medico.nombre}</p>
+                                <p class="text-xs text-gray-500">${medico.especialidad}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            ${medico.disponible 
+                                ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Disponible</span>`
+                                : `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No disponible</span>`
+                            }
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(div);
+            });
+        } else {
+            document.getElementById('listaCirujanos').innerHTML = '<div class="text-center text-gray-500 py-4">No hay médicos disponibles</div>';
+        }
+    } catch (error) {
+        console.error('Error cargando médicos:', error);
+        document.getElementById('listaCirujanos').innerHTML = '<div class="text-center text-red-500 py-4">Error al cargar médicos</div>';
+    }
+}
+
+// Seleccionar cirujano
+function seleccionarCirujano(medico, elemento) {
+    cirujanoSeleccionado = medico;
+    
+    // Actualizar UI - quitar selección anterior
+    document.querySelectorAll('#listaCirujanos > div').forEach(div => {
+        div.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50');
+    });
+    
+    // Marcar seleccionado
+    elemento.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50');
+    
+    // Mostrar info
+    document.getElementById('nombreCirujanoSeleccionado').textContent = medico.nombre + ' (' + medico.especialidad + ')';
+    document.getElementById('cirujanoSeleccionadoInfo').classList.remove('hidden');
+    
+    // Habilitar botón
+    document.getElementById('btnIniciarCirugia').disabled = false;
+}
+
+// Cerrar modal
+function cerrarModalCirujano() {
+    document.getElementById('modalCirujano').classList.add('hidden');
+    currentEmergencyId = null;
+    cirujanoSeleccionado = null;
+}
+
+// Confirmar e iniciar cirugía
+async function confirmarIniciarEmergencia() {
+    if (!currentEmergencyId || !cirujanoSeleccionado) {
+        alert('Por favor seleccione un cirujano');
         return;
     }
-
+    
     try {
-        const response = await fetch(`/quirofano/emergencia/${emergencyId}/iniciar`, {
+        const response = await fetch(`/quirofano/emergencia/${currentEmergencyId}/iniciar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
+            },
+            body: JSON.stringify({
+                ci_cirujano: cirujanoSeleccionado.ci
+            })
         });
 
         const result = await response.json();
 
         if (result.success) {
+            cerrarModalCirujano();
             alert('Cirugía iniciada: ' + result.message);
             if (result.redirect) {
                 window.location.href = result.redirect;

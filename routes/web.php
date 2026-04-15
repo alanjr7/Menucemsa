@@ -89,6 +89,7 @@ Route::middleware('auth')->group(function () {
         // Rutas para programar cirugías desde emergencias
         Route::get('/quirofano/emergencia/{emergency_id}/programar', [QuirofanoController::class, 'programarEmergencia'])->name('quirofano.programar-emergencia');
         Route::post('/quirofano/emergencia/store', [QuirofanoController::class, 'storeEmergencia'])->name('quirofano.store-emergencia');
+        Route::get('/quirofano/api/medicos-disponibles', [QuirofanoController::class, 'getMedicosDisponibles'])->name('quirofano.medicos-disponibles');
         Route::post('/quirofano/emergencia/{emergency_id}/iniciar', [QuirofanoController::class, 'iniciarEmergencia'])->name('quirofano.iniciar-emergencia');
 
         Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show');

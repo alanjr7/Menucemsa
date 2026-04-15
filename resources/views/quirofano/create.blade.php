@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+{{-- este es el archivo :http://127.0.0.1:8000/quirofano/create --}}
+
 @section('content')
 <div class="w-full p-6 bg-gray-50/50 min-h-screen">
 
