@@ -9,6 +9,8 @@ use App\Models\Medico;
 use App\Models\Quirofano;
 use App\Models\Caja;
 use App\Models\AlmacenMedicamento;
+use App\Models\Registro;
+use App\Models\Seguro;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
@@ -318,8 +320,8 @@ class QuirofanoController extends Controller
                 'emergency_id' => 'required|exists:emergencies,id',
                 'nro_quirofano' => 'required|exists:quirofanos,id',
                 'ci_cirujano' => 'required|exists:medicos,ci',
-                'ci_instrumentista' => 'nullable|string|max:100',
-                'ci_anestesiologo' => 'nullable|string|max:100',
+                'nombre_instrumentista' => 'nullable|string|max:255',
+                'nombre_anestesiologo' => 'nullable|string|max:255',
                 'tipo_cirugia' => 'required|exists:tipos_cirugia,nombre',
                 'fecha' => 'required|date|after_or_equal:today',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
@@ -329,15 +331,22 @@ class QuirofanoController extends Controller
 
             $emergencia = \App\Models\Emergency::findOrFail($validated['emergency_id']);
 
+            // Si es paciente temporal, crear un paciente real primero
+            if ($emergencia->is_temp_id) {
+                $paciente = $this->crearPacienteDesdeTemporal($emergencia);
+                $ciPaciente = $paciente->ci;
+            } else {
+                $ciPaciente = $emergencia->patient_id;
+            }
+
             // Crear cita quirúrgica
             $cita = new CitaQuirurgica();
-            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
-            $cita->ci_paciente = $emergencia->is_temp_id
-                ? (int) $emergencia->id
-                : (int) $emergencia->patient_id;
+            $cita->ci_paciente = (int) $ciPaciente;
             $cita->ci_cirujano = $validated['ci_cirujano'];
-            $cita->ci_instrumentista = $validated['ci_instrumentista'];
-            $cita->ci_anestesiologo = $validated['ci_anestesiologo'];
+            $cita->ci_instrumentista = null;
+            $cita->ci_anestesiologo = null;
+            $cita->nombre_instrumentista = $validated['nombre_instrumentista'];
+            $cita->nombre_anestesiologo = $validated['nombre_anestesiologo'];
             $cita->quirofano_id = $validated['nro_quirofano'];
             $cita->tipo_cirugia = $validated['tipo_cirugia'];
             $cita->fecha = $validated['fecha'];
@@ -347,11 +356,7 @@ class QuirofanoController extends Controller
             $cita->user_registro_id = auth()->id();
             $cita->costo_base = $validated['costo_base'];
 
-            // Obtener duración del tipo de cirugía para validación
-            $tipoCirugia = \App\Models\TipoCirugia::where('nombre', $validated['tipo_cirugia'])->first();
-            $cita->duracion_estimada = $tipoCirugia ? $tipoCirugia->duracion_minutos : 60;
-
-            // Validar disponibilidad
+            // Validar disponibilidad (usa accessor duracion_estimada que calcula desde tipo_cirugia)
             if ($cita->validarDisponibilidadQuirofano()) {
                 return response()->json([
                     'success' => false,
@@ -361,10 +366,13 @@ class QuirofanoController extends Controller
 
             $cita->save();
 
+            // Crear cuenta de cobro para la cirugía (igual que en store regular)
+            $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
+
             // Actualizar emergencia con referencia a la cita
             $emergencia->update([
                 'nro_cirugia' => 'CIR-' . $cita->id,
-                'status' => 'cirugia_programada'
+                'status' => 'cirugia'
             ]);
 
             return response()->json([
@@ -756,7 +764,8 @@ class QuirofanoController extends Controller
 
         try {
             $tipoCirugia = TipoCirugia::where('nombre', $request->tipo_cirugia)->first();
-            $horaInicio = Carbon::createFromFormat('H:i', $request->hora_inicio);
+            $parts = explode(':', $request->hora_inicio);
+            $horaInicio = Carbon::createFromTime((int) $parts[0], (int) ($parts[1] ?? 0));
             $horaFin = $horaInicio->copy()->addMinutes($tipoCirugia->duracion_minutos);
 
             // Buscar citas existentes
@@ -767,7 +776,8 @@ class QuirofanoController extends Controller
 
             $conflictos = [];
             foreach ($citasExistentes as $cita) {
-                $citaInicio = Carbon::createFromFormat('H:i:s', $cita->hora_inicio_estimada);
+                $citaParts = explode(':', (string) $cita->hora_inicio_estimada);
+                $citaInicio = Carbon::createFromTime((int) $citaParts[0], (int) ($citaParts[1] ?? 0));
                 $citaFin = $citaInicio->copy()->addMinutes($cita->duracion_estimada);
 
                 if ($horaInicio < $citaFin && $horaFin > $citaInicio) {
@@ -1085,16 +1095,13 @@ class QuirofanoController extends Controller
                     ]);
                 }
                 
-                // Si aún no existe, crear nueva (no debería pasar si la cita fue creada correctamente)
+                // Si aún no existe, crearla automáticamente (para cirugías existentes antes del fix)
                 if (!$cuentaCobro) {
-                    \Log::error('No se encontró cuenta de cobro existente para agregar medicamento', [
+                    \Log::info('Creando cuenta de cobro automáticamente para cita existente', [
                         'cita_id' => $cita->id,
                         'paciente_ci' => $cita->ci_paciente
                     ]);
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No se encontró la cuenta de cobro de la cirugía. Por favor contacte al administrador.'
-                    ], 422);
+                    $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
                 }
 
                 $precioUnitario = $medicamento->precio ?? 0;
@@ -1166,5 +1173,57 @@ class QuirofanoController extends Controller
                 'message' => 'Error al agregar medicamento: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Crear un paciente real desde datos de emergencia temporal
+     */
+    private function crearPacienteDesdeTemporal($emergencia): Paciente
+    {
+        // Generar un CI numérico único basado en el ID de emergencia (columna ci es integer)
+        $ci = (int)('9' . $emergencia->id . now()->format('is'));
+
+        // Crear registro
+        $registroCodigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
+        Registro::create([
+            'codigo' => $registroCodigo,
+            'fecha' => now()->toDateString(),
+            'hora' => now()->toTimeString(),
+            'motivo' => 'Paciente temporal creado desde programación de cirugía de emergencia',
+            'user_id' => auth()->id()
+        ]);
+
+        // Obtener o crear seguro particular
+        $seguro = Seguro::firstOrCreate(
+            ['nombre_empresa' => 'Particular'],
+            [
+                'tipo' => 'Particular',
+                'cobertura' => 'Sin cobertura',
+                'telefono' => null,
+                'formulario' => 'PARTICULAR',
+                'estado' => 'activo'
+            ]
+        );
+
+        // Crear el paciente
+        $paciente = Paciente::create([
+            'ci' => $ci,
+            'nombre' => 'Paciente Temporal EMG-' . $emergencia->id,
+            'sexo' => 'M',
+            'direccion' => 'Sin especificar',
+            'telefono' => 0,
+            'correo' => 'sin@email.com',
+            'seguro_id' => $seguro->id,
+            'registro_codigo' => $registroCodigo,
+        ]);
+
+        // Actualizar la emergencia para referenciar al paciente creado
+        $emergencia->update([
+            'patient_id' => $ci,
+            'is_temp_id' => false,
+            'temp_id' => null,
+        ]);
+
+        return $paciente;
     }
 }

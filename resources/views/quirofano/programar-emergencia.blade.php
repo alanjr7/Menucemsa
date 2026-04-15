@@ -107,12 +107,12 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Instrumentista</label>
-                                <input type="text" name="ci_instrumentista" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre del instrumentista...">
+                                <input type="text" name="nombre_instrumentista" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre del instrumentista...">
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Anestesiólogo</label>
-                                <input type="text" name="ci_anestesiologo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre del anestesiólogo...">
+                                <input type="text" name="nombre_anestesiologo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre del anestesiólogo...">
                             </div>
 
                             <div>

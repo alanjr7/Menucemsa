@@ -41,8 +41,6 @@ class CitaQuirurgica extends Model
     protected $casts = [
         'fecha' => 'date',
         'hora_inicio_estimada' => 'datetime',
-        'hora_inicio_real' => 'datetime',
-        'hora_fin_real' => 'datetime',
         'timestamp_inicio' => 'datetime',
         'timestamp_fin' => 'datetime',
         'costo_base' => 'decimal:2',
@@ -90,8 +88,14 @@ class CitaQuirurgica extends Model
             'mayor' => 80,
             'ambulatoria' => 45,
         ];
-        
-        return $tipos[$this->tipo_cirugia] ?? 60;
+
+        // First check hardcoded map, then fallback to DB
+        if (isset($tipos[$this->tipo_cirugia])) {
+            return $tipos[$this->tipo_cirugia];
+        }
+
+        $tipoCirugia = TipoCirugia::where('nombre', $this->tipo_cirugia)->first();
+        return $tipoCirugia ? (int) $tipoCirugia->duracion_minutos : 60;
     }
 
     public function getDuracionRealAttribute()
@@ -105,11 +109,15 @@ class CitaQuirurgica extends Model
 
     public function getHoraFinEstimadaAttribute()
     {
-        $inicio = \Carbon\Carbon::createFromTime(
-            $this->hora_inicio_estimada->format('H'),
-            $this->hora_inicio_estimada->format('i')
-        );
-        
+        $hora = $this->hora_inicio_estimada;
+        // Handle both string and Carbon formats
+        if ($hora instanceof \Carbon\Carbon) {
+            $inicio = $hora->copy();
+        } else {
+            $parts = explode(':', (string) $hora);
+            $inicio = Carbon::createFromTime((int) $parts[0], (int) ($parts[1] ?? 0));
+        }
+
         return $inicio->addMinutes($this->duracion_estimada);
     }
 
@@ -183,15 +191,16 @@ class CitaQuirurgica extends Model
     public function validarDisponibilidadQuirofano()
     {
         try {
-            // Log de depuración
-            \Log::info('Validando disponibilidad:', [
-                'quirofano_id' => $this->quirofano_id,
-                'fecha' => $this->fecha,
-                'hora_inicio_estimada' => $this->hora_inicio_estimada,
-                'duracion_estimada' => $this->duracion_estimada,
-                'cita_id' => $this->id
-            ]);
-            
+            // Helper to parse time strings (handles both H:i and H:i:s formats)
+            $parseTime = function ($timeStr): Carbon {
+                $timeStr = (string) $timeStr;
+                if ($timeStr instanceof \Carbon\Carbon) {
+                    return $timeStr->copy();
+                }
+                $parts = explode(':', $timeStr);
+                return Carbon::createFromTime((int) $parts[0], (int) ($parts[1] ?? 0));
+            };
+
             // Si es una cita nueva, no tiene ID aún
             $query = self::where('quirofano_id', $this->quirofano_id)
                 ->where('fecha', $this->fecha)
@@ -204,39 +213,28 @@ class CitaQuirurgica extends Model
 
             // Obtener todas las citas existentes para ese día y quirófano
             $citasExistentes = $query->get();
-            
-            \Log::info('Citas existentes encontradas:', $citasExistentes->toArray());
 
             // Calcular hora fin estimada de la nueva cita
-            $horaInicio = Carbon::createFromFormat('H:i', $this->hora_inicio_estimada);
+            $horaInicio = $parseTime($this->hora_inicio_estimada);
             $horaFin = $horaInicio->copy()->addMinutes($this->duracion_estimada);
 
             // Verificar solapamiento con cada cita existente
             foreach ($citasExistentes as $cita) {
-                $citaInicio = Carbon::createFromFormat('H:i:s', $cita->hora_inicio_estimada);
+                $citaInicio = $parseTime($cita->hora_inicio_estimada);
                 $citaFin = $citaInicio->copy()->addMinutes($cita->duracion_estimada);
-
-                \Log::info('Comparando horarios:', [
-                    'nueva_cita' => ['inicio' => $horaInicio->format('H:i'), 'fin' => $horaFin->format('H:i')],
-                    'cita_existente' => ['id' => $cita->id, 'inicio' => $citaInicio->format('H:i'), 'fin' => $citaFin->format('H:i')],
-                    'hay_conflicto' => ($horaInicio < $citaFin && $horaFin > $citaInicio)
-                ]);
 
                 // Hay solapamiento si:
                 // - La nueva cita empieza antes de que termine la existente
                 // - Y la nueva cita termina después de que empieza la existente
                 if ($horaInicio < $citaFin && $horaFin > $citaInicio) {
-                    \Log::warning('Conflicto detectado con cita ID: ' . $cita->id);
                     return true; // Hay conflicto
                 }
             }
 
-            \Log::info('No hay conflictos de horario');
             return false; // No hay conflictos
         } catch (\Exception $e) {
-            // En caso de error en la validación, asumimos que hay conflicto para ser seguros
             \Log::error('Error en validarDisponibilidadQuirofano: ' . $e->getMessage());
-            return true;
+            return true; // En caso de error, asumir conflicto por seguridad
         }
     }
 
