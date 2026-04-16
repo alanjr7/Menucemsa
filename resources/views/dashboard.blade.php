@@ -219,6 +219,7 @@
 
                 <!-- Caja Actions -->
                 @if(auth()->user()->role === 'caja')
+                    <!-- {{-- Facturación comentada temporalmente
                     <a href="{{ route('admin.facturacion.index') }}" class="flex flex-col items-center p-4 bg-yellow-50 hover:bg-yellow-100 rounded-xl transition group">
                         <div class="p-3 bg-yellow-500 text-white rounded-lg group-hover:bg-yellow-600 transition mb-3">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,6 +228,7 @@
                         </div>
                         <span class="text-sm font-medium text-gray-700">Nueva Factura</span>
                     </a>
+                    --}} -->
 
                     <a href="{{ route('admin.cuentas') }}" class="flex flex-col items-center p-4 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition group">
                         <div class="p-3 bg-emerald-500 text-white rounded-lg group-hover:bg-emerald-600 transition mb-3">

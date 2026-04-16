@@ -48,7 +48,7 @@ class QuirofanoMedicamentosController extends Controller
             }
         }
 
-        $medicamentos = $query->activos()->orderBy('nombre')->paginate(20);
+        $medicamentos = $query->activos()->orderBy('nombre')->paginate(10);
 
         // Estadísticas
         $stats = [

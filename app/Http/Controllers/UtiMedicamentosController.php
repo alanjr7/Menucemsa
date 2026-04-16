@@ -7,17 +7,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-class EmergencyMedicamentosController extends Controller
+class UtiMedicamentosController extends Controller
 {
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin|emergencia');
+        $this->middleware('role:admin|uti');
     }
 
     public function index(Request $request)
     {
-        $query = AlmacenMedicamento::porArea('emergencia');
+        $query = AlmacenMedicamento::porArea('uti');
 
         // Filtros
         if ($request->filled('tipo')) {
@@ -52,16 +52,16 @@ class EmergencyMedicamentosController extends Controller
 
         // Estadísticas
         $stats = [
-            'total' => AlmacenMedicamento::activos()->porArea('emergencia')->count(),
-            'medicamentos' => AlmacenMedicamento::activos()->porArea('emergencia')->medicamentos()->count(),
-            'insumos' => AlmacenMedicamento::activos()->porArea('emergencia')->insumos()->count(),
-            'bajo_stock' => AlmacenMedicamento::activos()->porArea('emergencia')->bajoStock()->count(),
-            'agotados' => AlmacenMedicamento::activos()->porArea('emergencia')->where('cantidad', 0)->count(),
-            'vencidos' => AlmacenMedicamento::activos()->porArea('emergencia')->vencidos()->count(),
-            'por_vencer' => AlmacenMedicamento::activos()->porArea('emergencia')->porVencer()->count(),
+            'total' => AlmacenMedicamento::activos()->porArea('uti')->count(),
+            'medicamentos' => AlmacenMedicamento::activos()->porArea('uti')->medicamentos()->count(),
+            'insumos' => AlmacenMedicamento::activos()->porArea('uti')->insumos()->count(),
+            'bajo_stock' => AlmacenMedicamento::activos()->porArea('uti')->bajoStock()->count(),
+            'agotados' => AlmacenMedicamento::activos()->porArea('uti')->where('cantidad', 0)->count(),
+            'vencidos' => AlmacenMedicamento::activos()->porArea('uti')->vencidos()->count(),
+            'por_vencer' => AlmacenMedicamento::activos()->porArea('uti')->porVencer()->count(),
         ];
 
-        return view('emergency-staff.medicamentos.index', compact('medicamentos', 'stats'));
+        return view('uti.medicamentos.index', compact('medicamentos', 'stats'));
     }
 
     public function create()
@@ -69,7 +69,7 @@ class EmergencyMedicamentosController extends Controller
         $tipos = ['medicamento' => 'Medicamento', 'insumo' => 'Insumo'];
         $unidades = ['unidades' => 'Unidades', 'ml' => 'Mililitros (ml)', 'mg' => 'Miligramos (mg)', 'gr' => 'Gramos (gr)', 'cm' => 'Centímetros (cm)', 'cajas' => 'Cajas', 'frascos' => 'Frascos', 'sobres' => 'Sobres'];
 
-        return view('emergency-staff.medicamentos.create', compact('tipos', 'unidades'));
+        return view('uti.medicamentos.create', compact('tipos', 'unidades'));
     }
 
     public function store(Request $request)
@@ -88,49 +88,49 @@ class EmergencyMedicamentosController extends Controller
         ]);
 
         $data = $request->all();
-        $data['area'] = 'emergencia';
+        $data['area'] = 'uti';
         $data['activo'] = true;
 
         $medicamento = AlmacenMedicamento::create($data);
 
-        Log::info('Usuario ' . Auth::user()->name . ' creó medicamento/insumo en emergencia: ' . $medicamento->nombre, [
+        Log::info('Usuario ' . Auth::user()->name . ' creó medicamento/insumo en UTI: ' . $medicamento->nombre, [
             'user_id' => Auth::id(),
             'medicamento_id' => $medicamento->id,
             'action' => 'create',
-            'module' => 'emergency_medicamentos'
+            'module' => 'uti_medicamentos'
         ]);
 
-        return redirect()->route('emergency-staff.medicamentos.index')
-            ->with('success', 'Medicamento/Insumo agregado correctamente al inventario de emergencia.');
+        return redirect()->route('uti.operativa.medicamentos.index')
+            ->with('success', 'Medicamento/Insumo agregado correctamente al inventario de UTI.');
     }
 
     public function show(AlmacenMedicamento $medicamento)
     {
-        // Verificar que pertenezca a emergencia
-        if ($medicamento->area !== 'emergencia') {
+        // Verificar que pertenezca a uti
+        if ($medicamento->area !== 'uti') {
             abort(404);
         }
 
-        return view('emergency-staff.medicamentos.show', compact('medicamento'));
+        return view('uti.medicamentos.show', compact('medicamento'));
     }
 
     public function edit(AlmacenMedicamento $medicamento)
     {
-        // Verificar que pertenezca a emergencia
-        if ($medicamento->area !== 'emergencia') {
+        // Verificar que pertenezca a uti
+        if ($medicamento->area !== 'uti') {
             abort(404);
         }
 
         $tipos = ['medicamento' => 'Medicamento', 'insumo' => 'Insumo'];
         $unidades = ['unidades' => 'Unidades', 'ml' => 'Mililitros (ml)', 'mg' => 'Miligramos (mg)', 'gr' => 'Gramos (gr)', 'cm' => 'Centímetros (cm)', 'cajas' => 'Cajas', 'frascos' => 'Frascos', 'sobres' => 'Sobres'];
 
-        return view('emergency-staff.medicamentos.edit', compact('medicamento', 'tipos', 'unidades'));
+        return view('uti.medicamentos.edit', compact('medicamento', 'tipos', 'unidades'));
     }
 
     public function update(Request $request, AlmacenMedicamento $medicamento)
     {
-        // Verificar que pertenezca a emergencia
-        if ($medicamento->area !== 'emergencia') {
+        // Verificar que pertenezca a uti
+        if ($medicamento->area !== 'uti') {
             abort(404);
         }
 
@@ -149,42 +149,42 @@ class EmergencyMedicamentosController extends Controller
 
         $medicamento->update($request->all());
 
-        Log::info('Usuario ' . Auth::user()->name . ' actualizó medicamento/insumo en emergencia: ' . $medicamento->nombre, [
+        Log::info('Usuario ' . Auth::user()->name . ' actualizó medicamento/insumo en UTI: ' . $medicamento->nombre, [
             'user_id' => Auth::id(),
             'medicamento_id' => $medicamento->id,
             'action' => 'update',
-            'module' => 'emergency_medicamentos'
+            'module' => 'uti_medicamentos'
         ]);
 
-        return redirect()->route('emergency-staff.medicamentos.index')
+        return redirect()->route('uti.operativa.medicamentos.index')
             ->with('success', 'Medicamento/Insumo actualizado correctamente.');
     }
 
     public function destroy(AlmacenMedicamento $medicamento)
     {
-        // Verificar que pertenezca a emergencia
-        if ($medicamento->area !== 'emergencia') {
+        // Verificar que pertenezca a uti
+        if ($medicamento->area !== 'uti') {
             abort(404);
         }
 
         $nombre = $medicamento->nombre;
         $medicamento->update(['activo' => false]);
 
-        Log::info('Usuario ' . Auth::user()->name . ' desactivó medicamento/insumo en emergencia: ' . $nombre, [
+        Log::info('Usuario ' . Auth::user()->name . ' desactivó medicamento/insumo en UTI: ' . $nombre, [
             'user_id' => Auth::id(),
             'medicamento_id' => $medicamento->id,
             'action' => 'deactivate',
-            'module' => 'emergency_medicamentos'
+            'module' => 'uti_medicamentos'
         ]);
 
-        return redirect()->route('emergency-staff.medicamentos.index')
+        return redirect()->route('uti.operativa.medicamentos.index')
             ->with('success', 'Medicamento/Insumo eliminado correctamente.');
     }
 
     public function actualizarStock(Request $request, AlmacenMedicamento $medicamento)
     {
-        // Verificar que pertenezca a emergencia
-        if ($medicamento->area !== 'emergencia') {
+        // Verificar que pertenezca a uti
+        if ($medicamento->area !== 'uti') {
             abort(404);
         }
 
@@ -196,14 +196,14 @@ class EmergencyMedicamentosController extends Controller
         $cantidadAnterior = $medicamento->cantidad;
         $medicamento->update(['cantidad' => $request->cantidad]);
 
-        Log::info('Usuario ' . Auth::user()->name . ' actualizó stock en emergencia de ' . $medicamento->nombre . ': ' . $cantidadAnterior . ' → ' . $request->cantidad . '. Motivo: ' . $request->motivo, [
+        Log::info('Usuario ' . Auth::user()->name . ' actualizó stock en UTI de ' . $medicamento->nombre . ': ' . $cantidadAnterior . ' → ' . $request->cantidad . '. Motivo: ' . $request->motivo, [
             'user_id' => Auth::id(),
             'medicamento_id' => $medicamento->id,
             'action' => 'update_stock',
             'cantidad_anterior' => $cantidadAnterior,
             'cantidad_nueva' => $request->cantidad,
             'motivo' => $request->motivo,
-            'module' => 'emergency_medicamentos'
+            'module' => 'uti_medicamentos'
         ]);
 
         return redirect()->back()

@@ -40,6 +40,7 @@ use App\Http\Controllers\EmergencyMedicamentosController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Medical\UtiOperativoController;
+use App\Http\Controllers\UtiMedicamentosController;
 use App\Http\Controllers\Admin\UtiAdminController;
 use App\Http\Controllers\Reception\UtiRecepcionController;
 
@@ -521,6 +522,18 @@ Route::middleware(['auth', 'role:admin|dirmedico|doctor|enfermeria|uti'])->prefi
     Route::post('/api/paciente/{id}/asignar-cama', [UtiOperativoController::class, 'asignarCama']);
     Route::get('/api/medicamentos', [UtiOperativoController::class, 'getMedicamentosDisponibles']);
     Route::get('/api/insumos', [UtiOperativoController::class, 'getInsumosDisponibles']);
+
+    // Rutas para gestión de medicamentos de UTI (solo admin y uti)
+    Route::middleware(['role:admin|uti'])->group(function () {
+        Route::get('/medicamentos', [UtiMedicamentosController::class, 'index'])->name('medicamentos.index');
+        Route::get('/medicamentos/create', [UtiMedicamentosController::class, 'create'])->name('medicamentos.create');
+        Route::post('/medicamentos', [UtiMedicamentosController::class, 'store'])->name('medicamentos.store');
+        Route::get('/medicamentos/{medicamento}', [UtiMedicamentosController::class, 'show'])->name('medicamentos.show');
+        Route::get('/medicamentos/{medicamento}/edit', [UtiMedicamentosController::class, 'edit'])->name('medicamentos.edit');
+        Route::put('/medicamentos/{medicamento}', [UtiMedicamentosController::class, 'update'])->name('medicamentos.update');
+        Route::delete('/medicamentos/{medicamento}', [UtiMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
+        Route::post('/medicamentos/{medicamento}/stock', [UtiMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
+    });
 });
 
 // UTI Administración - Solo admin

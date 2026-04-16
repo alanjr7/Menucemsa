@@ -291,7 +291,7 @@
             </div>
         </div>
 
-        <div class="p-6 overflow-y-auto max-h-[50vh]">
+        <div class="p-6 overflow-y-auto" style="height: 50vh; min-height: 400px;">
             <div id="listaMedicamentosDisponibles" class="space-y-2">
                 @foreach($medicamentos as $medicamento)
                 <div class="medicamento-item p-4 border border-gray-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 cursor-pointer transition-all"
@@ -315,6 +315,12 @@
                     </div>
                 </div>
                 @endforeach
+            </div>
+            <div id="mensajeSinResultados" class="hidden text-center py-8 text-gray-500" style="min-height: 200px;">
+                <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p>No se encontraron medicamentos con esa búsqueda.</p>
             </div>
         </div>
     </div>
@@ -347,17 +353,30 @@
     }
 
     function filtrarMedicamentos() {
-        const busqueda = document.getElementById('buscarMedicamento').value.toLowerCase();
-        const items = document.querySelectorAll('.medicamento-item');
+        const busqueda = document.getElementById('buscarMedicamento').value.toLowerCase().trim();
+        const items = document.querySelectorAll('#listaMedicamentosDisponibles .medicamento-item');
+        const mensajeSinResultados = document.getElementById('mensajeSinResultados');
+        const listaMedicamentos = document.getElementById('listaMedicamentosDisponibles');
 
+        let encontrados = 0;
         items.forEach(item => {
             const nombre = item.getAttribute('data-nombre');
-            if (nombre.includes(busqueda)) {
+            if (!busqueda || nombre.includes(busqueda)) {
                 item.style.display = 'block';
+                encontrados++;
             } else {
                 item.style.display = 'none';
             }
         });
+
+        // Mostrar/ocultar mensaje sin resultados
+        if (encontrados === 0 && busqueda.length > 0) {
+            listaMedicamentos.classList.add('hidden');
+            mensajeSinResultados.classList.remove('hidden');
+        } else {
+            listaMedicamentos.classList.remove('hidden');
+            mensajeSinResultados.classList.add('hidden');
+        }
     }
 
     function seleccionarMedicamento(id, nombre, precio, unidad, stock) {

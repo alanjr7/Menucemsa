@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             EspecialidadMedicoSeeder::class,
             MenuSeeder::class,
+            AlmacenMedicamentoSeeder::class,
         ]);
     }
 }

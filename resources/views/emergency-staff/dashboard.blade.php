@@ -101,38 +101,6 @@
         </div>
     </div>
 
-    <!-- SECCIÓN: Pacientes con ID Temporal -->
-    <div class="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl shadow-sm border-2 border-orange-200 p-6 mb-6">
-        <div class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-2 0h-2m-2 0h-2m-2 0H8m0 0H6m2 0h2m-2 0v-2m0 2v2m14-6h-3m-3 0h-2m-2 0H8m0 0H6m2 0h2m-2 0V7m0 2v2M7 7h.01M7 11h.01M7 15h.01M11 7h.01M11 11h.01M11 15h.01M15 7h.01M15 11h.01M15 15h.01"/>
-                    </svg>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold text-orange-800">Pacientes con ID Temporal</h2>
-                    <p class="text-sm text-orange-600">Pacientes que ingresaron sin documento y necesitan completar sus datos</p>
-                </div>
-            </div>
-            <button onclick="cargarEmergenciasTemporales()" class="flex items-center px-4 py-2 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 transition-all shadow-sm">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                Actualizar
-            </button>
-        </div>
-
-        <div id="lista-emergencias-temporales" class="space-y-3">
-            <div class="p-8 text-center text-gray-500">
-                <svg class="w-12 h-12 mx-auto mb-4 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p class="text-gray-600">Cargando pacientes temporales...</p>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal de Acciones -->
     <div id="modalAcciones" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -261,11 +229,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         cargarEmergencias();
         cargarEstadisticas();
-        cargarEmergenciasTemporales();
         // Auto-refresh cada 30 segundos
         setInterval(() => {
             cargarEmergencias();
-            cargarEmergenciasTemporales();
         }, 30000);
     });
 
@@ -302,74 +268,6 @@
         document.getElementById('stat-espera').textContent = stats.espera || 0;
         document.getElementById('stat-atencion').textContent = stats.atencion || 0;
         document.getElementById('stat-hoy').textContent = stats.hoy || 0;
-    }
-
-    async function cargarEmergenciasTemporales() {
-        try {
-            const response = await fetch('/emergency-staff/api/emergencias-temporales');
-            const data = await response.json();
-            
-            if (data.success) {
-                mostrarEmergenciasTemporales(data.emergencias);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    }
-
-    function mostrarEmergenciasTemporales(emergencias) {
-        const contenedor = document.getElementById('lista-emergencias-temporales');
-        
-        if (emergencias.length === 0) {
-            contenedor.innerHTML = `
-                <div class="p-6 text-center text-gray-500 bg-white/50 rounded-xl">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-gray-600">No hay pacientes con ID temporal pendientes</p>
-                    <p class="text-sm text-gray-400 mt-1">Todos los pacientes han completado sus datos</p>
-                </div>
-            `;
-            return;
-        }
-
-        contenedor.innerHTML = emergencias.map(emp => `
-            <div class="bg-white rounded-xl p-4 border-2 border-orange-200 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-gray-800">${emp.code}</span>
-                                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                                    ID Temporal
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600">${emp.temp_id || 'Sin identificación'}</p>
-                            <div class="flex gap-3 mt-1 text-xs text-gray-500">
-                                <span><strong>Ingreso:</strong> ${emp.tipo_ingreso_label}</span>
-                                <span>|</span>
-                                <span><strong>Hora:</strong> ${emp.hora_ingreso}</span>
-                                <span>|</span>
-                                <span class="capitalize"><strong>Estado:</strong> ${emp.status_label}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="abrirModal(${emp.id}, '${emp.code} - ID Temporal')" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
-                            Acciones
-                        </button>
-                        <a href="/emergency-staff/${emp.id}/historial" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
-                            Ver
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `).join('');
     }
 
     function mostrarEmergencias(emergencias) {

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Medicamentos de Emergencia')
+@section('title', 'Medicamentos de UTI')
 
 @section('content')
 <div class="min-h-screen bg-gray-50 p-6">
@@ -8,19 +8,19 @@
     <div class="mb-8">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Medicamentos e Insumos de Emergencia</h1>
-                <p class="text-gray-600 mt-1">Gestiona el inventario de medicamentos para emergencias</p>
+                <h1 class="text-3xl font-bold text-gray-900">Medicamentos e Insumos de UTI</h1>
+                <p class="text-gray-600 mt-1">Gestiona el inventario de medicamentos para la Unidad de Terapia Intensiva</p>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('emergency-staff.dashboard') }}" 
+                <a href="{{ route('uti.operativa.index') }}" 
                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
-                    Volver a Emergencia
+                    Volver a UTI
                 </a>
-                <a href="{{ route('emergency-staff.medicamentos.create') }}" 
-                   class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                <a href="{{ route('uti.operativa.medicamentos.create') }}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -51,8 +51,8 @@
                     <p class="text-sm font-medium text-gray-600">Total Items</p>
                     <p class="text-2xl font-bold text-gray-900">{{ $stats['total'] }}</p>
                 </div>
-                <div class="p-3 bg-red-100 rounded-full">
-                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3 bg-blue-100 rounded-full">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                     </svg>
                 </div>
@@ -132,18 +132,18 @@
 
     <!-- Filtros -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <form method="GET" action="{{ route('emergency-staff.medicamentos.index') }}" class="space-y-4">
+        <form method="GET" action="{{ route('uti.operativa.medicamentos.index') }}" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                     <input type="text" name="buscar" value="{{ request('buscar') }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                            placeholder="Nombre, lote, descripción...">
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                    <select name="tipo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    <select name="tipo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos los tipos</option>
                         <option value="medicamento" {{ request('tipo') == 'medicamento' ? 'selected' : '' }}>Medicamento</option>
                         <option value="insumo" {{ request('tipo') == 'insumo' ? 'selected' : '' }}>Insumo</option>
@@ -152,7 +152,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Estado Stock</label>
-                    <select name="estado_stock" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    <select name="estado_stock" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
                         <option value="bajo" {{ request('estado_stock') == 'bajo' ? 'selected' : '' }}>Bajo Stock</option>
                         <option value="agotado" {{ request('estado_stock') == 'agotado' ? 'selected' : '' }}>Agotado</option>
@@ -161,7 +161,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Vencimiento</label>
-                    <select name="estado_vencimiento" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    <select name="estado_vencimiento" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
                         <option value="vencido" {{ request('estado_vencimiento') == 'vencido' ? 'selected' : '' }}>Vencido</option>
                         <option value="por_vencer" {{ request('estado_vencimiento') == 'por_vencer' ? 'selected' : '' }}>Por Vencer (30 días)</option>
@@ -169,10 +169,10 @@
                 </div>
 
                 <div class="flex items-end gap-2">
-                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
                         Filtrar
                     </button>
-                    <a href="{{ route('emergency-staff.medicamentos.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                    <a href="{{ route('uti.operativa.medicamentos.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition-colors">
                         Limpiar
                     </a>
                 </div>
@@ -255,13 +255,13 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <div class="flex items-center justify-center gap-2">
-                                    <a href="{{ route('emergency-staff.medicamentos.edit', $medicamento) }}" 
+                                    <a href="{{ route('uti.operativa.medicamentos.edit', $medicamento) }}" 
                                        class="text-indigo-600 hover:text-indigo-900" title="Editar">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
                                     </a>
-                                    <form action="{{ route('emergency-staff.medicamentos.destroy', $medicamento) }}" method="POST" 
+                                    <form action="{{ route('uti.operativa.medicamentos.destroy', $medicamento) }}" method="POST" 
                                           class="inline" onsubmit="return confirm('¿Estás seguro de eliminar este medicamento/insumo?');">
                                         @csrf
                                         @method('DELETE')
@@ -277,7 +277,7 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                                No hay medicamentos ni insumos registrados en emergencia.
+                                No hay medicamentos ni insumos registrados en UTI.
                             </td>
                         </tr>
                     @endforelse

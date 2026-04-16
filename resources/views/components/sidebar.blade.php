@@ -58,7 +58,7 @@
                     'active' => request()->is('caja*', 'facturacion*', 'admin*'),
                     'links' => [
                         ['r' => 'caja.index', 'l' => 'Caja Central'],
-                        ['r' => 'facturacion.index', 'l' => 'Facturación'],
+                        <!-- {{-- ['r' => 'facturacion.index', 'l' => 'Facturación'], --}} -->
                         ['r' => 'admin.emergencies.index', 'l' => 'Gestión de Emergencias'],
                         ['r' => 'admin.consulta-externa-gestion', 'l' => 'Gestionar Consulta Externa'],
                         ['r' => 'tarifarios', 'l' => 'Tarifarios'],

@@ -362,7 +362,7 @@ class EmergencyStaffController extends Controller
      */
     public function evaluacion(Emergency $emergency): View
     {
-        // Cargar medicamentos disponibles del área de emergencia
+        // Cargar todos los medicamentos disponibles del área de emergencia
         $medicamentos = AlmacenMedicamento::activos()
             ->porArea('emergencia')
             ->where('cantidad', '>', 0)
@@ -541,13 +541,22 @@ class EmergencyStaffController extends Controller
     /**
      * API: Obtener medicamentos disponibles en almacén de emergencia
      */
-    public function apiMedicamentosDisponibles(): JsonResponse
+    public function apiMedicamentosDisponibles(Request $request): JsonResponse
     {
-        $medicamentos = AlmacenMedicamento::activos()
+        $query = AlmacenMedicamento::activos()
             ->porArea('emergencia')
-            ->where('cantidad', '>', 0)
-            ->orderBy('nombre')
-            ->get()
+            ->where('cantidad', '>', 0);
+
+        // Buscar si se proporciona parámetro
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->where(function($q) use ($buscar) {
+                $q->where('nombre', 'like', '%' . $buscar . '%')
+                  ->orWhere('descripcion', 'like', '%' . $buscar . '%');
+            });
+        }
+
+        $medicamentos = $query->orderBy('nombre')->limit(20)->get()
             ->map(function($med) {
                 return [
                     'id' => $med->id,
