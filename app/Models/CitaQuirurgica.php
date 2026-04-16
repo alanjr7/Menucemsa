@@ -41,6 +41,8 @@ class CitaQuirurgica extends Model
     protected $casts = [
         'fecha' => 'date',
         'hora_inicio_estimada' => 'datetime',
+        'hora_inicio_real' => 'datetime',
+        'hora_fin_real' => 'datetime',
         'timestamp_inicio' => 'datetime',
         'timestamp_fin' => 'datetime',
         'costo_base' => 'decimal:2',
@@ -191,12 +193,12 @@ class CitaQuirurgica extends Model
     public function validarDisponibilidadQuirofano()
     {
         try {
-            // Helper to parse time strings (handles both H:i and H:i:s formats)
+            // Helper to parse time strings (handles both H:i and H:i:s formats, and Carbon objects)
             $parseTime = function ($timeStr): Carbon {
-                $timeStr = (string) $timeStr;
                 if ($timeStr instanceof \Carbon\Carbon) {
                     return $timeStr->copy();
                 }
+                $timeStr = (string) $timeStr;
                 $parts = explode(':', $timeStr);
                 return Carbon::createFromTime((int) $parts[0], (int) ($parts[1] ?? 0));
             };

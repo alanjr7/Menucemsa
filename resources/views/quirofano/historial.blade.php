@@ -115,8 +115,12 @@
                 </select>
             </div>
             <div class="flex items-center gap-2">
-                <label class="text-sm font-medium text-gray-700">Fecha:</label>
-                <input type="date" id="filtroFecha" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <label class="text-sm font-medium text-gray-700">Desde:</label>
+                <input type="date" id="filtroFechaDesde" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700">Hasta:</label>
+                <input type="date" id="filtroFechaHasta" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
             <button onclick="aplicarFiltros()" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
                 Aplicar Filtros
@@ -124,6 +128,12 @@
             <button onclick="limpiarFiltros()" class="px-4 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                 Limpiar
             </button>
+            <a href="{{ route('quirofano.historial.export', request()->all()) }}" class="flex items-center px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Exportar Excel
+            </a>
         </div>
     </div>
 
@@ -171,11 +181,6 @@
                         <a href="{{ route('quirofano.show', $cita) }}" class="flex-1 text-center px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
                             Ver Detalles
                         </a>
-                        @if($cita->estado === 'programada')
-                            <a href="{{ route('quirofano.edit', $cita) }}" class="flex-1 text-center px-3 py-2 border border-amber-600 text-amber-600 rounded-lg text-sm font-medium hover:bg-amber-50 transition-colors">
-                                Editar
-                            </a>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -286,7 +291,16 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 @if($cita->duracion_real)
-                                    {{ $cita->duracion_real }} min
+                                    @php
+                                        $totalMinutos = round($cita->duracion_real);
+                                        $horas = floor($totalMinutos / 60);
+                                        $minutos = $totalMinutos % 60;
+                                    @endphp
+                                    @if($horas > 0)
+                                        {{ $horas }}h {{ $minutos }}min
+                                    @else
+                                        {{ $minutos }}min
+                                    @endif
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif
@@ -299,14 +313,9 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('quirofano.show', $cita) }}" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <a href="{{ route('quirofano.show', $cita) }}" class="text-blue-600 hover:text-blue-900">
                                     Ver
                                 </a>
-                                @if($cita->estado === 'programada')
-                                    <a href="{{ route('quirofano.edit', $cita) }}" class="text-amber-600 hover:text-amber-900">
-                                        Editar
-                                    </a>
-                                @endif
                             </td>
                         </tr>
                     @empty
@@ -338,14 +347,17 @@
 <script>
 function aplicarFiltros() {
     const estado = document.getElementById('filtroEstado').value;
-    const fecha = document.getElementById('filtroFecha').value;
+    const fechaDesde = document.getElementById('filtroFechaDesde').value;
+    const fechaHasta = document.getElementById('filtroFechaHasta').value;
     
     let url = new URL(window.location.href);
     url.searchParams.delete('estado');
-    url.searchParams.delete('fecha');
+    url.searchParams.delete('fecha_desde');
+    url.searchParams.delete('fecha_hasta');
     
     if (estado) url.searchParams.set('estado', estado);
-    if (fecha) url.searchParams.set('fecha', fecha);
+    if (fechaDesde) url.searchParams.set('fecha_desde', fechaDesde);
+    if (fechaHasta) url.searchParams.set('fecha_hasta', fechaHasta);
     
     window.location.href = url.toString();
 }
@@ -353,7 +365,8 @@ function aplicarFiltros() {
 function limpiarFiltros() {
     let url = new URL(window.location.href);
     url.searchParams.delete('estado');
-    url.searchParams.delete('fecha');
+    url.searchParams.delete('fecha_desde');
+    url.searchParams.delete('fecha_hasta');
     window.location.href = url.toString();
 }
 
@@ -363,8 +376,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (params.get('estado')) {
         document.getElementById('filtroEstado').value = params.get('estado');
     }
-    if (params.get('fecha')) {
-        document.getElementById('filtroFecha').value = params.get('fecha');
+    if (params.get('fecha_desde')) {
+        document.getElementById('filtroFechaDesde').value = params.get('fecha_desde');
+    }
+    if (params.get('fecha_hasta')) {
+        document.getElementById('filtroFechaHasta').value = params.get('fecha_hasta');
     }
 });
 </script>

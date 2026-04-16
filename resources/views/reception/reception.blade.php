@@ -506,7 +506,7 @@
             const tipoPacienteSelect = document.querySelector('select[name="tipo_paciente"]');
             const datosPersonales = document.getElementById('datosPersonales');
             
-            if (ci.length < 8) {
+            if (ci.length < 3) {
                 alert('Por favor ingrese un número de cédula válido');
                 return;
             }

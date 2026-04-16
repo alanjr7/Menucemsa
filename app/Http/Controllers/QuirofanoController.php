@@ -776,8 +776,13 @@ class QuirofanoController extends Controller
 
             $conflictos = [];
             foreach ($citasExistentes as $cita) {
-                $citaParts = explode(':', (string) $cita->hora_inicio_estimada);
-                $citaInicio = Carbon::createFromTime((int) $citaParts[0], (int) ($citaParts[1] ?? 0));
+                // Handle both Carbon and string formats for hora_inicio_estimada
+                if ($cita->hora_inicio_estimada instanceof \Carbon\Carbon) {
+                    $citaInicio = $cita->hora_inicio_estimada->copy();
+                } else {
+                    $citaParts = explode(':', (string) $cita->hora_inicio_estimada);
+                    $citaInicio = Carbon::createFromTime((int) $citaParts[0], (int) ($citaParts[1] ?? 0));
+                }
                 $citaFin = $citaInicio->copy()->addMinutes($cita->duracion_estimada);
 
                 if ($horaInicio < $citaFin && $horaFin > $citaInicio) {
@@ -864,12 +869,27 @@ class QuirofanoController extends Controller
         return $colores[$estado] ?? '#6b7280'; // gray
     }
 
-    public function historial(): View
+    public function historial(Request $request): View
     {
-        $citas = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
-            ->orderBy('fecha', 'desc')
+        $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano']);
+
+        // Aplicar filtro de estado
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+
+        // Aplicar filtro de rango de fechas
+        if ($request->filled('fecha_desde') && $request->filled('fecha_hasta')) {
+            $query->whereBetween('fecha', [$request->fecha_desde, $request->fecha_hasta]);
+        } elseif ($request->filled('fecha_desde')) {
+            $query->whereDate('fecha', '>=', $request->fecha_desde);
+        } elseif ($request->filled('fecha_hasta')) {
+            $query->whereDate('fecha', '<=', $request->fecha_hasta);
+        }
+
+        $citas = $query->orderBy('fecha', 'desc')
             ->orderBy('hora_inicio_estimada', 'desc')
-            ->paginate(20);
+            ->paginate(10);
 
         $stats = [
             'total' => CitaQuirurgica::count(),
@@ -1225,5 +1245,111 @@ class QuirofanoController extends Controller
         ]);
 
         return $paciente;
+    }
+
+    /**
+     * Exportar historial de cirugías a Excel (CSV format)
+     */
+    public function exportHistorial(Request $request)
+    {
+        $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano']);
+
+        // Aplicar filtros igual que en historial()
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+        if ($request->filled('fecha_desde') && $request->filled('fecha_hasta')) {
+            $query->whereBetween('fecha', [$request->fecha_desde, $request->fecha_hasta]);
+        } elseif ($request->filled('fecha_desde')) {
+            $query->whereDate('fecha', '>=', $request->fecha_desde);
+        } elseif ($request->filled('fecha_hasta')) {
+            $query->whereDate('fecha', '<=', $request->fecha_hasta);
+        }
+
+        $citas = $query->orderBy('fecha', 'desc')
+            ->orderBy('hora_inicio_estimada', 'desc')
+            ->get();
+
+        // Construir nombre del archivo
+        $fechaDesde = $request->filled('fecha_desde')
+            ? Carbon::parse($request->fecha_desde)->format('d-m-Y')
+            : 'inicio';
+        $fechaHasta = $request->filled('fecha_hasta')
+            ? Carbon::parse($request->fecha_hasta)->format('d-m-Y')
+            : 'hoy';
+
+        $nombreArchivo = "cirugias de {$fechaDesde} a {$fechaHasta}.csv";
+
+        // Generar CSV
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$nombreArchivo}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+        ];
+
+        $callback = function() use ($citas) {
+            $file = fopen('php://output', 'w');
+
+            // BOM para UTF-8 (Excel reconoce correctamente caracteres especiales)
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Título
+            fputcsv($file, ['HISTORIAL DE CIRUGIAS'], ';');
+            fputcsv($file, [], ';');
+
+            // Encabezados de columnas
+            fputcsv($file, [
+                'Fecha',
+                'Hora',
+                'Paciente',
+                'CI',
+                'Cirujano',
+                'Quirofano',
+                'Tipo',
+                'Estado',
+                'Duracion',
+                'Costo'
+            ], ';');
+
+            // Datos
+            foreach ($citas as $cita) {
+                $duracion = $cita->duracion_real
+                    ? ($this->formatearDuracionExport($cita->duracion_real))
+                    : '-';
+                $costo = $cita->costo_final ? '$' . number_format($cita->costo_final, 2) : '-';
+
+                fputcsv($file, [
+                    $cita->fecha->format('d/m/Y'),
+                    $cita->hora_inicio_estimada->format('H:i'),
+                    $cita->paciente->nombre,
+                    $cita->paciente->ci,
+                    optional($cita->cirujano->user)->name ?? 'N/A',
+                    'Q' . $cita->quirofano->id,
+                    $cita->tipo_cirugia,
+                    ucfirst($cita->estado),
+                    $duracion,
+                    $costo
+                ], ';');
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Formatear duración para exportación
+     */
+    private function formatearDuracionExport($minutos)
+    {
+        $total = round($minutos);
+        $horas = floor($total / 60);
+        $mins = $total % 60;
+        if ($horas > 0) {
+            return "{$horas}h {$mins}min";
+        }
+        return "{$mins}min";
     }
 }

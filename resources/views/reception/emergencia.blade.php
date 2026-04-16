@@ -449,7 +449,7 @@
         async function buscarPaciente() {
             const ci = document.getElementById('paciente_ci').value;
             
-            if (!ci || ci.length < 5) {
+            if (!ci || ci.length < 3) {
                 alert('Por favor ingrese un número de CI válido');
                 return;
             }

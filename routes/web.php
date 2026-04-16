@@ -36,6 +36,7 @@ use App\Http\Controllers\Caja\CajaOperativaController;
 use App\Http\Controllers\Caja\CajaGestionController;
 use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
 use App\Http\Controllers\EmergencyStaffController;
+use App\Http\Controllers\EmergencyMedicamentosController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Medical\UtiOperativoController;
@@ -60,6 +61,7 @@ Route::middleware('auth')->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
         Route::get('/quirofano/historial', [QuirofanoController::class, 'historial'])->name('quirofano.historial');
+        Route::get('/quirofano/historial/export', [QuirofanoController::class, 'exportHistorial'])->name('quirofano.historial.export');
         Route::get('/quirofano/create', [QuirofanoController::class, 'create'])->name('quirofano.create');
         Route::get('/quirofano/calendario', [QuirofanoController::class, 'calendario'])->name('quirofano.calendario');
         
@@ -436,6 +438,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/emergencias', [EmergencyStaffController::class, 'apiEmergencias'])->name('api.emergencias');
         Route::get('/api/estadisticas', [EmergencyStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
         Route::get('/api/medicamentos-disponibles', [EmergencyStaffController::class, 'apiMedicamentosDisponibles'])->name('api.medicamentos');
+
+        // Rutas para gestión de medicamentos de emergencia (solo admin y emergencia)
+        Route::middleware(['role:admin|emergencia'])->group(function () {
+            Route::get('/medicamentos', [EmergencyMedicamentosController::class, 'index'])->name('medicamentos.index');
+            Route::get('/medicamentos/create', [EmergencyMedicamentosController::class, 'create'])->name('medicamentos.create');
+            Route::post('/medicamentos', [EmergencyMedicamentosController::class, 'store'])->name('medicamentos.store');
+            Route::get('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'show'])->name('medicamentos.show');
+            Route::get('/medicamentos/{medicamento}/edit', [EmergencyMedicamentosController::class, 'edit'])->name('medicamentos.edit');
+            Route::put('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'update'])->name('medicamentos.update');
+            Route::delete('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
+            Route::post('/medicamentos/{medicamento}/stock', [EmergencyMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
+        });
 
         // Rutas con parámetros {emergency} al FINAL
         Route::get('/{emergency}/evaluacion', [EmergencyStaffController::class, 'evaluacion'])->name('evaluacion');
