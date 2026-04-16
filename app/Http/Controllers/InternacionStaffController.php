@@ -7,6 +7,8 @@ use App\Models\Hospitalizacion;
 use App\Models\Paciente;
 use App\Models\UtiAdmission;
 use App\Models\UtiBed;
+use App\Models\Cama;
+use App\Models\CuentaCobroDetalle;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -201,6 +203,8 @@ class InternacionStaffController extends Controller
     public function darAlta(Request $request, $id): JsonResponse
     {
         try {
+            DB::beginTransaction();
+
             $hospitalizacion = Hospitalizacion::findOrFail($id);
 
             if ($hospitalizacion->fecha_alta) {
@@ -214,19 +218,70 @@ class InternacionStaffController extends Controller
                 'motivo_alta' => 'nullable|string|max:500',
             ]);
 
+            // 1. Si tiene cama asignada, liberarla y calcular estancia
+            if ($hospitalizacion->cama_id) {
+                $cama = Cama::find($hospitalizacion->cama_id);
+
+                if ($cama) {
+                    // Calcular días y costo
+                    $dias = $hospitalizacion->getDiasEstancia();
+                    $costoTotal = $hospitalizacion->getCostoEstancia();
+
+                    // Actualizar detalle de cuenta de cobro
+                    if ($hospitalizacion->cuenta_cobro_detalle_id) {
+                        $detalle = CuentaCobroDetalle::find($hospitalizacion->cuenta_cobro_detalle_id);
+                        if ($detalle) {
+                            $detalle->update([
+                                'cantidad' => $dias,
+                                'subtotal' => $costoTotal,
+                                'descripcion' => "Estancia Internación - {$dias} días (Alta médica)",
+                            ]);
+
+                            // Recalcular total de cuenta
+                            $cuenta = $detalle->cuentaCobro;
+                            if ($cuenta) {
+                                $cuenta->total_calculado = $cuenta->detalles->sum('subtotal');
+                                $cuenta->save();
+                            }
+                        }
+                    }
+
+                    // Guardar totales en hospitalización
+                    $hospitalizacion->update([
+                        'total_estancia' => $costoTotal,
+                    ]);
+
+                    // Liberar cama
+                    $cama->update(['disponibilidad' => 'disponible']);
+
+                    // Verificar si habitación quedó vacía
+                    $habitacion = $cama->habitacion;
+                    $camasOcupadas = $habitacion->camas()->where('disponibilidad', 'ocupada')->count();
+                    if ($camasOcupadas === 0 && $habitacion->estado === 'ocupada') {
+                        $habitacion->update(['estado' => 'disponible']);
+                    }
+                }
+            }
+
+            // 2. Marcar fecha de alta
             $hospitalizacion->update([
                 'fecha_alta' => now(),
                 'motivo_alta' => $validated['motivo_alta'] ?? 'Alta médica',
                 'estado' => 'alta',
             ]);
 
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Paciente dado de alta exitosamente',
+                'message' => 'Paciente dado de alta exitosamente' . ($hospitalizacion->total_estancia > 0
+                    ? '. Estancia: ' . $hospitalizacion->getDiasEstancia() . ' días, Total: Bs. ' . number_format($hospitalizacion->total_estancia, 2)
+                    : ''),
                 'hospitalizacion' => $hospitalizacion
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error al dar de alta: ' . $e->getMessage()
