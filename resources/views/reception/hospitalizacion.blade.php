@@ -5,8 +5,8 @@
         <!-- Header -->
         <div class="flex justify-between items-end mb-8">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Hospitalización</h1>
-                <p class="text-sm text-gray-500">Recepción - Admisión de Hospitalización</p>
+                <h1 class="text-2xl font-bold text-gray-800">Internación</h1>
+                <p class="text-sm text-gray-500">Recepción - Admisión de Internación</p>
             </div>
             <div class="flex gap-3">
                 <a href="{{ route('reception') }}" class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all shadow-sm">
@@ -18,22 +18,22 @@
             </div>
         </div>
 
-        <!-- Alerta de Hospitalización -->
+        <!-- Alerta de Internación -->
         <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-lg">
             <div class="flex items-center">
                 <svg class="w-6 h-6 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                 </svg>
                 <div>
-                    <h3 class="text-blue-800 font-bold">MÓDULO DE HOSPITALIZACIÓN</h3>
+                    <h3 class="text-blue-800 font-bold">MÓDULO DE INTERNACIÓN</h3>
                     <p class="text-blue-700 text-sm">Este módulo está diseñado para gestionar admisiones internas y asignación de habitaciones</p>
                 </div>
             </div>
         </div>
 
-        <!-- Formulario de Hospitalización -->
+        <!-- Formulario de Internación -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-6">Registrar Nueva Hospitalización</h2>
+            <h2 class="text-lg font-bold text-gray-800 mb-6">Registrar Nueva Internación</h2>
             
             <form id="formHospitalizacion" onsubmit="registrarHospitalizacion(); return false;">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -283,7 +283,7 @@
                     data.medicos.forEach(medico => {
                         const option = document.createElement('option');
                         option.value = medico.ci;
-                        option.textContent = `Dr. ${medico.usuario.name} - ${medico.especialidad.nombre}`;
+                        option.textContent = `Dr. ${medico.nombre} - ${medico.especialidad}`;
                         select.appendChild(option);
                     });
                 }

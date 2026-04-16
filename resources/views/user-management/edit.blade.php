@@ -87,6 +87,10 @@
                                     @elseif($role == 'caja') - Todas las áreas financieras
                                     @elseif($role == 'gerente') - Dashboard y reportes gerenciales
                                     @elseif($role == 'reception') - Recepción y admisión
+                                    @elseif($role == 'doctor') - Médico con especialidad asignada
+                                    @elseif($role == 'farmacia') - Gestión de farmacia
+                                    @elseif($role == 'uti') - Unidad de Terapia Intensiva
+                                    @elseif($role == 'internacion') - Gestión de pacientes internados
                                     @endif
                                 </option>
                             @endforeach

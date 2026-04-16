@@ -89,5 +89,16 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // Crear usuario Internación
+        User::firstOrCreate(
+            ['email' => 'internacion@menucemsa.com'],
+            [
+                'name' => 'Internación',
+                'password' => bcrypt('internacion123'),
+                'role' => 'internacion',
+                'is_active' => true,
+            ]
+        );
     }
-}//hol
+}

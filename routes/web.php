@@ -14,6 +14,9 @@ use App\Http\Controllers\Medical\UtiController;
 use App\Http\Controllers\Medical\QuirofanoController as MedicalQuirofanoController;
 use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitalizacionController;
 use App\Http\Controllers\Reception\HospitalizacionController as ReceptionHospitalizacionController;
+use App\Http\Controllers\InternacionStaffController;
+use App\Http\Controllers\InternacionMedicamentosController;
+use App\Http\Controllers\InternacionHabitacionesController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
@@ -461,6 +464,42 @@ Route::middleware('auth')->group(function () {
         Route::post('/{emergency}/alta', [EmergencyStaffController::class, 'darAlta'])->name('alta');
         Route::get('/{emergency}', [EmergencyStaffController::class, 'show'])->name('show');
         Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
+    });
+
+    // Rutas para personal de internación - INTERNACION, ADMIN Y DIR MEDICO
+    Route::middleware(['role:internacion|admin|dirmedico'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
+        // Dashboard principal
+        Route::get('/dashboard', [InternacionStaffController::class, 'index'])->name('dashboard');
+
+        // API routes
+        Route::get('/api/internaciones', [InternacionStaffController::class, 'apiInternaciones'])->name('api.internaciones');
+        Route::get('/api/estadisticas', [InternacionStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
+        Route::post('/api/internacion/{id}/update-status', [InternacionStaffController::class, 'updateStatus'])->name('update-status');
+        Route::post('/api/internacion/{id}/derivar-uti', [InternacionStaffController::class, 'derivarAUti'])->name('derivar-uti');
+        Route::post('/api/internacion/{id}/alta', [InternacionStaffController::class, 'darAlta'])->name('alta');
+
+        // Rutas para gestión de medicamentos de internación (solo admin e internacion)
+        Route::middleware(['role:admin|internacion'])->group(function () {
+            Route::get('/medicamentos', [InternacionMedicamentosController::class, 'index'])->name('medicamentos.index');
+            Route::get('/medicamentos/create', [InternacionMedicamentosController::class, 'create'])->name('medicamentos.create');
+            Route::post('/medicamentos', [InternacionMedicamentosController::class, 'store'])->name('medicamentos.store');
+            Route::get('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'show'])->name('medicamentos.show');
+            Route::get('/medicamentos/{medicamento}/edit', [InternacionMedicamentosController::class, 'edit'])->name('medicamentos.edit');
+            Route::put('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'update'])->name('medicamentos.update');
+            Route::delete('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
+            Route::post('/medicamentos/{medicamento}/stock', [InternacionMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
+        });
+
+        // Rutas para gestión de habitaciones de internación
+        Route::get('/habitaciones', [InternacionHabitacionesController::class, 'index'])->name('habitaciones.index');
+        Route::get('/habitaciones/create', [InternacionHabitacionesController::class, 'create'])->name('habitaciones.create');
+        Route::post('/habitaciones', [InternacionHabitacionesController::class, 'store'])->name('habitaciones.store');
+        Route::get('/habitaciones/{habitacion}', [InternacionHabitacionesController::class, 'show'])->name('habitaciones.show');
+        Route::get('/habitaciones/{habitacion}/edit', [InternacionHabitacionesController::class, 'edit'])->name('habitaciones.edit');
+        Route::put('/habitaciones/{habitacion}', [InternacionHabitacionesController::class, 'update'])->name('habitaciones.update');
+        Route::delete('/habitaciones/{habitacion}', [InternacionHabitacionesController::class, 'destroy'])->name('habitaciones.destroy');
+        Route::post('/habitaciones/{habitacion}/asignar-paciente', [InternacionHabitacionesController::class, 'asignarPaciente'])->name('habitaciones.asignar-paciente');
+        Route::post('/camas/{cama}/liberar', [InternacionHabitacionesController::class, 'liberarCama'])->name('camas.liberar');
     });
 });
 

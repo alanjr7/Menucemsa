@@ -87,7 +87,7 @@ class HospitalizacionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Hospitalización registrada exitosamente',
-                'hospitalizacion' => $hospitalizacion->load(['paciente', 'triage']),
+                'hospitalizacion' => $hospitalizacion->load(['paciente']),
                 'acciones' => $acciones
             ]);
 
@@ -104,7 +104,7 @@ class HospitalizacionController extends Controller
     public function getHospitalizacionesActivas()
     {
         try {
-            $hospitalizaciones = Hospitalizacion::with(['paciente', 'triage', 'medico.user', 'medico.especialidad'])
+            $hospitalizaciones = Hospitalizacion::with(['paciente', 'medico.user', 'medico.especialidad'])
                 ->whereNull('fecha_alta')
                 ->orderBy('fecha_ingreso', 'desc')
                 ->get();

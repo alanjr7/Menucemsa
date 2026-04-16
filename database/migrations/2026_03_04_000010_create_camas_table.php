@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('habitacion_id', 20);
             $table->enum('disponibilidad', ['disponible', 'ocupada', 'mantenimiento'])->default('disponible');
             $table->string('tipo', 80);
+            $table->decimal('precio_por_dia', 10, 2)->default(0);
             $table->unique(['nro', 'habitacion_id']);
             $table->foreign('habitacion_id')->references('id')->on('habitaciones')->onDelete('cascade');
             $table->timestamps();

@@ -20,6 +20,9 @@ class Hospitalizacion extends Model
         'ci_medico',
         'habitacion_id',
         'cama_id',
+        'precio_cama_dia',
+        'total_estancia',
+        'cuenta_cobro_detalle_id',
         'fecha_ingreso',
         'fecha_alta',
         'diagnostico',
@@ -34,6 +37,8 @@ class Hospitalizacion extends Model
         'fecha_alta' => 'datetime',
         'ci_paciente' => 'integer',
         'ci_medico' => 'integer',
+        'precio_cama_dia' => 'decimal:2',
+        'total_estancia' => 'decimal:2',
     ];
 
     public function paciente()
@@ -54,5 +59,33 @@ class Hospitalizacion extends Model
     public function cama()
     {
         return $this->belongsTo(Cama::class, 'cama_id');
+    }
+
+    public function cuentaCobroDetalle()
+    {
+        return $this->belongsTo(CuentaCobroDetalle::class, 'cuenta_cobro_detalle_id');
+    }
+
+    /**
+     * Calcular días de estancia hasta ahora
+     * Mínimo 1 día (aunque esté pocas horas)
+     */
+    public function getDiasEstancia(): int
+    {
+        $fechaInicio = $this->fecha_ingreso;
+        $fechaFin = $this->fecha_alta ?? now();
+
+        return max(1, $fechaInicio->diffInDays($fechaFin) + 1);
+    }
+
+    /**
+     * Calcular costo actual de estancia
+     */
+    public function getCostoEstancia(): float
+    {
+        $precio = $this->precio_cama_dia ?? 0;
+        $dias = $this->getDiasEstancia();
+
+        return $dias * $precio;
     }
 }

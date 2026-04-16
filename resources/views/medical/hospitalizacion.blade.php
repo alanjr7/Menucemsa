@@ -8,12 +8,12 @@
                     <div class="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-100">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    Hospitalización
+                    Internación
                 </h1>
-                <p class="text-slate-500 text-sm ml-12 italic uppercase font-bold tracking-wider">Gestión de camas y pacientes hospitalizados</p>
+                <p class="text-slate-500 text-sm ml-12 italic uppercase font-bold tracking-wider">Gestión de camas y pacientes internados</p>
             </div>
             <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center gap-2 transition-all">
-                <span>+</span> Ingreso Hospitalario
+                <span>+</span> Ingreso Internación
             </button>
         </div>
 

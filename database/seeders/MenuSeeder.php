@@ -134,7 +134,18 @@ class MenuSeeder extends Seeder
         ]);
         $uti->children()->create(['name' => 'Panel de Pacientes', 'route' => 'uti.operativa.index', 'order' => 1]);
 
-        // 9. Gerencial
+        // 9. Internación
+        $internacion = Menu::create([
+            'name' => 'Internación',
+            'active_pattern' => 'internacion-staff*',
+            'icon_path' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+            'color' => 'indigo',
+            'roles' => 'internacion',
+            'order' => 85,
+        ]);
+        $internacion->children()->create(['name' => 'Panel de Internación', 'route' => 'internacion-staff.dashboard', 'order' => 1]);
+
+        // 10. Gerencial
         $gerencial = Menu::create([
             'name' => 'Gerencial',
             'active_pattern' => 'gerencial*',
@@ -148,7 +159,7 @@ class MenuSeeder extends Seeder
             ['name' => 'KPIs', 'route' => 'gerencial.kpis', 'order' => 2],
         ]);
 
-         // 10. Seguridad
+         // 11. Seguridad
         $seguridad = Menu::create([
             'name' => 'Seguridad',
             'active_pattern' => 'seguridad*,user-management*,menus*', // Agregamos menus* aquí

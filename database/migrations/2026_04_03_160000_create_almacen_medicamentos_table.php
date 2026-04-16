@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre', 255);
             $table->text('descripcion')->nullable();
-            $table->enum('area', ['emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato']);
+            $table->enum('area', ['emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato','internacion']);
             $table->decimal('precio', 10, 2)->nullable();
             $table->date('fecha_vencimiento')->nullable();
             $table->string('lote', 100)->nullable();

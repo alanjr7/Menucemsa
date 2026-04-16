@@ -93,6 +93,11 @@ class User extends Authenticatable
         return $this->role === 'uti';
     }
 
+    public function isInternacion(): bool
+    {
+        return $this->role === 'internacion';
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
