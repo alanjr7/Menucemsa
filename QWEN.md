@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Menucemsa** is a comprehensive hospital/clinical management system built with **Laravel 12** (PHP 8.2+). It provides a full-stack web application for managing all aspects of a hospital or clinic, including patient admissions, surgeries, pharmacy, billing, emergency services, ICU (UTI), and administrative reporting.
+**Menucemsa** is a comprehensive hospital/clinical management system built with **Laravel 12** (PHP 8.3+). It provides a full-stack web application for managing all aspects of a hospital or clinic, including patient admissions, surgeries, pharmacy, billing, emergency services, ICU (UTI), and administrative reporting.
 
 ### Architecture
 
@@ -16,7 +16,7 @@
 
 | Layer | Technology |
 |-------|-----------|
-| **PHP** | ^8.2 |
+| **PHP** | ^8.3 |
 | **Framework** | Laravel 12 |
 | **Frontend** | Tailwind CSS, Alpine.js, Vite 7 |
 | **Auth** | Laravel Breeze |
