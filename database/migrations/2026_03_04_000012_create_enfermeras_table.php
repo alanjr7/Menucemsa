@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('telefono', 20)->nullable();
             $table->string('tipo', 80);
             $table->enum('estado', ['activo', 'inactivo'])->default('activo');
+            $table->string('area', 50)->default('general');
             $table->string('asistente_id', 20)->nullable();
             $table->primary('user_id');
             $table->unique('ci');

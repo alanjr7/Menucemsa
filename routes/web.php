@@ -31,6 +31,7 @@ use App\Http\Controllers\Farmacia\FarmaciaDashboardController;
 use App\Http\Controllers\Seguridad\UsuariosController;
 
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\EmergencyNurseController;
 use App\Http\Controllers\Farmacia\PuntoVentaController;
 use App\Http\Controllers\Farmacia\InventarioController;
 use App\Http\Controllers\Farmacia\VentasController;
@@ -433,8 +434,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/completar-datos-paciente-temporal', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal']);
     });
 
-    // Rutas para personal de emergencias - EMERGENCIA, ADMIN Y DIR MEDICO
-    Route::middleware(['role:emergencia|admin|dirmedico'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+    // Rutas para personal de emergencias - EMERGENCIA, ENFERMERA-EMERGENCIA, ADMIN Y DIR MEDICO
+    Route::middleware(['role:emergencia|enfermera-emergencia|admin|dirmedico'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
@@ -455,6 +456,23 @@ Route::middleware('auth')->group(function () {
             Route::put('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'update'])->name('medicamentos.update');
             Route::delete('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
             Route::post('/medicamentos/{medicamento}/stock', [EmergencyMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
+        });
+
+        // Rutas para gestión de enfermeras de emergencia (solo admin y emergencia)
+        Route::middleware(['role:admin|emergencia'])->group(function () {
+            Route::get('/enfermeras', [EmergencyNurseController::class, 'index'])->name('enfermeras.index');
+            Route::get('/enfermeras/create', [EmergencyNurseController::class, 'create'])->name('enfermeras.create');
+            Route::post('/enfermeras', [EmergencyNurseController::class, 'store'])->name('enfermeras.store');
+            Route::get('/enfermeras/{enfermera}', [EmergencyNurseController::class, 'show'])->name('enfermeras.show');
+            Route::get('/enfermeras/{enfermera}/edit', [EmergencyNurseController::class, 'edit'])->name('enfermeras.edit');
+            Route::put('/enfermeras/{enfermera}', [EmergencyNurseController::class, 'update'])->name('enfermeras.update');
+            Route::delete('/enfermeras/{enfermera}', [EmergencyNurseController::class, 'destroy'])->name('enfermeras.destroy');
+            Route::patch('/enfermeras/{enfermera}/toggle-status', [EmergencyNurseController::class, 'toggleStatus'])->name('enfermeras.toggle-status');
+            Route::get('/enfermeras/{enfermera}/actividad', [EmergencyNurseController::class, 'actividad'])->name('enfermeras.actividad');
+            
+            // Rutas de auditoría
+            Route::get('/auditoria', [EmergencyNurseController::class, 'auditoria'])->name('auditoria');
+            Route::get('/api/auditoria', [EmergencyNurseController::class, 'apiAuditoria'])->name('api.auditoria');
         });
 
         // Rutas con parámetros {emergency} al FINAL

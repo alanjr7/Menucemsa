@@ -103,6 +103,11 @@ class User extends Authenticatable
         return $this->role === 'cirujano';
     }
 
+    public function isEnfermeraEmergencia(): bool
+    {
+        return $this->role === 'enfermera-emergencia';
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
@@ -111,6 +116,11 @@ class User extends Authenticatable
     public function medico()
     {
         return $this->hasOne(Medico::class, 'user_id', 'id');
+    }
+
+    public function enfermera()
+    {
+        return $this->hasOne(Enfermera::class, 'user_id', 'id');
     }
 
     public function cajaSessions()

@@ -15,12 +15,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Models\AlmacenMedicamento;
 use App\Services\CuentaCobroService;
+use App\Services\ActivityLogService;
 
 class EmergencyStaffController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:emergencia|admin|dirmedico')->except(['apiEmergenciasTemporales']);
+        $this->middleware('role:emergencia|enfermera-emergencia|admin|dirmedico')->except(['apiEmergenciasTemporales']);
     }
 
     public function index(): View
@@ -104,6 +105,15 @@ class EmergencyStaffController extends Controller
 
         // Registrar en flujo historial
         $emergency->registrarMovimiento('emergencia', 'emergencia', 'Cambio de estado: ' . $estadoAnterior . ' → ' . $validated['status']);
+
+        // Registrar en auditoría de actividades
+        ActivityLogService::log(
+            'cambio_estado_paciente',
+            'Paciente ' . ($emergency->paciente?->nombre ?? 'Temporal') . ' - Cambio de estado: ' . $estadoAnterior . ' → ' . $validated['status'],
+            $emergency,
+            ['status' => $estadoAnterior],
+            ['status' => $validated['status']]
+        );
 
         return response()->json([
             'success' => true,
@@ -222,6 +232,15 @@ class EmergencyStaffController extends Controller
             // Registrar movimiento
             $emergency->registrarMovimiento($ubicacionAnterior, $destino, 'Derivación desde emergencia');
 
+            // Registrar en auditoría
+            ActivityLogService::log(
+                'derivar_paciente',
+                'Paciente ' . ($emergency->paciente?->nombre ?? 'Temporal') . ' derivado de ' . $ubicacionAnterior . ' a ' . $destino,
+                $emergency,
+                ['ubicacion_actual' => $ubicacionAnterior, 'status' => $emergency->status],
+                ['ubicacion_actual' => $destino, 'status' => $destino]
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Paciente derivado correctamente a ' . $destino,
@@ -261,6 +280,15 @@ class EmergencyStaffController extends Controller
         ]);
 
         $emergency->registrarMovimiento($ubicacionAnterior, 'alta', 'Paciente dado de alta');
+
+        // Registrar en auditoría
+        ActivityLogService::log(
+            'dar_alta_paciente',
+            'Paciente ' . ($emergency->paciente?->nombre ?? 'Temporal') . ' dado de alta desde ' . $ubicacionAnterior,
+            $emergency,
+            ['status' => $emergency->getOriginal('status'), 'ubicacion_actual' => $ubicacionAnterior],
+            ['status' => 'alta', 'ubicacion_actual' => 'alta']
+        );
 
         return response()->json([
             'success' => true,
@@ -525,6 +553,17 @@ class EmergencyStaffController extends Controller
                     ]
                 ]),
             ]);
+
+            // Registrar en auditoría la evaluación completa
+            ActivityLogService::log(
+                'evaluacion_paciente',
+                'Evaluación realizada a ' . ($emergency->paciente?->nombre ?? 'Paciente Temporal') . 
+                '. Gravedad: ' . $validated['nivel_gravedad'] . 
+                '. Medicamentos: ' . count($medicamentosAplicados),
+                $emergency,
+                ['vital_signs' => $emergency->getOriginal('vital_signs'), 'status' => $estadoAnterior],
+                ['vital_signs' => $vitalSigns, 'status' => 'en_evaluacion', 'medicamentos_aplicados' => $medicamentosAplicados]
+            );
 
             DB::commit();
 

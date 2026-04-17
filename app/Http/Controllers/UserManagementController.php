@@ -19,7 +19,7 @@ class UserManagementController extends Controller
 
     public function create()
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano'];
+        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
         return view('user-management.create', compact('roles'));
     }
 
@@ -31,7 +31,7 @@ class UserManagementController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => ['required', 'confirmed', Password::defaults()],
-                'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano',
+                'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia',
             ];
 
             // Validaciones adicionales solo para roles que las necesitan
@@ -41,15 +41,31 @@ class UserManagementController extends Controller
                 $rules['telefono'] = 'nullable|string';
             }
 
+            // Validaciones para enfermeras de emergencia
+            if ($request->role === 'enfermera-emergencia') {
+                $rules['ci'] = 'required|string';
+                $rules['telefono'] = 'nullable|string';
+            }
+
             $validated = $request->validate($rules);
 
-            // Verificar si el CI ya existe (solo para roles médicos)
-            if (in_array($request->role, ['doctor', 'dirmedico']) && isset($validated['ci'])) {
-                $existingMedico = \App\Models\Medico::where('ci', $validated['ci'])->first();
-                if ($existingMedico) {
-                    return redirect()->back()
-                        ->with('error', 'El CI ' . $validated['ci'] . ' ya está registrado en el sistema.')
-                        ->withInput();
+            // Verificar si el CI ya existe (solo para roles médicos y enfermeras)
+            if (in_array($request->role, ['doctor', 'dirmedico', 'enfermera-emergencia']) && isset($validated['ci'])) {
+                if (in_array($request->role, ['doctor', 'dirmedico'])) {
+                    $existingMedico = \App\Models\Medico::where('ci', $validated['ci'])->first();
+                    if ($existingMedico) {
+                        return redirect()->back()
+                            ->with('error', 'El CI ' . $validated['ci'] . ' ya está registrado como médico en el sistema.')
+                            ->withInput();
+                    }
+                }
+                if ($request->role === 'enfermera-emergencia') {
+                    $existingEnfermera = \App\Models\Enfermera::where('ci', $validated['ci'])->first();
+                    if ($existingEnfermera) {
+                        return redirect()->back()
+                            ->with('error', 'El CI ' . $validated['ci'] . ' ya está registrado como enfermera en el sistema.')
+                            ->withInput();
+                    }
                 }
             }
 
@@ -79,6 +95,21 @@ class UserManagementController extends Controller
 
                 return redirect()->route('user-management.index')
                     ->with('success', 'Usuario doctor creado exitosamente.');
+            } elseif ($request->role === 'enfermera-emergencia') {
+                // Crear registro de enfermera para emergencia
+                $enfermera = \App\Models\Enfermera::create([
+                    'user_id' => $user->id,
+                    'ci' => $validated['ci'],
+                    'telefono' => $validated['telefono'] ?? null,
+                    'tipo' => 'Enfermera de Emergencia',
+                    'estado' => 'activo',
+                    'area' => 'emergencia',
+                ]);
+
+                DB::commit();
+
+                return redirect()->route('user-management.index')
+                    ->with('success', 'Usuario enfermera de emergencias creado exitosamente.');
             } else {
                 // Para roles no médicos (admin, reception, emergencia, caja, gerente)
                 DB::commit();
@@ -119,7 +150,7 @@ class UserManagementController extends Controller
 
     public function edit(User $user)
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano'];
+        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
         return view('user-management.edit', compact('user', 'roles'));
     }
 
@@ -128,7 +159,7 @@ class UserManagementController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano',
+            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia',
         ]);
 
         $user->update([
