@@ -250,12 +250,16 @@ class InternacionHabitacionesController extends Controller
 
             // 1. Obtener o crear cuenta de cobro del paciente
             $pacienteCi = $hospitalizacion->ci_paciente;
+
+            // Para pacientes temporales (ci_paciente es null), buscar por referencia_id
+            $searchCriteria = $pacienteCi
+                ? ['paciente_ci' => $pacienteCi, 'estado' => 'pendiente']
+                : ['referencia_id' => $hospitalizacion->id, 'referencia_type' => Hospitalizacion::class, 'estado' => 'pendiente'];
+
             $cuentaCobro = CuentaCobro::firstOrCreate(
+                $searchCriteria,
                 [
                     'paciente_ci' => $pacienteCi,
-                    'estado' => 'pendiente',
-                ],
-                [
                     'tipo_atencion' => 'internacion',
                     'referencia_id' => $hospitalizacion->id,
                     'referencia_type' => Hospitalizacion::class,

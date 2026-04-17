@@ -92,6 +92,7 @@
                                     @elseif($role == 'farmacia') - Gestión de farmacia
                                     @elseif($role == 'uti') - Unidad de Terapia Intensiva
                                     @elseif($role == 'internacion') - Gestión de pacientes internados
+                                    @elseif($role == 'cirujano') - Acceso al quirófano y cirugías
                                     @endif
                                 </option>
                             @endforeach

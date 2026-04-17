@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('temp_id')->nullable();
             $table->foreignId('user_id')->constrained('users');
             $table->string('code')->unique();
-            $table->enum('status', ['recibido', 'en_evaluacion', 'estabilizado', 'uti', 'cirugia', 'alta', 'fallecido'])->default('recibido');
+            $table->enum('status', ['recibido', 'en_evaluacion', 'estabilizado', 'uti', 'cirugia', 'hospitalizacion', 'alta', 'fallecido'])->default('recibido');
             $table->enum('tipo_ingreso', ['soat', 'parto', 'general'])->nullable();
             $table->enum('destino_inicial', ['cirugia', 'camilla', 'uti', 'parto', 'observacion', 'hospitalizacion', 'alta'])->nullable();
             $table->string('ubicacion_actual')->default('emergencia');

@@ -91,6 +91,7 @@
                                     <option value="emergencia" {{ old('role', $user->role) == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
                                     <option value="caja" {{ old('role', $user->role) == 'caja' ? 'selected' : '' }}>Caja</option>
                                     <option value="farmacia" {{ old('role', $user->role) == 'farmacia' ? 'selected' : '' }}>Farmacia</option>
+                                    <option value="cirujano" {{ old('role', $user->role) == 'cirujano' ? 'selected' : '' }}>Cirujano</option>
                                 </select>
                             @endif
                             @error('role')

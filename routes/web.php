@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\QuirofanoController;
+use App\Http\Controllers\QuirofanoMedicamentosController;
 use App\Http\Controllers\QuirofanoManagementController;
 use App\Http\Controllers\Reception\ConsultaExternaController;
 use App\Http\Controllers\Reception\EmergenciaController;
@@ -60,8 +61,20 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Rutas para quirofano (acceso para admin, reception y dirmedico)
-    Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
+    // Rutas para medicamentos de quirófano (admin y cirujano) - PRIMERO para evitar conflicto con /quirofano/{cita}
+    Route::middleware(['auth', 'role:admin|cirujano'])->group(function () {
+        Route::get('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'index'])->name('quirofano.medicamentos.index');
+        Route::get('/quirofano/medicamentos/create', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'create'])->name('quirofano.medicamentos.create');
+        Route::post('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'store'])->name('quirofano.medicamentos.store');
+        Route::get('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'show'])->name('quirofano.medicamentos.show');
+        Route::get('/quirofano/medicamentos/{medicamento}/edit', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'edit'])->name('quirofano.medicamentos.edit');
+        Route::put('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'update'])->name('quirofano.medicamentos.update');
+        Route::delete('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'destroy'])->name('quirofano.medicamentos.destroy');
+        Route::post('/quirofano/medicamentos/{medicamento}/stock', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'actualizarStock'])->name('quirofano.medicamentos.stock');
+    });
+
+    // Rutas para quirofano (acceso para admin, reception, dirmedico y cirujano)
+    Route::middleware(['auth', 'role:admin|reception|dirmedico|cirujano'])->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
         Route::get('/quirofano/historial', [QuirofanoController::class, 'historial'])->name('quirofano.historial');
@@ -77,17 +90,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/pacientes-lista', [QuirofanoController::class, 'getListaPacientes'])->name('api.pacientes-lista');
         Route::get('/api/medicos-lista', [QuirofanoController::class, 'getListaMedicos'])->name('api.medicos-lista');
 
-        // Rutas para medicamentos de quirófano (solo admin) - DEBEN IR ANTES de rutas con parámetros
-        Route::middleware(['role:admin'])->group(function () {
-            Route::get('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'index'])->name('quirofano.medicamentos.index');
-            Route::get('/quirofano/medicamentos/create', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'create'])->name('quirofano.medicamentos.create');
-            Route::post('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'store'])->name('quirofano.medicamentos.store');
-            Route::get('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'show'])->name('quirofano.medicamentos.show');
-            Route::get('/quirofano/medicamentos/{medicamento}/edit', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'edit'])->name('quirofano.medicamentos.edit');
-            Route::put('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'update'])->name('quirofano.medicamentos.update');
-            Route::delete('/quirofano/medicamentos/{medicamento}', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'destroy'])->name('quirofano.medicamentos.destroy');
-            Route::post('/quirofano/medicamentos/{medicamento}/stock', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'actualizarStock'])->name('quirofano.medicamentos.stock');
-        });
 
         // Rutas con parámetros {cita} al FINAL
         Route::post('/quirofano', [QuirofanoController::class, 'store'])->name('quirofano.store');
@@ -98,15 +100,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/quirofano/api/medicos-disponibles', [QuirofanoController::class, 'getMedicosDisponibles'])->name('quirofano.medicos-disponibles');
         Route::post('/quirofano/emergencia/{emergency_id}/iniciar', [QuirofanoController::class, 'iniciarEmergencia'])->name('quirofano.iniciar-emergencia');
 
-        Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show');
-        Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit');
-        Route::put('/quirofano/{cita}', [QuirofanoController::class, 'update'])->name('quirofano.update');
-        Route::post('/quirofano/{cita}/iniciar', [QuirofanoController::class, 'iniciarCirugia'])->name('quirofano.iniciar');
-        Route::post('/quirofano/{cita}/finalizar', [QuirofanoController::class, 'finalizarCirugia'])->name('quirofano.finalizar');
-        Route::post('/quirofano/{cita}/cancelar', [QuirofanoController::class, 'cancelar'])->name('quirofano.cancelar');
+        Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show')->where('cita', '[0-9]+');
+        Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit')->where('cita', '[0-9]+');
+        Route::put('/quirofano/{cita}', [QuirofanoController::class, 'update'])->name('quirofano.update')->where('cita', '[0-9]+');
+        Route::post('/quirofano/{cita}/iniciar', [QuirofanoController::class, 'iniciarCirugia'])->name('quirofano.iniciar')->where('cita', '[0-9]+');
+        Route::post('/quirofano/{cita}/finalizar', [QuirofanoController::class, 'finalizarCirugia'])->name('quirofano.finalizar')->where('cita', '[0-9]+');
+        Route::post('/quirofano/{cita}/cancelar', [QuirofanoController::class, 'cancelar'])->name('quirofano.cancelar')->where('cita', '[0-9]+');
 
-        // Rutas para gestión de quirófanos (solo admin)
-        Route::middleware(['role:admin'])->group(function () {
+        // Rutas para gestión de quirófanos (solo admin y cirujano)
+        Route::middleware(['role:admin|cirujano'])->group(function () {
             Route::get('/quirofanos-management', [QuirofanoManagementController::class, 'index'])->name('quirofanos.management.index');
             Route::get('/quirofanos-management/create', [QuirofanoManagementController::class, 'create'])->name('quirofanos.management.create');
             Route::post('/quirofanos-management', [QuirofanoManagementController::class, 'store'])->name('quirofanos.management.store');
@@ -526,6 +528,25 @@ Route::get('/test-emergency-access', function() {
 Route::get('/test-role-middleware', function() {
     return 'Middleware role:emergencia funcionó correctamente';
 })->middleware(['auth', 'role:emergencia']);
+
+// Ruta de diagnóstico específico para cirujano
+Route::get('/test-cirujano-access', function() {
+    if (!auth()->check()) {
+        return 'No autenticado';
+    }
+    $user = auth()->user();
+    $userRole = $user->role;
+    $allowedRoles = ['admin', 'cirujano'];
+    $hasAccess = in_array($userRole, $allowedRoles);
+
+    return json_encode([
+        'usuario' => $user->name,
+        'rol_bd' => $userRole,
+        'roles_permitidos' => $allowedRoles,
+        'tiene_acceso' => $hasAccess,
+        'isCirujano()' => $user->isCirujano()
+    ], JSON_PRETTY_PRINT);
+})->middleware('auth');
 
 // Ruta de prueba para farmacia
 Route::get('/test-farmacia', function() {

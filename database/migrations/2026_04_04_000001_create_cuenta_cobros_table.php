@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('cuenta_cobros', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->integer('paciente_ci')->unsigned();
+            $table->integer('paciente_ci')->unsigned()->nullable();
             $table->string('tipo_atencion');
             $table->string('referencia_id')->nullable();
             $table->string('referencia_type')->nullable();

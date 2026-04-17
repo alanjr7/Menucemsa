@@ -8,6 +8,7 @@ use App\Models\Paciente;
 use App\Models\Quirofano;
 use App\Models\UtiAdmission;
 use App\Models\UtiBed;
+use App\Models\Hospitalizacion;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -184,10 +185,23 @@ class EmergencyStaffController extends Controller
                     }
                     break;
                 case 'hospitalizacion':
+                    $nroHosp = $this->generarNroHospitalizacion($emergency);
                     $emergency->update([
                         'status' => 'hospitalizacion',
                         'ubicacion_actual' => 'hospitalizacion',
-                        'nro_hospitalizacion' => $this->generarNroHospitalizacion($emergency),
+                        'nro_hospitalizacion' => $nroHosp,
+                    ]);
+
+                    // Crear registro en hospitalizaciones
+                    // Si es paciente temporal (temp_id), ci_paciente debe ser null
+                    $ciPaciente = $emergency->is_temp_id ? null : $emergency->patient_id;
+                    Hospitalizacion::create([
+                        'id' => $nroHosp,
+                        'ci_paciente' => $ciPaciente,
+                        'fecha_ingreso' => now(),
+                        'estado' => 'activo',
+                        'diagnostico' => $emergency->initial_assessment,
+                        'nro_emergencia' => $emergency->id,
                     ]);
                     break;
                 case 'observacion':
@@ -282,7 +296,7 @@ class EmergencyStaffController extends Controller
                 return ['disponible' => true];
 
             case 'hospitalizacion':
-                $camasHosp = DB::table('camas')->where('area', 'hospitalizacion')->where('estado', 'disponible')->count();
+                $camasHosp = DB::table('camas')->where('disponibilidad', 'disponible')->count();
                 if ($camasHosp === 0) {
                     return [
                         'disponible' => false,

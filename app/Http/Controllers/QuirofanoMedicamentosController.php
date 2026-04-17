@@ -12,7 +12,7 @@ class QuirofanoMedicamentosController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin');
+       $this->middleware('role:admin|cirujano');
     }
 
     public function index(Request $request)

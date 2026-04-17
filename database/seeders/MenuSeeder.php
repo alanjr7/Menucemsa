@@ -62,7 +62,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => 'admin,dir_medico,doctor', 'order' => 1],
             ['name' => 'Enfermería', 'route' => 'enfermeria.index', 'roles' => 'admin,dir_medico', 'order' => 2],
             ['name' => 'UTI - Administración', 'route' => 'uti.admin.index', 'roles' => 'admin,dir_medico', 'order' => 3],
-            ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico', 'order' => 4],
+            ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico,cirujano', 'order' => 4],
             ['name' => 'Hospitalización', 'route' => 'hospitalizacion.index', 'roles' => 'admin,dir_medico', 'order' => 5],
             ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico', 'order' => 6],
             ['name' => 'Consulta Externa', 'route' => 'consulta.index', 'roles' => 'doctor', 'order' => 7],
@@ -134,7 +134,24 @@ class MenuSeeder extends Seeder
         ]);
         $uti->children()->create(['name' => 'Panel de Pacientes', 'route' => 'uti.operativa.index', 'order' => 1]);
 
-        // 9. Internación
+        // 9. Quirófano (Cirujano)
+        $quirofano = Menu::create([
+            'name' => 'Quirófano',
+            'active_pattern' => 'quirofano*,quirofanos-management*',
+            'icon_path' => 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z',
+            'color' => 'teal',
+            'roles' => 'cirujano',
+            'order' => 82,
+        ]);
+        $quirofano->children()->createMany([
+            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'order' => 1],
+            ['name' => 'Calendario', 'route' => 'quirofano.calendario', 'order' => 2],
+            ['name' => 'Historial', 'route' => 'quirofano.historial', 'order' => 3],
+            ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'order' => 4],
+            ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'order' => 5],
+        ]);
+
+        // 10. Internación
         $internacion = Menu::create([
             'name' => 'Internación',
             'active_pattern' => 'internacion-staff*',

@@ -66,6 +66,7 @@
                                 <option value="emergencia" {{ old('role') == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
                                 <option value="caja" {{ old('role') == 'caja' ? 'selected' : '' }}>Caja</option>
                                 <option value="farmacia" {{ old('role') == 'farmacia' ? 'selected' : '' }}>Farmacia</option>
+                                <option value="cirujano" {{ old('role') == 'cirujano' ? 'selected' : '' }}>Cirujano</option>
                                 <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Usuario</option>
                             </select>
                             @error('role')
@@ -177,6 +178,10 @@
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
                                 <span class="text-blue-700"><strong>Caja:</strong> Pagos y facturación</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 bg-teal-500 rounded-full"></span>
+                                <span class="text-blue-700"><strong>Cirujano:</strong> Acceso al quirófano</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 bg-gray-500 rounded-full"></span>

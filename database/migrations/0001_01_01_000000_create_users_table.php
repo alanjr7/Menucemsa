@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->enum('role', ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion'])->default('reception');
+            $table->enum('role', ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano'])->default('reception');
             $table->boolean('is_active')->default(true);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

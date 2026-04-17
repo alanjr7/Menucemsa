@@ -100,5 +100,16 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // Crear usuario Cirujano
+        User::firstOrCreate(
+            ['email' => 'cirujano@menucemsa.com'],
+            [
+                'name' => 'Cirujano',
+                'password' => bcrypt('cirujano123'),
+                'role' => 'cirujano',
+                'is_active' => true,
+            ]
+        );
     }
 }
