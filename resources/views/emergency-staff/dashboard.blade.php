@@ -1,12 +1,38 @@
 @extends('layouts.app')
 
+@php
+// Obtener permisos del usuario actual
+$user = auth()->user();
+$userPermissions = [];
+
+if ($user->isEnfermeraEmergencia()) {
+    $enfermera = \App\Models\Enfermera::where('user_id', $user->id)->first();
+    if ($enfermera) {
+        $userPermissions = $enfermera->getPermissionKeys();
+    }
+} else {
+    // Roles emergencia, admin, dirmedico tienen todos los permisos
+    $userPermissions = array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS);
+}
+
+// Helper function to check permission
+$hasPermission = function($permission) use ($userPermissions) {
+    return in_array($permission, $userPermissions);
+};
+@endphp
+
 @section('content')
 <div class="p-6 bg-gray-50/50 min-h-screen">
     <!-- Header -->
     <div class="flex justify-between items-end mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Dashboard de Emergencias</h1>
-            <p class="text-sm text-gray-500">Usuario Emergencia - Atención en tiempo real</p>
+            @if(auth()->user()->isEnfermeraEmergencia())
+                <h1 class="text-2xl font-bold text-gray-800">Panel de Enfermería</h1>
+                <p class="text-sm text-gray-500">Enfermera Emergencia - Atención y signos vitales</p>
+            @else
+                <h1 class="text-2xl font-bold text-gray-800">Dashboard de Emergencias</h1>
+                <p class="text-sm text-gray-500">Usuario Emergencia - Atención en tiempo real</p>
+            @endif
         </div>
         <div class="flex gap-3">
             <button onclick="cargarEmergencias()" class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all shadow-sm">
@@ -15,12 +41,15 @@
                 </svg>
                 Actualizar
             </button>
+            {{-- @if($hasPermission('aplicar_medicamentos')) --}}
+             @if(auth()->user()->isEmergencia())
             <a href="{{ route('emergency-staff.medicamentos.index') }}" class="flex items-center px-4 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-all shadow-sm">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                 </svg>
                 Gestionar Medicamentos
             </a>
+            @endif
             @if(auth()->user()->isEmergencia() || auth()->user()->isAdmin())
             <a href="{{ route('emergency-staff.enfermeras.index') }}" class="flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all shadow-sm">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,6 +157,7 @@
             
             <div class="p-6">
                 <div class="grid grid-cols-1 gap-3">
+                    @if($hasPermission('cambiar_estados'))
                     <button onclick="iniciarEvaluacion()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all text-left">
                         <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +169,9 @@
                             <p class="text-xs text-gray-500">Comenzar atención médica</p>
                         </div>
                     </button>
+                    @endif
 
+                    @if($hasPermission('ver_historial'))
                     <button onclick="verHistorial()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-left">
                         <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-4">
                             <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +183,9 @@
                             <p class="text-xs text-gray-500">Evaluaciones, medicamentos y triage</p>
                         </div>
                     </button>
+                    @endif
 
+                    @if($hasPermission('cambiar_estados'))
                     <button onclick="cambiarEstado('estabilizado')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
                         <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
                             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,7 +197,9 @@
                             <p class="text-xs text-gray-500">Paciente estable para decisión</p>
                         </div>
                     </button>
+                    @endif
 
+                    @if($hasPermission('derivar_pacientes'))
                     <button onclick="derivarA('cirugia')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition-all text-left">
                         <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
                             <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +248,9 @@
                             <p class="text-xs text-gray-500">Área de observación/camilla</p>
                         </div>
                     </button>
+                    @endif
 
+                    @if($hasPermission('dar_alta'))
                     <button onclick="darAlta()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
                         <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
                             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,6 +262,7 @@
                             <p class="text-xs text-gray-500">Paciente egresado</p>
                         </div>
                     </button>
+                    @endif
                 </div>
             </div>
         </div>

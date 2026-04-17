@@ -37,7 +37,22 @@ class MenuSeeder extends Seeder
             'order' => 20,
         ]);
 
-        // 3. Dashboard Emergencia
+        // 3. Panel Enfermería Emergencia (Con Submenús)
+        $panelEnfermeria = Menu::create([
+            'name' => 'Panel Enfermería Emergencia',
+            'active_pattern' => 'emergency-staff.*',
+            'icon_path' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+            'color' => 'purple',
+            'roles' => 'enfermera-emergencia',
+            'order' => 25,
+        ]);
+
+        $panelEnfermeria->children()->createMany([
+            ['name' => 'Panel Principal', 'route' => 'emergency-staff.dashboard', 'roles' => 'enfermera-emergencia', 'order' => 1],
+            ['name' => 'Pendientes', 'route' => 'emergency-staff.pending', 'roles' => 'enfermera-emergencia', 'order' => 2],
+        ]);
+
+        // 4. Dashboard Emergencia
         Menu::create([
             'name' => 'Dashboard Emergencia',
             'route' => 'emergency-staff.dashboard',
@@ -48,7 +63,7 @@ class MenuSeeder extends Seeder
             'order' => 30,
         ]);
 
-        // 4. Pacientes (Con Submenús)
+        // 5. Pacientes (Con Submenús)
         $pacientes = Menu::create([
             'name' => 'Pacientes',
             'active_pattern' => 'patients*,consulta*,enfermeria*,uti*,quirofano*,hospitalizacion*,admin/emergencies*',
@@ -69,7 +84,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 8],
         ]);
 
-        // 5. Caja Operativa
+        // 6. Caja Operativa
         $cajaOp = Menu::create([
             'name' => 'Caja Operativa',
             'active_pattern' => 'caja-operativa*',
@@ -80,7 +95,7 @@ class MenuSeeder extends Seeder
         ]);
         $cajaOp->children()->create(['name' => 'Cobro de Pacientes', 'route' => 'caja.operativa.index', 'order' => 1]);
 
-        // 6. Administración
+        // 7. Administración
         $admin = Menu::create([
             'name' => 'Administración',
             'active_pattern' => 'caja*,facturacion*,admin*',
@@ -102,7 +117,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'order' => 9],
         ]);
 
-        // 7. Farmacia
+        // 8. Farmacia
         $farmacia = Menu::create([
             'name' => 'Farmacia',
             'active_pattern' => 'farmacia*',
@@ -123,7 +138,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Gestión de Farmacias', 'route' => 'farmacias.index', 'roles' => 'admin', 'order' => 7],
             ]);
 
-        // 8. UTI - Terapia Intensiva
+        // 9. UTI - Terapia Intensiva
         $uti = Menu::create([
             'name' => 'UTI - Terapia Intensiva',
             'active_pattern' => 'uti*',
@@ -134,7 +149,7 @@ class MenuSeeder extends Seeder
         ]);
         $uti->children()->create(['name' => 'Panel de Pacientes', 'route' => 'uti.operativa.index', 'order' => 1]);
 
-        // 9. Quirófano (Cirujano)
+        // 10. Quirófano (Cirujano)
         $quirofano = Menu::create([
             'name' => 'Quirófano',
             'active_pattern' => 'quirofano*,quirofanos-management*',
@@ -151,7 +166,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'order' => 5],
         ]);
 
-        // 10. Internación
+        // 11. Internación
         $internacion = Menu::create([
             'name' => 'Internación',
             'active_pattern' => 'internacion-staff*',
@@ -162,7 +177,7 @@ class MenuSeeder extends Seeder
         ]);
         $internacion->children()->create(['name' => 'Panel de Internación', 'route' => 'internacion-staff.dashboard', 'order' => 1]);
 
-        // 10. Gerencial
+        // 12. Gerencial
         $gerencial = Menu::create([
             'name' => 'Gerencial',
             'active_pattern' => 'gerencial*',
@@ -176,7 +191,7 @@ class MenuSeeder extends Seeder
             ['name' => 'KPIs', 'route' => 'gerencial.kpis', 'order' => 2],
         ]);
 
-         // 11. Seguridad
+        // 13. Seguridad
         $seguridad = Menu::create([
             'name' => 'Seguridad',
             'active_pattern' => 'seguridad*,user-management*,menus*', // Agregamos menus* aquí

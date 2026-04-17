@@ -1,6 +1,31 @@
 @extends('layouts.app')
 
 @section('content')
+
+@php
+// Obtener permisos del usuario actual
+$user = auth()->user();
+$userPermissions = [];
+
+if ($user->isEnfermeraEmergencia()) {
+    $enfermera = \App\Models\Enfermera::where('user_id', $user->id)->first();
+    if ($enfermera) {
+        $userPermissions = $enfermera->getPermissionKeys();
+    }
+} else {
+    // Roles emergencia, admin, dirmedico tienen todos los permisos
+    $userPermissions = array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS);
+}
+
+// Helper function to check permission
+$hasPermission = function($permission) use ($userPermissions) {
+    return in_array($permission, $userPermissions);
+};
+
+// Inicializar array de medicamentos (vacío si no tiene permisos)
+$medsArray = [];
+@endphp
+
 <div class="p-6 bg-gray-50/50 min-h-screen">
     <!-- Header -->
     <div class="flex justify-between items-end mb-8">
@@ -190,6 +215,7 @@
         </div>
 
         <!-- Sección 3: Medicamentos e Insumos -->
+        @if($hasPermission('aplicar_medicamentos'))
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
@@ -230,6 +256,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Sección 4: Motivo y Observaciones -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -272,6 +299,7 @@
     </form>
 </div>
 
+@if($hasPermission('aplicar_medicamentos'))
 <!-- Modal de selección de medicamentos -->
 <div id="modalMedicamentos" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
@@ -337,6 +365,7 @@
         ];
     })->values();
 @endphp
+@endif
 
 <script>
     let medicamentosSeleccionados = [];

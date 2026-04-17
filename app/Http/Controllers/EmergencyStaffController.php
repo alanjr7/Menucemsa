@@ -396,7 +396,12 @@ class EmergencyStaffController extends Controller
 
     public function pending(): View
     {
-        return view('emergency-staff.pending');
+        $emergencies = Emergency::with('paciente')
+            ->where('status', 'recibido')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('emergency-staff.pending', compact('emergencies'));
     }
 
     /**
@@ -695,5 +700,39 @@ class EmergencyStaffController extends Controller
             'vitalSigns',
             'cuenta'
         ));
+    }
+
+    /**
+     * API: Get current nurse permissions
+     */
+    public function apiPermisos(): JsonResponse
+    {
+        $user = auth()->user();
+
+        // If user is enfermera-emergencia, get their individual permissions
+        if ($user->isEnfermeraEmergencia()) {
+            $enfermera = \App\Models\Enfermera::where('user_id', $user->id)->first();
+
+            if ($enfermera) {
+                $permissions = $enfermera->getPermissionKeys();
+            } else {
+                $permissions = [];
+            }
+
+            return response()->json([
+                'success' => true,
+                'role' => 'enfermera-emergencia',
+                'permissions' => $permissions,
+                'all_permissions' => array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS),
+            ]);
+        }
+
+        // For emergencia, admin, dirmedico - they have all permissions implicitly
+        return response()->json([
+            'success' => true,
+            'role' => $user->role,
+            'permissions' => array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS), // All permissions
+            'all_permissions' => array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS),
+        ]);
     }
 }

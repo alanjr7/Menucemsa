@@ -91,6 +91,19 @@
                         placeholder="Ej: 0987654321">
                 </div>
 
+                <!-- Turno -->
+                <div>
+                    <label for="turno" class="block text-sm font-medium text-gray-700 mb-2">
+                        Turno <span class="text-red-500">*</span>
+                    </label>
+                    <select name="turno" id="turno" required
+                        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 transition outline-none bg-white">
+                        <option value="mañana" {{ old('turno', $enfermera->turno) == 'mañana' ? 'selected' : '' }}>Turno Mañana</option>
+                        <option value="tarde" {{ old('turno', $enfermera->turno) == 'tarde' ? 'selected' : '' }}>Turno Tarde</option>
+                        <option value="noche" {{ old('turno', $enfermera->turno) == 'noche' ? 'selected' : '' }}>Turno Noche</option>
+                    </select>
+                </div>
+
                 <!-- Tipo -->
                 <div>
                     <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">

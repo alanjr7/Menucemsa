@@ -25,10 +25,14 @@ class menu extends Model
             return true;
         }
 
-        $allowedRoles = explode(',', $this->roles); // Ej: ['reception', 'doctor']
+        $allowedRoles = explode(',', $this->roles); // Ej: ['reception', 'enfermera-emergencia']
 
         foreach ($allowedRoles as $role) {
-            $method = 'is' . ucfirst(trim($role)); // Construye el nombre del método (Ej: isReception)
+            $role = trim($role);
+            // Convertir guiones a camelCase (enfermera-emergencia → EnfermeraEmergencia)
+            $methodRole = str_replace(' ', '', ucwords(str_replace('-', ' ', $role)));
+            $method = 'is' . $methodRole; // Construye el nombre del método (Ej: isEnfermeraEmergencia)
+
             if (method_exists($user, $method) && $user->$method()) {
                 return true;
             }

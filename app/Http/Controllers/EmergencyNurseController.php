@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enfermera;
+use App\Models\EnfermeraPermission;
 use App\Models\User;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
@@ -53,6 +54,7 @@ class EmergencyNurseController extends Controller
                 'password' => ['required', 'confirmed', Password::defaults()],
                 'ci' => 'required|string|unique:enfermeras,ci',
                 'telefono' => 'nullable|string|max:20',
+                'turno' => 'required|in:mañana,tarde,noche',
             ]);
 
             DB::beginTransaction();
@@ -75,7 +77,11 @@ class EmergencyNurseController extends Controller
                 'tipo' => 'Enfermera de Emergencia',
                 'estado' => 'activo',
                 'area' => 'emergencia',
+                'turno' => $validated['turno'],
             ]);
+
+            // Asignar permisos por defecto
+            $enfermera->assignDefaultPermissions(auth()->id());
 
             // Registrar en auditoría
             \App\Services\ActivityLogService::log(
@@ -135,6 +141,7 @@ class EmergencyNurseController extends Controller
                 'ci' => 'required|string|unique:enfermeras,ci,' . $enfermera->user_id . ',user_id',
                 'telefono' => 'nullable|string|max:20',
                 'tipo' => 'nullable|string|max:80',
+                'turno' => 'required|in:mañana,tarde,noche',
             ]);
 
             DB::beginTransaction();
@@ -158,6 +165,7 @@ class EmergencyNurseController extends Controller
                 'ci' => $validated['ci'],
                 'telefono' => $validated['telefono'] ?? null,
                 'tipo' => $validated['tipo'] ?? $enfermera->tipo,
+                'turno' => $validated['turno'],
             ]);
 
             $newValues = [
@@ -372,5 +380,72 @@ class EmergencyNurseController extends Controller
             'actividades' => $actividades,
             'total' => $actividades->count(),
         ]);
+    }
+
+    /**
+     * Mostrar vista de gestión de permisos
+     */
+    public function permissions(Enfermera $enfermera): View
+    {
+        $enfermera->load('user');
+
+        // Obtener permisos actuales de la enfermera
+        $currentPermissions = $enfermera->getPermissionKeys();
+
+        // Obtener todos los permisos disponibles
+        $availablePermissions = EnfermeraPermission::AVAILABLE_PERMISSIONS;
+
+        return view('emergency-staff.enfermeras.permissions', compact(
+            'enfermera',
+            'currentPermissions',
+            'availablePermissions'
+        ));
+    }
+
+    /**
+     * Actualizar permisos de la enfermera
+     */
+    public function updatePermissions(Request $request, Enfermera $enfermera): RedirectResponse
+    {
+        try {
+            $validated = $request->validate([
+                'permissions' => 'nullable|array',
+                'permissions.*' => 'string|in:' . implode(',', array_keys(EnfermeraPermission::AVAILABLE_PERMISSIONS)),
+            ]);
+
+            DB::beginTransaction();
+
+            // Eliminar permisos actuales
+            $enfermera->permissions()->delete();
+
+            // Crear nuevos permisos
+            $permissions = $validated['permissions'] ?? [];
+            foreach ($permissions as $permissionKey) {
+                $enfermera->permissions()->create([
+                    'permission_key' => $permissionKey,
+                    'granted_by' => auth()->id(),
+                ]);
+            }
+
+            // Registrar en auditoría
+            \App\Services\ActivityLogService::log(
+                'actualizar_permisos_enfermera',
+                'Permisos actualizados para: ' . ($enfermera->user?->name ?? 'Enfermera'),
+                $enfermera,
+                ['permisos_anteriores' => $enfermera->getPermissionKeys()],
+                ['permisos_nuevos' => $permissions]
+            );
+
+            DB::commit();
+
+            return redirect()->route('emergency-staff.enfermeras.index')
+                ->with('success', 'Permisos actualizados exitosamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Error al actualizar permisos: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 }

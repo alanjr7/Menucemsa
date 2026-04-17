@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Enfermera extends Model
 {
@@ -21,6 +22,7 @@ class Enfermera extends Model
         'estado',
         'area',
         'asistente_id',
+        'turno',
     ];
 
     protected $casts = [
@@ -75,5 +77,58 @@ class Enfermera extends Model
     public function isUti(): bool
     {
         return $this->area === 'uti';
+    }
+
+    public function getTurnoLabelAttribute(): string
+    {
+        return match($this->turno) {
+            'mañana' => 'Turno Mañana',
+            'tarde' => 'Turno Tarde',
+            'noche' => 'Turno Noche',
+            default => $this->turno,
+        };
+    }
+
+    /**
+     * Relationship to permissions
+     */
+    public function permissions(): HasMany
+    {
+        return $this->hasMany(EnfermeraPermission::class, 'enfermera_id', 'user_id');
+    }
+
+    /**
+     * Check if nurse has a specific permission
+     */
+    public function hasPermission(string $permissionKey): bool
+    {
+        return $this->permissions()
+            ->where('permission_key', $permissionKey)
+            ->exists();
+    }
+
+    /**
+     * Get all permission keys for this nurse
+     */
+    public function getPermissionKeys(): array
+    {
+        return $this->permissions()
+            ->pluck('permission_key')
+            ->toArray();
+    }
+
+    /**
+     * Assign default permissions to new nurse
+     */
+    public function assignDefaultPermissions(int $grantedBy = null): void
+    {
+        $defaultPermissions = EnfermeraPermission::getDefaultPermissions();
+
+        foreach ($defaultPermissions as $permission) {
+            $this->permissions()->create([
+                'permission_key' => $permission,
+                'granted_by' => $grantedBy,
+            ]);
+        }
     }
 }

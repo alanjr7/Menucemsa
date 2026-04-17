@@ -19,6 +19,7 @@ return new class extends Migration
             $table->enum('estado', ['activo', 'inactivo'])->default('activo');
             $table->string('area', 50)->default('general');
             $table->string('asistente_id', 20)->nullable();
+            $table->enum('turno', ['mañana', 'tarde', 'noche'])->default('mañana');
             $table->primary('user_id');
             $table->unique('ci');
             $table->foreign('asistente_id')->references('id')->on('asistente_quirofanos')->onDelete('set null');

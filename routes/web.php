@@ -469,11 +469,18 @@ Route::middleware('auth')->group(function () {
             Route::delete('/enfermeras/{enfermera}', [EmergencyNurseController::class, 'destroy'])->name('enfermeras.destroy');
             Route::patch('/enfermeras/{enfermera}/toggle-status', [EmergencyNurseController::class, 'toggleStatus'])->name('enfermeras.toggle-status');
             Route::get('/enfermeras/{enfermera}/actividad', [EmergencyNurseController::class, 'actividad'])->name('enfermeras.actividad');
-            
+
+            // Rutas de gestión de permisos
+            Route::get('/enfermeras/{enfermera}/permissions', [EmergencyNurseController::class, 'permissions'])->name('enfermeras.permissions');
+            Route::post('/enfermeras/{enfermera}/permissions', [EmergencyNurseController::class, 'updatePermissions'])->name('enfermeras.permissions.update');
+
             // Rutas de auditoría
             Route::get('/auditoria', [EmergencyNurseController::class, 'auditoria'])->name('auditoria');
             Route::get('/api/auditoria', [EmergencyNurseController::class, 'apiAuditoria'])->name('api.auditoria');
         });
+
+        // API: Obtener permisos del usuario actual (disponible para enfermera-emergencia también)
+        Route::get('/api/mis-permisos', [EmergencyStaffController::class, 'apiPermisos'])->name('api.permisos');
 
         // Rutas con parámetros {emergency} al FINAL
         Route::get('/{emergency}/evaluacion', [EmergencyStaffController::class, 'evaluacion'])->name('evaluacion');

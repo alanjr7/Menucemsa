@@ -45,6 +45,7 @@ class UserManagementController extends Controller
             if ($request->role === 'enfermera-emergencia') {
                 $rules['ci'] = 'required|string';
                 $rules['telefono'] = 'nullable|string';
+                $rules['turno'] = 'required|in:mañana,tarde,noche';
             }
 
             $validated = $request->validate($rules);
@@ -104,6 +105,7 @@ class UserManagementController extends Controller
                     'tipo' => 'Enfermera de Emergencia',
                     'estado' => 'activo',
                     'area' => 'emergencia',
+                    'turno' => $validated['turno'],
                 ]);
 
                 DB::commit();
