@@ -101,7 +101,7 @@ $hasPermission = function($permission) use ($userPermissions) {
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-lg font-bold text-gray-800">Pacientes en Emergencia</h2>
             <div class="flex gap-2">
-                <select id="filtro-estado" onchange="cargarEmergencias()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-500">
+                <select id="filtro-estado" onchange="onFiltroChange()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-500">
                     <option value="todos">Todos los estados</option>
                     <option value="recibido">Recibidos</option>
                     <option value="en_evaluacion">En Evaluación</option>
@@ -269,23 +269,55 @@ $hasPermission = function($permission) use ($userPermissions) {
     </div>
 </div>
 
+<script src="{{ asset('js/auto-refresh.js') }}"></script>
 <script>
     let emergencyIdActual = null;
+    let autoRefresh = null;
 
     // Cargar emergencias al iniciar
     document.addEventListener('DOMContentLoaded', function() {
-        cargarEmergencias();
         cargarEstadisticas();
-        // Auto-refresh cada 30 segundos
-        setInterval(() => {
-            cargarEmergencias();
-        }, 30000);
+        iniciarAutoRefresh();
     });
 
+    function iniciarAutoRefresh() {
+        const filtro = document.getElementById('filtro-estado').value;
+        
+        autoRefresh = new AutoRefresh({
+            interval: 5000,
+            endpoint: '/emergency-staff/api/emergencias?estado=' + filtro,
+            onData: (data) => {
+                if (data.success) {
+                    mostrarEmergencias(data.emergencias);
+                }
+            },
+            onError: (err) => {
+                console.warn('Error al actualizar datos:', err);
+            }
+        });
+        
+        autoRefresh.start();
+    }
+
+    function onFiltroChange() {
+        // Reiniciar auto-refresh con el nuevo filtro
+        if (autoRefresh) {
+            autoRefresh.stop();
+        }
+        iniciarAutoRefresh();
+    }
+
     async function cargarEmergencias() {
+        // Función manual para refrescar (desde el botón)
+        const filtro = document.getElementById('filtro-estado').value;
+        
         try {
-            const filtro = document.getElementById('filtro-estado').value;
-            const response = await fetch('/emergency-staff/api/emergencias?estado=' + filtro);
+            const response = await fetch('/emergency-staff/api/emergencias?estado=' + filtro, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
             const data = await response.json();
             
             if (data.success) {
@@ -531,6 +563,13 @@ $hasPermission = function($permission) use ($userPermissions) {
     document.getElementById('modalAcciones').addEventListener('click', function(e) {
         if (e.target === this) {
             cerrarModal();
+        }
+    });
+
+    // Detener auto-refresh cuando el usuario sale de la página
+    window.addEventListener('beforeunload', () => {
+        if (autoRefresh) {
+            autoRefresh.stop();
         }
     });
 </script>

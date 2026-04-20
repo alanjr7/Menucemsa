@@ -55,7 +55,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
         
         // API routes (antes que las rutas con parámetros)
         Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
+        Route::get('/quirofano/api/dashboard', [QuirofanoController::class, 'apiDashboard'])->name('quirofano.api.dashboard');
         Route::get('/api/quirofanos-disponibles', [QuirofanoController::class, 'getQuirofanosDisponibles'])->name('api.quirofanos-disponibles');
         Route::get('/api/paciente/{ci}', [QuirofanoController::class, 'getPaciente'])->name('api.paciente');
         Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
