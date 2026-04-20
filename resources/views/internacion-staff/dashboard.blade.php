@@ -113,7 +113,7 @@
         </div>
         
         <div class="p-6">
-            <div class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <button onclick="cambiarEstado('estable')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
                     <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
                         <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,6 +161,20 @@
                         <p class="text-xs text-gray-500">Dar de alta al paciente</p>
                     </div>
                 </button>
+
+                <div class="border-t border-gray-200 my-3 col-span-full"></div>
+
+                <a id="linkEvaluar" href="#" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all text-left">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-800">Evaluar Paciente</span>
+                        <p class="text-xs text-gray-500">Medicamentos, catering, drenajes...</p>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
@@ -284,6 +298,9 @@
         if (internacionSeleccionada) {
             document.getElementById('modal-paciente-nombre').textContent = internacionSeleccionada.paciente_nombre;
             document.getElementById('modalAcciones').classList.remove('hidden');
+
+            // Actualizar link de evaluar
+            document.getElementById('linkEvaluar').href = `/internacion-staff/evaluar/${internacionSeleccionada.id}`;
         }
     }
 
@@ -385,5 +402,6 @@
             cerrarModal();
         }
     });
+
 </script>
 @endsection

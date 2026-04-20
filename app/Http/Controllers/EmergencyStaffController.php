@@ -693,12 +693,27 @@ class EmergencyStaffController extends Controller
             ->with('detalles')
             ->first();
 
+        // Cargar nombres de usuarios que aplicaron medicamentos
+        $usuariosMedicamentos = [];
+        $userIds = [];
+        foreach ($detalleCostos as $evaluacion) {
+            if (isset($evaluacion['usuario_id'])) {
+                $userIds[] = $evaluacion['usuario_id'];
+            }
+        }
+        $userIds = array_unique($userIds);
+        if (!empty($userIds)) {
+            $usuarios = \App\Models\User::whereIn('id', $userIds)->pluck('name', 'id');
+            $usuariosMedicamentos = $usuarios->toArray();
+        }
+
         return view('emergency-staff.historial', compact(
             'emergency',
             'detalleCostos',
             'flujoHistorial',
             'vitalSigns',
-            'cuenta'
+            'cuenta',
+            'usuariosMedicamentos'
         ));
     }
 
@@ -734,5 +749,114 @@ class EmergencyStaffController extends Controller
             'permissions' => array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS), // All permissions
             'all_permissions' => array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS),
         ]);
+    }
+
+    /**
+     * Mostrar historial general de todas las emergencias
+     */
+    public function historialGeneral(Request $request): View
+    {
+        $query = Emergency::with(['paciente']);
+
+        // Filtro por fecha desde
+        if ($request->filled('fecha_desde')) {
+            $query->whereDate('admission_date', '>=', $request->fecha_desde);
+        }
+
+        // Filtro por fecha hasta
+        if ($request->filled('fecha_hasta')) {
+            $query->whereDate('admission_date', '<=', $request->fecha_hasta);
+        }
+
+        // Filtro por estado
+        if ($request->filled('estado') && $request->estado !== 'todos') {
+            $query->where('status', $request->estado);
+        }
+
+        $emergencias = $query->orderBy('admission_date', 'desc')
+            ->paginate(25)
+            ->withQueryString();
+
+        // Estadísticas
+        $stats = [
+            'total' => Emergency::count(),
+            'hoy' => Emergency::whereDate('created_at', today())->count(),
+            'activos' => Emergency::whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])->count(),
+            'alta' => Emergency::where('status', 'alta')->count(),
+            'cirugia' => Emergency::where('status', 'cirugia')->count(),
+            'uti' => Emergency::where('status', 'uti')->count(),
+        ];
+
+        return view('emergency-staff.historial-general', compact('emergencias', 'stats'));
+    }
+
+    /**
+     * Exportar historial de emergencias a Excel (CSV)
+     */
+    public function exportHistorialGeneral(Request $request)
+    {
+        $query = Emergency::with(['paciente']);
+
+        // Aplicar mismos filtros que en historialGeneral
+        if ($request->filled('fecha_desde')) {
+            $query->whereDate('admission_date', '>=', $request->fecha_desde);
+        }
+        if ($request->filled('fecha_hasta')) {
+            $query->whereDate('admission_date', '<=', $request->fecha_hasta);
+        }
+        if ($request->filled('estado') && $request->estado !== 'todos') {
+            $query->where('status', $request->estado);
+        }
+
+        $emergencias = $query->orderBy('admission_date', 'desc')->get();
+
+        // Generar nombre de archivo
+        $filename = 'historial_emergencias_' . now()->format('Y-m-d_H-i-s') . '.csv';
+
+        // Headers para descarga
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $file = fopen('php://output', 'w');
+
+        // BOM para Excel
+        fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        // Título
+        fputcsv($file, ['HISTORIAL DE EMERGENCIAS'], ';');
+        fputcsv($file, [], ';');
+
+        // Encabezados
+        fputcsv($file, [
+            'Código',
+            'Paciente',
+            'CI',
+            'Fecha Ingreso',
+            'Hora',
+            'Tipo Ingreso',
+            'Estado',
+            'Destino',
+            'Costo Total',
+            'Ubicación Actual'
+        ], ';');
+
+        // Datos
+        foreach ($emergencias as $emg) {
+            fputcsv($file, [
+                $emg->code,
+                $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                $emg->patient_id,
+                $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
+                $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                $emg->tipo_ingreso_label,
+                $this->getStatusLabel($emg->status),
+                $emg->destino_inicial ?? 'Pendiente',
+                'Bs. ' . number_format($emg->cost ?? 0, 2),
+                $emg->ubicacion_actual ?? 'emergencia'
+            ], ';');
+        }
+
+        fclose($file);
+        exit;
     }
 }

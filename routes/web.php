@@ -483,6 +483,10 @@ Route::middleware('auth')->group(function () {
         // API: Obtener permisos del usuario actual (disponible para enfermera-emergencia también)
         Route::get('/api/mis-permisos', [EmergencyStaffController::class, 'apiPermisos'])->name('api.permisos');
 
+        // Historial general de emergencias
+        Route::get('/historial', [EmergencyStaffController::class, 'historialGeneral'])->name('historial.general');
+        Route::get('/historial/export', [EmergencyStaffController::class, 'exportHistorialGeneral'])->name('historial.export');
+
         // Rutas con parámetros {emergency} al FINAL
         Route::get('/{emergency}/evaluacion', [EmergencyStaffController::class, 'evaluacion'])->name('evaluacion');
         Route::post('/{emergency}/guardar-evaluacion', [EmergencyStaffController::class, 'guardarEvaluacion'])->name('guardar-evaluacion');
@@ -499,12 +503,29 @@ Route::middleware('auth')->group(function () {
         // Dashboard principal
         Route::get('/dashboard', [InternacionStaffController::class, 'index'])->name('dashboard');
 
+        // Página de evaluación del paciente
+        Route::get('/evaluar/{id}', [InternacionStaffController::class, 'evaluar'])->name('evaluar');
+
         // API routes
         Route::get('/api/internaciones', [InternacionStaffController::class, 'apiInternaciones'])->name('api.internaciones');
         Route::get('/api/estadisticas', [InternacionStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
         Route::post('/api/internacion/{id}/update-status', [InternacionStaffController::class, 'updateStatus'])->name('update-status');
         Route::post('/api/internacion/{id}/derivar-uti', [InternacionStaffController::class, 'derivarAUti'])->name('derivar-uti');
         Route::post('/api/internacion/{id}/alta', [InternacionStaffController::class, 'darAlta'])->name('alta');
+
+        // API Medicamentos para pacientes
+        Route::get('/api/medicamentos-disponibles', [InternacionStaffController::class, 'apiMedicamentosDisponibles'])->name('api.medicamentos-disponibles');
+        Route::get('/api/medicamentos/buscar', [InternacionStaffController::class, 'buscarMedicamentos'])->name('api.medicamentos.buscar');
+        Route::get('/api/internacion/{id}/medicamentos', [InternacionStaffController::class, 'apiMedicamentos'])->name('api.medicamentos');
+        Route::post('/api/internacion/{id}/medicamentos', [InternacionStaffController::class, 'storeMedicamento'])->name('api.medicamentos.store');
+
+        // API Catering
+        Route::get('/api/internacion/{id}/catering', [InternacionStaffController::class, 'apiCatering'])->name('api.catering');
+        Route::post('/api/internacion/{id}/catering', [InternacionStaffController::class, 'storeCatering'])->name('api.catering.store');
+
+        // API Drenajes
+        Route::get('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'apiDrenajes'])->name('api.drenajes');
+        Route::post('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'storeDrenaje'])->name('api.drenajes.store');
 
         // Rutas para gestión de medicamentos de internación (solo admin e internacion)
         Route::middleware(['role:admin|internacion'])->group(function () {

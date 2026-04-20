@@ -58,6 +58,12 @@ $hasPermission = function($permission) use ($userPermissions) {
                 Gestionar Enfermeras
             </a>
             @endif
+            <a href="{{ route('emergency-staff.historial.general') }}" class="flex items-center px-4 py-2 bg-violet-600 text-white font-medium rounded-xl hover:bg-violet-700 transition-all shadow-sm">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Historial
+            </a>
         </div>
     </div>
 
@@ -139,129 +145,136 @@ $hasPermission = function($permission) use ($userPermissions) {
     </div>
 
     <!-- Modal de Acciones -->
-    <div id="modalAcciones" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div class="bg-white shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto">
-            <!-- Header minimalista y profesional -->
-            <div class="border-b border-gray-200 bg-gray-50 px-8 py-5">
+    <div id="modalAcciones" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white shadow-2xl rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Header con color -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 rounded-t-2xl">
                 <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 tracking-tight">Acciones del Paciente</h3>
-                        <p class="text-sm text-gray-500 mt-0.5" id="modal-paciente-nombre"></p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">Acciones del Paciente</h3>
+                            <p class="text-base text-blue-100 mt-1" id="modal-paciente-nombre"></p>
+                        </div>
                     </div>
-                    <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="cerrarModal()" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
             </div>
 
-            <!-- Contenido con diseño minimalista -->
-            <div class="p-8">
-                <div class="grid grid-cols-2 gap-4">
+            <!-- Contenido con botones coloridos y grandes -->
+            <div class="p-8 bg-slate-50">
+                <div class="grid grid-cols-2 gap-5">
                     @if($hasPermission('cambiar_estados'))
-                    <button onclick="iniciarEvaluacion()" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="iniciarEvaluacion()" class="group flex items-center p-5 bg-white border-2 border-blue-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-blue-100 group-hover:bg-blue-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Iniciar Evaluación</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Comenzar atención médica</p>
+                            <span class="font-bold text-slate-800 text-lg block">Iniciar Evaluación</span>
+                            <p class="text-sm text-slate-500 mt-1">Comenzar atención médica</p>
                         </div>
                     </button>
                     @endif
 
                     @if($hasPermission('ver_historial'))
-                    <button onclick="verHistorial()" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="verHistorial()" class="group flex items-center p-5 bg-white border-2 border-violet-200 rounded-xl hover:border-violet-500 hover:bg-violet-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-violet-100 group-hover:bg-violet-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Ver Historial</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Evaluaciones y medicamentos</p>
+                            <span class="font-bold text-slate-800 text-lg block">Ver Historial</span>
+                            <p class="text-sm text-slate-500 mt-1">Evaluaciones y medicamentos</p>
                         </div>
                     </button>
                     @endif
 
                     @if($hasPermission('cambiar_estados'))
-                    <button onclick="cambiarEstado('estabilizado')" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="cambiarEstado('estabilizado')" class="group flex items-center p-5 bg-white border-2 border-emerald-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-emerald-100 group-hover:bg-emerald-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Marcar Estabilizado</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Paciente estable</p>
+                            <span class="font-bold text-slate-800 text-lg block">Marcar Estabilizado</span>
+                            <p class="text-sm text-slate-500 mt-1">Paciente estable y listo</p>
                         </div>
                     </button>
                     @endif
 
                     @if($hasPermission('derivar_pacientes'))
-                    <button onclick="derivarA('cirugia')" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="derivarA('cirugia')" class="group flex items-center p-5 bg-white border-2 border-cyan-200 rounded-xl hover:border-cyan-500 hover:bg-cyan-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-cyan-100 group-hover:bg-cyan-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Enviar a Cirugía</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Derivar a quirófano</p>
+                            <span class="font-bold text-slate-800 text-lg block">Enviar a Cirugía</span>
+                            <p class="text-sm text-slate-500 mt-1">Derivar a quirófano</p>
                         </div>
                     </button>
 
-                    <button onclick="derivarA('uti')" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="derivarA('uti')" class="group flex items-center p-5 bg-white border-2 border-rose-200 rounded-xl hover:border-rose-500 hover:bg-rose-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-rose-100 group-hover:bg-rose-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Enviar a UTI</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Unidad Terapia Intensiva</p>
+                            <span class="font-bold text-slate-800 text-lg block">Enviar a UTI</span>
+                            <p class="text-sm text-slate-500 mt-1">Unidad Terapia Intensiva</p>
                         </div>
                     </button>
 
-                    <button onclick="derivarA('hospitalizacion')" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="derivarA('hospitalizacion')" class="group flex items-center p-5 bg-white border-2 border-amber-200 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-amber-100 group-hover:bg-amber-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Internación</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Hospitalización</p>
+                            <span class="font-bold text-slate-800 text-lg block">Internación</span>
+                            <p class="text-sm text-slate-500 mt-1">Hospitalización general</p>
                         </div>
                     </button>
 
-                    <button onclick="derivarA('observacion')" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="derivarA('observacion')" class="group flex items-center p-5 bg-white border-2 border-indigo-200 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-indigo-100 group-hover:bg-indigo-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Observación</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Área de observación</p>
+                            <span class="font-bold text-slate-800 text-lg block">Observación</span>
+                            <p class="text-sm text-slate-500 mt-1">Área de observación</p>
                         </div>
                     </button>
                     @endif
 
                     @if($hasPermission('dar_alta'))
-                    <button onclick="darAlta()" class="group flex items-center p-4 border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left">
-                        <div class="w-9 h-9 bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors">
-                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="darAlta()" class="group flex items-center p-5 bg-white border-2 border-green-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-green-100 group-hover:bg-green-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                             </svg>
                         </div>
                         <div>
-                            <span class="font-medium text-gray-700 text-sm">Dar de Alta</span>
-                            <p class="text-xs text-gray-400 mt-0.5">Paciente egresado</p>
+                            <span class="font-bold text-slate-800 text-lg block">Dar de Alta</span>
+                            <p class="text-sm text-slate-500 mt-1">Paciente egresado</p>
                         </div>
                     </button>
                     @endif
