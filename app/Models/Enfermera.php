@@ -59,6 +59,11 @@ class Enfermera extends Model
         return $query->where('area', 'emergencia');
     }
 
+    public function scopeInternacion($query)
+    {
+        return $query->where('area', 'internacion');
+    }
+
     public function scopeUti($query)
     {
         return $query->where('area', 'uti');
@@ -72,6 +77,11 @@ class Enfermera extends Model
     public function isEmergencia(): bool
     {
         return $this->area === 'emergencia';
+    }
+
+    public function isInternacion(): bool
+    {
+        return $this->area === 'internacion';
     }
 
     public function isUti(): bool
@@ -118,17 +128,46 @@ class Enfermera extends Model
     }
 
     /**
-     * Assign default permissions to new nurse
+     * Assign default permissions to new nurse based on area
      */
     public function assignDefaultPermissions(int $grantedBy = null): void
     {
-        $defaultPermissions = EnfermeraPermission::getDefaultPermissions();
+        try {
+            // Get all default permissions
+            $defaultPermissions = EnfermeraPermission::getDefaultPermissions();
+            
+            // Define which permissions belong to which area
+            $internacionPermissions = [
+                'ver_pacientes_internacion', 'administrar_medicamentos', 'administrar_catering',
+                'administrar_drenajes', 'cambiar_estados_internacion', 'derivar_a_uti',
+                'dar_alta_internacion', 'ver_historial_internacion', 'editar_diagnostico'
+            ];
+            
+            $emergenciaPermissions = [
+                'ver_pacientes', 'registrar_signos_vitales', 'cambiar_estados',
+                'aplicar_medicamentos', 'ver_historial', 'derivar_pacientes', 'dar_alta'
+            ];
+            
+            // Filter by area
+            if ($this->area === 'internacion') {
+                $permissionsToAssign = array_intersect($defaultPermissions, $internacionPermissions);
+            } elseif ($this->area === 'emergencia') {
+                $permissionsToAssign = array_intersect($defaultPermissions, $emergenciaPermissions);
+            } else {
+                $permissionsToAssign = $defaultPermissions;
+            }
 
-        foreach ($defaultPermissions as $permission) {
-            $this->permissions()->create([
-                'permission_key' => $permission,
-                'granted_by' => $grantedBy,
-            ]);
+            foreach ($permissionsToAssign as $permission) {
+                // Crear permiso directamente sin usar relación
+                EnfermeraPermission::create([
+                    'enfermera_id' => $this->user_id,
+                    'permission_key' => $permission,
+                    'granted_by' => $grantedBy,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error al asignar permisos por defecto a enfermera ' . $this->user_id . ': ' . $e->getMessage());
+            throw $e;
         }
     }
 }

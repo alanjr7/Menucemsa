@@ -10,7 +10,6 @@ use App\Http\Controllers\Reception\ConsultaExternaController;
 use App\Http\Controllers\Reception\EmergenciaController;
 use App\Http\Controllers\Reception\EmergencyIngresoController;
 use App\Http\Controllers\Medical\EmergencyController;
-use App\Http\Controllers\Medical\NursingController;
 use App\Http\Controllers\Medical\UtiController;
 use App\Http\Controllers\Medical\QuirofanoController as MedicalQuirofanoController;
 use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitalizacionController;
@@ -18,6 +17,7 @@ use App\Http\Controllers\Reception\HospitalizacionController as ReceptionHospita
 use App\Http\Controllers\InternacionStaffController;
 use App\Http\Controllers\InternacionMedicamentosController;
 use App\Http\Controllers\InternacionHabitacionesController;
+use App\Http\Controllers\InternacionNurseController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
@@ -40,6 +40,7 @@ use App\Http\Controllers\Farmacia\ReporteController;
 use App\Http\Controllers\Caja\CajaOperativaController;
 use App\Http\Controllers\Caja\CajaGestionController;
 use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\EmergencyStaffController;
 use App\Http\Controllers\EmergencyMedicamentosController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
@@ -226,7 +227,6 @@ Route::middleware('auth')->group(function () {
 
     // Rutas médicas (admin, dirmedico y doctor) - SIN duplicar rutas de quirofano
     Route::middleware(['role:admin|dirmedico|doctor'])->group(function () {
-        Route::get('/enfermeria', [NursingController::class, 'index'])->name('enfermeria.index');
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
         Route::get('/hospitalizacion', [MedicalHospitalizacionController::class, 'index'])->name('hospitalizacion.index');
         // Rutas de control administrativo para consulta externa (solo admin)
@@ -319,9 +319,7 @@ Route::middleware('auth')->group(function () {
     // Rutas de administración (solo admin) - Especialidades CRUD
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         // Dashboard principal del admin
-        Route::get('/dashboard', function () {
-            return view('dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         
         Route::get('especialidades', [EspecialidadController::class, 'index'])->name('especialidades.index');
         Route::get('especialidades/create', [EspecialidadController::class, 'create'])->name('especialidades.create');
@@ -498,13 +496,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
     });
 
-    // Rutas para personal de internación - INTERNACION, ADMIN Y DIR MEDICO
-    Route::middleware(['role:internacion|admin|dirmedico'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
+    // Rutas para personal de internación - INTERNACION, ADMIN, DIR MEDICO Y ENFERMERAS
+    Route::middleware(['role:internacion|admin|dirmedico|enfermera-internacion'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
         // Dashboard principal
         Route::get('/dashboard', [InternacionStaffController::class, 'index'])->name('dashboard');
 
         // Página de evaluación del paciente
         Route::get('/evaluar/{id}', [InternacionStaffController::class, 'evaluar'])->name('evaluar');
+
+        // Página de historial del paciente
+        Route::get('/historial/{id}', [InternacionStaffController::class, 'historial'])->name('historial');
 
         // API routes
         Route::get('/api/internaciones', [InternacionStaffController::class, 'apiInternaciones'])->name('api.internaciones');
@@ -526,6 +527,13 @@ Route::middleware('auth')->group(function () {
         // API Drenajes
         Route::get('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'apiDrenajes'])->name('api.drenajes');
         Route::post('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'storeDrenaje'])->name('api.drenajes.store');
+
+        // API Receta/Diagnóstico
+        Route::post('/api/internacion/{id}/receta', [InternacionStaffController::class, 'updateReceta'])->name('api.receta.update');
+
+        // Historial General de Internaciones
+        Route::get('/historial-general', [InternacionStaffController::class, 'historialGeneral'])->name('historial-general');
+        Route::get('/export-historial', [InternacionStaffController::class, 'exportHistorial'])->name('export-historial');
 
         // Rutas para gestión de medicamentos de internación (solo admin e internacion)
         Route::middleware(['role:admin|internacion'])->group(function () {
@@ -549,6 +557,23 @@ Route::middleware('auth')->group(function () {
         Route::delete('/habitaciones/{habitacion}', [InternacionHabitacionesController::class, 'destroy'])->name('habitaciones.destroy');
         Route::post('/habitaciones/{habitacion}/asignar-paciente', [InternacionHabitacionesController::class, 'asignarPaciente'])->name('habitaciones.asignar-paciente');
         Route::post('/camas/{cama}/liberar', [InternacionHabitacionesController::class, 'liberarCama'])->name('camas.liberar');
+
+        // Rutas para gestión de enfermeras de internación (solo admin e internacion)
+        Route::middleware(['role:admin|internacion'])->group(function () {
+            Route::get('/enfermeras', [InternacionNurseController::class, 'index'])->name('enfermeras.index');
+            Route::get('/enfermeras/create', [InternacionNurseController::class, 'create'])->name('enfermeras.create');
+            Route::post('/enfermeras', [InternacionNurseController::class, 'store'])->name('enfermeras.store');
+            Route::get('/enfermeras/{enfermera}', [InternacionNurseController::class, 'show'])->name('enfermeras.show');
+            Route::get('/enfermeras/{enfermera}/edit', [InternacionNurseController::class, 'edit'])->name('enfermeras.edit');
+            Route::put('/enfermeras/{enfermera}', [InternacionNurseController::class, 'update'])->name('enfermeras.update');
+            Route::delete('/enfermeras/{enfermera}', [InternacionNurseController::class, 'destroy'])->name('enfermeras.destroy');
+            Route::patch('/enfermeras/{enfermera}/toggle-status', [InternacionNurseController::class, 'toggleStatus'])->name('enfermeras.toggle-status');
+            Route::get('/enfermeras/{enfermera}/actividad', [InternacionNurseController::class, 'actividad'])->name('enfermeras.actividad');
+
+            // Rutas de gestión de permisos
+            Route::get('/enfermeras/{enfermera}/permissions', [InternacionNurseController::class, 'permissions'])->name('enfermeras.permissions');
+            Route::post('/enfermeras/{enfermera}/permissions', [InternacionNurseController::class, 'updatePermissions'])->name('enfermeras.permissions.update');
+        });
     });
 });
 

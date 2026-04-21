@@ -20,6 +20,7 @@ class EnfermeraPermission extends Model
      * Permisos disponibles en el sistema
      */
     public const AVAILABLE_PERMISSIONS = [
+        // Permisos de Emergencia
         'ver_pacientes' => [
             'label' => 'Ver Pacientes',
             'description' => 'Ver lista de pacientes en emergencia',
@@ -60,6 +61,61 @@ class EnfermeraPermission extends Model
             'label' => 'Dar de Alta',
             'description' => 'Dar de alta a pacientes (solo enfermeras senior)',
             'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+            'default' => false,
+        ],
+        // Permisos de Internación
+        'ver_pacientes_internacion' => [
+            'label' => 'Ver Pacientes Internación',
+            'description' => 'Ver lista de pacientes en internación',
+            'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+            'default' => true,
+        ],
+        'administrar_medicamentos' => [
+            'label' => 'Administrar Medicamentos',
+            'description' => 'Registrar medicamentos administrados a pacientes',
+            'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z',
+            'default' => false,
+        ],
+        'administrar_catering' => [
+            'label' => 'Administrar Catering',
+            'description' => 'Registrar comidas (desayuno, almuerzo, merienda, cena)',
+            'icon' => 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z',
+            'default' => true,
+        ],
+        'administrar_drenajes' => [
+            'label' => 'Administrar Drenajes',
+            'description' => 'Registrar drenajes realizados a pacientes',
+            'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z',
+            'default' => false,
+        ],
+        'cambiar_estados_internacion' => [
+            'label' => 'Cambiar Estados Internación',
+            'description' => 'Cambiar estados (activo, estable, crítico, observación)',
+            'icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
+            'default' => true,
+        ],
+        'derivar_a_uti' => [
+            'label' => 'Derivar a UTI',
+            'description' => 'Enviar pacientes a Unidad de Terapia Intensiva',
+            'icon' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+            'default' => false,
+        ],
+        'dar_alta_internacion' => [
+            'label' => 'Dar de Alta Internación',
+            'description' => 'Dar de alta a pacientes de internación',
+            'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+            'default' => false,
+        ],
+        'ver_historial_internacion' => [
+            'label' => 'Ver Historial Internación',
+            'description' => 'Ver historial completo de internación',
+            'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+            'default' => true,
+        ],
+        'editar_diagnostico' => [
+            'label' => 'Editar Diagnóstico',
+            'description' => 'Modificar receta y diagnóstico del paciente',
+            'icon' => 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
             'default' => false,
         ],
     ];

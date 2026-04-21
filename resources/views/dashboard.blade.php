@@ -29,10 +29,10 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">342</div>
-                    <div class="text-xs text-green-500 font-bold flex items-center gap-1">
+                    <div class="text-2xl font-bold text-gray-800">{{ number_format($stats['pacientes']['total']) }}</div>
+                    <div class="text-xs text-{{ $stats['pacientes']['cambio_porcentaje'] >= 0 ? 'green' : 'red' }}-500 font-bold flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                        +12% vs. mes anterior
+                        {{ $stats['pacientes']['cambio_porcentaje'] >= 0 ? '+' : '' }}{{ $stats['pacientes']['cambio_porcentaje'] }}% vs. mes anterior
                     </div>
                 </div>
             </div>
@@ -48,10 +48,10 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">89</div>
-                    <div class="text-xs text-green-500 font-bold flex items-center gap-1">
+                    <div class="text-2xl font-bold text-gray-800">{{ number_format($stats['consultas']['hoy']) }}</div>
+                    <div class="text-xs text-{{ $stats['consultas']['cambio_porcentaje'] >= 0 ? 'green' : 'red' }}-500 font-bold flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                        +5% vs. mes anterior
+                        {{ $stats['consultas']['cambio_porcentaje'] >= 0 ? '+' : '' }}{{ $stats['consultas']['cambio_porcentaje'] }}% vs. mes anterior
                     </div>
                 </div>
             </div>
@@ -67,10 +67,10 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">$45,230</div>
-                    <div class="text-xs text-green-500 font-bold flex items-center gap-1">
+                    <div class="text-2xl font-bold text-gray-800">${{ number_format($stats['facturacion']['hoy'], 0) }}</div>
+                    <div class="text-xs text-{{ $stats['facturacion']['cambio_porcentaje'] >= 0 ? 'green' : 'red' }}-500 font-bold flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                        +8% vs. mes anterior
+                        {{ $stats['facturacion']['cambio_porcentaje'] >= 0 ? '+' : '' }}{{ $stats['facturacion']['cambio_porcentaje'] }}% vs. mes anterior
                     </div>
                 </div>
             </div>
@@ -86,8 +86,11 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">12</div>
-                    <div class="text-xs text-gray-400 font-medium">0% vs. mes anterior</div>
+                    <div class="text-2xl font-bold text-gray-800">{{ number_format($stats['cirugias']['hoy']) }}</div>
+                    <div class="text-xs text-{{ $stats['cirugias']['cambio_porcentaje'] >= 0 ? 'green' : 'red' }}-500 font-bold flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                        {{ $stats['cirugias']['cambio_porcentaje'] >= 0 ? '+' : '' }}{{ $stats['cirugias']['cambio_porcentaje'] }}% vs. mes anterior
+                    </div>
                 </div>
             </div>
         </div>
@@ -99,23 +102,39 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <h3 class="text-lg font-bold text-gray-800">Alertas Urgentes</h3>
+                @if(count($alertas) > 0)
+                    <span class="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">{{ count($alertas) }}</span>
+                @endif
             </div>
 
             <div class="space-y-3">
-                <div class="flex items-center p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm font-medium">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    Vencimientos próximos en Farmacia (5 productos)
-                </div>
-
-                <div class="flex items-center p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-sm font-medium">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Facturas pendientes de cobro: $23,450
-                </div>
-
-                <div class="flex items-center p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-sm font-medium">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Quirófano 2: Mantenimiento programado mañana
-                </div>
+                @forelse($alertas as $alerta)
+                    <div class="flex items-center p-4 bg-{{ $alerta['nivel'] === 'danger' ? 'red' : ($alerta['nivel'] === 'warning' ? 'yellow' : 'blue') }}-50 border border-{{ $alerta['nivel'] === 'danger' ? 'red' : ($alerta['nivel'] === 'warning' ? 'yellow' : 'blue') }}-100 rounded-xl text-{{ $alerta['nivel'] === 'danger' ? 'red' : ($alerta['nivel'] === 'warning' ? 'yellow' : 'blue') }}-700 text-sm font-medium">
+                        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            @if($alerta['icono'] === 'exclamation-triangle')
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            @elseif($alerta['icono'] === 'clock')
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            @elseif($alerta['icono'] === 'credit-card')
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            @elseif($alerta['icono'] === 'ambulance')
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                            @elseif($alerta['icono'] === 'heart-pulse')
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            @else
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            @endif
+                        </svg>
+                        {{ $alerta['mensaje'] }}
+                    </div>
+                @empty
+                    <div class="flex items-center p-4 bg-green-50 border border-green-100 rounded-xl text-green-700 text-sm font-medium">
+                        <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        No hay alertas urgentes en este momento. Sistema funcionando normalmente.
+                    </div>
+                @endforelse
             </div>
         </div>
 
@@ -298,53 +317,29 @@
             </div>
 
             <div class="space-y-6">
-                <div class="flex gap-4 relative">
-                    <div class="before:content-[''] before:absolute before:left-2 before:top-8 before:w-0.5 before:h-6 before:bg-gray-100">
-                        <div class="w-4 h-4 rounded-full bg-green-500 border-4 border-green-100 z-10 relative"></div>
+                @forelse($actividadReciente as $index => $actividad)
+                    <div class="flex gap-4 {{ $index < count($actividadReciente) - 1 ? 'relative' : '' }}">
+                        @if($index < count($actividadReciente) - 1)
+                            <div class="before:content-[''] before:absolute before:left-2 before:top-8 before:w-0.5 before:h-6 before:bg-gray-100">
+                                <div class="w-4 h-4 rounded-full bg-{{ $actividad['color'] }}-500 border-4 border-{{ $actividad['color'] }}-100 z-10 relative"></div>
+                            </div>
+                        @else
+                            <div class="w-4 h-4 rounded-full bg-{{ $actividad['color'] }}-500 border-4 border-{{ $actividad['color'] }}-100 z-10 relative"></div>
+                        @endif
+                        <div class="flex-1 text-sm font-bold text-gray-800">
+                            {{ $actividad['descripcion'] }}
+                            <p class="text-[10px] text-gray-400 font-medium mt-0.5">{{ $actividad['tiempo'] }} por {{ $actividad['usuario'] }}</p>
+                        </div>
                     </div>
-                    <div class="flex-1 flex justify-between">
-                        <p class="text-sm font-bold text-gray-800">Alta médica: <span class="font-medium text-gray-600">Paciente López, María</span></p>
-                        <span class="text-[10px] text-gray-400 font-medium">Hace 5 min</span>
+                @empty
+                    <div class="flex gap-4">
+                        <div class="w-4 h-4 rounded-full bg-gray-500 border-4 border-gray-100 z-10 relative"></div>
+                        <div class="flex-1 text-sm font-bold text-gray-800">
+                            No hay actividad reciente registrada
+                            <p class="text-[10px] text-gray-400 font-medium mt-0.5">Sistema inicializado</p>
+                        </div>
                     </div>
-                </div>
-
-                <div class="flex gap-4 relative">
-                    <div class="before:content-[''] before:absolute before:left-2 before:top-8 before:w-0.5 before:h-6 before:bg-gray-100">
-                        <div class="w-4 h-4 rounded-full bg-orange-500 border-4 border-orange-100 z-10 relative"></div>
-                    </div>
-                    <div class="flex-1 text-sm font-bold text-gray-800">
-                         Alerta: <span class="font-medium text-gray-600">Stock bajo en Farmacia - Paracetamol</span>
-                         <p class="text-[10px] text-gray-400 font-medium mt-0.5">Hace 12 min</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 relative">
-                    <div class="before:content-[''] before:absolute before:left-2 before:top-8 before:w-0.5 before:h-6 before:bg-gray-100">
-                        <div class="w-4 h-4 rounded-full bg-blue-500 border-4 border-blue-100 z-10 relative"></div>
-                    </div>
-                    <div class="flex-1 text-sm font-bold text-gray-800">
-                         Nueva admisión: <span class="font-medium text-gray-600">Paciente García, Juan</span>
-                         <p class="text-[10px] text-gray-400 font-medium mt-0.5">Hace 18 min</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 relative">
-                    <div class="before:content-[''] before:absolute before:left-2 before:top-8 before:w-0.5 before:h-6 before:bg-gray-100">
-                        <div class="w-4 h-4 rounded-full bg-red-500 border-4 border-red-100 z-10 relative"></div>
-                    </div>
-                    <div class="flex-1 text-sm font-bold text-gray-800">
-                         Factura bloqueada: <span class="font-medium text-gray-600">Falta autorización seguro</span>
-                         <p class="text-[10px] text-gray-400 font-medium mt-0.5">Hace 25 min</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <div class="w-4 h-4 rounded-full bg-green-500 border-4 border-green-100 z-10 relative"></div>
-                    <div class="flex-1 text-sm font-bold text-gray-800">
-                         Cirugía completada: <span class="font-medium text-gray-600">Apendicectomía</span>
-                         <p class="text-[10px] text-gray-400 font-medium mt-0.5">Hace 1 hora</p>
-                    </div>
-                </div>
+                @endforelse
             </div>
         </div>
 
@@ -361,10 +356,10 @@
             new Chart(ctxPacientes, {
                 type: 'bar',
                 data: {
-                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+                    labels: {!! json_encode($chartData['pacientes']['labels']) !!},
                     datasets: [{
                         label: 'Pacientes',
-                        data: [280, 310, 290, 340, 370, 320],
+                        data: {!! json_encode($chartData['pacientes']['data']) !!},
                         backgroundColor: '#3b82f6',
                         borderRadius: 6,
                         barThickness: 24
@@ -395,10 +390,10 @@
             new Chart(ctxIngresos, {
                 type: 'line',
                 data: {
-                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+                    labels: {!! json_encode($chartData['ingresos']['labels']) !!},
                     datasets: [{
                         label: 'Ingresos ($)',
-                        data: [34000, 42000, 38000, 45000, 48000, 43000],
+                        data: {!! json_encode($chartData['ingresos']['data']) !!},
                         borderColor: '#10b981',
                         backgroundColor: 'rgba(16, 185, 129, 0.1)',
                         tension: 0.4,

@@ -108,6 +108,11 @@ class User extends Authenticatable
         return $this->role === 'enfermera-emergencia';
     }
 
+    public function isEnfermeraInternacion(): bool
+    {
+        return $this->role === 'enfermera-internacion';
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role === $role;

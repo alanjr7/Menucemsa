@@ -23,7 +23,7 @@ class InternacionStaffController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:internacion|admin|dirmedico');
+        $this->middleware('role:internacion|admin|dirmedico|enfermera-internacion');
     }
 
     public function index(): View
@@ -37,7 +37,17 @@ class InternacionStaffController extends Controller
     public function evaluar($id): View
     {
         $hospitalizacion = Hospitalizacion::with(['paciente', 'medico.user', 'medico.especialidad'])->findOrFail($id);
-        return view('internacion-staff.evaluar', compact('hospitalizacion'));
+
+        // Obtener permisos de la enfermera logueada
+        $userPermissions = [];
+        if (Auth::check()) {
+            $enfermera = \App\Models\Enfermera::where('user_id', Auth::id())->first();
+            if ($enfermera) {
+                $userPermissions = $enfermera->getPermissionKeys();
+            }
+        }
+
+        return view('internacion-staff.evaluar', compact('hospitalizacion', 'userPermissions'));
     }
 
     /**
@@ -755,5 +765,266 @@ class InternacionStaffController extends Controller
                 $cuenta->recalcularTotales();
             }
         }
+    }
+
+    /**
+     * Mostrar página de historial del paciente
+     */
+    public function historial($id): View
+    {
+        $hospitalizacion = Hospitalizacion::with([
+            'paciente',
+            'medico.user',
+            'medico.especialidad'
+        ])->findOrFail($id);
+
+        // Cargar medicamentos con relaciones
+        $medicamentos = HospMedicamentoAdministrado::with(['medicamento', 'administeredBy'])
+            ->where('hospitalizacion_id', $id)
+            ->orderBy('fecha', 'desc')
+            ->orderBy('hora', 'desc')
+            ->get();
+
+        // Cargar catering
+        $catering = HospCatering::with('registeredBy')
+            ->where('hospitalizacion_id', $id)
+            ->orderBy('fecha', 'desc')
+            ->orderBy('hora_registro', 'desc')
+            ->get();
+
+        // Cargar drenajes
+        $drenajes = HospDrenaje::with('registeredBy')
+            ->where('hospitalizacion_id', $id)
+            ->orderBy('fecha', 'desc')
+            ->orderBy('hora', 'desc')
+            ->get();
+
+        // Buscar emergencia relacionada si existe
+        $emergencia = null;
+        if ($hospitalizacion->nro_emergencia) {
+            $emergencia = \App\Models\Emergency::where('code', $hospitalizacion->nro_emergencia)
+                ->orWhere('nro_hospitalizacion', $hospitalizacion->id)
+                ->first();
+        }
+
+        // Construir timeline
+        $timeline = collect();
+
+        // Evento de ingreso
+        $timeline->push([
+            'tipo' => 'ingreso',
+            'titulo' => 'Ingreso a Internación',
+            'descripcion' => 'Ingreso del paciente a la habitación ' . ($hospitalizacion->habitacion_id ?? 'Por asignar'),
+            'fecha' => $hospitalizacion->fecha_ingreso?->format('d/m/Y'),
+            'hora' => $hospitalizacion->fecha_ingreso?->format('H:i'),
+            'responsable' => $hospitalizacion->medico?->user?->name ?? 'Sistema',
+            'detalles' => null,
+        ]);
+
+        // Medicamentos
+        foreach ($medicamentos as $med) {
+            $timeline->push([
+                'tipo' => 'medicamento',
+                'titulo' => $med->medicamento?->nombre ?? 'Medicamento',
+                'descripcion' => $med->observaciones,
+                'fecha' => $med->fecha?->format('d/m/Y'),
+                'hora' => $med->hora?->format('H:i'),
+                'responsable' => $med->administeredBy?->name ?? 'Desconocido',
+                'detalles' => [
+                    'cantidad' => $med->cantidad,
+                    'unidad' => $med->unidad,
+                    'via_administracion' => $med->via_administracion,
+                    'cargo_generado' => $med->cargo_generado,
+                ],
+            ]);
+        }
+
+        // Catering
+        foreach ($catering as $cat) {
+            $timeline->push([
+                'tipo' => 'catering',
+                'titulo' => $cat->tipo_label,
+                'descripcion' => null,
+                'fecha' => $cat->fecha?->format('d/m/Y'),
+                'hora' => $cat->hora_registro?->format('H:i'),
+                'responsable' => $cat->registeredBy?->name ?? 'Sistema',
+                'detalles' => [
+                    'estado' => $cat->estado,
+                    'estado_label' => $cat->estado_label,
+                    'cargo_generado' => $cat->cargo_generado,
+                ],
+            ]);
+        }
+
+        // Drenajes
+        foreach ($drenajes as $dren) {
+            $timeline->push([
+                'tipo' => 'drenaje',
+                'titulo' => $dren->tipo_drenaje ?: 'Drenaje General',
+                'descripcion' => $dren->observaciones,
+                'fecha' => $dren->fecha?->format('d/m/Y'),
+                'hora' => $dren->hora?->format('H:i'),
+                'responsable' => $dren->registeredBy?->name ?? 'Desconocido',
+                'detalles' => [
+                    'tipo_drenaje' => $dren->tipo_drenaje,
+                    'realizado' => $dren->realizado,
+                ],
+            ]);
+        }
+
+        // Evento de alta si existe
+        if ($hospitalizacion->fecha_alta) {
+            $timeline->push([
+                'tipo' => 'alta',
+                'titulo' => 'Alta Médica',
+                'descripcion' => 'Paciente dado de alta de internación',
+                'fecha' => $hospitalizacion->fecha_alta?->format('d/m/Y'),
+                'hora' => $hospitalizacion->fecha_alta?->format('H:i'),
+                'responsable' => 'Sistema',
+                'detalles' => null,
+            ]);
+        }
+
+        // Ordenar timeline por fecha/hora (más reciente primero)
+        $timeline = $timeline->sortByDesc(function ($item) {
+            $fechaHora = $item['fecha'] . ' ' . ($item['hora'] ?? '00:00');
+            return \Carbon\Carbon::createFromFormat('d/m/Y H:i', $fechaHora);
+        })->values();
+
+        return view('internacion-staff.historial', compact(
+            'hospitalizacion',
+            'medicamentos',
+            'catering',
+            'drenajes',
+            'emergencia',
+            'timeline'
+        ));
+    }
+
+    /**
+     * API: Actualizar receta/diagnóstico del paciente
+     */
+    public function updateReceta(Request $request, $id): JsonResponse
+    {
+        try {
+            $hospitalizacion = Hospitalizacion::findOrFail($id);
+
+            $validated = $request->validate([
+                'diagnostico' => 'nullable|string',
+                'tratamiento' => 'nullable|string',
+            ]);
+
+            $hospitalizacion->update([
+                'diagnostico' => $validated['diagnostico'] ?? $hospitalizacion->diagnostico,
+                'tratamiento' => $validated['tratamiento'] ?? $hospitalizacion->tratamiento,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Información médica actualizada correctamente',
+                'hospitalizacion' => [
+                    'diagnostico' => $hospitalizacion->diagnostico,
+                    'tratamiento' => $hospitalizacion->tratamiento,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mostrar historial general de TODAS las internaciones (activas y dadas de alta)
+     */
+    public function historialGeneral(Request $request): View
+    {
+        $query = Hospitalizacion::with(['paciente', 'medico.user', 'habitacion'])
+            ->orderBy('fecha_ingreso', 'desc'); // Todos los pacientes, ordenados por ingreso
+
+        // Filtros
+        if ($request->filled('fecha_desde')) {
+            $query->whereDate('fecha_ingreso', '>=', $request->fecha_desde);
+        }
+        if ($request->filled('fecha_hasta')) {
+            $query->whereDate('fecha_ingreso', '<=', $request->fecha_hasta);
+        }
+        if ($request->filled('busqueda')) {
+            $busqueda = $request->busqueda;
+            $query->whereHas('paciente', function($q) use ($busqueda) {
+                $q->where('nombre', 'like', "%{$busqueda}%")
+                  ->orWhere('ci', 'like', "%{$busqueda}%");
+            });
+        }
+
+        $hospitalizaciones = $query->paginate(15);
+
+        // Estadísticas - TODAS las internaciones
+        $stats = [
+            'total' => Hospitalizacion::count(),
+            'activos' => Hospitalizacion::whereNull('fecha_alta')->count(),
+            'hoy' => Hospitalizacion::whereDate('fecha_ingreso', today())->count(),
+            'mes' => Hospitalizacion::whereMonth('fecha_ingreso', now()->month)->whereYear('fecha_ingreso', now()->year)->count(),
+        ];
+
+        return view('internacion-staff.historial-general', compact('hospitalizaciones', 'stats'));
+    }
+
+    /**
+     * Exportar historial de internaciones a Excel
+     */
+    public function exportHistorial(Request $request)
+    {
+        $query = Hospitalizacion::with(['paciente', 'medico.user']);
+
+        // Aplicar filtros
+        if ($request->filled('fecha_desde')) {
+            $query->whereDate('fecha_ingreso', '>=', $request->fecha_desde);
+        }
+        if ($request->filled('fecha_hasta')) {
+            $query->whereDate('fecha_ingreso', '<=', $request->fecha_hasta);
+        }
+
+        $hospitalizaciones = $query->orderBy('fecha_ingreso', 'desc')->get();
+
+        // Crear archivo CSV
+        $filename = 'historial_internaciones_' . now()->format('Y-m-d_H-i-s') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($hospitalizaciones) {
+            $file = fopen('php://output', 'w');
+            // Agregar BOM para Excel
+            fprintf($file, "\xEF\xBB\xBF");
+
+            // Headers con delimitador punto y coma (compatible con Excel en español)
+            fputcsv($file, ['ID', 'Paciente', 'CI', 'Fecha Ingreso', 'Fecha Alta', 'Días Estancia', 'Médico', 'Diagnóstico', 'Total Estancia', 'Estado'], ';');
+
+            foreach ($hospitalizaciones as $hosp) {
+                $dias = $hosp->fecha_ingreso && $hosp->fecha_alta
+                    ? ceil($hosp->fecha_ingreso->diffInDays($hosp->fecha_alta))
+                    : 0;
+
+                fputcsv($file, [
+                    $hosp->id,
+                    $hosp->paciente?->nombre ?? 'N/A',
+                    $hosp->ci_paciente,
+                    $hosp->fecha_ingreso?->format('d/m/Y H:i'),
+                    $hosp->fecha_alta?->format('d/m/Y H:i') ?? 'N/A',
+                    $dias,
+                    $hosp->medico?->user?->name ?? 'N/A',
+                    $hosp->diagnostico ?? 'Sin diagnóstico',
+                    number_format($hosp->total_estancia ?? 0, 2, ',', '.'),
+                    $hosp->fecha_alta ? 'Alta' : 'Activo',
+                ], ';');
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

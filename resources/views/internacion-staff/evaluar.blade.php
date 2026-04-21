@@ -58,13 +58,24 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="border-b border-gray-200">
             <nav class="flex -mb-px" aria-label="Tabs">
-                <button onclick="mostrarTab('medicamentos')" id="tab-medicamentos" class="tab-btn border-b-2 border-indigo-500 text-indigo-600 py-4 px-6 font-medium text-sm flex items-center gap-2">
+                @if(in_array('editar_diagnostico', $userPermissions) || in_array('ver_historial_internacion', $userPermissions) || empty($userPermissions))
+                <button onclick="mostrarTab('receta')" id="tab-receta" class="tab-btn border-b-2 border-blue-500 text-blue-600 py-4 px-6 font-medium text-sm flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Receta / Diagnóstico
+                </button>
+                @endif
+                @if(in_array('administrar_medicamentos', $userPermissions) || empty($userPermissions))
+                <button onclick="mostrarTab('medicamentos')" id="tab-medicamentos" class="tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 py-4 px-6 font-medium text-sm flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                     </svg>
                     Medicamentos
                     <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs" id="count-medicamentos">0</span>
                 </button>
+                @endif
+                @if(in_array('administrar_catering', $userPermissions) || empty($userPermissions))
                 <button onclick="mostrarTab('catering')" id="tab-catering" class="tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 py-4 px-6 font-medium text-sm flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -72,6 +83,8 @@
                     Catering
                     <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs" id="count-catering">0</span>
                 </button>
+                @endif
+                @if(in_array('administrar_drenajes', $userPermissions) || empty($userPermissions))
                 <button onclick="mostrarTab('drenajes')" id="tab-drenajes" class="tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 py-4 px-6 font-medium text-sm flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
@@ -79,11 +92,99 @@
                     Drenajes
                     <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs" id="count-drenajes">0</span>
                 </button>
+                @endif
             </nav>
         </div>
 
+        <!-- Tab Receta / Diagnóstico -->
+        <div id="panel-receta" class="tab-panel p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Información Médica Actual -->
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200 px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-blue-900">Información Médica</h3>
+                                <p class="text-xs text-blue-600">Diagnóstico y tratamiento actual</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        @if($hospitalizacion->motivo)
+                        <div class="border-l-4 border-blue-400 pl-4">
+                            <h4 class="text-sm font-semibold text-blue-700 mb-1">Motivo de Internación</h4>
+                            <p class="text-sm text-gray-700">{{ $hospitalizacion->motivo }}</p>
+                        </div>
+                        @endif
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Diagnóstico</label>
+                            <textarea id="diagnosticoText" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" placeholder="Ingrese el diagnóstico del paciente..." {{ !in_array('editar_diagnostico', $userPermissions) && !empty($userPermissions) ? 'readonly' : '' }}>{{ $hospitalizacion->diagnostico }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tratamiento / Indicaciones</label>
+                            <textarea id="tratamientoText" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" placeholder="Ingrese el tratamiento o indicaciones..." {{ !in_array('editar_diagnostico', $userPermissions) && !empty($userPermissions) ? 'readonly' : '' }}>{{ $hospitalizacion->tratamiento }}</textarea>
+                        </div>
+                        @if(in_array('editar_diagnostico', $userPermissions) || empty($userPermissions))
+                        <button onclick="guardarReceta()" class="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Guardar Cambios
+                        </button>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Datos de Emergencia (si existe) -->
+                @if($hospitalizacion->nro_emergencia)
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-200 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center shadow-md">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-red-900">Datos de Emergencia</h3>
+                                    <p class="text-xs text-red-600">Origen: {{ $hospitalizacion->nro_emergencia }}</p>
+                                </div>
+                            </div>
+                            <a href="{{ route('emergency-staff.historial', $hospitalizacion->nro_emergencia) }}" target="_blank" class="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-lg hover:bg-red-200 transition">
+                                Ver historial →
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6" id="datosEmergencia">
+                        <div class="text-center py-8">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-gray-400">Cargando datos de emergencia...</p>
+                        </div>
+                    </div>
+                </div>
+                @else
+                <div class="bg-gray-50 rounded-xl border border-gray-200 p-6 flex items-center justify-center">
+                    <div class="text-center">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-gray-500">Este paciente no proviene de emergencia</p>
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+
         <!-- Tab Medicamentos -->
-        <div id="panel-medicamentos" class="tab-panel p-6">
+        <div id="panel-medicamentos" class="tab-panel p-6 hidden">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Formulario -->
                 <div class="lg:col-span-1">
@@ -243,7 +344,7 @@
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
         // Desactivar todos los tabs
         document.querySelectorAll('.tab-btn').forEach(t => {
-            t.classList.remove('border-indigo-500', 'text-indigo-600', 'border-orange-500', 'text-orange-600', 'border-cyan-500', 'text-cyan-600');
+            t.classList.remove('border-blue-500', 'text-blue-600', 'border-indigo-500', 'text-indigo-600', 'border-orange-500', 'text-orange-600', 'border-cyan-500', 'text-cyan-600');
             t.classList.add('border-transparent', 'text-gray-500');
         });
 
@@ -253,7 +354,9 @@
         // Activar tab
         const tabBtn = document.getElementById(`tab-${tab}`);
         tabBtn.classList.remove('border-transparent', 'text-gray-500');
-        if (tab === 'medicamentos') {
+        if (tab === 'receta') {
+            tabBtn.classList.add('border-blue-500', 'text-blue-600');
+        } else if (tab === 'medicamentos') {
             tabBtn.classList.add('border-indigo-500', 'text-indigo-600');
         } else if (tab === 'catering') {
             tabBtn.classList.add('border-orange-500', 'text-orange-600');
@@ -615,9 +718,114 @@
         }
     });
 
+    // ==================== RECETA / DIAGNÓSTICO ====================
+    async function guardarReceta() {
+        const diagnostico = document.getElementById('diagnosticoText').value;
+        const tratamiento = document.getElementById('tratamientoText').value;
+
+        try {
+            const response = await fetch(`/internacion-staff/api/internacion/${hospitalizacionId}/receta`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    diagnostico: diagnostico,
+                    tratamiento: tratamiento
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('Información médica guardada correctamente');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al guardar la información médica');
+        }
+    }
+
+    @if($hospitalizacion->nro_emergencia)
+    // Cargar datos de emergencia
+    async function cargarDatosEmergencia() {
+        try {
+            const response = await fetch(`/emergency-staff/api/emergency/{{ $hospitalizacion->nro_emergencia }}`);
+            const data = await response.json();
+
+            if (data.success && data.emergency) {
+                const emg = data.emergency;
+                let html = '';
+
+                if (emg.symptoms || emg.initial_assessment || emg.treatment || emg.observations) {
+                    html += '<div class="space-y-4">';
+
+                    if (emg.symptoms) {
+                        html += `
+                            <div class="border-l-4 border-red-400 pl-4">
+                                <h4 class="text-sm font-semibold text-red-700 mb-1">Síntomas</h4>
+                                <p class="text-sm text-gray-700">${emg.symptoms}</p>
+                            </div>
+                        `;
+                    }
+
+                    if (emg.initial_assessment) {
+                        html += `
+                            <div class="border-l-4 border-orange-400 pl-4">
+                                <h4 class="text-sm font-semibold text-orange-700 mb-1">Evaluación Inicial</h4>
+                                <p class="text-sm text-gray-700">${emg.initial_assessment}</p>
+                            </div>
+                        `;
+                    }
+
+                    if (emg.treatment) {
+                        html += `
+                            <div class="border-l-4 border-amber-400 pl-4">
+                                <h4 class="text-sm font-semibold text-amber-700 mb-1">Tratamiento en Emergencia</h4>
+                                <p class="text-sm text-gray-700">${emg.treatment}</p>
+                            </div>
+                        `;
+                    }
+
+                    if (emg.observations) {
+                        html += `
+                            <div class="border-l-4 border-yellow-400 pl-4">
+                                <h4 class="text-sm font-semibold text-yellow-700 mb-1">Observaciones</h4>
+                                <p class="text-sm text-gray-700">${emg.observations}</p>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                } else {
+                    html = `
+                        <div class="text-center py-6">
+                            <p class="text-gray-400">No hay datos adicionales de emergencia</p>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('datosEmergencia').innerHTML = html;
+            }
+        } catch (error) {
+            console.error('Error al cargar datos de emergencia:', error);
+            document.getElementById('datosEmergencia').innerHTML = `
+                <div class="text-center py-6">
+                    <p class="text-gray-400">Error al cargar datos de emergencia</p>
+                </div>
+            `;
+        }
+    }
+    @endif
+
     // Cargar primera tab al iniciar
     document.addEventListener('DOMContentLoaded', function() {
         cargarMedicamentos();
+        @if($hospitalizacion->nro_emergencia)
+        cargarDatosEmergencia();
+        @endif
     });
 </script>
 @endsection

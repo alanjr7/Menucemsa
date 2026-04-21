@@ -14,24 +14,24 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 
-class EmergencyNurseController extends Controller
+class InternacionNurseController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:emergencia|admin');
+        $this->middleware('role:internacion|admin');
     }
 
     /**
-     * Listar enfermeras de emergencia
+     * Listar enfermeras de internación
      */
     public function index(): View
     {
-        $enfermeras = Enfermera::emergencia()
+        $enfermeras = Enfermera::internacion()
             ->with('user')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('emergency-staff.enfermeras.index', compact('enfermeras'));
+        return view('internacion-staff.enfermeras.index', compact('enfermeras'));
     }
 
     /**
@@ -39,7 +39,7 @@ class EmergencyNurseController extends Controller
      */
     public function create(): View
     {
-        return view('emergency-staff.enfermeras.create');
+        return view('internacion-staff.enfermeras.create');
     }
 
     /**
@@ -51,7 +51,7 @@ class EmergencyNurseController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
-                'password' => ['required', 'confirmed', Password::defaults()],
+                'password' => ['required', 'confirmed', 'min:8'],
                 'ci' => 'required|integer|unique:enfermeras,ci',
                 'telefono' => 'nullable|string|max:20',
                 'turno' => 'required|in:mañana,tarde,noche',
@@ -59,12 +59,12 @@ class EmergencyNurseController extends Controller
 
             DB::beginTransaction();
 
-            // Crear usuario con rol enfermera-emergencia
+            // Crear usuario con rol enfermera-internacion
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'role' => 'enfermera-emergencia',
+                'role' => 'enfermera-internacion',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]);
@@ -74,29 +74,39 @@ class EmergencyNurseController extends Controller
                 'user_id' => $user->id,
                 'ci' => $validated['ci'],
                 'telefono' => $validated['telefono'] ?? null,
-                'tipo' => 'Enfermera de Emergencia',
+                'tipo' => 'Enfermera de Internación',
                 'estado' => 'activo',
-                'area' => 'emergencia',
+                'area' => 'internacion',
                 'turno' => $validated['turno'],
             ]);
 
-            // Asignar permisos por defecto
-            $enfermera->assignDefaultPermissions(auth()->id());
+            // Asignar permisos por defecto para internación
+            $grantedBy = auth()->check() ? auth()->id() : null;
+            $enfermera->assignDefaultPermissions($grantedBy);
 
             // Registrar en auditoría
             \App\Services\ActivityLogService::log(
-                'crear_enfermera',
-                'Enfermera de emergencia creada: ' . $user->name,
+                'crear_enfermera_internacion',
+                'Enfermera de internación creada: ' . $user->name,
                 $enfermera
             );
 
             DB::commit();
 
-            return redirect()->route('emergency-staff.enfermeras.index')
-                ->with('success', 'Enfermera de emergencia creada exitosamente.');
+            return redirect()->route('internacion-staff.enfermeras.index')
+                ->with('success', 'Enfermera de internación creada exitosamente.');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         } catch (\Exception $e) {
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            \Log::error('Error al crear enfermera internacion: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect()->back()
                 ->with('error', 'Error al crear la enfermera: ' . $e->getMessage())
                 ->withInput();
@@ -112,12 +122,12 @@ class EmergencyNurseController extends Controller
         
         // Obtener actividad reciente
         $actividad = ActivityLog::where('user_id', $enfermera->user_id)
-            ->where('model_type', 'App\Models\Emergency')
+            ->whereIn('model_type', ['App\Models\Hospitalizacion', 'App\Models\HospMedicamentoAdministrado', 'App\Models\HospCatering', 'App\Models\HospDrenaje'])
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();
 
-        return view('emergency-staff.enfermeras.show', compact('enfermera', 'actividad'));
+        return view('internacion-staff.enfermeras.show', compact('enfermera', 'actividad'));
     }
 
     /**
@@ -126,7 +136,7 @@ class EmergencyNurseController extends Controller
     public function edit(Enfermera $enfermera): View
     {
         $enfermera->load('user');
-        return view('emergency-staff.enfermeras.edit', compact('enfermera'));
+        return view('internacion-staff.enfermeras.edit', compact('enfermera'));
     }
 
     /**
@@ -177,8 +187,8 @@ class EmergencyNurseController extends Controller
 
             // Registrar en auditoría
             \App\Services\ActivityLogService::log(
-                'actualizar_enfermera',
-                'Enfermera de emergencia actualizada: ' . $user->name,
+                'actualizar_enfermera_internacion',
+                'Enfermera de internación actualizada: ' . $user->name,
                 $enfermera,
                 $oldValues,
                 $newValues
@@ -186,7 +196,7 @@ class EmergencyNurseController extends Controller
 
             DB::commit();
 
-            return redirect()->route('emergency-staff.enfermeras.index')
+            return redirect()->route('internacion-staff.enfermeras.index')
                 ->with('success', 'Enfermera actualizada exitosamente.');
 
         } catch (\Exception $e) {
@@ -209,12 +219,12 @@ class EmergencyNurseController extends Controller
 
             // Registrar en auditoría antes de eliminar
             \App\Services\ActivityLogService::log(
-                'eliminar_enfermera',
-                'Enfermera de emergencia eliminada: ' . $userName,
+                'eliminar_enfermera_internacion',
+                'Enfermera de internación eliminada: ' . $userName,
                 $enfermera
             );
 
-            // Eliminar enfermera (el usuario se mantiene o se elimina según necesidad)
+            // Eliminar enfermera
             $enfermera->delete();
             
             // Desactivar el usuario asociado
@@ -224,7 +234,7 @@ class EmergencyNurseController extends Controller
 
             DB::commit();
 
-            return redirect()->route('emergency-staff.enfermeras.index')
+            return redirect()->route('internacion-staff.enfermeras.index')
                 ->with('success', 'Enfermera eliminada exitosamente.');
 
         } catch (\Exception $e) {
@@ -250,7 +260,7 @@ class EmergencyNurseController extends Controller
 
             // Registrar en auditoría
             \App\Services\ActivityLogService::log(
-                'cambiar_estado_enfermera',
+                'cambiar_estado_enfermera_internacion',
                 'Estado de enfermera cambiado: ' . ($enfermera->user?->name ?? 'Desconocida') . ' → ' . $nuevoEstado,
                 $enfermera
             );
@@ -280,106 +290,7 @@ class EmergencyNurseController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return view('emergency-staff.enfermeras.actividad', compact('enfermera', 'actividad'));
-    }
-
-    /**
-     * Panel de auditoría general
-     */
-    public function auditoria(Request $request): View
-    {
-        $enfermeras = Enfermera::emergencia()->with('user')->get();
-        
-        $query = ActivityLog::whereIn('user_id', function($q) {
-                $q->select('user_id')
-                  ->from('enfermeras')
-                  ->where('area', 'emergencia');
-            })
-            ->with('user')
-            ->orderBy('created_at', 'desc');
-
-        // Filtros
-        if ($request->filled('enfermera_id')) {
-            $query->where('user_id', $request->enfermera_id);
-        }
-
-        if ($request->filled('action')) {
-            $query->where('action', $request->action);
-        }
-
-        if ($request->filled('fecha_desde')) {
-            $query->whereDate('created_at', '>=', $request->fecha_desde);
-        }
-
-        if ($request->filled('fecha_hasta')) {
-            $query->whereDate('created_at', '<=', $request->fecha_hasta);
-        }
-
-        $actividades = $query->paginate(30)->withQueryString();
-        
-        // Obtener tipos de acciones únicos para el filtro
-        $tiposAcciones = ActivityLog::whereIn('user_id', function($q) {
-                $q->select('user_id')
-                  ->from('enfermeras')
-                  ->where('area', 'emergencia');
-            })
-            ->distinct()
-            ->pluck('action');
-
-        return view('emergency-staff.auditoria', compact(
-            'actividades', 
-            'enfermeras', 
-            'tiposAcciones'
-        ));
-    }
-
-    /**
-     * API: Obtener datos de auditoría (para AJAX)
-     */
-    public function apiAuditoria(Request $request): JsonResponse
-    {
-        $query = ActivityLog::whereIn('user_id', function($q) {
-                $q->select('user_id')
-                  ->from('enfermeras')
-                  ->where('area', 'emergencia');
-            })
-            ->with('user')
-            ->orderBy('created_at', 'desc');
-
-        // Filtros
-        if ($request->filled('enfermera_id')) {
-            $query->where('user_id', $request->enfermera_id);
-        }
-
-        if ($request->filled('action')) {
-            $query->where('action', $request->action);
-        }
-
-        if ($request->filled('fecha_desde')) {
-            $query->whereDate('created_at', '>=', $request->fecha_desde);
-        }
-
-        if ($request->filled('fecha_hasta')) {
-            $query->whereDate('created_at', '<=', $request->fecha_hasta);
-        }
-
-        $actividades = $query->limit(100)->get()->map(function($log) {
-            return [
-                'id' => $log->id,
-                'fecha' => $log->created_at->format('d/m/Y H:i'),
-                'usuario' => $log->user?->name ?? 'Desconocido',
-                'accion' => $log->action,
-                'descripcion' => $log->description,
-                'model_type' => $log->model_type,
-                'model_id' => $log->model_id,
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'actividades' => $actividades,
-            'total' => $actividades->count(),
-        ]);
+        return view('internacion-staff.enfermeras.actividad', compact('enfermera', 'actividad'));
     }
 
     /**
@@ -395,7 +306,7 @@ class EmergencyNurseController extends Controller
         // Obtener todos los permisos disponibles
         $availablePermissions = EnfermeraPermission::AVAILABLE_PERMISSIONS;
 
-        return view('emergency-staff.enfermeras.permissions', compact(
+        return view('internacion-staff.enfermeras.permissions', compact(
             'enfermera',
             'currentPermissions',
             'availablePermissions'
@@ -415,6 +326,9 @@ class EmergencyNurseController extends Controller
 
             DB::beginTransaction();
 
+            // Guardar permisos anteriores para auditoría
+            $permisosAnteriores = $enfermera->getPermissionKeys();
+
             // Eliminar permisos actuales
             $enfermera->permissions()->delete();
 
@@ -429,16 +343,16 @@ class EmergencyNurseController extends Controller
 
             // Registrar en auditoría
             \App\Services\ActivityLogService::log(
-                'actualizar_permisos_enfermera',
+                'actualizar_permisos_enfermera_internacion',
                 'Permisos actualizados para: ' . ($enfermera->user?->name ?? 'Enfermera'),
                 $enfermera,
-                ['permisos_anteriores' => $enfermera->getPermissionKeys()],
+                ['permisos_anteriores' => $permisosAnteriores],
                 ['permisos_nuevos' => $permissions]
             );
 
             DB::commit();
 
-            return redirect()->route('emergency-staff.enfermeras.index')
+            return redirect()->route('internacion-staff.enfermeras.index')
                 ->with('success', 'Permisos actualizados exitosamente.');
 
         } catch (\Exception $e) {

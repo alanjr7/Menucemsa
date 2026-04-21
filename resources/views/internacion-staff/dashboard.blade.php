@@ -1,12 +1,38 @@
 @extends('layouts.app')
 
+@php
+// Obtener permisos del usuario actual
+$user = auth()->user();
+$userPermissions = [];
+
+if ($user->isEnfermeraInternacion()) {
+    $enfermera = \App\Models\Enfermera::where('user_id', $user->id)->first();
+    if ($enfermera) {
+        $userPermissions = $enfermera->getPermissionKeys();
+    }
+} else {
+    // Roles internacion, admin, dirmedico tienen todos los permisos
+    $userPermissions = array_keys(\App\Models\EnfermeraPermission::AVAILABLE_PERMISSIONS);
+}
+
+// Helper function to check permission
+$hasPermission = function($permission) use ($userPermissions) {
+    return in_array($permission, $userPermissions);
+};
+@endphp
+
 @section('content')
 <div class="p-6 bg-gray-50/50 min-h-screen">
     <!-- Header -->
     <div class="flex justify-between items-end mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Dashboard de Internación</h1>
-            <p class="text-sm text-gray-500">Personal de Internación - Gestión de pacientes</p>
+            @if(auth()->user()->isEnfermeraInternacion())
+                <h1 class="text-2xl font-bold text-gray-800">Panel de Enfermería Internación</h1>
+                <p class="text-sm text-gray-500">Enfermera Internación - Atención de pacientes</p>
+            @else
+                <h1 class="text-2xl font-bold text-gray-800">Dashboard de Internación</h1>
+                <p class="text-sm text-gray-500">Personal de Internación - Gestión de pacientes</p>
+            @endif
         </div>
         <div class="flex gap-3">
             <button onclick="cargarInternaciones()" class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all shadow-sm">
@@ -15,17 +41,35 @@
                 </svg>
                 Actualizar
             </button>
+            @if(auth()->user()->isInternacion() || auth()->user()->isAdmin())
             <a href="{{ route('internacion-staff.habitaciones.index') }}" class="flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all shadow-sm">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
                 Gestionar Habitaciones
             </a>
+            @endif
+            @if(auth()->user()->isInternacion() || auth()->user()->isAdmin())
             <a href="{{ route('internacion-staff.medicamentos.index') }}" class="flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                 </svg>
                 Gestionar Medicamentos
+            </a>
+            @endif
+            @if(auth()->user()->isInternacion() || auth()->user()->isAdmin())
+            <a href="{{ route('internacion-staff.enfermeras.index') }}" class="flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition-all shadow-sm">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Gestionar Enfermeras
+            </a>
+            @endif
+            <a href="{{ route('internacion-staff.historial-general') }}" class="flex items-center px-4 py-2 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 transition-all shadow-sm">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Historial de Altas
             </a>
         </div>
     </div>
@@ -114,6 +158,7 @@
         
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @if($hasPermission('cambiar_estados_internacion'))
                 <button onclick="cambiarEstado('estable')" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
                     <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
                         <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +182,9 @@
                         <p class="text-xs text-gray-500">Paciente en estado crítico</p>
                     </div>
                 </button>
+                @endif
 
+                @if($hasPermission('derivar_a_uti'))
                 <button onclick="derivarAUti()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-left">
                     <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
                         <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +196,9 @@
                         <p class="text-xs text-gray-500">Unidad de Terapia Intensiva</p>
                     </div>
                 </button>
+                @endif
 
+                @if($hasPermission('dar_alta_internacion'))
                 <button onclick="darAlta()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
                     <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
                         <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,6 +210,7 @@
                         <p class="text-xs text-gray-500">Dar de alta al paciente</p>
                     </div>
                 </button>
+                @endif
 
                 <div class="border-t border-gray-200 my-3 col-span-full"></div>
 
@@ -175,6 +225,20 @@
                         <p class="text-xs text-gray-500">Medicamentos, catering, drenajes...</p>
                     </div>
                 </a>
+
+                @if($hasPermission('ver_historial_internacion'))
+                <a id="linkHistorial" href="#" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition-all text-left">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-800">Ver Historial</span>
+                        <p class="text-xs text-gray-500">Historial completo, cuenta, diagnóstico...</p>
+                    </div>
+                </a>
+                @endif
             </div>
         </div>
     </div>
@@ -301,6 +365,9 @@
 
             // Actualizar link de evaluar
             document.getElementById('linkEvaluar').href = `/internacion-staff/evaluar/${internacionSeleccionada.id}`;
+
+            // Actualizar link de historial
+            document.getElementById('linkHistorial').href = `/internacion-staff/historial/${internacionSeleccionada.id}`;
         }
     }
 
