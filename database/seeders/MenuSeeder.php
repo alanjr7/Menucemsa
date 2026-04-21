@@ -151,7 +151,6 @@ class MenuSeeder extends Seeder
             // Gestión Hospitalaria
             ['name' => 'Almacén Central', 'route' => 'admin.almacen-medicamentos.index', 'order' => 10],
             ['name' => 'Farmacias', 'route' => 'farmacias.index', 'order' => 11],
-            ['name' => 'Medicamentos', 'route' => 'medicamentos.index', 'order' => 12],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'order' => 13],
 
             // Gestión Operativa y Financiera
@@ -227,7 +226,7 @@ class MenuSeeder extends Seeder
         // 11.5 Administración de Internación (Admin/Director Médico)
         $adminInternacion = Menu::create([
             'name' => 'Admin Internación',
-            'active_pattern' => 'hospitalizacion*,internacion-staff/habitaciones*',
+            'active_pattern' => 'internacion-staff/habitaciones*',
             'icon_path' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
             'color' => 'blue',
             'roles' => 'admin,dir_medico',
@@ -235,10 +234,9 @@ class MenuSeeder extends Seeder
         ]);
 
         $adminInternacion->children()->createMany([
-            ['name' => 'Hospitalización', 'route' => 'hospitalizacion.index', 'roles' => 'admin,dir_medico', 'order' => 1],
-            ['name' => 'Gestión Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,dir_medico', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'admin', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'admin', 'order' => 4],
+            ['name' => 'Gestión Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,dir_medico', 'order' => 1],
+            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'admin', 'order' => 2],
+            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'admin', 'order' => 3],
         ]);
 
         // 12. Gerencial

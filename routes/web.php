@@ -228,7 +228,6 @@ Route::middleware('auth')->group(function () {
     // Rutas médicas (admin, dirmedico y doctor) - SIN duplicar rutas de quirofano
     Route::middleware(['role:admin|dirmedico|doctor'])->group(function () {
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
-        Route::get('/hospitalizacion', [MedicalHospitalizacionController::class, 'index'])->name('hospitalizacion.index');
         // Rutas de control administrativo para consulta externa (solo admin)
         Route::get('/consulta-externa/historial/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verHistorialMedico'])->name('consulta.historial-medico');
         Route::get('/consulta-externa/pacientes/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verPacientesMedico'])->name('consulta.pacientes-medicos');
