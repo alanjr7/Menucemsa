@@ -130,7 +130,7 @@
                 <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-                <h3 class="font-bold text-purple-800">Pacientes de Emergencia en Quirófano</h3>
+                <h3 class="font-bold text-purple-800">Pacientes en Quirófano</h3>
             </div>
             <span class="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
                 {{ $emergenciasEnQuirofano->count() }} paciente(s)
@@ -145,7 +145,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Cirugía</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora Ingreso</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origen</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -177,7 +177,18 @@
                             {{ $emg['hora_ingreso'] }}
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="text-sm text-gray-600">{{ $emg['tipo_ingreso'] }}</span>
+                            @php
+                                $origenColor = match($emg['origen_label'] ?? '') {
+                                    'Derivado desde Internación' => 'bg-blue-100 text-blue-800',
+                                    'Ingreso desde Recepción' => 'bg-purple-100 text-purple-800',
+                                    'Derivado desde Emergencia' => 'bg-red-100 text-red-800',
+                                    'Derivado desde UTI' => 'bg-orange-100 text-orange-800',
+                                    default => 'bg-gray-100 text-gray-800',
+                                };
+                            @endphp
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $origenColor }}">
+                                {{ $emg['origen_label'] ?? $emg['tipo_ingreso'] }}
+                            </span>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-center">
                             <div class="flex flex-col gap-2">
@@ -571,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function iniciarAutoRefresh() {
     autoRefresh = new AutoRefresh({
-        interval: 5000,
+        interval: 3000,
         endpoint: '{{ route('quirofano.api.dashboard') }}',
         onData: (data) => {
             if (data.success) {

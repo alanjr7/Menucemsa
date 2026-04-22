@@ -109,6 +109,7 @@ class EmergencyIngresoController extends Controller
                 'message' => 'Paciente registrado en emergencia exitosamente',
                 'emergency_code' => $emergencyCode,
                 'emergency_id' => $emergency->id,
+                'redirect_url' => route('reception.emergencia.comprobante', $emergency->id),
                 'paciente' => [
                     'id' => $paciente->ci ?? $paciente->id,
                     'nombre' => $paciente->nombre ?? ($request->nombres . ' ' . $request->apellidos),
@@ -441,5 +442,18 @@ class EmergencyIngresoController extends Controller
         );
         
         return $triage->id;
+    }
+
+    /**
+     * Mostrar comprobante de emergencia
+     */
+    public function comprobante($id)
+    {
+        $emergencia = Emergency::with(['paciente', 'user'])->findOrFail($id);
+        
+        // Decodificar signos vitales si existen
+        $vitalSigns = json_decode($emergencia->vital_signs, true) ?? [];
+        
+        return view('reception.emergencia-comprobante', compact('emergencia', 'vitalSigns'));
     }
 }

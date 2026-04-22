@@ -320,9 +320,11 @@
     </div>
 
     @push('scripts')
+    <script src="{{ asset('js/auto-refresh.js') }}"></script>
     <script>
         let cuentaActual = null;
         let pacientesData = [];
+        let autoRefresh = null;
 
         // Definir componente Alpine.js
         function cajaOperativa() {
@@ -345,7 +347,57 @@
             cargarPacientesPendientes();
             cargarPacientesUti();
             cargarResumenDia();
+            iniciarAutoRefresh();
         });
+
+        // Iniciar auto-refresh cada 3 segundos
+        function iniciarAutoRefresh() {
+            autoRefresh = new AutoRefresh({
+                interval: 3000,
+                endpoint: '{{ route("caja.operativa.resumen-dia") }}',
+                onData: (data) => {
+                    if (data.success) {
+                        // Actualizar estadísticas
+                        document.getElementById('totalCobrado').textContent = 'S/ ' + parseFloat(data.resumen.totales.general).toFixed(2);
+                        document.getElementById('totalTransacciones').textContent = data.resumen.transacciones.total;
+                        document.getElementById('totalPendientes').textContent = data.resumen.cuentas.pendientes;
+                        document.getElementById('totalParciales').textContent = data.resumen.cuentas.parciales;
+
+                        // Actualizar métodos de pago
+                        const metodos = [
+                            { key: 'efectivo', label: 'Efectivo', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z', color: 'green' },
+                            { key: 'transferencia', label: 'Transferencia', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', color: 'blue' },
+                            { key: 'tarjeta', label: 'Tarjeta', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', color: 'purple' },
+                            { key: 'qr', label: 'QR', icon: 'M12 4v1m6 11h2m-6 0h-2v4h2v-4zM8 12h2v4H8v-4zm-2 4h2v4H6v-4zm10-4h2v4h-2v-4zM6 8h2v4H6V8zm10 0h2v4h-2V8z', color: 'orange' }
+                        ];
+
+                        document.getElementById('metodosPago').innerHTML = metodos.map(m => `
+                            <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                                <div class="p-2 rounded-full bg-${m.color}-100">
+                                    <svg class="w-5 h-5 text-${m.color}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${m.icon}"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-xs text-gray-500">${m.label}</p>
+                                    <p class="text-sm font-bold text-gray-900">S/ ${parseFloat(data.resumen.totales[m.key] || 0).toFixed(2)}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                },
+                onError: (err) => {
+                    console.warn('Error al actualizar datos de caja:', err);
+                }
+            });
+            autoRefresh.start();
+
+            // Auto-refresh para pacientes pendientes y UTI
+            setInterval(() => {
+                cargarPacientesPendientes();
+                cargarPacientesUti();
+            }, 3000);
+        }
 
         // Cargar pacientes con cuenta pendiente
         async function cargarPacientesPendientes() {

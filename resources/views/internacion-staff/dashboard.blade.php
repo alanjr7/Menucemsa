@@ -109,11 +109,9 @@ $hasPermission = function($permission) use ($userPermissions) {
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 rounded-l-lg">Código</th>
-                        <th scope="col" class="px-6 py-3">Paciente</th>
-                        <th scope="col" class="px-6 py-3">Tipo</th>
-                        <th scope="col" class="px-6 py-3">Servicio</th>
+                        <th scope="col" class="px-6 py-3 rounded-l-lg">Paciente</th>
                         <th scope="col" class="px-6 py-3">Habitación</th>
+                        <th scope="col" class="px-6 py-3">Médico</th>
                         <th scope="col" class="px-6 py-3">Ingreso</th>
                         <th scope="col" class="px-6 py-3">Estado</th>
                         <th scope="col" class="px-6 py-3 rounded-r-lg">Acciones</th>
@@ -121,7 +119,7 @@ $hasPermission = function($permission) use ($userPermissions) {
                 </thead>
                 <tbody id="tabla-internaciones">
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-gray-400">
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-400">
                             <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                             </svg>
@@ -193,6 +191,20 @@ $hasPermission = function($permission) use ($userPermissions) {
                 </button>
                 @endif
 
+                @if($hasPermission('derivar_a_quirofano'))
+                <button onclick="derivarAQuirofano()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-cyan-50 hover:border-cyan-300 transition-all text-left">
+                    <div class="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-800">Enviar a Quirófano</span>
+                        <p class="text-xs text-gray-500">Derivar a cirugía</p>
+                    </div>
+                </button>
+                @endif
+
                 @if($hasPermission('dar_alta_internacion'))
                 <button onclick="darAlta()" class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-left">
                     <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
@@ -239,16 +251,48 @@ $hasPermission = function($permission) use ($userPermissions) {
     </div>
 </div>
 
+<script src="{{ asset('js/auto-refresh.js') }}"></script>
 <script>
     let internacionSeleccionada = null;
     let datosInternaciones = [];
+    let autoRefresh = null;
 
     // Cargar internaciones al iniciar
     document.addEventListener('DOMContentLoaded', function() {
         cargarInternaciones();
+        iniciarAutoRefresh();
     });
 
+    function iniciarAutoRefresh() {
+        const filtro = document.getElementById('filtro-estado').value;
+        let endpoint = '/internacion-staff/api/internaciones';
+        if (filtro !== 'todos') {
+            endpoint += `?estado=${filtro}`;
+        }
+
+        autoRefresh = new AutoRefresh({
+            interval: 3000,
+            endpoint: endpoint,
+            onData: (data) => {
+                if (data.success) {
+                    datosInternaciones = data.internaciones;
+                    mostrarInternaciones(data.internaciones);
+                    actualizarStats(data.stats);
+                }
+            },
+            onError: (err) => {
+                console.warn('Error al actualizar datos:', err);
+            }
+        });
+        autoRefresh.start();
+    }
+
     async function cargarInternaciones() {
+        // Reiniciar auto-refresh con el nuevo filtro
+        if (autoRefresh) {
+            autoRefresh.stop();
+        }
+
         try {
             const filtro = document.getElementById('filtro-estado').value;
             let url = '/internacion-staff/api/internaciones';
@@ -264,11 +308,14 @@ $hasPermission = function($permission) use ($userPermissions) {
                 mostrarInternaciones(data.internaciones);
                 actualizarStats(data.stats);
             }
+
+            // Reiniciar auto-refresh con el nuevo filtro
+            iniciarAutoRefresh();
         } catch (error) {
             console.error('Error al cargar internaciones:', error);
             document.getElementById('tabla-internaciones').innerHTML = `
                 <tr>
-                    <td colspan="8" class="px-6 py-8 text-center text-gray-400">
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
                         <p>Error al cargar pacientes</p>
                     </td>
                 </tr>
@@ -282,7 +329,7 @@ $hasPermission = function($permission) use ($userPermissions) {
         if (internaciones.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="px-6 py-8 text-center text-gray-400">
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
                         <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
@@ -314,18 +361,16 @@ $hasPermission = function($permission) use ($userPermissions) {
 
             return `
                 <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 font-medium text-gray-900">${int.codigo}</td>
                     <td class="px-6 py-4">
                         <div class="font-medium text-gray-900">${int.paciente_nombre}</div>
                         <div class="text-xs text-gray-500">CI: ${int.paciente_id}</div>
                     </td>
-                    <td class="px-6 py-4 capitalize">${int.tipo}</td>
-                    <td class="px-6 py-4">${int.servicio || '-'}</td>
                     <td class="px-6 py-4">
-                        <span class="${int.habitacion === 'Por asignar' ? 'text-yellow-600' : 'text-gray-900'}">
+                        <span class="${int.habitacion === 'Por asignar' ? 'text-yellow-600 font-medium' : 'text-gray-900'}">
                             ${int.habitacion}
                         </span>
                     </td>
+                    <td class="px-6 py-4 text-gray-700">${int.medico}</td>
                     <td class="px-6 py-4">
                         <div class="text-gray-900">${int.fecha_ingreso}</div>
                         <div class="text-xs text-gray-500">${int.hora_ingreso}</div>
@@ -424,6 +469,36 @@ $hasPermission = function($permission) use ($userPermissions) {
         } catch (error) {
             console.error('Error:', error);
             alert('Error al derivar a UTI');
+        }
+    }
+
+    async function derivarAQuirofano() {
+        if (!internacionSeleccionada) return;
+
+        if (!confirm('¿Está seguro de enviar este paciente a Quirófano?')) return;
+
+        try {
+            const response = await fetch(`/internacion-staff/api/internacion/${internacionSeleccionada.id}/derivar-quirofano`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Paciente derivado a Quirófano correctamente. Nro de cirugía: ' + data.cirugia.nro_cirugia);
+                cerrarModal();
+                cargarInternaciones();
+            } else {
+                console.error('Error completo al derivar:', data);
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al derivar a Quirófano');
         }
     }
 

@@ -100,6 +100,12 @@ class EnfermeraPermission extends Model
             'icon' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
             'default' => false,
         ],
+        'derivar_a_quirofano' => [
+            'label' => 'Derivar a Quirófano',
+            'description' => 'Enviar pacientes a Quirófano para cirugía',
+            'icon' => 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z',
+            'default' => false,
+        ],
         'dar_alta_internacion' => [
             'label' => 'Dar de Alta Internación',
             'description' => 'Dar de alta a pacientes de internación',

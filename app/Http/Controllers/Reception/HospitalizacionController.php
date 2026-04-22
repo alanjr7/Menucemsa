@@ -74,7 +74,7 @@ class HospitalizacionController extends Controller
 
             // 3. Crear triage (generalmente amarillo para hospitalización)
             $triage = $this->crearTriagePorTipo('amarillo');
-            $paciente->update(['id_triage' => $triage->id]);
+            $paciente->update(['triage_id' => $triage->id]);
 
             // 4. Crear registro de hospitalización
             $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage);
@@ -87,8 +87,8 @@ class HospitalizacionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Hospitalización registrada exitosamente',
-                'hospitalizacion' => $hospitalizacion->load(['paciente']),
-                'acciones' => $acciones
+                'hospitalizacion_id' => $hospitalizacion->id,
+                'redirect_url' => route('reception.hospitalizacion.comprobante', $hospitalizacion->id)
             ]);
 
         } catch (\Exception $e) {
@@ -117,8 +117,8 @@ class HospitalizacionController extends Controller
                         'nombre' => $hospitalizacion->paciente->nombre,
                         'ci' => $hospitalizacion->paciente->ci
                     ],
-                    'tipo' => strtolower($hospitalizacion->tipo),
-                    'servicio' => $this->getServicioNombre($hospitalizacion->servicio),
+                    'tipo' => 'hospitalizacion',
+                    'servicio' => 'Hospitalización',
                     'motivo' => $hospitalizacion->motivo,
                     'fecha_ingreso' => $hospitalizacion->fecha_ingreso->format('d/m/Y'),
                     'medico' => [
@@ -126,7 +126,7 @@ class HospitalizacionController extends Controller
                             'name' => $hospitalizacion->medico->user->name ?? 'No asignado'
                         ]
                     ],
-                    'habitacion' => $hospitalizacion->habitacion ?? 'Por asignar'
+                    'habitacion' => $hospitalizacion->habitacion_id ?? 'Por asignar'
                 ];
             });
 
@@ -166,17 +166,16 @@ class HospitalizacionController extends Controller
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
+                'seguro_id' => $this->obtenerOCrearSeguro('particular'), // Por defecto para nuevos
                 'id_triage' => null, // Se asignará después
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
-            // Actualizar datos si es necesario
+            // Actualizar datos si es necesario - No tocamos el seguro de pacientes existentes
             $paciente->update([
                 'telefono' => $request->telefono ?? $paciente->telefono,
                 'correo' => $request->correo ?? $paciente->correo,
                 'direccion' => $request->direccion ?? $paciente->direccion,
-                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
             ]);
         }
         
@@ -192,16 +191,13 @@ class HospitalizacionController extends Controller
             'fecha_ingreso' => now(),
             'motivo' => $request->motivo,
             'diagnostico' => $request->diagnostico,
-            'tipo' => strtoupper($request->tipo_hospitalizacion),
-            'servicio' => $request->servicio,
+            'estado' => 'activo',
             'ci_medico' => $request->medico_tratante,
             'ci_paciente' => $paciente->ci,
             'contacto_nombre' => $request->contacto_nombre,
             'contacto_telefono' => $request->contacto_telefono,
             'contacto_parentesco' => $request->contacto_parentesco,
             'contacto_relacion' => $request->contacto_relacion,
-            'observaciones' => $request->observaciones,
-            'id_triage' => $triage->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -214,57 +210,7 @@ class HospitalizacionController extends Controller
         // Acción principal: registro de hospitalización
         $acciones['registro_hospitalizacion'] = true;
 
-        // Requiere cirugía
-        if ($request->boolean('requiere_cirugia')) {
-            $this->obtenerOCrearRegistroMotivo('Cirugía programada - ' . $paciente->ci);
-            $acciones['cirugia_programada'] = true;
-        }
-
-        // Requiere UCI
-        if ($request->boolean('requiere_uci')) {
-            $this->obtenerOCrearRegistroMotivo('Traslado a UCI - ' . $paciente->ci);
-            $acciones['traslado_uci'] = true;
-        }
-
-        // Paciente de alto riesgo
-        if ($request->boolean('paciente_riesgo')) {
-            $this->obtenerOCrearRegistroMotivo('Paciente alto riesgo - ' . $paciente->ci);
-            $acciones['paciente_riesgo'] = true;
-        }
-
-        // Alergias severas
-        if ($request->boolean('alergias_severas')) {
-            $this->obtenerOCrearRegistroMotivo('Alerta de alergias severas - ' . $paciente->ci);
-            $acciones['alerta_alergias'] = true;
-        }
-
-        // Asignar habitación (simulación)
-        $habitacion = $this->asignarHabitacion($hospitalizacion);
-        if ($habitacion) {
-            $hospitalizacion->update(['habitacion' => $habitacion]);
-            $acciones['habitacion_asignada'] = $habitacion;
-        }
-
         return $acciones;
-    }
-
-    private function asignarHabitacion($hospitalizacion)
-    {
-        // Simulación de asignación de habitación
-        $tiposHabitacion = [
-            'cirugia' => 'C-',
-            'emergencia' => 'E-',
-            'observacion' => 'O-',
-            'parto' => 'P-',
-            'tratamiento' => 'T-',
-            'rehabilitacion' => 'R-',
-            'uci' => 'UCI-'
-        ];
-
-        $prefijo = $tiposHabitacion[strtolower($hospitalizacion->tipo)] ?? 'H-';
-        $numero = random_int(1, 20);
-        
-        return $prefijo . str_pad($numero, 3, '0', STR_PAD_LEFT);
     }
 
     private function crearTriagePorTipo(string $tipo)
@@ -272,9 +218,9 @@ class HospitalizacionController extends Controller
         $currentUser = Auth::user();
 
         $map = [
-            'rojo' => ['color' => 'red', 'descripcion' => 'Emergencia', 'prioridad' => 'alta'],
-            'amarillo' => ['color' => 'yellow', 'descripcion' => 'Hospitalización', 'prioridad' => 'media'],
-            'verde' => ['color' => 'green', 'descripcion' => 'Observación', 'prioridad' => 'baja'],
+            'rojo' => ['color' => 'red', 'descripcion' => 'Hospitalización - Emergencia', 'prioridad' => 'alta'],
+            'amarillo' => ['color' => 'yellow', 'descripcion' => 'Hospitalización - Urgencia', 'prioridad' => 'media'],
+            'verde' => ['color' => 'green', 'descripcion' => 'Hospitalización - Observación', 'prioridad' => 'baja'],
         ];
 
         $cfg = $map[$tipo] ?? $map['amarillo'];
@@ -334,23 +280,6 @@ class HospitalizacionController extends Controller
         );
     }
 
-    private function getServicioNombre($servicio)
-    {
-        $servicios = [
-            'medicina_interna' => 'Medicina Interna',
-            'cirugia_general' => 'Cirugía General',
-            'ginecologia' => 'Ginecología',
-            'pediatria' => 'Pediatría',
-            'cardiologia' => 'Cardiología',
-            'neurologia' => 'Neurología',
-            'oncologia' => 'Oncología',
-            'uci' => 'UCI',
-            'uci_neonatal' => 'UCI Neonatal',
-        ];
-
-        return $servicios[$servicio] ?? $servicio;
-    }
-
     public function darAlta(Request $request, $id)
     {
         try {
@@ -391,8 +320,10 @@ class HospitalizacionController extends Controller
             $hospitalizacion->update([
                 'motivo' => $request->motivo ?? $hospitalizacion->motivo,
                 'diagnostico' => $request->diagnostico ?? $hospitalizacion->diagnostico,
-                'observaciones' => $request->observaciones ?? $hospitalizacion->observaciones,
-                'habitacion' => $request->habitacion ?? $hospitalizacion->habitacion,
+                'contacto_nombre' => $request->contacto_nombre ?? $hospitalizacion->contacto_nombre,
+                'contacto_telefono' => $request->contacto_telefono ?? $hospitalizacion->contacto_telefono,
+                'contacto_parentesco' => $request->contacto_parentesco ?? $hospitalizacion->contacto_parentesco,
+                'contacto_relacion' => $request->contacto_relacion ?? $hospitalizacion->contacto_relacion,
                 'updated_at' => now(),
             ]);
 
@@ -408,5 +339,18 @@ class HospitalizacionController extends Controller
                 'message' => 'Error al actualizar datos: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Mostrar comprobante de hospitalización
+     */
+    public function comprobante($id)
+    {
+        $hospitalizacion = Hospitalizacion::with(['paciente', 'medico.user'])->findOrFail($id);
+        
+        // Obtener el triage del paciente (si tiene)
+        $triage = $hospitalizacion->paciente->triage ?? null;
+        
+        return view('reception.hospitalizacion-comprobante', compact('hospitalizacion', 'triage'));
     }
 }

@@ -24,18 +24,7 @@ class InternacionHabitacionesController extends Controller
      */
     public function index()
     {
-        $habitaciones = Habitacion::with(['camas' => function($query) {
-                $query->orderBy('nro');
-            }])
-            ->withCount(['camas as camas_disponibles' => function($query) {
-                $query->where('disponibilidad', 'disponible');
-            }, 'camas as camas_ocupadas' => function($query) {
-                $query->where('disponibilidad', 'ocupada');
-            }])
-            ->orderBy('id')
-            ->get();
-
-        // Stats
+        // Stats para la vista inicial
         $stats = [
             'total_habitaciones' => Habitacion::count(),
             'habitaciones_disponibles' => Habitacion::where('estado', 'disponible')->count(),
@@ -46,7 +35,88 @@ class InternacionHabitacionesController extends Controller
             'camas_ocupadas' => Cama::where('disponibilidad', 'ocupada')->count(),
         ];
 
-        return view('internacion-staff.habitaciones.index', compact('habitaciones', 'stats'));
+        return view('internacion-staff.habitaciones.index', compact('stats'));
+    }
+
+    /**
+     * API: Obtener lista de habitaciones con contadores
+     */
+    public function apiIndex()
+    {
+        $habitaciones = Habitacion::with(['camas' => function($query) {
+                $query->orderBy('nro');
+            }])
+            ->withCount(['camas' => function($query) {
+                $query->where('disponibilidad', 'disponible');
+            }])
+            ->orderBy('id')
+            ->get()
+            ->map(function($h) {
+                return [
+                    'id' => $h->id,
+                    'estado' => $h->estado,
+                    'detalle' => $h->detalle,
+                    'capacidad' => $h->capacidad,
+                    'camas_count' => $h->camas->count(),
+                    'camas_disponibles' => $h->camas->where('disponibilidad', 'disponible')->count(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'habitaciones' => $habitaciones
+        ]);
+    }
+
+    /**
+     * API: Obtener detalle completo de una habitación
+     */
+    public function apiShow(Habitacion $habitacion)
+    {
+        $habitacion->load(['camas' => function($query) {
+            $query->orderBy('nro')->with(['hospitalizacionActiva.paciente']);
+        }]);
+
+        $pacientesSinHabitacion = Hospitalizacion::whereNull('fecha_alta')
+            ->whereNull('habitacion_id')
+            ->with('paciente')
+            ->get()
+            ->map(function($h) {
+                return [
+                    'id' => $h->id,
+                    'paciente' => [
+                        'nombre' => $h->paciente?->nombre,
+                        'ci' => $h->paciente?->ci,
+                    ]
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'habitacion' => [
+                'id' => $habitacion->id,
+                'estado' => $habitacion->estado,
+                'detalle' => $habitacion->detalle,
+                'capacidad' => $habitacion->capacidad,
+                'camas' => $habitacion->camas->map(function($cama) {
+                    return [
+                        'id' => $cama->id,
+                        'nro' => $cama->nro,
+                        'disponibilidad' => $cama->disponibilidad,
+                        'tipo' => $cama->tipo,
+                        'precio_por_dia' => $cama->precio_por_dia,
+                        'hospitalizacion_activa' => $cama->hospitalizacionActiva ? [
+                            'id' => $cama->hospitalizacionActiva->id,
+                            'paciente' => [
+                                'nombre' => $cama->hospitalizacionActiva->paciente?->nombre,
+                                'ci' => $cama->hospitalizacionActiva->paciente?->ci,
+                            ]
+                        ] : null,
+                    ];
+                }),
+            ],
+            'pacientes_sin_habitacion' => $pacientesSinHabitacion
+        ]);
     }
 
     /**

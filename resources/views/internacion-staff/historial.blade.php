@@ -37,8 +37,53 @@
             $diasEstancia = 0; // Sin cama asignada = 0 días en cama
             $costoEstancia = 0;
         }
+
+        $totalMedicamentos = $medicamentos->sum(function($m) { return $m->medicamento?->precio * $m->cantidad ?? 0; });
+        $totalCatering = $catering->where('estado', 'dado')->sum('precio');
+        $totalDrenajes = $drenajes->where('realizado', true)->sum('precio');
+        $totalGeneral = $costoEstancia + $totalMedicamentos + $totalCatering + $totalDrenajes;
     @endphp
 
+    <!-- Navegación de Tabs -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
+        <div class="flex overflow-x-auto border-b border-slate-200" id="tab-nav">
+            <button onclick="cambiarTab('resumen')" class="tab-btn flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 transition-all whitespace-nowrap" data-tab="resumen">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Resumen
+            </button>
+            <button onclick="cambiarTab('medicamentos')" class="tab-btn flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 transition-all whitespace-nowrap" data-tab="medicamentos">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                </svg>
+                Medicamentos
+                <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">{{ $medicamentos->count() }}</span>
+            </button>
+            <button onclick="cambiarTab('servicios')" class="tab-btn flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 transition-all whitespace-nowrap" data-tab="servicios">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Servicios
+            </button>
+            <button onclick="cambiarTab('medica')" class="tab-btn flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 transition-all whitespace-nowrap" data-tab="medica">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+                Info. Médica
+            </button>
+            <button onclick="cambiarTab('timeline')" class="tab-btn flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 transition-all whitespace-nowrap" data-tab="timeline">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Timeline
+                <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs">{{ $timeline->count() }}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab: Resumen -->
+    <div id="tab-resumen" class="tab-content">
     <!-- Tarjeta de Paciente -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <div class="flex flex-col lg:flex-row lg:items-center gap-6">
@@ -152,14 +197,56 @@
         </div>
     </div>
 
-    @php
-        $totalMedicamentos = $medicamentos->sum(function($m) { return $m->medicamento?->precio * $m->cantidad ?? 0; });
-        $totalCatering = $catering->where('estado', 'dado')->sum('precio');
-        $totalDrenajes = $drenajes->where('realizado', true)->sum('precio');
-        $totalGeneral = $costoEstancia + $totalMedicamentos + $totalCatering + $totalDrenajes;
-    @endphp
+    <!-- Resumen de Cuenta -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-yellow-200 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center shadow-md">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-amber-900">Resumen de Cuenta</h3>
+                        <p class="text-xs text-amber-600">Detalle de cobros del paciente</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-slate-500">Total General</p>
+                    <p class="text-2xl font-bold text-amber-700">Bs. {{ number_format($totalGeneral, 2) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase">Estancia</p>
+                    <p class="text-lg font-semibold text-slate-800">{{ $diasEstancia }} {{ $diasEstancia == 1 ? 'día' : 'días' }}</p>
+                    <p class="text-sm text-slate-600">Bs. {{ number_format($costoEstancia, 2) }}</p>
+                </div>
+                <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                    <p class="text-xs text-indigo-600 uppercase">Medicamentos</p>
+                    <p class="text-lg font-semibold text-indigo-800">{{ $medicamentos->count() }} items</p>
+                    <p class="text-sm text-indigo-600">Bs. {{ number_format($totalMedicamentos, 2) }}</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                    <p class="text-xs text-orange-600 uppercase">Catering</p>
+                    <p class="text-lg font-semibold text-orange-800">{{ $catering->where('estado', 'dado')->count() }} servicios</p>
+                    <p class="text-sm text-orange-600">Bs. {{ number_format($totalCatering, 2) }}</p>
+                </div>
+                <div class="bg-cyan-50 rounded-lg p-4 border border-cyan-200">
+                    <p class="text-xs text-cyan-600 uppercase">Drenajes</p>
+                    <p class="text-lg font-semibold text-cyan-800">{{ $drenajes->where('realizado', true)->count() }} proc.</p>
+                    <p class="text-sm text-cyan-600">Bs. {{ number_format($totalDrenajes, 2) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Layout Principal: Organizado por Filas -->
+<!-- Tab: Medicamentos -->
+<div id="tab-medicamentos" class="tab-content hidden">
     <div class="flex flex-col gap-6">
 
         <!-- Fila 1: Medicamentos Administrados (Lo más importante) -->
@@ -236,109 +323,113 @@
                 @endif
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Fila 2: Catering y Drenajes (2 columnas) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Catering -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 px-6 py-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-orange-900">Catering / Alimentación</h3>
-                                <p class="text-xs text-orange-600">{{ $catering->where('estado', 'dado')->count() }} servicios dados</p>
-                            </div>
+<!-- Tab: Servicios (Catering y Drenajes) -->
+<div id="tab-servicios" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Catering -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-orange-900">Catering / Alimentación</h3>
+                            <p class="text-xs text-orange-600">{{ $catering->where('estado', 'dado')->count() }} servicios dados</p>
                         </div>
                     </div>
-                </div>
-                <div class="p-6">
-                    @if($catering->count() > 0)
-                    <div class="space-y-3">
-                        @foreach($catering->where('estado', 'dado') as $cat)
-                        <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-slate-800">{{ $cat->tipo_label }}</p>
-                                    <p class="text-xs text-slate-500">{{ $cat->fecha?->format('d/m/Y') }} {{ $cat->hora_registro?->format('H:i') }}</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-sm font-medium text-slate-700">Bs. {{ number_format($cat->precio, 2) }}</span>
-                                <p class="text-xs text-slate-500">{{ $cat->registeredBy?->name }}</p>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
-                    @else
-                    <div class="text-center py-6">
-                        <p class="text-slate-400">No hay registros de catering</p>
-                    </div>
-                    @endif
                 </div>
             </div>
-
-            <!-- Drenajes -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-cyan-200 px-6 py-4">
-                    <div class="flex items-center justify-between">
+            <div class="p-6">
+                @if($catering->count() > 0)
+                <div class="space-y-3">
+                    @foreach($catering->where('estado', 'dado') as $cat)
+                    <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-cyan-500 rounded-lg flex items-center justify-center shadow-md">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                            <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-bold text-cyan-900">Drenajes Realizados</h3>
-                                <p class="text-xs text-cyan-600">{{ $drenajes->where('realizado', true)->count() }} procedimientos</p>
+                                <p class="font-medium text-slate-800">{{ $cat->tipo_label }}</p>
+                                <p class="text-xs text-slate-500">{{ $cat->fecha?->format('d/m/Y') }} {{ $cat->hora_registro?->format('H:i') }}</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="p-6">
-                    @if($drenajes->count() > 0)
-                    <div class="space-y-3">
-                        @foreach($drenajes->where('realizado', true) as $dren)
-                        <div class="flex items-center justify-between p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-slate-800">{{ $dren->tipo_drenaje ?: 'Drenaje General' }}</p>
-                                    <p class="text-xs text-slate-500">{{ $dren->fecha?->format('d/m/Y') }} {{ $dren->hora?->format('H:i') }}</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-sm font-medium text-slate-700">Bs. {{ number_format($dren->precio, 2) }}</span>
-                                <p class="text-xs text-slate-500">{{ $dren->registeredBy?->name }}</p>
-                            </div>
+                        <div class="text-right">
+                            <span class="text-sm font-medium text-slate-700">Bs. {{ number_format($cat->precio, 2) }}</span>
+                            <p class="text-xs text-slate-500">{{ $cat->registeredBy?->name }}</p>
                         </div>
-                        @endforeach
                     </div>
-                    @else
-                    <div class="text-center py-6">
-                        <p class="text-slate-400">No hay drenajes registrados</p>
-                    </div>
-                    @endif
+                    @endforeach
                 </div>
+                @else
+                <div class="text-center py-6">
+                    <p class="text-slate-400">No hay registros de catering</p>
+                </div>
+                @endif
             </div>
         </div>
 
-        <!-- Fila 3: Info Médica y Cuenta (2 columnas) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Diagnóstico y Tratamiento -->
+        <!-- Drenajes -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-cyan-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-cyan-500 rounded-lg flex items-center justify-center shadow-md">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-cyan-900">Drenajes Realizados</h3>
+                            <p class="text-xs text-cyan-600">{{ $drenajes->where('realizado', true)->count() }} procedimientos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                @if($drenajes->count() > 0)
+                <div class="space-y-3">
+                    @foreach($drenajes->where('realizado', true) as $dren)
+                    <div class="flex items-center justify-between p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">{{ $dren->tipo_drenaje ?: 'Drenaje General' }}</p>
+                                <p class="text-xs text-slate-500">{{ $dren->fecha?->format('d/m/Y') }} {{ $dren->hora?->format('H:i') }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-medium text-slate-700">Bs. {{ number_format($dren->precio, 2) }}</span>
+                            <p class="text-xs text-slate-500">{{ $dren->registeredBy?->name }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div class="text-center py-6">
+                    <p class="text-slate-400">No hay drenajes registrados</p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Información Médica -->
+<div id="tab-medica" class="tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200 px-6 py-4">
                     <div class="flex items-center gap-3">
@@ -430,55 +521,10 @@
             </div>
             @endif
         </div>
+    </div>
 
-        <!-- Fila 4: Resumen de Cuenta -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-yellow-200 px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center shadow-md">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-amber-900">Resumen de Cuenta</h3>
-                            <p class="text-xs text-amber-600">Detalle de cobros del paciente</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-slate-500">Total General</p>
-                        <p class="text-2xl font-bold text-amber-700">Bs. {{ number_format($totalGeneral, 2) }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                        <p class="text-xs text-slate-500 uppercase">Estancia</p>
-                        <p class="text-lg font-semibold text-slate-800">{{ $diasEstancia }} {{ $diasEstancia == 1 ? 'día' : 'días' }}</p>
-                        <p class="text-sm text-slate-600">Bs. {{ number_format($costoEstancia, 2) }}</p>
-                    </div>
-                    <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                        <p class="text-xs text-indigo-600 uppercase">Medicamentos</p>
-                        <p class="text-lg font-semibold text-indigo-800">{{ $medicamentos->count() }} items</p>
-                        <p class="text-sm text-indigo-600">Bs. {{ number_format($totalMedicamentos, 2) }}</p>
-                    </div>
-                    <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                        <p class="text-xs text-orange-600 uppercase">Catering</p>
-                        <p class="text-lg font-semibold text-orange-800">{{ $catering->where('estado', 'dado')->count() }} servicios</p>
-                        <p class="text-sm text-orange-600">Bs. {{ number_format($totalCatering, 2) }}</p>
-                    </div>
-                    <div class="bg-cyan-50 rounded-lg p-4 border border-cyan-200">
-                        <p class="text-xs text-cyan-600 uppercase">Drenajes</p>
-                        <p class="text-lg font-semibold text-cyan-800">{{ $drenajes->where('realizado', true)->count() }} proc.</p>
-                        <p class="text-sm text-cyan-600">Bs. {{ number_format($totalDrenajes, 2) }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Fila 5: Timeline Cronológico -->
+    <!-- Tab: Timeline -->
+    <div id="tab-timeline" class="tab-content hidden">
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="bg-gradient-to-r from-slate-100 to-slate-200 border-b border-slate-300 px-6 py-4">
                 <div class="flex items-center justify-between">
@@ -639,4 +685,45 @@
         </a>
     </div>
 </div>
+
+<script>
+    // Función para cambiar entre tabs
+    function cambiarTab(tabId) {
+        // Ocultar todos los contenidos de tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+
+        // Mostrar el tab seleccionado
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+        // Actualizar estilos de los botones
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('border-indigo-500', 'text-indigo-600', 'bg-indigo-50');
+            btn.classList.add('border-transparent', 'text-slate-600');
+        });
+
+        // Resaltar el botón activo
+        const activeBtn = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
+        if (activeBtn) {
+            activeBtn.classList.remove('border-transparent', 'text-slate-600');
+            activeBtn.classList.add('border-indigo-500', 'text-indigo-600', 'bg-indigo-50');
+        }
+
+        // Guardar en URL hash para persistencia
+        window.location.hash = tabId;
+    }
+
+    // Inicializar: activar tab desde URL hash o el primero por defecto
+    document.addEventListener('DOMContentLoaded', function() {
+        const hash = window.location.hash.replace('#', '');
+        const tabsValidos = ['resumen', 'medicamentos', 'servicios', 'medica', 'timeline'];
+
+        if (hash && tabsValidos.includes(hash)) {
+            cambiarTab(hash);
+        } else {
+            cambiarTab('resumen');
+        }
+    });
+</script>
 @endsection

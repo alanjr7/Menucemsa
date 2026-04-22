@@ -16,7 +16,9 @@ use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitaliza
 use App\Http\Controllers\Reception\HospitalizacionController as ReceptionHospitalizacionController;
 use App\Http\Controllers\InternacionStaffController;
 use App\Http\Controllers\InternacionMedicamentosController;
-use App\Http\Controllers\InternacionHabitacionesController;
+use App\Http\Controllers\HabitacionApiController;
+use App\Http\Controllers\HabitacionGestionController;
+use App\Http\Controllers\HabitacionAsignacionController;
 use App\Http\Controllers\InternacionNurseController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
@@ -87,6 +89,7 @@ Route::middleware('auth')->group(function () {
         // API routes (antes que las rutas con parámetros)
         Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
         Route::get('/quirofano/api/dashboard', [QuirofanoController::class, 'apiDashboard'])->name('quirofano.api.dashboard');
+        Route::get('/quirofano/api/pacientes-cirugia', [QuirofanoController::class, 'apiPacientesCirugia'])->name('quirofano.api.pacientes-cirugia');
         Route::get('/api/quirofanos-disponibles', [QuirofanoController::class, 'getQuirofanosDisponibles'])->name('api.quirofanos-disponibles');
         Route::get('/api/paciente/{ci}', [QuirofanoController::class, 'getPaciente'])->name('api.paciente');
         Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
@@ -105,6 +108,10 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show')->where('cita', '[0-9]+');
         Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit')->where('cita', '[0-9]+');
+
+        // Rutas para gestión de pacientes en cirugía (rol quirófano)
+        Route::get('/quirofano/pacientes-cirugia', [QuirofanoController::class, 'pacientesEnCirugia'])->name('quirofano.pacientes-cirugia');
+        Route::post('/quirofano/api/emergencia/{emergencyId}/derivar-internacion', [QuirofanoController::class, 'derivarAInternacion'])->name('quirofano.derivar-internacion');
         Route::put('/quirofano/{cita}', [QuirofanoController::class, 'update'])->name('quirofano.update')->where('cita', '[0-9]+');
         Route::post('/quirofano/{cita}/iniciar', [QuirofanoController::class, 'iniciarCirugia'])->name('quirofano.iniciar')->where('cita', '[0-9]+');
         Route::post('/quirofano/{cita}/finalizar', [QuirofanoController::class, 'finalizarCirugia'])->name('quirofano.finalizar')->where('cita', '[0-9]+');
@@ -152,6 +159,7 @@ Route::middleware('auth')->group(function () {
         // Rutas API para emergencia - Nuevo flujo
         Route::post('/api/emergency-ingreso', [EmergencyIngresoController::class, 'registrarIngreso'])->name('reception.emergency-ingreso');
         Route::get('/api/emergency-activas', [EmergencyIngresoController::class, 'getEmergenciasActivas'])->name('reception.emergency-activas');
+        Route::get('/emergencia/{id}/comprobante', [EmergencyIngresoController::class, 'comprobante'])->name('reception.emergencia.comprobante');
         Route::post('/api/registrar-emergencia', [EmergenciaController::class, 'registrarEmergencia'])->name('reception.registrar-emergencia');
         Route::get('/api/emergencias-activas', [EmergenciaController::class, 'getEmergenciasActivas'])->name('reception.emergencias-activas');
         Route::put('/api/emergencia/{nroEmergencia}/estado', [EmergenciaController::class, 'actualizarEstadoEmergencia'])->name('reception.actualizar-emergencia');
@@ -161,6 +169,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/hospitalizaciones-activas', [ReceptionHospitalizacionController::class, 'getHospitalizacionesActivas'])->name('reception.hospitalizaciones-activas');
         Route::post('/api/hospitalizacion/{id}/alta', [ReceptionHospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
         Route::put('/api/hospitalizacion/{id}/actualizar', [ReceptionHospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
+        
+        // Ruta para comprobante de hospitalización
+        Route::get('/hospitalizacion/{id}/comprobante', [ReceptionHospitalizacionController::class, 'comprobante'])->name('reception.hospitalizacion.comprobante');
         
         // Rutas API para gestión de citas
         Route::get('/api/agenda-dia', [ReceptionController::class, 'getAgendaDia'])->name('reception.agenda-dia');
@@ -511,6 +522,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/estadisticas', [InternacionStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
         Route::post('/api/internacion/{id}/update-status', [InternacionStaffController::class, 'updateStatus'])->name('update-status');
         Route::post('/api/internacion/{id}/derivar-uti', [InternacionStaffController::class, 'derivarAUti'])->name('derivar-uti');
+        Route::post('/api/internacion/{id}/derivar-quirofano', [InternacionStaffController::class, 'derivarAQuirofano'])->name('derivar-quirofano');
         Route::post('/api/internacion/{id}/alta', [InternacionStaffController::class, 'darAlta'])->name('alta');
 
         // API Medicamentos para pacientes
@@ -546,16 +558,22 @@ Route::middleware('auth')->group(function () {
             Route::post('/medicamentos/{medicamento}/stock', [InternacionMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
         });
 
-        // Rutas para gestión de habitaciones de internación
-        Route::get('/habitaciones', [InternacionHabitacionesController::class, 'index'])->name('habitaciones.index');
-        Route::get('/habitaciones/create', [InternacionHabitacionesController::class, 'create'])->name('habitaciones.create');
-        Route::post('/habitaciones', [InternacionHabitacionesController::class, 'store'])->name('habitaciones.store');
-        Route::get('/habitaciones/{habitacion}', [InternacionHabitacionesController::class, 'show'])->name('habitaciones.show');
-        Route::get('/habitaciones/{habitacion}/edit', [InternacionHabitacionesController::class, 'edit'])->name('habitaciones.edit');
-        Route::put('/habitaciones/{habitacion}', [InternacionHabitacionesController::class, 'update'])->name('habitaciones.update');
-        Route::delete('/habitaciones/{habitacion}', [InternacionHabitacionesController::class, 'destroy'])->name('habitaciones.destroy');
-        Route::post('/habitaciones/{habitacion}/asignar-paciente', [InternacionHabitacionesController::class, 'asignarPaciente'])->name('habitaciones.asignar-paciente');
-        Route::post('/camas/{cama}/liberar', [InternacionHabitacionesController::class, 'liberarCama'])->name('camas.liberar');
+        // Rutas para gestión de habitaciones de internación - Vista y CRUD
+        Route::get('/habitaciones', [HabitacionGestionController::class, 'index'])->name('habitaciones.index');
+        Route::get('/habitaciones/create', [HabitacionGestionController::class, 'create'])->name('habitaciones.create');
+        Route::post('/habitaciones', [HabitacionGestionController::class, 'store'])->name('habitaciones.store');
+        Route::get('/habitaciones/{habitacion}/edit', [HabitacionGestionController::class, 'edit'])->name('habitaciones.edit');
+        Route::put('/habitaciones/{habitacion}', [HabitacionGestionController::class, 'update'])->name('habitaciones.update');
+        Route::delete('/habitaciones/{habitacion}', [HabitacionGestionController::class, 'destroy'])->name('habitaciones.destroy');
+
+        // API routes para habitaciones (split-view optimizado)
+        Route::get('/api/habitaciones', [HabitacionApiController::class, 'index'])->name('api.habitaciones.index');
+        Route::get('/api/habitaciones/{habitacion}', [HabitacionApiController::class, 'show'])->name('api.habitaciones.show');
+        Route::get('/api/pacientes-sin-habitacion', [HabitacionApiController::class, 'pacientesSinHabitacion'])->name('api.pacientes.sin-habitacion');
+
+        // Operaciones de asignación y liberación
+        Route::post('/habitaciones/{habitacion}/asignar-paciente', [HabitacionAsignacionController::class, 'asignarPaciente'])->name('habitaciones.asignar-paciente');
+        Route::post('/camas/{cama}/liberar', [HabitacionAsignacionController::class, 'liberarCama'])->name('camas.liberar');
 
         // Rutas para gestión de enfermeras de internación (solo admin e internacion)
         Route::middleware(['role:admin|internacion'])->group(function () {

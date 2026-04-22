@@ -104,7 +104,7 @@ class MenuSeeder extends Seeder
         // 5. Pacientes (Con Submenús) - Admin/Director Médico/Doctor
         $pacientes = Menu::create([
             'name' => 'Pacientes',
-            'active_pattern' => 'patients*,consulta*,uti*,quirofano*,admin/emergencies*',
+            'active_pattern' => 'patients*,consulta*,uti*,quirofano*,pacientes-cirugia*,admin/emergencies*',
             'icon_path' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
             'color' => 'blue',
             'roles' => 'admin,dir_medico,doctor',
@@ -115,9 +115,10 @@ class MenuSeeder extends Seeder
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => 'admin,dir_medico,doctor', 'order' => 1],
             ['name' => 'UTI - Administración', 'route' => 'uti.admin.index', 'roles' => 'admin,dir_medico', 'order' => 2],
             ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico,cirujano', 'order' => 3],
-            ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico', 'order' => 4],
-            ['name' => 'Consulta Externa', 'route' => 'consulta.index', 'roles' => 'doctor', 'order' => 5],
-            ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 6],
+            ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'admin,dir_medico,cirujano', 'order' => 4],
+            ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico', 'order' => 5],
+            ['name' => 'Consulta Externa', 'route' => 'consulta.index', 'roles' => 'doctor', 'order' => 6],
+            ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
         ]);
 
         // 6. Caja Operativa
@@ -192,17 +193,18 @@ class MenuSeeder extends Seeder
         $quirofano = Menu::create([
             'name' => 'Quirófano',
             'active_pattern' => 'quirofano*,quirofanos-management*',
-            'icon_path' => 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z',
+            'icon_path' => 'M14.121 14.121L19 19m-7-7l7-7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
             'color' => 'teal',
             'roles' => 'cirujano',
             'order' => 82,
         ]);
         $quirofano->children()->createMany([
-            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'order' => 1],
-            ['name' => 'Calendario', 'route' => 'quirofano.calendario', 'order' => 2],
-            ['name' => 'Historial', 'route' => 'quirofano.historial', 'order' => 3],
-            ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'order' => 4],
-            ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'order' => 5],
+            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'roles' => 'cirujano', 'order' => 1],
+            ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'cirujano', 'order' => 2],
+            ['name' => 'Calendario', 'route' => 'quirofano.calendario', 'roles' => 'cirujano', 'order' => 3],
+            ['name' => 'Historial', 'route' => 'quirofano.historial', 'roles' => 'cirujano', 'order' => 4],
+            ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'roles' => 'cirujano', 'order' => 5],
+            ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'roles' => 'cirujano', 'order' => 6],
         ]);
 
         // 11. Internación (Operativo - rol internacion)

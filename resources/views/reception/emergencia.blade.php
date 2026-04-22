@@ -76,11 +76,14 @@
                     <!-- Tipo de Paciente -->
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Paciente</label>
-                        <select name="tipo_paciente" id="tipo_paciente" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all" onchange="toggleDatosPersonales()">
+                        <!-- Campo hidden que se envía al servidor -->
+                        <input type="hidden" name="tipo_paciente" id="tipo_paciente_hidden" value="existente">
+                        <!-- Select visual (solo para mostrar, bloqueado) -->
+                        <select id="tipo_paciente" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed" onchange="toggleDatosPersonales()">
                             <option value="existente">Paciente Existente</option>
                             <option value="nuevo">Nuevo Paciente</option>
                         </select>
-                        <p class="text-xs text-gray-500 mt-1">Cuando usa ID Temporal, se selecciona automáticamente paciente existente</p>
+                        <p class="text-xs text-gray-500 mt-1">El sistema selecciona automáticamente según la búsqueda</p>
                     </div>
 
                     <!-- Datos Personales (para nuevos pacientes) -->
@@ -385,9 +388,11 @@
                 const date = new Date();
                 const tempId = 'TEMP-' + date.getFullYear() + String(date.getMonth()+1).padStart(2,'0') + String(date.getDate()).padStart(2,'0') + '-' + Math.floor(Math.random() * 999).toString().padStart(3, '0');
                 tempIdInput.value = tempId;
-                
-                // Cambiar automáticamente a paciente existente y ocultar datos personales
+
+                // Cambiar automáticamente a paciente existente, deshabilitar y ocultar datos personales
                 tipoPacienteSelect.value = 'existente';
+                tipoPacienteSelect.disabled = true;
+                document.getElementById('tipo_paciente_hidden').value = 'existente';
                 toggleDatosPersonales();
             } else {
                 ciContainer.classList.remove('hidden');
@@ -397,6 +402,12 @@
                 ciInput.setAttribute('required', 'required');
                 tempIdInput.removeAttribute('required');
                 tempIdInput.value = '';
+
+                // Habilitar select de tipo de paciente para nueva búsqueda
+                tipoPacienteSelect.disabled = false;
+                tipoPacienteSelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                tipoPacienteSelect.value = 'existente';
+                document.getElementById('tipo_paciente_hidden').value = 'existente';
             }
         }
 
@@ -473,11 +484,23 @@
                 
                 if (data.success) {
                     mostrarPacienteEncontrado(data.paciente);
-                    document.getElementById('tipo_paciente').value = 'existente';
+
+                    // Poner como paciente existente y bloquear el select
+                    const tipoPacienteSelect = document.getElementById('tipo_paciente');
+                    tipoPacienteSelect.value = 'existente';
+                    tipoPacienteSelect.disabled = true;
+                    document.getElementById('tipo_paciente_hidden').value = 'existente';
                     toggleDatosPersonales();
                 } else {
-                    alert('Paciente no encontrado. Por favor seleccione "Nuevo Paciente" y complete los datos.');
-                    document.getElementById('tipo_paciente').value = 'nuevo';
+                    // Limpiar notificación de paciente anterior si existe
+                    const existing = document.querySelector('.paciente-encontrado-notification');
+                    if (existing) existing.remove();
+
+                    // Poner como paciente nuevo y bloquear el select
+                    const tipoPacienteSelect = document.getElementById('tipo_paciente');
+                    tipoPacienteSelect.value = 'nuevo';
+                    tipoPacienteSelect.disabled = true;
+                    document.getElementById('tipo_paciente_hidden').value = 'nuevo';
                     toggleDatosPersonales();
                 }
             } catch (error) {
@@ -565,11 +588,22 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('Paciente registrado en emergencia exitosamente. Código: ' + result.emergency_code);
-                    form.reset();
-                    document.querySelector('.paciente-encontrado-notification')?.remove();
-                    toggleTempId();
-                    toggleDatosPersonales();
+                    // Redirigir al comprobante de emergencia
+                    if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        alert('Paciente registrado en emergencia exitosamente. Código: ' + result.emergency_code);
+                        form.reset();
+                        document.querySelector('.paciente-encontrado-notification')?.remove();
+                        toggleTempId();
+                        toggleDatosPersonales();
+
+                        // Habilitar select de tipo de paciente para nuevo registro
+                        const tipoPacienteSelect = document.getElementById('tipo_paciente');
+                        tipoPacienteSelect.disabled = false;
+                        tipoPacienteSelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                        document.getElementById('tipo_paciente_hidden').value = 'existente';
+                    }
                 } else {
                     alert('Error: ' + result.message);
                 }

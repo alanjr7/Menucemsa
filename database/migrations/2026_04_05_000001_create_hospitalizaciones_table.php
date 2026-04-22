@@ -27,6 +27,10 @@ return new class extends Migration
             $table->enum('estado', ['activo', 'alta', 'trasladado'])->default('activo');
             $table->string('motivo', 255)->nullable();
             $table->string('nro_emergencia', 30)->nullable();
+            $table->string('contacto_nombre', 100)->nullable();
+            $table->string('contacto_telefono', 20)->nullable();
+            $table->string('contacto_parentesco', 50)->nullable();
+            $table->string('contacto_relacion', 100)->nullable();
             $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('set null');
             $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null');
             $table->foreign('habitacion_id')->references('id')->on('habitaciones')->onDelete('set null');

@@ -30,6 +30,10 @@ class Hospitalizacion extends Model
         'estado',
         'motivo',
         'nro_emergencia',
+        'contacto_nombre',
+        'contacto_telefono',
+        'contacto_parentesco',
+        'contacto_relacion',
     ];
 
     protected $casts = [

@@ -48,6 +48,20 @@ class QuirofanoController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($emg) {
+                // Determinar origen basado en flujo_historial
+                $origen = $emg->tipo_ingreso_label;
+                if (!empty($emg->flujo_historial) && is_array($emg->flujo_historial) && count($emg->flujo_historial) > 0) {
+                    $primerMovimiento = $emg->flujo_historial[0];
+                    $desde = $primerMovimiento['desde'] ?? '';
+                    $origen = match($desde) {
+                        'internacion' => 'Derivado desde Internación',
+                        'recepcion' => 'Ingreso desde Recepción',
+                        'emergencia' => 'Derivado desde Emergencia',
+                        'uti' => 'Derivado desde UTI',
+                        default => $emg->tipo_ingreso_label,
+                    };
+                }
+
                 return [
                     'id' => $emg->id,
                     'code' => $emg->code,
@@ -58,6 +72,7 @@ class QuirofanoController extends Controller
                     'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
                     'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
                     'tipo_ingreso' => $emg->tipo_ingreso_label,
+                    'origen_label' => $origen,
                     'is_emergency' => true,
                 ];
             });
@@ -129,6 +144,20 @@ class QuirofanoController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($emg) {
+                // Determinar origen basado en flujo_historial
+                $origen = $emg->tipo_ingreso_label;
+                if (!empty($emg->flujo_historial) && is_array($emg->flujo_historial) && count($emg->flujo_historial) > 0) {
+                    $primerMovimiento = $emg->flujo_historial[0];
+                    $desde = $primerMovimiento['desde'] ?? '';
+                    $origen = match($desde) {
+                        'internacion' => 'Derivado desde Internación',
+                        'recepcion' => 'Ingreso desde Recepción',
+                        'emergencia' => 'Derivado desde Emergencia',
+                        'uti' => 'Derivado desde UTI',
+                        default => $emg->tipo_ingreso_label,
+                    };
+                }
+
                 return [
                     'id' => $emg->id,
                     'code' => $emg->code,
@@ -139,6 +168,7 @@ class QuirofanoController extends Controller
                     'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
                     'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
                     'tipo_ingreso' => $emg->tipo_ingreso_label,
+                    'origen_label' => $origen,
                     'is_emergency' => true,
                 ];
             });
@@ -1433,5 +1463,162 @@ class QuirofanoController extends Controller
             return "{$horas}h {$mins}min";
         }
         return "{$mins}min";
+    }
+
+    /**
+     * Mostrar página de pacientes en cirugía (para rol quirófano)
+     */
+    public function pacientesEnCirugia(): View
+    {
+        // Obtener pacientes de emergencia que están actualmente en quirófano
+        $pacientesEnCirugia = \App\Models\Emergency::with(['paciente'])
+            ->where('ubicacion_actual', 'cirugia')
+            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Obtener camas disponibles en internación para mostrar opciones de derivación
+        $camasDisponibles = \App\Models\Cama::where('disponibilidad', 'disponible')
+            ->whereHas('habitacion', function($q) {
+                $q->where('estado', '!=', 'mantenimiento');
+            })
+            ->count();
+
+        return view('quirofano.pacientes-cirugia', compact('pacientesEnCirugia', 'camasDisponibles'));
+    }
+
+    /**
+     * API: Derivar paciente de cirugía a internación
+     */
+    public function derivarAInternacion(Request $request, $emergencyId): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            $emergency = \App\Models\Emergency::with('paciente')->findOrFail($emergencyId);
+
+            // Verificar que el paciente esté en quirófano
+            if ($emergency->ubicacion_actual !== 'cirugia') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El paciente no está en quirófano',
+                ], 422);
+            }
+
+            // Verificar si ya tiene hospitalización activa
+            $hospitalizacionActiva = \App\Models\Hospitalizacion::where('ci_paciente', $emergency->patient_id)
+                ->where('estado', 'activo')
+                ->first();
+
+            if ($hospitalizacionActiva) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El paciente ya tiene una hospitalización activa',
+                ], 422);
+            }
+
+            // Generar número de hospitalización
+            $nroHosp = 'HOSP-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
+
+            // Actualizar emergencia
+            $emergency->update([
+                'status' => 'hospitalizacion',
+                'ubicacion_actual' => 'hospitalizacion',
+                'nro_hospitalizacion' => $nroHosp,
+            ]);
+
+            // Crear registro en hospitalizaciones
+            $ciPaciente = $emergency->is_temp_id ? null : $emergency->patient_id;
+            \App\Models\Hospitalizacion::create([
+                'id' => $nroHosp,
+                'ci_paciente' => $ciPaciente,
+                'fecha_ingreso' => now(),
+                'estado' => 'activo',
+                'diagnostico' => $emergency->initial_assessment,
+                'nro_emergencia' => $emergency->id,
+            ]);
+
+            // Registrar movimiento en historial
+            $historial = $emergency->flujo_historial ?? [];
+            $historial[] = [
+                'fecha' => now()->toDateTimeString(),
+                'desde' => 'cirugia',
+                'hasta' => 'hospitalizacion',
+                'usuario_id' => auth()->id(),
+                'notas' => 'Derivación desde quirófano a internación',
+            ];
+            $emergency->update(['flujo_historial' => $historial]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Paciente derivado a Internación correctamente',
+                'hospitalizacion' => [
+                    'id' => $nroHosp,
+                    'nro_hospitalizacion' => $nroHosp,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error al derivar a internación: ' . $e->getMessage(), [
+                'emergency_id' => $emergencyId,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al derivar a Internación: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Get pacientes en cirugía para auto-refresh
+     */
+    public function apiPacientesCirugia(): JsonResponse
+    {
+        $pacientesEnCirugia = \App\Models\Emergency::with(['paciente'])
+            ->where('ubicacion_actual', 'cirugia')
+            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($emg) {
+                return [
+                    'id' => $emg->id,
+                    'code' => $emg->code,
+                    'nro_cirugia' => $emg->nro_cirugia,
+                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                    'paciente_ci' => $emg->patient_id,
+                    'is_temp_id' => $emg->is_temp_id,
+                    'status' => $emg->status,
+                    'status_label' => match($emg->status) {
+                        'cirugia' => 'En Cirugía',
+                        'en_evaluacion' => 'En Evaluación',
+                        'estabilizado' => 'Estabilizado',
+                        default => $emg->status
+                    },
+                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                    'tipo_ingreso' => $emg->tipo_ingreso_label ?? 'Emergencia',
+                ];
+            });
+
+        // Obtener camas disponibles en internación
+        $camasDisponibles = \App\Models\Cama::where('disponibilidad', 'disponible')
+            ->whereHas('habitacion', function($q) {
+                $q->where('estado', '!=', 'mantenimiento');
+            })
+            ->count();
+
+        $stats = [
+            'total' => $pacientesEnCirugia->count(),
+            'camas_disponibles' => $camasDisponibles,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'pacientes' => $pacientesEnCirugia,
+            'stats' => $stats
+        ]);
     }
 }

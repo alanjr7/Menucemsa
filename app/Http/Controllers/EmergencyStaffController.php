@@ -130,7 +130,7 @@ class EmergencyStaffController extends Controller
     {
         try {
             $validated = $request->validate([
-                'destino' => 'required|in:cirugia,uti,hospitalizacion,observacion,alta',
+                'destino' => 'required|in:cirugia,hospitalizacion',
                 'forzar' => 'nullable|boolean',
             ]);
 
@@ -160,40 +160,6 @@ class EmergencyStaffController extends Controller
                         'nro_cirugia' => $this->generarNroCirugia($emergency),
                     ]);
                     break;
-                case 'uti':
-                    $nroUti = $this->generarNroUti($emergency);
-                    $emergency->update([
-                        'status' => 'uti',
-                        'ubicacion_actual' => 'uti',
-                        'nro_uti' => $nroUti,
-                    ]);
-
-                    // Buscar cama UTI disponible y crear admisión
-                    $camaUti = UtiBed::where('status', 'disponible')
-                        ->where('activa', true)
-                        ->first();
-
-                    if ($camaUti) {
-                        // Generar número de ingreso UTI (máx 20 chars)
-                        $nroIngreso = 'UTI-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
-
-                        // Crear admisión UTI
-                        UtiAdmission::create([
-                            'patient_id' => $emergency->patient_id,
-                            'bed_id' => $camaUti->id,
-                            'nro_ingreso' => $nroIngreso,
-                            'emergency_id' => $emergency->id,
-                            'estado_clinico' => 'estable',
-                            'tipo_ingreso' => 'emergencia',
-                            'tipo_pago' => 'particular',
-                            'fecha_ingreso' => now(),
-                            'estado' => 'activo',
-                        ]);
-
-                        // Marcar cama como ocupada
-                        $camaUti->update(['status' => 'ocupada']);
-                    }
-                    break;
                 case 'hospitalizacion':
                     $nroHosp = $this->generarNroHospitalizacion($emergency);
                     $emergency->update([
@@ -212,19 +178,6 @@ class EmergencyStaffController extends Controller
                         'estado' => 'activo',
                         'diagnostico' => $emergency->initial_assessment,
                         'nro_emergencia' => $emergency->id,
-                    ]);
-                    break;
-                case 'observacion':
-                    $emergency->update([
-                        'status' => 'estabilizado',
-                        'ubicacion_actual' => 'observacion',
-                    ]);
-                    break;
-                case 'alta':
-                    $emergency->update([
-                        'status' => 'alta',
-                        'ubicacion_actual' => 'alta',
-                        'discharge_date' => now(),
                     ]);
                     break;
             }

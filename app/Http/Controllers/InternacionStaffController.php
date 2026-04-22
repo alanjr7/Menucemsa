@@ -14,6 +14,8 @@ use App\Models\AlmacenMedicamento;
 use App\Models\HospMedicamentoAdministrado;
 use App\Models\HospCatering;
 use App\Models\HospDrenaje;
+use App\Models\Emergency;
+use App\Models\Quirofano;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -218,6 +220,92 @@ class InternacionStaffController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al derivar a UTI: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Derivar a Quirófano
+     */
+    public function derivarAQuirofano(Request $request, $id): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            $hospitalizacion = Hospitalizacion::with('paciente')->findOrFail($id);
+
+            // Verificar si ya está en quirófano (buscar en emergencias)
+            $cirugiaActiva = Emergency::where('patient_id', $hospitalizacion->ci_paciente)
+                ->where('ubicacion_actual', 'cirugia')
+                ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
+                ->first();
+
+            if ($cirugiaActiva) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El paciente ya tiene una cirugía activa',
+                ], 422);
+            }
+
+            // Buscar quirófano (opcional - si existe alguno disponible, se usa para info)
+            $quirofano = Quirofano::where('estado', '!=', 'mantenimiento')->first();
+
+            // Generar número de cirugía
+            $nroCirugia = 'CIR-' . now()->format('Ymd') . '-' . str_pad($hospitalizacion->id, 4, '0', STR_PAD_LEFT);
+
+            // Crear registro en emergencias como paciente en cirugía
+            $emergency = Emergency::create([
+                'patient_id' => $hospitalizacion->ci_paciente,
+                'user_id' => auth()->id(),
+                'code' => Emergency::generateCode(),
+                'is_temp_id' => false,
+                'status' => 'cirugia',
+                'ubicacion_actual' => 'cirugia',
+                'nro_cirugia' => $nroCirugia,
+                'symptoms' => 'Derivación desde internación para cirugía',
+                'initial_assessment' => $hospitalizacion->diagnostico,
+                'admission_date' => now(),
+                'tipo_ingreso' => 'general',
+                'destino_inicial' => 'cirugia',
+                'flujo_historial' => [
+                    [
+                        'fecha' => now()->toDateTimeString(),
+                        'desde' => 'internacion',
+                        'hasta' => 'cirugia',
+                        'usuario_id' => auth()->id(),
+                        'notas' => 'Derivación desde internación a quirófano',
+                    ]
+                ],
+            ]);
+
+            // Actualizar hospitalización
+            $hospitalizacion->update([
+                'estado' => 'trasladado',
+                'observaciones' => ($hospitalizacion->observaciones ? $hospitalizacion->observaciones . "\n" : '') .
+                    'Trasladado a Quirófano: ' . now()->format('d/m/Y H:i'),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Paciente derivado a Quirófano correctamente',
+                'cirugia' => [
+                    'id' => $emergency->id,
+                    'nro_cirugia' => $nroCirugia,
+                    'quirofano' => $quirofano ? ($quirofano->tipo ?? 'Q' . $quirofano->id) : 'Sin asignar',
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error al derivar a quirófano: ' . $e->getMessage(), [
+                'hospitalizacion_id' => $id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al derivar a Quirófano: ' . $e->getMessage(),
             ], 500);
         }
     }

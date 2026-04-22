@@ -31,10 +31,13 @@
             </div>
         </div>
 
+        <!-- Tarjeta de Paciente Encontrado (se muestra aquí cuando existe) -->
+        <div id="tarjetaPacienteContainer" class="mb-6"></div>
+
         <!-- Formulario de Internación -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 class="text-lg font-bold text-gray-800 mb-6">Registrar Nueva Internación</h2>
-            
+
             <form id="formHospitalizacion" onsubmit="registrarHospitalizacion(); return false;">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Búsqueda de Paciente -->
@@ -57,21 +60,6 @@
                         <select name="tipo_paciente" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
                             <option value="existente">Paciente Existente</option>
                             <option value="nuevo">Nuevo Paciente</option>
-                        </select>
-                    </div>
-
-                    <!-- Tipo de Hospitalización -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Hospitalización *</label>
-                        <select name="tipo_hospitalizacion" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
-                            <option value="">Seleccione...</option>
-                            <option value="cirugia">Cirugía Programada</option>
-                            <option value="emergencia">Emergencia con Hospitalización</option>
-                            <option value="observacion">Observación</option>
-                            <option value="parto">Parto</option>
-                            <option value="tratamiento">Tratamiento Médico</option>
-                            <option value="rehabilitacion">Rehabilitación</option>
-                            <option value="uci">UCI</option>
                         </select>
                     </div>
 
@@ -127,38 +115,9 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Servicio *</label>
-                            <select name="servicio" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
-                                <option value="">Seleccione...</option>
-                                <option value="medicina_interna">Medicina Interna</option>
-                                <option value="cirugia_general">Cirugía General</option>
-                                <option value="ginecologia">Ginecología</option>
-                                <option value="pediatria">Pediatría</option>
-                                <option value="cardiologia">Cardiología</option>
-                                <option value="neurologia">Neurología</option>
-                                <option value="oncologia">Oncología</option>
-                                <option value="uci">UCI</option>
-                                <option value="uci_neonatal">UCI Neonatal</option>
-                            </select>
-                        </div>
-
-                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Médico Tratante *</label>
                             <select name="medico_tratante" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
                                 <option value="">Seleccione...</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Seguro *</label>
-                            <select name="seguro" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" required>
-                                <option value="">Seleccione...</option>
-                                <option value="particular">Particular</option>
-                                <option value="seguro_social">Seguro Social</option>
-                                <option value="seguro_privado">Seguro Privado</option>
-                                <option value="iseguros">Iseguros</option>
-                                <option value="mapfre">Mapfre</option>
-                                <option value="palic">Palic</option>
                             </select>
                         </div>
 
@@ -192,34 +151,6 @@
                             </div>
                         </div>
 
-                        <!-- Opciones Adicionales -->
-                        <div class="bg-gray-50 rounded-xl p-4">
-                            <h4 class="font-semibold text-gray-800 mb-3">Opciones Adicionales</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="requiere_cirugia" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="text-sm text-gray-700">Requiere cirugía</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="requiere_uci" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="text-sm text-gray-700">Requiere UCI</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="paciente_riesgo" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="text-sm text-gray-700">Paciente de alto riesgo</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="alergias_severas" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="text-sm text-gray-700">Alergias severas conocidas</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Observaciones -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones Adicionales</label>
-                            <textarea name="observaciones" rows="3" placeholder="Notas adicionales sobre la hospitalización" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"></textarea>
-                        </div>
                     </div>
                 </div>
 
@@ -394,22 +325,24 @@
                 btnBuscar.disabled = false;
                 
                 if (data.success) {
-                    // PACIENTE ENCONTRADO
+                    // PACIENTE ENCONTRADO - Poner como existente y bloquear
                     tipoPacienteSelect.value = 'existente';
+                    tipoPacienteSelect.disabled = true;
+                    tipoPacienteSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
                     tipoPacienteSelect.dispatchEvent(new Event('change'));
-                    
-                    // Mostrar datos del paciente
+
+                    // Mostrar datos del paciente arriba
                     mostrarDatosPaciente(data.paciente);
                 } else {
-                    // PACIENTE NO ENCONTRADO
+                    // PACIENTE NO ENCONTRADO - Habilitar y poner como nuevo
                     tipoPacienteSelect.value = 'nuevo';
+                    tipoPacienteSelect.disabled = false;
+                    tipoPacienteSelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
                     tipoPacienteSelect.dispatchEvent(new Event('change'));
-                    
-                    // Eliminar sección de datos existentes si hay una
-                    const existingSection = ciField.closest('.grid').parentElement.querySelector('.bg-green-50');
-                    if (existingSection) {
-                        existingSection.remove();
-                    }
+
+                    // Limpiar tarjeta de paciente si existe
+                    const container = document.getElementById('tarjetaPacienteContainer');
+                    container.innerHTML = '';
                 }
             })
             .catch(error => {
@@ -423,31 +356,24 @@
 
         // Función para mostrar datos del paciente encontrado
         function mostrarDatosPaciente(paciente) {
-            // Crear una sección para mostrar los datos del paciente encontrado
-            const datosSection = document.createElement('div');
-            datosSection.className = 'mt-4 p-4 bg-green-50 rounded-xl border border-green-200';
-            datosSection.innerHTML = `
-                <div class="flex items-center mb-3">
-                    <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="font-semibold text-green-800">Paciente Encontrado</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><strong>Nombre:</strong> ${paciente.nombre}</div>
-                    <div><strong>CI:</strong> ${paciente.ci}</div>
-                    <div><strong>Teléfono:</strong> ${paciente.telefono || 'N/A'}</div>
-                    <div><strong>Correo:</strong> ${paciente.correo || 'N/A'}</div>
+            const container = document.getElementById('tarjetaPacienteContainer');
+
+            container.innerHTML = `
+                <div class="p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-green-800">Paciente Encontrado - Existente</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div><span class="text-gray-600">Nombre:</span> <span class="font-medium">${paciente.nombre}</span></div>
+                        <div><span class="text-gray-600">CI:</span> <span class="font-medium">${paciente.ci}</span></div>
+                        <div><span class="text-gray-600">Teléfono:</span> <span class="font-medium">${paciente.telefono || 'N/A'}</span></div>
+                        <div><span class="text-gray-600">Correo:</span> <span class="font-medium">${paciente.correo || 'N/A'}</span></div>
+                    </div>
                 </div>
             `;
-            
-            // Insertar después del campo de CI
-            const ciField = document.getElementById('paciente_ci').closest('.grid').parentElement;
-            const existingSection = ciField.querySelector('.bg-green-50');
-            if (existingSection) {
-                existingSection.remove();
-            }
-            ciField.appendChild(datosSection);
         }
 
         // Función para registrar hospitalización
@@ -459,7 +385,7 @@
             const data = Object.fromEntries(formData.entries());
             
             // Validar campos requeridos básicos
-            if (!data.ci || !data.tipo_hospitalizacion || !data.motivo || !data.diagnostico || !data.servicio || !data.medico_tratante || !data.seguro) {
+            if (!data.ci || !data.motivo || !data.diagnostico || !data.medico_tratante) {
                 alert('Por favor complete todos los campos obligatorios');
                 return;
             }
@@ -502,15 +428,16 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message || 'Hospitalización registrada exitosamente');
-                    // Recargar lista de hospitalizaciones
-                    cargarHospitalizacionesActivas();
-                    // Resetear formulario
-                    form.reset();
-                    // Eliminar sección de datos existentes si hay una
-                    const existingSection = document.querySelector('.bg-green-50');
-                    if (existingSection) {
-                        existingSection.remove();
+                    // Redirigir al comprobante de hospitalización
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        alert('Hospitalización registrada exitosamente');
+                        form.reset();
+                        document.getElementById('tarjetaPacienteContainer').innerHTML = '';
+                        const tipoPacienteSelect = document.querySelector('select[name="tipo_paciente"]');
+                        tipoPacienteSelect.disabled = false;
+                        tipoPacienteSelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
                     }
                 } else {
                     alert('Error: ' + data.message);

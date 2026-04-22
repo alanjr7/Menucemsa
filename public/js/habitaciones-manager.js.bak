@@ -1,0 +1,733 @@
+/**
+ * Habitaciones Manager - Módulo JS para gestión de habitaciones
+ * Vista split: Panel izquierdo lista, Panel derecho detalle
+ */
+
+const HabitacionesManager = (function() {
+    'use strict';
+
+    // Estado
+    let habitacionActual = null;
+    let habitacionesData = [];
+    let cacheHabitaciones = null;
+    let cacheTimestamp = 0;
+    const CACHE_DURATION = 30000; // 30 segundos de cache
+
+    // Elementos DOM
+    const elements = {
+        lista: null,
+        detalle: null,
+        loading: null,
+        filtros: null
+    };
+
+    /**
+     * Inicializar el módulo
+     */
+    async function init() {
+        // Cachear elementos DOM
+        elements.lista = document.getElementById('habitaciones-lista');
+        elements.detalle = document.getElementById('habitacion-detalle');
+        elements.loading = document.getElementById('detalle-loading');
+        elements.filtros = document.querySelectorAll('[data-filtro]');
+
+        // Bind events
+        bindEvents();
+
+        // Verificar hash URL para selección inicial
+        const hash = window.location.hash.replace('#', '');
+        if (hash && hash.startsWith('h')) {
+            // Si hay hash, cargar lista y detalle en paralelo
+            await Promise.all([
+                cargarHabitaciones(),
+                seleccionarHabitacion(hash)
+            ]);
+        } else {
+            // Si no hay hash, cargar lista primero
+            await cargarHabitaciones(true);
+            if (habitacionesData.length > 0) {
+                await seleccionarHabitacion(habitacionesData[0].id);
+            }
+        }
+    }
+
+    /**
+     * Bind de eventos
+     */
+    function bindEvents() {
+        // Filtros
+        elements.filtros.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filtro = e.currentTarget.dataset.filtro;
+                aplicarFiltro(filtro);
+                actualizarBotonesFiltro(e.currentTarget);
+            });
+        });
+
+        // Cambio de hash URL
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && hash.startsWith('h')) {
+                seleccionarHabitacion(hash);
+            }
+        });
+    }
+
+    /**
+     * Cargar lista de habitaciones (con caché)
+     */
+    async function cargarHabitaciones(seleccionarPrimera = false, forzarRecarga = false) {
+        // Usar cache si está disponible y no se fuerza recarga
+        const ahora = Date.now();
+        if (!forzarRecarga && cacheHabitaciones && (ahora - cacheTimestamp) < CACHE_DURATION) {
+            habitacionesData = cacheHabitaciones;
+            renderizarLista(habitacionesData);
+            
+            if (seleccionarPrimera && !window.location.hash && habitacionesData.length > 0) {
+                habitacionActual = habitacionesData[0].id;
+                window.location.hash = habitacionActual;
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch('/internacion-staff/api/habitaciones');
+            const data = await response.json();
+
+            if (data.success) {
+                habitacionesData = data.habitaciones;
+                cacheHabitaciones = habitacionesData;
+                cacheTimestamp = Date.now();
+                renderizarLista(habitacionesData);
+
+                if (seleccionarPrimera && !window.location.hash && habitacionesData.length > 0) {
+                    habitacionActual = habitacionesData[0].id;
+                    window.location.hash = habitacionActual;
+                }
+            }
+        } catch (error) {
+            console.error('Error cargando habitaciones:', error);
+            elements.lista.innerHTML = `
+                <div class="p-4 text-red-600 text-sm">
+                    Error al cargar habitaciones
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Renderizar lista de habitaciones
+     */
+    function renderizarLista(habitaciones) {
+        if (habitaciones.length === 0) {
+            elements.lista.innerHTML = `
+                <div class="p-8 text-center text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    <p>No hay habitaciones registradas</p>
+                </div>
+            `;
+            return;
+        }
+
+        elements.lista.innerHTML = habitaciones.map(h => {
+            const libres = h.camas_disponibles || 0;
+            const total = h.camas_count || 0;
+            const ocupadas = total - libres;
+
+            const estadoColor = {
+                'disponible': 'green',
+                'ocupada': 'yellow',
+                'mantenimiento': 'red'
+            }[h.estado] || 'gray';
+
+            const isSelected = habitacionActual === h.id;
+
+            return `
+                <div class="habitacion-item cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition ${isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}"
+                     onclick="HabitacionesManager.seleccionarHabitacion('${h.id}')"
+                     data-id="${h.id}">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-900">Habitación ${h.id}</h4>
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-${estadoColor}-100 text-${estadoColor}-800">
+                                ${capitalize(h.estado)}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-500 truncate">${h.detalle || 'Sin detalle'}</p>
+                        <div class="mt-2 flex items-center text-xs text-gray-500 gap-3">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01"/>
+                                </svg>
+                                ${total} camas
+                            </span>
+                            ${ocupadas > 0 
+                                ? `<span class="text-amber-600 flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/></svg>${ocupadas} ocupadas</span>` 
+                                : `<span class="text-emerald-600 flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Disponible</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Seleccionar una habitación
+     */
+    async function seleccionarHabitacion(habitacionId) {
+        habitacionActual = habitacionId;
+
+        // Actualizar UI lista
+        document.querySelectorAll('.habitacion-item').forEach(el => {
+            if (el.dataset.id === habitacionId) {
+                el.classList.add('bg-blue-50', 'border-l-blue-500');
+                el.classList.remove('border-l-transparent');
+            } else {
+                el.classList.remove('bg-blue-50', 'border-l-blue-500');
+                el.classList.add('border-l-transparent');
+            }
+        });
+
+        // Actualizar URL
+        window.location.hash = habitacionId;
+
+        // Mostrar loading
+        mostrarLoading();
+
+        // Cargar detalle
+        await cargarDetalle(habitacionId);
+    }
+
+    /**
+     * Cargar detalle de habitación (con cache)
+     */
+    async function cargarDetalle(habitacionId) {
+        // Verificar cache primero
+        if (cacheDetalles.has(habitacionId)) {
+            const cached = cacheDetalles.get(habitacionId);
+            renderizarDetalle(cached.habitacion, cached.pacientes_sin_habitacion);
+            // Actualizar en segundo plano
+            fetch(`/internacion-staff/api/habitaciones/${habitacionId}/detalle`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        cacheDetalles.set(habitacionId, data);
+                        renderizarDetalle(data.habitacion, data.pacientes_sin_habitacion);
+                    }
+                })
+                .catch(() => {});
+            return;
+        }
+
+        try {
+            const response = await fetch(`/internacion-staff/api/habitaciones/${habitacionId}/detalle`);
+            const data = await response.json();
+
+            if (data.success) {
+                cacheDetalles.set(habitacionId, data);
+                renderizarDetalle(data.habitacion, data.pacientes_sin_habitacion);
+            } else {
+                elements.detalle.innerHTML = `
+                    <div class="p-6 text-center text-red-600">
+                        Error al cargar el detalle
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error cargando detalle:', error);
+            elements.detalle.innerHTML = `
+                <div class="p-6 text-center text-red-600">
+                    Error de conexión
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Renderizar panel de detalle
+     */
+    function renderizarDetalle(habitacion, pacientesSinHabitacion) {
+        const estadoColor = {
+            'disponible': 'green',
+            'ocupada': 'yellow',
+            'mantenimiento': 'red'
+        }[habitacion.estado] || 'gray';
+
+        const isMantenimiento = habitacion.estado === 'mantenimiento';
+
+        const camasHtml = habitacion.camas.map(cama => {
+            const camaEstadoColor = {
+                'disponible': 'green',
+                'ocupada': 'red',
+                'mantenimiento': 'gray'
+            }[cama.disponibilidad] || 'gray';
+
+            if (cama.disponibilidad === 'ocupada' && cama.hospitalizacion_activa) {
+                return `
+                    <div class="border-2 border-red-200 bg-red-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01"/>
+                                </svg>
+                                <span class="font-semibold text-gray-900">Cama ${cama.nro}</span>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Ocupada</span>
+                        </div>
+                        <div class="bg-white rounded p-3 mb-3">
+                            <p class="text-sm font-medium text-gray-900">${cama.hospitalizacion_activa.paciente?.nombre || 'N/A'}</p>
+                            <p class="text-xs text-gray-500">CI: ${cama.hospitalizacion_activa.paciente?.ci || 'N/A'}</p>
+                        </div>
+                        <button onclick="HabitacionesManager.liberarCama('${cama.id}')"
+                                class="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition">
+                            Liberar Cama
+                        </button>
+                    </div>
+                `;
+            } else if (cama.disponibilidad === 'disponible') {
+                return `
+                    <div class="border-2 border-green-200 bg-green-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01"/>
+                                </svg>
+                                <span class="font-semibold text-gray-900">Cama ${cama.nro}</span>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Disponible</span>
+                        </div>
+                        <button onclick="HabitacionesManager.mostrarModalAsignar(${cama.id}, '${habitacion.id}')"
+                                class="w-full px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
+                            Asignar Paciente
+                        </button>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="border-2 border-gray-200 bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01"/>
+                                </svg>
+                                <span class="font-semibold text-gray-900">Cama ${cama.nro}</span>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${capitalize(cama.disponibilidad)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+
+        const pacientesOptions = pacientesSinHabitacion.map(p => `
+            <option value="${p.id}">${p.paciente?.nombre || 'N/A'} (CI: ${p.paciente?.ci || 'N/A'})</option>
+        `).join('');
+
+        elements.detalle.innerHTML = `
+            <div class="p-6">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6 pb-4 border-b">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Habitación ${habitacion.id}</h2>
+                        <p class="text-gray-600 mt-1">${habitacion.detalle || 'Sin detalle'}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-${estadoColor}-100 text-${estadoColor}-800">
+                            ${capitalize(habitacion.estado)}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                        <p class="text-xl font-bold text-blue-600">${habitacion.capacidad}</p>
+                        <p class="text-xs text-gray-600">Capacidad</p>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <p class="text-xl font-bold text-green-600">${habitacion.camas.filter(c => c.disponibilidad === 'disponible').length}</p>
+                        <p class="text-xs text-gray-600">Disponibles</p>
+                    </div>
+                    <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                        <p class="text-xl font-bold text-yellow-600">${habitacion.camas.filter(c => c.disponibilidad === 'ocupada').length}</p>
+                        <p class="text-xs text-gray-600">Ocupadas</p>
+                    </div>
+                    <div class="text-center p-3 bg-gray-50 rounded-lg">
+                        <p class="text-xl font-bold text-gray-600">${habitacion.camas.filter(c => c.disponibilidad === 'mantenimiento').length}</p>
+                        <p class="text-xs text-gray-600">Mantenimiento</p>
+                    </div>
+                </div>
+
+                <!-- Camas -->
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Camas</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    ${camasHtml}
+                </div>
+
+                <!-- Pacientes por asignar -->
+                ${pacientesSinHabitacion.length > 0 ? `
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold text-yellow-600 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            Pacientes por Asignar (${pacientesSinHabitacion.length})
+                        </h3>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p class="text-sm text-gray-600 mb-2">Selecciona una cama disponible arriba para asignar un paciente.</p>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Acciones -->
+                <div class="border-t pt-6 mt-6">
+                    <div class="flex gap-3">
+                        <a href="/internacion-staff/habitaciones/${habitacion.id}/edit"
+                           class="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Editar Habitación
+                        </a>
+                        <button onclick="HabitacionesManager.toggleMantenimiento('${habitacion.id}')"
+                                class="flex-1 flex items-center justify-center px-4 py-2 ${habitacion.estado === 'mantenimiento' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white rounded-lg transition">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            ${habitacion.estado === 'mantenimiento' ? 'Activar' : 'Mantenimiento'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Guardar datos para el modal
+        elements.detalle.dataset.pacientes = JSON.stringify(pacientesSinHabitacion);
+        elements.detalle.dataset.habitacionId = habitacion.id;
+        elements.detalle.dataset.estado = habitacion.estado;
+    }
+
+    /**
+     * Mostrar loading en panel derecho
+     */
+    function mostrarLoading() {
+        elements.detalle.innerHTML = `
+            <div class="p-6">
+                <div class="animate-pulse">
+                    <div class="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="h-20 bg-gray-200 rounded"></div>
+                        <div class="h-20 bg-gray-200 rounded"></div>
+                        <div class="h-20 bg-gray-200 rounded"></div>
+                        <div class="h-20 bg-gray-200 rounded"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="h-32 bg-gray-200 rounded"></div>
+                        <div class="h-32 bg-gray-200 rounded"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Aplicar filtro a la lista
+     */
+    function aplicarFiltro(filtro) {
+        let filtradas = habitacionesData;
+
+        if (filtro !== 'todas') {
+            filtradas = habitacionesData.filter(h => h.estado === filtro);
+        }
+
+        renderizarLista(filtradas);
+    }
+
+    /**
+     * Actualizar estilo de botones de filtro
+     */
+    function actualizarBotonesFiltro(activo) {
+        elements.filtros.forEach(btn => {
+            btn.classList.remove('bg-indigo-600', 'text-white');
+            btn.classList.add('bg-gray-200', 'text-gray-700');
+        });
+        activo.classList.remove('bg-gray-200', 'text-gray-700');
+        activo.classList.add('bg-indigo-600', 'text-white');
+    }
+
+    /**
+     * Mostrar modal de asignar paciente
+     */
+    function mostrarModalAsignar(camaId, habitacionId) {
+        const pacientes = JSON.parse(elements.detalle.dataset.pacientes || '[]');
+
+        if (pacientes.length === 0) {
+            alert('No hay pacientes pendientes por asignar');
+            return;
+        }
+
+        const options = pacientes.map(p => `
+            <option value="${p.id}">${p.paciente?.nombre || 'N/A'} (CI: ${p.paciente?.ci || 'N/A'})</option>
+        `).join('');
+
+        // Crear modal dinámico
+        const modal = document.createElement('div');
+        modal.id = 'modal-asignar';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="bg-indigo-600 text-white p-4 rounded-t-xl">
+                    <h3 class="text-lg font-bold">Asignar Paciente a Cama</h3>
+                </div>
+                <form id="form-asignar" class="p-6">
+                    <input type="hidden" name="cama_id" value="${camaId}">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Paciente</label>
+                        <select name="hospitalizacion_id" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Seleccione un paciente...</option>
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="document.getElementById('modal-asignar').remove()"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                            Asignar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Manejar submit
+        document.getElementById('form-asignar').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await asignarPaciente(habitacionId, new FormData(e.target));
+            document.getElementById('modal-asignar').remove();
+        });
+
+        // Cerrar al click fuera
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+
+    /**
+     * Asignar paciente a cama
+     */
+    async function asignarPaciente(habitacionId, formData) {
+        try {
+            const response = await fetch(`/internacion-staff/habitaciones/${habitacionId}/asignar-paciente`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            // Intentar parsear JSON, si falla usar texto
+            let data;
+            const text = await response.text();
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                // Si no es JSON, puede ser una redirección HTML exitosa
+                if (response.ok || response.redirected) {
+                    data = { success: true, message: 'Paciente asignado' };
+                } else {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+            }
+
+            if (data.success || response.ok) {
+                // Invalidar cache y recargar
+                cacheDetalles.delete(habitacionId);
+                cacheHabitaciones = null;
+                await Promise.all([
+                    cargarHabitaciones(),
+                    cargarDetalle(habitacionId)
+                ]);
+                mostrarNotificacion(data.message || 'Paciente asignado exitosamente', 'success');
+            } else {
+                mostrarNotificacion(data.message || 'Error al asignar paciente', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('Error de conexión: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Liberar cama
+     */
+    async function liberarCama(camaId) {
+        if (!confirm('¿Está seguro de liberar esta cama?')) return;
+
+        try {
+            const response = await fetch(`/internacion-staff/camas/${camaId}/liberar`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            let data;
+            const text = await response.text();
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                if (response.ok || response.redirected) {
+                    data = { success: true, message: 'Cama liberada' };
+                } else {
+                    throw new Error('Error en la respuesta');
+                }
+            }
+
+            if (data.success || response.ok) {
+                // Invalidar cache y recargar
+                cacheDetalles.delete(habitacionActual);
+                cacheHabitaciones = null;
+                await Promise.all([
+                    cargarHabitaciones(),
+                    cargarDetalle(habitacionActual)
+                ]);
+                mostrarNotificacion(data.message || 'Cama liberada exitosamente', 'success');
+            } else {
+                mostrarNotificacion(data.message || 'Error al liberar cama', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('Error: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Toggle mantenimiento de habitación
+     */
+    async function toggleMantenimiento(habitacionId) {
+        const mensaje = elements.detalle.querySelector('[data-estado]')?.dataset.estado === 'mantenimiento' 
+            ? '¿Activar esta habitación?' 
+            : '¿Marcar habitación en mantenimiento?';
+        
+        if (!confirm(mensaje)) return;
+
+        try {
+            // Crear FormData para enviar el _method
+            const formData = new FormData();
+            formData.append('_method', 'DELETE');
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+            const response = await fetch(`/internacion-staff/habitaciones/${habitacionId}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            let data;
+            const text = await response.text();
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                if (response.ok || response.redirected) {
+                    data = { success: true };
+                } else {
+                    throw new Error(text || 'Error del servidor');
+                }
+            }
+
+            if (data.success || response.ok) {
+                // Invalidar cache y recargar
+                cacheDetalles.delete(habitacionId);
+                cacheDetalles.clear(); // Limpiar todo por si hay cambios en otras habitaciones
+                cacheHabitaciones = null;
+                await Promise.all([
+                    cargarHabitaciones(),
+                    cargarDetalle(habitacionId)
+                ]);
+                mostrarNotificacion(data.message || 'Estado actualizado', 'success');
+            } else {
+                mostrarNotificacion(data.message || 'Error: ' + (data.error || 'No se pudo cambiar el estado'), 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('Error: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Mostrar notificación
+     */
+    function mostrarNotificacion(mensaje, tipo) {
+        // Usar las notificaciones del layout si existen
+        const notifDiv = document.createElement('div');
+        notifDiv.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${tipo === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'} border`;
+        notifDiv.textContent = mensaje;
+        document.body.appendChild(notifDiv);
+
+        setTimeout(() => {
+            notifDiv.remove();
+        }, 3000);
+    }
+
+    /**
+     * Helper: Capitalize string
+     */
+    function capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Cache de detalles para navegación rápida
+    const cacheDetalles = new Map();
+
+    /**
+     * Precargar detalle de habitación en segundo plano
+     */
+    async function precargarDetalle(habitacionId) {
+        if (!habitacionId || cacheDetalles.has(habitacionId)) return;
+        
+        try {
+            const response = await fetch(`/internacion-staff/api/habitaciones/${habitacionId}/detalle`);
+            const data = await response.json();
+            if (data.success) {
+                cacheDetalles.set(habitacionId, data);
+            }
+        } catch (e) {
+            // Silenciar errores de precarga
+        }
+    }
+
+    // API Pública
+    return {
+        init,
+        seleccionarHabitacion,
+        mostrarModalAsignar,
+        liberarCama,
+        toggleMantenimiento,
+        precargarDetalle
+    };
+})();
+
+// Auto-inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('habitaciones-lista')) {
+        HabitacionesManager.init();
+    }
+});
