@@ -611,4 +611,45 @@ class CajaGestionController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Anular una cuenta de cobro pendiente
+     */
+    public function anularCuenta(Request $request, string $id): JsonResponse
+    {
+        $request->validate(['motivo' => 'required|string|max:500']);
+
+        DB::beginTransaction();
+        try {
+            $cuenta = CuentaCobro::findOrFail($id);
+
+            if ($cuenta->estado === 'pagado' && $cuenta->total_pagado > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede anular una cuenta ya pagada. Use devolución parcial.'
+                ], 422);
+            }
+
+            $cuenta->update([
+                'estado'       => 'anulado',
+                'observaciones'=> ($cuenta->observaciones ? $cuenta->observaciones . ' | ' : '') .
+                                 'ANULADO: ' . $request->motivo . ' por ' . auth()->user()->name .
+                                 ' el ' . now()->format('d/m/Y H:i'),
+            ]);
+
+            \Log::info('Cuenta anulada', [
+                'cuenta_id' => $id,
+                'motivo'    => $request->motivo,
+                'user_id'   => auth()->id(),
+            ]);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Cuenta anulada correctamente']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error al anular cuenta: ' . $e->getMessage(), ['user_id' => auth()->id()]);
+            return response()->json(['success' => false, 'message' => 'Error al anular la cuenta.'], 500);
+        }
+    }
 }

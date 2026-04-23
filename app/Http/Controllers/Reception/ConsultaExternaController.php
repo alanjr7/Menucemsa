@@ -33,11 +33,11 @@ class ConsultaExternaController extends Controller
     public function buscarPaciente(Request $request)
     {
         $ci = $request->get('ci');
-        
-        if (strlen($ci) < 8) {
+
+        if (!is_numeric($ci) || strlen($ci) < 7 || strlen($ci) > 10) {
             return response()->json([
                 'success' => false,
-                'message' => 'El CI debe tener al menos 8 dígitos'
+                'message' => 'El CI debe ser un número de 7 a 10 dígitos'
             ]);
         }
 
@@ -138,7 +138,7 @@ class ConsultaExternaController extends Controller
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
                 'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
-                'id_triage' => $this->obenerOCrearTriage(),
+                'triage_id' => $this->obenerOCrearTriage(),
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
@@ -304,7 +304,7 @@ class ConsultaExternaController extends Controller
 
             $paciente = $this->crearOActualizarPaciente($request);
             $triage = $this->crearTriagePorTipo($request->triage_tipo);
-            $paciente->update(['id_triage' => $triage->id]);
+            $paciente->update(['triage_id' => $triage->id]);
 
             if ($request->triage_tipo === 'verde') {
                 $caja = $this->crearRegistroCajaPendiente($request, $paciente);
@@ -425,15 +425,32 @@ class ConsultaExternaController extends Controller
                     'updated_at' => now(),
                 ]);
 
-                DB::table('partos')->insert([
-                    'nro' => 'PARTO-' . now()->format('YmdHis') . '-' . random_int(100, 999),
-                    'tipo' => 'INSTITUCIONAL',
-                    'observaciones' => $request->observaciones,
-                    'id_hospitalizacion' => $idHosp,
-                    'nro_cirugia' => $nroCirugia,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                // Inserción en tabla partos - envuelta en try/catch para no bloquear flujo principal
+                try {
+                    $columnasPartos = \Schema::hasTable('partos') ? \Schema::getColumnListing('partos') : [];
+                    if (!empty($columnasPartos)) {
+                        $dataParto = [
+                            'nro' => 'PARTO-' . now()->format('YmdHis') . '-' . random_int(100, 999),
+                            'tipo' => 'INSTITUCIONAL',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        // Solo agregar campos si existen en la tabla
+                        if (in_array('observaciones', $columnasPartos)) {
+                            $dataParto['observaciones'] = $request->observaciones;
+                        }
+                        if (in_array('id_hospitalizacion', $columnasPartos)) {
+                            $dataParto['id_hospitalizacion'] = $idHosp;
+                        }
+                        if (in_array('nro_cirugia', $columnasPartos)) {
+                            $dataParto['nro_cirugia'] = $nroCirugia;
+                        }
+                        DB::table('partos')->insert($dataParto);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('No se pudo registrar parto: ' . $e->getMessage());
+                    // No lanzar - no debe bloquear el flujo principal
+                }
             }
 
             if ($request->boolean('requiere_observacion_postparto')) {

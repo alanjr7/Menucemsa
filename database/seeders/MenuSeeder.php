@@ -80,8 +80,8 @@ class MenuSeeder extends Seeder
         $emergencias->children()->createMany([
             ['name' => 'Panel Principal', 'route' => 'emergency-staff.dashboard', 'roles' => 'emergencia', 'order' => 1],
             ['name' => 'Pendientes', 'route' => 'emergency-staff.pending', 'roles' => 'emergencia', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'emergencia,admin', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'emergencia,admin', 'order' => 4],
+            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'emergencia', 'order' => 3],
+            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'emergencia', 'order' => 4],
         ]);
 
         // 4.5 Administración de Emergencias (Admin/Director Médico)
@@ -166,16 +166,16 @@ class MenuSeeder extends Seeder
             'active_pattern' => 'farmacia*',
             'icon_path' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
             'color' => 'yellow',
-            'roles' => 'farmacia',
+            'roles' => 'farmacia,admin',
             'order' => 40,
         ]);
 
         $farmacia->children()->createMany([
-            ['name' => 'Dashboard', 'route' => 'farmacia.index', 'roles' => 'farmacia', 'order' => 1],
-            ['name' => 'Punto de Venta', 'route' => 'farmacia.pos', 'roles' => 'farmacia', 'order' => 2],
-            ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia', 'order' => 3],
-            ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia', 'order' => 4],
-            ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia', 'order' => 5],
+            ['name' => 'Dashboard', 'route' => 'farmacia.index', 'roles' => 'farmacia,admin', 'order' => 1],
+            ['name' => 'Punto de Venta', 'route' => 'farmacia.pos', 'roles' => 'farmacia,admin', 'order' => 2],
+            ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia,admin', 'order' => 3],
+            ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin', 'order' => 4],
+            ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin', 'order' => 5],
         ]);
 
         // 9. UTI - Terapia Intensiva
@@ -220,8 +220,8 @@ class MenuSeeder extends Seeder
         $internacion->children()->createMany([
             ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'internacion', 'order' => 1],
             ['name' => 'Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'internacion', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'internacion,admin', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'internacion,admin', 'order' => 4],
+            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'internacion', 'order' => 3],
+            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'internacion', 'order' => 4],
             ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'internacion', 'order' => 5],
         ]);
 

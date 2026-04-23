@@ -281,7 +281,7 @@
         </div>
 
         <!-- Charts Section - Solo para Admin -->
-        @if(auth()->user()->role === 'admin')
+        @if(auth()->user()->role === 'admin' && isset($chartData))
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="flex items-center justify-between mb-4">

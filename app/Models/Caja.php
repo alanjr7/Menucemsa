@@ -33,15 +33,19 @@ class Caja extends Model
         'nro_factura' => 'integer',
     ];
 
+    /**
+     * @deprecated Tabla 'facturas' no existe. Usar CuentaCobro para cobros.
+     */
     public function factura()
     {
-        // Relación deshabilitada ya que la tabla facturas no existe
         return $this;
     }
 
+    /**
+     * @deprecated Usar VentaFarmacia con farmacia_id.
+     */
     public function farmacia()
     {
-        // Relación deshabilitada ya que la tabla farmacias tiene nombre diferente
         return $this;
     }
 
@@ -85,7 +89,7 @@ class Caja extends Model
 
         static::creating(function ($caja) {
             if (empty($caja->id)) {
-                $caja->id = 'CAJA-' . date('YmdHis') . '-' . rand(100, 999);
+                $caja->id = 'CAJA-' . date('YmdHis') . '-' . str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
             }
             if (empty($caja->fecha)) {
                 $caja->fecha = now();

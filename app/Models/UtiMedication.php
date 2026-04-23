@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\AlmacenMedicamento;
+
 class UtiMedication extends Model
 {
     use HasFactory;
@@ -13,7 +15,7 @@ class UtiMedication extends Model
 
     protected $fillable = [
         'uti_admission_id',
-        'medicamento_id',
+        'codigo_medicamento',
         'administered_by',
         'fecha',
         'hora',
@@ -39,7 +41,7 @@ class UtiMedication extends Model
 
     public function medicamento()
     {
-        return $this->belongsTo(Medicamentos::class, 'medicamento_id');
+        return $this->belongsTo(Medicamentos::class, 'codigo_medicamento', 'codigo');
     }
 
     public function administeredBy()

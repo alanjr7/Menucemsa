@@ -130,6 +130,6 @@ class User extends Authenticatable
 
     public function cajaSessions()
     {
-        return $this->hasMany(CajaSession::class, 'usuario_id');
+        return $this->hasMany(CajaSession::class, 'user_id');
     }
 }

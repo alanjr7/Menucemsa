@@ -29,7 +29,7 @@ class UtiAdminController extends Controller
      */
     public function index(): View
     {
-        return view('uti.admin.dashboard');
+        return view('uti.admin.dashboard', ['activeTab' => 'dashboard']);
     }
 
     /**
@@ -37,7 +37,7 @@ class UtiAdminController extends Controller
      */
     public function camas(): View
     {
-        return view('uti.admin.dashboard');
+        return view('uti.admin.dashboard', ['activeTab' => 'camas']);
     }
 
     /**
@@ -45,7 +45,7 @@ class UtiAdminController extends Controller
      */
     public function controlFinanciero(): View
     {
-        return view('uti.admin.dashboard');
+        return view('uti.admin.dashboard', ['activeTab' => 'financiero']);
     }
 
     /**
@@ -53,7 +53,7 @@ class UtiAdminController extends Controller
      */
     public function tarifario(): View
     {
-        return view('uti.admin.dashboard');
+        return view('uti.admin.dashboard', ['activeTab' => 'tarifario']);
     }
 
     /**

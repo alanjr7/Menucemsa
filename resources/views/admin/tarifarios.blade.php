@@ -3,10 +3,10 @@
     <div x-data="{ 
         tab: 'servicios', 
         searchTerm: '',
-        servicios: {{ json_encode($servicios) }},
-        procedimientos: {{ json_encode($procedimientos) }},
-        cirugias: {{ json_encode($cirugias) }},
-        stats: {{ json_encode($stats) }},
+        servicios: @json($servicios),
+        procedimientos: @json($procedimientos),
+        cirugias: @json($cirugias),
+        stats: @json($stats),
         showAddModal: false,
         editingTarifa: null,
         init() {

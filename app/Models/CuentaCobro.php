@@ -209,7 +209,7 @@ class CuentaCobro extends Model
 
         static::creating(function ($cuenta) {
             if (empty($cuenta->id)) {
-                $cuenta->id = 'CC-' . date('YmdHis') . '-' . rand(100, 999);
+                $cuenta->id = 'CC-' . date('YmdHis') . '-' . str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
             }
         });
     }

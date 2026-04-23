@@ -92,7 +92,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="text-center">
                                 <p class="text-xs text-gray-500 uppercase tracking-wide">Monto a Pagar</p>
-                                <p class="text-xl font-bold text-yellow-600">S/. {{ number_format($caja->monto_pagado, 2) }}</p>
+                                <p class="text-xl font-bold text-yellow-600">Bs. {{ number_format($caja->monto_pagado, 2) }}</p>
                             </div>
                             <div class="text-center">
                                 <p class="text-xs text-gray-500 uppercase tracking-wide">Estado</p>
@@ -217,7 +217,7 @@
         <h2>INFORMACIÓN DE PAGO</h2>
         <table class="print-table">
             <tr>
-                <td><strong>Monto a Pagar:</strong> S/. {{ number_format($caja->monto_pagado, 2) }}</td>
+                <td><strong>Monto a Pagar:</strong> Bs. {{ number_format($caja->monto_pagado, 2) }}</td>
                 <td><strong>Estado:</strong> PENDIENTE DE PAGO</td>
             </tr>
             <tr>

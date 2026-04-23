@@ -28,7 +28,7 @@
                 <p class="text-slate-400 text-sm font-bold mb-4">Ingresos del Día</p>
                 <div class="flex justify-between items-end">
                     <div>
-                        <p class="text-[#00a65a] text-3xl font-black tracking-tighter">S/ {{ number_format($resumen['ingresos'], 2) }}</p>
+                        <p class="text-[#00a65a] text-3xl font-black tracking-tighter">Bs. {{ number_format($resumen['ingresos'], 2) }}</p>
                         <p class="text-slate-400 text-[11px] font-bold mt-1">{{ $resumen['ingresos_count'] }} transacciones</p>
                     </div>
                     <svg class="w-10 h-10 text-[#00a65a]/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0 0l-8 8-4-4-6 6m8-12V5a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -39,7 +39,7 @@
                 <p class="text-slate-400 text-sm font-bold mb-4">Egresos del Día</p>
                 <div class="flex justify-between items-end">
                     <div>
-                        <p class="text-[#f03e3e] text-3xl font-black tracking-tighter">S/ {{ number_format($resumen['egresos'], 2) }}</p>
+                        <p class="text-[#f03e3e] text-3xl font-black tracking-tighter">Bs. {{ number_format($resumen['egresos'], 2) }}</p>
                         <p class="text-slate-400 text-[11px] font-bold mt-1">{{ $resumen['egresos_count'] }} transacciones</p>
                     </div>
                     <span class="text-[#f03e3e] text-4xl font-light">$</span>
@@ -50,7 +50,7 @@
                 <p class="text-slate-400 text-sm font-bold mb-4">Saldo en Caja</p>
                 <div class="flex justify-between items-end">
                     <div>
-                        <p class="text-[#1c7ed6] text-3xl font-black tracking-tighter">S/ {{ number_format($resumen['saldo'], 2) }}</p>
+                        <p class="text-[#1c7ed6] text-3xl font-black tracking-tighter">Bs. {{ number_format($resumen['saldo'], 2) }}</p>
                         <p class="text-slate-400 text-[11px] font-bold mt-1">Actualizado</p>
                     </div>
                     <span class="text-[#1c7ed6] text-4xl font-light">$</span>
@@ -61,7 +61,7 @@
                 <p class="text-slate-400 text-sm font-bold mb-4">Pendientes</p>
                 <div class="flex justify-between items-end">
                     <div>
-                        <p class="text-[#f39c12] text-3xl font-black tracking-tighter">S/ {{ number_format($resumen['pendientes_monto'], 2) }}</p>
+                        <p class="text-[#f39c12] text-3xl font-black tracking-tighter">Bs. {{ number_format($resumen['pendientes_monto'], 2) }}</p>
                         <p class="text-slate-400 text-[11px] font-bold mt-1">{{ $resumen['pendientes_count'] }} pendientes</p>
                     </div>
                     <svg class="w-10 h-10 text-[#f39c12]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg>
@@ -105,7 +105,7 @@
                                     {{ $caja->fecha_apertura->format('d/m/Y H:i') }}
                                 </td>
                                 <td class="px-8 py-5 font-bold text-green-600">
-                                    S/ {{ number_format($caja->monto_inicial, 2) }}
+                                    Bs. {{ number_format($caja->monto_inicial, 2) }}
                                 </td>
                                 <td class="px-8 py-5">
                                     <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit">
@@ -161,7 +161,7 @@
                                 <td class="px-8 py-5 text-slate-600">{{ $movimiento->tipo }}</td>
                                 <td class="px-8 py-5 text-slate-500 font-medium">{{ $movimiento->nro_pago_internos ?? '-' }}</td>
                                 <td class="px-8 py-5 font-bold {{ $movimiento->total_dia >= 0 ? 'text-[#0ca678]' : 'text-[#f03e3e]' }}">
-                                    S/ {{ number_format(abs($movimiento->total_dia), 2) }}
+                                    Bs. {{ number_format(abs($movimiento->total_dia), 2) }}
                                 </td>
                                 <td class="px-8 py-5">
                                     <span class="bg-[#e6fcf5] text-[#0ca678] px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit border border-[#c3fae8]">
@@ -208,21 +208,21 @@
                 <div class="bg-[#fcfdfe] border border-slate-100 p-6 rounded-[20px] flex justify-between items-center">
                     <div>
                         <p class="text-slate-400 text-xs font-bold uppercase mb-2">Efectivo</p>
-                        <p class="text-slate-800 text-2xl font-black">S/ {{ number_format($metodosResumen['EFECTIVO'] ?? 0, 2) }}</p>
+                        <p class="text-slate-800 text-2xl font-black">Bs. {{ number_format($metodosResumen['EFECTIVO'] ?? 0, 2) }}</p>
                     </div>
                     <span class="text-[#40c057] text-4xl font-light">$</span>
                 </div>
                 <div class="bg-[#fcfdfe] border border-slate-100 p-6 rounded-[20px] flex justify-between items-center">
                     <div>
                         <p class="text-slate-400 text-xs font-bold uppercase mb-2">Tarjeta</p>
-                        <p class="text-slate-800 text-2xl font-black">S/ {{ number_format($metodosResumen['TARJETA'] ?? 0, 2) }}</p>
+                        <p class="text-slate-800 text-2xl font-black">Bs. {{ number_format($metodosResumen['TARJETA'] ?? 0, 2) }}</p>
                     </div>
                     <svg class="w-10 h-10 text-[#228be6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" stroke-width="2"/></svg>
                 </div>
                 <div class="bg-[#fcfdfe] border border-slate-100 p-6 rounded-[20px] flex justify-between items-center">
                     <div>
                         <p class="text-slate-400 text-xs font-bold uppercase mb-2">Transferencia</p>
-                        <p class="text-slate-800 text-2xl font-black">S/ {{ number_format($metodosResumen['TRANSFERENCIA'] ?? 0, 2) }}</p>
+                        <p class="text-slate-800 text-2xl font-black">Bs. {{ number_format($metodosResumen['TRANSFERENCIA'] ?? 0, 2) }}</p>
                     </div>
                     <svg class="w-10 h-10 text-[#be4bdb]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-width="2"/></svg>
                 </div>

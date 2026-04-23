@@ -21,6 +21,7 @@ use App\Models\Paciente;
 use App\Models\Medicamentos;
 use App\Models\Insumos;
 use App\Models\Medico;
+use App\Models\AlmacenMedicamento;
 use App\Services\CuentaCobroService;
 
 class UtiOperativoController extends Controller
@@ -412,7 +413,7 @@ class UtiOperativoController extends Controller
         $admission = UtiAdmission::findOrFail($admissionId);
 
         $validated = $request->validate([
-            'medicamento_id' => 'required|exists:medicamentos,id',
+            'codigo_medicamento' => 'required|exists:medicamentos,codigo',
             'dosis' => 'required|numeric|min:0.01',
             'unidad' => 'required|string|max:20',
             'via_administracion' => 'required|string|max:50',
@@ -421,19 +422,47 @@ class UtiOperativoController extends Controller
             'observaciones' => 'nullable|string|max:500',
         ]);
 
-        $validated['uti_admission_id'] = $admissionId;
-        $validated['administered_by'] = Auth::id();
+        DB::beginTransaction();
+        try {
+            // Obtener info del medicamento
+            $medicamentoInfo = Medicamentos::where('codigo', $validated['codigo_medicamento'])->first();
 
-        $medication = UtiMedication::create($validated);
+            // Verificar y descontar stock en almacen
+            $medicamentoAlmacen = AlmacenMedicamento::where('nombre', $medicamentoInfo->descripcion)
+                ->where('area', 'uti')
+                ->where('activo', true)
+                ->first();
 
-        // Generar cargo automático
-        $this->generarCargoMedicamento($medication);
+            if ($medicamentoAlmacen && $medicamentoAlmacen->cantidad < $validated['dosis']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stock insuficiente. Disponible: ' . $medicamentoAlmacen->cantidad . ' ' . $medicamentoAlmacen->unidad_medida,
+                ], 422);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Medicamento registrado correctamente',
-            'data' => $medication,
-        ]);
+            if ($medicamentoAlmacen) {
+                $medicamentoAlmacen->decrement('cantidad', $validated['dosis']);
+            }
+
+            $validated['uti_admission_id'] = $admissionId;
+            $validated['administered_by'] = Auth::id();
+
+            $medication = UtiMedication::create($validated);
+            $this->generarCargoMedicamento($medication);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Medicamento registrado correctamente',
+                'data' => $medication,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error al registrar medicamento UTI: ' . $e->getMessage(), ['user_id' => Auth::id()]);
+            return response()->json(['success' => false, 'message' => 'Error al registrar medicamento.'], 500);
+        }
     }
 
     /**

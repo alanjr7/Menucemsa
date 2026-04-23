@@ -200,7 +200,7 @@
                 <div class="space-y-3">
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Costo Base</span>
-                        <span class="font-semibold text-sm">${{ number_format($cita->costo_base, 2) }}</span>
+                        <span class="font-semibold text-sm">Bs. {{ number_format($cita->costo_base, 2) }}</span>
                     </div>
 
                     @php
@@ -216,7 +216,7 @@
                             @foreach($medicamentosCosto as $med)
                                 <div class="flex justify-between items-center py-1 text-sm">
                                     <span class="text-gray-600">{{ $med->descripcion }}</span>
-                                    <span class="text-gray-700">${{ number_format($med->subtotal, 2) }}</span>
+                                    <span class="text-gray-700">Bs. {{ number_format($med->subtotal, 2) }}</span>
                                 </div>
                             @endforeach
                         </div>
@@ -226,12 +226,12 @@
                         <div class="pt-3 border-t border-gray-200">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm text-gray-600">Costo Final</span>
-                                <span class="font-bold text-lg text-green-600">${{ number_format($cita->costo_final, 2) }}</span>
+                                <span class="font-bold text-lg text-green-600">Bs. {{ number_format($cita->costo_final, 2) }}</span>
                             </div>
                             @if($cita->costo_final > $cita->costo_base)
                                 <div class="flex justify-between items-center mt-2">
                                     <span class="text-sm text-gray-600">Diferencia</span>
-                                    <span class="font-semibold text-amber-600 text-sm">+${{ number_format($cita->costo_final - $cita->costo_base, 2) }}</span>
+                                    <span class="font-semibold text-amber-600 text-sm">+Bs. {{ number_format($cita->costo_final - $cita->costo_base, 2) }}</span>
                                 </div>
                             @endif
                         </div>
@@ -500,7 +500,7 @@
                 <div class="space-y-3">
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Costo Base</span>
-                        <span class="font-semibold text-gray-900">${{ number_format($cita->costo_base, 2) }}</span>
+                        <span class="font-semibold text-gray-900">Bs. {{ number_format($cita->costo_base, 2) }}</span>
                     </div>
 
                     @php
@@ -516,7 +516,7 @@
                             @foreach($medicamentosCostoDesktop as $med)
                                 <div class="flex justify-between items-center py-1 text-sm">
                                     <span class="text-gray-600">{{ $med->descripcion }}</span>
-                                    <span class="text-gray-700">${{ number_format($med->subtotal, 2) }}</span>
+                                    <span class="text-gray-700">Bs. {{ number_format($med->subtotal, 2) }}</span>
                                 </div>
                             @endforeach
                         </div>
@@ -525,12 +525,12 @@
                     @if($cita->costo_final)
                         <div class="flex justify-between items-center pt-3 border-t border-gray-200">
                             <span class="text-sm text-gray-600">Costo Final</span>
-                            <span class="font-bold text-lg text-green-600">${{ number_format($cita->costo_final, 2) }}</span>
+                            <span class="font-bold text-lg text-green-600">Bs. {{ number_format($cita->costo_final, 2) }}</span>
                         </div>
                         @if($cita->costo_final > $cita->costo_base)
                             <div class="flex justify-between items-center">
                                 <span class="text-sm text-gray-600">Diferencia</span>
-                                <span class="font-semibold text-amber-600">+${{ number_format($cita->costo_final - $cita->costo_base, 2) }}</span>
+                                <span class="font-semibold text-amber-600">+Bs. {{ number_format($cita->costo_final - $cita->costo_base, 2) }}</span>
                             </div>
                         @endif
                     @endif

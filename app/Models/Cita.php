@@ -139,7 +139,7 @@ class Cita extends Model
         $this->fecha_confirmacion = now();
         $this->estado = 'confirmado';
         if ($usuarioId) {
-            $this->id_usuario_confirmacion = $usuarioId;
+            $this->user_confirmacion_id = $usuarioId;
         }
         return $this->save();
     }
@@ -150,7 +150,7 @@ class Cita extends Model
         $this->fecha_llamada = now();
         $this->notas_llamada = $notas;
         if ($usuarioId) {
-            $this->id_usuario_confirmacion = $usuarioId;
+            $this->user_confirmacion_id = $usuarioId;
         }
         return $this->save();
     }

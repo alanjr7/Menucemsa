@@ -353,8 +353,10 @@ class EmergencyStaffController extends Controller
             ->where('status', 'recibido')
             ->orderBy('created_at', 'desc')
             ->get();
-        
-        return view('emergency-staff.pending', compact('emergencies'));
+
+        $criticas = $emergencies->filter(fn($e) => $e->created_at->diffInMinutes(now()) < 30);
+
+        return view('emergency-staff.pending', compact('emergencies', 'criticas'));
     }
 
     /**

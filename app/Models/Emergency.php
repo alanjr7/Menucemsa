@@ -61,6 +61,22 @@ class Emergency extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function cuentaCobro()
+    {
+        return $this->hasOne(\App\Models\CuentaCobro::class, 'referencia_id')
+            ->where('referencia_type', self::class);
+    }
+
+    public function getSaldoPendienteRealAttribute(): ?float
+    {
+        return $this->cuentaCobro?->saldo_pendiente;
+    }
+
+    public function getEstadoPagoRealAttribute(): ?string
+    {
+        return $this->cuentaCobro?->estado;
+    }
+
     public function getStatusColorAttribute(): string
     {
         return match($this->status) {
@@ -78,7 +94,8 @@ class Emergency extends Model
     public static function generateCode(): string
     {
         $date = now()->format('Ymd');
-        $last = static::whereDate('created_at', today())->count();
+        $last = static::whereDate('created_at', today())
+            ->max(\DB::raw("CAST(SUBSTRING_INDEX(code, '-', -1) AS UNSIGNED)")) ?? 0;
         return 'EMG-' . $date . '-' . str_pad($last + 1, 3, '0', STR_PAD_LEFT);
     }
 
@@ -128,6 +145,10 @@ class Emergency extends Model
             'usuario_id' => auth()->id(),
             'notas' => $notas,
         ];
-        $this->update(['flujo_historial' => $historial]);
+
+        $this->update([
+            'flujo_historial' => $historial,
+            'ubicacion_actual' => $hasta,
+        ]);
     }
 }

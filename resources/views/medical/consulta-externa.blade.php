@@ -4,7 +4,7 @@
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Consulta Externa</h1>
-                <p class="text-sm text-gray-500">Dr. {{ $medico->usuario->name ?? 'Médico' }} - {{ $medico->especialidad->nombre ?? 'Especialidad' }}</p>
+                <p class="text-sm text-gray-500">Dr. {{ $medico->user->name ?? 'Médico' }} - {{ $medico->especialidad->nombre ?? 'Especialidad' }}</p>
             </div>
             <div class="flex gap-3">
                 <button onclick="verAgenda()" class="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition">

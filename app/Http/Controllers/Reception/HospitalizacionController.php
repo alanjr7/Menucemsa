@@ -25,11 +25,11 @@ class HospitalizacionController extends Controller
     public function buscarPaciente(Request $request)
     {
         $ci = $request->get('ci');
-        
-        if (strlen($ci) < 8) {
+
+        if (!is_numeric($ci) || strlen($ci) < 7 || strlen($ci) > 10) {
             return response()->json([
                 'success' => false,
-                'message' => 'El CI debe tener al menos 8 dígitos'
+                'message' => 'El CI debe ser un número de 7 a 10 dígitos'
             ]);
         }
 

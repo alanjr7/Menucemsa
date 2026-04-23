@@ -113,7 +113,7 @@ class PagoCuenta extends Model
 
         static::creating(function ($pago) {
             if (empty($pago->id)) {
-                $pago->id = 'PAGO-' . date('YmdHis') . '-' . rand(100, 999);
+                $pago->id = 'PAGO-' . date('YmdHis') . '-' . str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
             }
         });
     }

@@ -56,11 +56,11 @@ class VentaFarmacia extends Model
     {
         $prefijo = 'VTF';
         $fecha = now()->format('Ymd');
-        $ultimaVenta = self::whereDate('fecha_venta', today())
-            ->orderBy('id', 'desc')
-            ->first();
         
-        $numero = $ultimaVenta ? (int)substr($ultimaVenta->codigo_venta, -4) + 1 : 1;
+        $last = self::whereDate('fecha_venta', today())
+            ->max(\DB::raw("CAST(SUBSTRING_INDEX(codigo_venta, 'VTF" . $fecha . "', -1) AS UNSIGNED)")) ?? 0;
+        
+        $numero = $last + 1;
         $numeroFormateado = str_pad($numero, 4, '0', STR_PAD_LEFT);
         
         return $prefijo . $fecha . $numeroFormateado;

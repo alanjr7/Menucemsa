@@ -48,7 +48,7 @@
             <div>
                 <span class="text-gray-500 text-sm font-medium">Críticos (&lt;30 min)</span>
                 <p class="text-2xl font-bold text-red-600">
-                    {{ $emergencies->filter(fn($e) => $e->created_at->diffInMinutes(now()) < 30)->count() }}
+                    {{ $criticas->count() }}
                 </p>
             </div>
         </div>

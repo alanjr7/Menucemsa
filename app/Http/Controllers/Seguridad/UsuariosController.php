@@ -30,11 +30,10 @@ class UsuariosController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja,user,farmacia'
+            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion'
         ]);
 
-        // Normalizar roles: si selecciona 'doctor', convertirlo a 'dirmedico'
-        $role = $request->role === 'doctor' ? 'dirmedico' : $request->role;
+        $role = $request->role;
 
         if ($role === 'dirmedico') {
             $request->validate([
@@ -87,11 +86,10 @@ class UsuariosController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,reception,dirmedico,doctor,emergencia,caja,farmacia'
+            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion'
         ]);
 
-        // Normalizar roles: si selecciona 'doctor', convertirlo a 'dirmedico'
-        $role = $request->role === 'doctor' ? 'dirmedico' : $request->role;
+        $role = $request->role;
 
         if ($role === 'dirmedico') {
             $request->validate([

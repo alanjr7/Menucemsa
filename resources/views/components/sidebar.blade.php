@@ -40,7 +40,7 @@
                         ['r' => 'admision.index', 'l' => 'Admisión'],
                         ['r' => 'consulta.index', 'l' => 'Consulta Externa'],
                         ['r' => 'emergencias.index', 'l' => 'Emergencias'],
-                        ['r' => 'uti.index', 'l' => 'UTI'],
+                        ['r' => 'uti.operativa.index', 'l' => 'UTI'],
                         ['r' => 'quirofano.index', 'l' => 'Quirófano'],
                     ]
                 ],
@@ -65,7 +65,7 @@
                         ['r' => 'cuentas-por-cobrar', 'l' => 'Cuentas por Cobrar'],
                     ]
                 ],
-                @if(auth()->user()->hasRole('emergency'))
+                @if(auth()->user()->hasRole('emergencia'))
                 'Emergencias' => [
                     'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
                     'active' => request()->is('emergency-staff*'),

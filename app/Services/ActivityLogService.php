@@ -20,7 +20,7 @@ class ActivityLogService
             'user_id' => $user->id,
             'action' => $action,
             'model_type' => $model ? get_class($model) : null,
-            'model_id' => $model ? $model->id : null,
+            'model_id' => $model ? $model->getKey() : null,
             'description' => $description,
             'old_values' => $cleanOldValues,
             'new_values' => $cleanNewValues,

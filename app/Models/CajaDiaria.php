@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\VentaFarmacia;
+
 class CajaDiaria extends Model
 {
     use HasFactory;
@@ -92,15 +94,13 @@ class CajaDiaria extends Model
 
     private function calcularTotalesDia()
     {
-        // Aquí se calcularían los totales reales del día
-        // Por ahora, usamos datos de CajaFarmacia como ejemplo
-        $ventasDelDia = CajaFarmacia::whereDate('FECHA', $this->fecha)->get();
-        
-        $this->total_ventas = $ventasDelDia->sum('TOTAL');
-        // Por ahora asumimos que todo es efectivo
-        $this->ventas_efectivo = $this->total_ventas;
-        
-        // Calcular monto final
+        $ventas = VentaFarmacia::whereDate('fecha_venta', $this->fecha)->get();
+
+        $this->ventas_efectivo = $ventas->where('metodo_pago', 'efectivo')->sum('total');
+        $this->ventas_qr = $ventas->where('metodo_pago', 'qr')->sum('total');
+        $this->ventas_transferencia = $ventas->where('metodo_pago', 'transferencia')->sum('total');
+        $this->ventas_tarjeta = $ventas->where('metodo_pago', 'tarjeta')->sum('total');
+        $this->total_ventas = $ventas->sum('total');
         $this->monto_final = $this->monto_inicial + $this->total_ventas;
     }
 

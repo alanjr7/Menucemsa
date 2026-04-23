@@ -11,6 +11,7 @@ use App\Models\Caja;
 use App\Models\AlmacenMedicamento;
 use App\Models\Registro;
 use App\Models\Seguro;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
@@ -293,9 +294,6 @@ class QuirofanoController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            // Log the incoming request data for debugging
-            \Log::info('Store request data:', $request->all());
-            
             // Validación básica primero
             $validated = $request->validate([
                 'ci_paciente' => 'required|exists:pacientes,ci',
@@ -356,6 +354,12 @@ class QuirofanoController extends Controller
                 $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
                 
                 DB::commit();
+
+                // Notificar a cirujano y administración sobre cirugía programada
+                $paciente = Paciente::find($cita->ci_paciente);
+                $cirujano = Medico::find($cita->ci_cirujano);
+                NotificationService::notify($cirujano->user_id, 'cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Fecha: {$cita->fecha} {$cita->hora_inicio_estimada}", route('quirofano.index'), ['cita_id' => $cita->id]);
+                NotificationService::notifyAdmins('cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Cirujano: {$cirujano->user->name}", route('quirofano.index'));
 
                 return response()->json([
                     'success' => true,
@@ -426,8 +430,6 @@ class QuirofanoController extends Controller
     public function storeEmergencia(Request $request): JsonResponse
     {
         try {
-            \Log::info('Datos recibidos en storeEmergencia', $request->all());
-
             $validated = $request->validate([
                 'emergency_id' => 'required|exists:emergencies,id',
                 'nro_quirofano' => 'required|exists:quirofanos,id',
@@ -740,13 +742,19 @@ class QuirofanoController extends Controller
 
         try {
             DB::beginTransaction();
-            
+
             // Finalizar la cirugía
             $cita->finalizarCirugia();
-            
+
+            // Liberar el quirófano
+            if ($cita->quirofano_id) {
+                Quirofano::where('id', $cita->quirofano_id)
+                    ->update(['estado' => 'disponible']);
+            }
+
             // Crear registro automático en caja
             $this->crearRegistroCajaCirugia($cita);
-            
+
             DB::commit();
 
             return response()->json([
@@ -769,8 +777,9 @@ class QuirofanoController extends Controller
 
     private function crearRegistroCajaCirugia(CitaQuirurgica $cita)
     {
-        // Usar costo_base ya que costo_final solo se calcula al finalizar la cirugía
-        $monto = $cita->costo_base ?? 0;
+        // Refrescar para obtener costo_final calculado
+        $cita->refresh();
+        $monto = $cita->costo_final ?? $cita->costo_base ?? 0;
         
         \Log::info('Verificando cuenta de cobro para cirugía', [
             'cita_id' => $cita->id,
@@ -800,7 +809,7 @@ class QuirofanoController extends Controller
             // Crear cuenta de cobro para que aparezca en caja operativa
             $cuentaCobro = \App\Models\CuentaCobro::create([
                 'paciente_ci' => $cita->ci_paciente,
-                'tipo_atencion' => 'CIRUGIA',
+                'tipo_atencion' => 'cirugia',
                 'referencia_id' => $cita->id,
                 'referencia_type' => CitaQuirurgica::class,
                 'estado' => 'pendiente',
@@ -1207,7 +1216,7 @@ class QuirofanoController extends Controller
                 // Si no existe por referencia, buscar por paciente y tipo
                 if (!$cuentaCobro) {
                     $cuentaCobro = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
-                        ->where('tipo_atencion', 'CIRUGIA')
+                        ->where('tipo_atencion', 'cirugia')
                         ->where('estado', 'pendiente')
                         ->orderBy('created_at', 'desc')
                         ->first();

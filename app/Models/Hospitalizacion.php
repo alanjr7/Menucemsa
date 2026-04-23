@@ -71,8 +71,9 @@ class Hospitalizacion extends Model
     }
 
     /**
-     * Calcular días de estancia hasta ahora
-     * Mínimo 1 día (aunque esté pocas horas)
+     * Calcular días de estancia hasta ahora.
+     * Se cobra el día de ingreso + días completos adicionales.
+     * Mínimo 1 día aunque el alta sea el mismo día (regla de negocio: cobrar día de ingreso).
      */
     public function getDiasEstancia(): int
     {

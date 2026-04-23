@@ -23,11 +23,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">342</div>
-                    <div class="text-xs text-green-500 font-bold flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                        +12% vs. mes anterior
-                    </div>
+                    <div class="text-2xl font-bold text-gray-800">{{ $kpis['pacientes_activos'] ?? 0 }}</div>
                 </div>
             </div>
 
@@ -39,11 +35,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">89</div>
-                    <div class="text-xs text-green-500 font-bold flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
-                        ~5% vs. mes anterior
-                    </div>
+                    <div class="text-2xl font-bold text-gray-800">{{ $kpis['consultas_hoy'] ?? 0 }}</div>
                 </div>
             </div>
 
@@ -55,26 +47,20 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">$45,230</div>
-                    <div class="text-xs text-green-500 font-bold flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                        +3% vs. mes anterior
-                    </div>
+                    <div class="text-2xl font-bold text-gray-800">Bs. {{ number_format($kpis['ingresos_hoy'] ?? 0, 2) }}</div>
                 </div>
             </div>
 
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition">
                 <div class="flex justify-between items-start">
-                    <span class="text-sm font-medium text-gray-500">Cirugías Programadas</span>
+                    <span class="text-sm font-medium text-gray-500">Cirugías Mes</span>
                     <div class="p-2 bg-orange-50 rounded-lg text-orange-500">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">12</div>
-                    <div class="text-xs text-green-500 font-bold flex items-center gap-1">
-                        <span class="text-gray-400 font-normal">0% vs. mes anterior</span>
-                    </div>
+                    <div class="text-2xl font-bold text-gray-800">{{ $kpis['cirugias_mes'] ?? 0 }}</div>
+                    <p class="text-xs text-gray-400">{{ $kpis['cirugias_hoy'] ?? 0 }} hoy</p>
                 </div>
             </div>
         </div>
@@ -88,20 +74,26 @@
             </div>
 
             <div class="space-y-3">
+                @if($kpis['medicamentos_vencidos'] > 0)
                 <div class="flex items-center p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm font-medium">
                     <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    Vencimientos próximos en Farmacia (5 productos)
+                    {{ $kpis['medicamentos_vencidos'] }} medicamentos vencidos en almacén
                 </div>
+                @endif
 
+                @if($kpis['cuentas_pendientes'] > 0)
                 <div class="flex items-center p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-sm font-medium">
                     <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Facturas pendientes de cobro: $23,450
+                    {{ $kpis['cuentas_pendientes'] }} cuentas pendientes: Bs. {{ number_format($kpis['monto_pendiente'], 2) }}
                 </div>
+                @endif
 
+                @if($kpis['medicamentos_bajo_stock'] > 0)
                 <div class="flex items-center p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-sm font-medium">
                     <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Quirófano 2: Mantenimiento programado mañana
+                    {{ $kpis['medicamentos_bajo_stock'] }} medicamentos con stock bajo
                 </div>
+                @endif
             </div>
         </div>
 

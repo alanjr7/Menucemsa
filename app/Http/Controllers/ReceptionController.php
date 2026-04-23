@@ -13,6 +13,7 @@ use App\Models\Triage;
 use App\Models\Registro;
 use App\Models\User;
 use App\Models\Cita;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -98,6 +99,9 @@ class ReceptionController extends Controller
             $consulta = $this->crearConsulta($request, $paciente, $caja);
 
             DB::commit();
+
+            // Notificar a caja sobre nuevo pago pendiente
+            NotificationService::notifyRole('caja', 'pago', 'Pago Pendiente', "Paciente {$paciente->nombre} - Consulta externa por cobrar", route('caja.operativa.index'), ['caja_id' => $caja->id]);
 
             return response()->json([
                 'success' => true,

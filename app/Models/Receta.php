@@ -40,4 +40,16 @@ class Receta extends Model
     {
         return $this->hasMany(DetalleReceta::class, 'receta_id');
     }
+
+    public function paciente()
+    {
+        return $this->hasOneThrough(
+            \App\Models\Paciente::class,
+            \App\Models\Consulta::class,
+            'id',
+            'ci',
+            'consulta_id',
+            'ci_paciente'
+        );
+    }
 }

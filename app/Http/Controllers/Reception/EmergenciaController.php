@@ -8,6 +8,9 @@ use App\Models\Paciente;
 use App\Models\Emergency;
 use App\Models\Triage;
 use App\Models\Registro;
+use App\Models\Cirugia;
+use App\Models\Quirofano;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -22,11 +25,11 @@ class EmergenciaController extends Controller
     public function buscarPaciente(Request $request)
     {
         $ci = $request->get('ci');
-        
-        if (strlen($ci) < 8) {
+
+        if (!is_numeric($ci) || strlen($ci) < 7 || strlen($ci) > 10) {
             return response()->json([
                 'success' => false,
-                'message' => 'El CI debe tener al menos 8 dígitos'
+                'message' => 'El CI debe ser un número de 7 a 10 dígitos'
             ]);
         }
 
@@ -51,6 +54,18 @@ class EmergenciaController extends Controller
 
     public function registrarEmergencia(Request $request)
     {
+        // Validar primero, antes de abrir transacción
+        $usarTempId = $request->boolean('usar_temp_id');
+
+        if (!$usarTempId && !Paciente::find($request->ci)) {
+            $request->validate([
+                'ci' => 'required|numeric|digits_between:7,10',
+                'nombres' => 'required|string|max:80',
+                'apellidos' => 'required|string|max:80',
+                'sexo' => 'required|in:Masculino,Femenino',
+            ]);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -59,7 +74,7 @@ class EmergenciaController extends Controller
 
             // 2. Crear triage de emergencia
             $triage = $this->crearTriagePorTipo($request->tipo_emergencia ?? 'amarillo');
-            $paciente->update(['id_triage' => $triage->id]);
+            $paciente->update(['triage_id' => $triage->id]);
 
             // 3. Crear registro de emergencia usando modelo Emergency
             $emergencia = $this->crearEmergency($request, $paciente, $triage);
@@ -68,6 +83,10 @@ class EmergenciaController extends Controller
             $acciones = $this->procesarAccionesEmergencia($request, $paciente, $emergencia, $triage);
 
             DB::commit();
+
+            // Notificar a personal de emergencia y enfermería
+            NotificationService::notifyRole('emergencia', 'emergencia', 'Nueva Emergencia', "Paciente {$paciente->nombre} registrado en emergencia", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
+            NotificationService::notifyRole('enfermera-emergencia', 'emergencia', 'Nueva Emergencia', "Paciente {$paciente->nombre} registrado en emergencia", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
 
             return response()->json([
                 'success' => true,
@@ -141,11 +160,11 @@ class EmergenciaController extends Controller
                 'telefono' => 0,
                 'correo' => 'temporal@emergencia.com',
                 'seguro_id' => $this->obtenerOCrearSeguro('particular'),
-                'id_triage' => null, // Se asignará después
+                'triage_id' => null, // Se asignará después
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         }
-        
+
         // Buscar paciente existente
         $paciente = Paciente::find($ci);
         
@@ -166,7 +185,7 @@ class EmergenciaController extends Controller
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
                 'seguro_id' => $this->obtenerOCrearSeguro($request->seguro ?? 'particular'),
-                'id_triage' => null, // Se asignará después
+                'triage_id' => null, // Se asignará después
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
@@ -184,19 +203,20 @@ class EmergenciaController extends Controller
     private function crearEmergency($request, $paciente, $triage)
     {
         $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-        
+        $usarTempId = $request->boolean('usar_temp_id');
+        $tempId = $usarTempId ? ($request->temp_id ?? 'TEMP-' . now()->format('Ymd') . '-' . random_int(100, 999)) : null;
+
         return Emergency::create([
-            'user_id' => Auth::user()->id,
+            'patient_id' => $paciente->ci,
+            'user_id' => Auth::id(),
             'code' => $nroEmergencia,
             'status' => 'recibido',
             'tipo_ingreso' => strtoupper($request->tipo_emergencia) === 'SOAT' ? 'soat' : 'general',
             'symptoms' => $request->descripcion,
             'initial_assessment' => $request->motivo,
             'is_temp_id' => $usarTempId,
-            'temp_id' => $usarTempId ? $tempId : null,
+            'temp_id' => $tempId,
             'ubicacion_actual' => 'emergencia',
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
     }
 
@@ -215,36 +235,26 @@ class EmergenciaController extends Controller
 
         // Cirugía inmediata
         if ($request->boolean('requiere_cirugia_inmediata')) {
-            $acciones['traslado_uci'] = true;
-            $quirofano = DB::table('quirofanos')->orderBy('nro')->first();
+            $quirofano = Quirofano::where('estado', 'disponible')->first();
             if ($quirofano) {
-                $nroCirugia = 'CIR-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-                DB::table('cirugias')->insert([
-                    'nro' => $nroCirugia,
+                Cirugia::create([
+                    'codigo' => 'CIR-' . now()->format('YmdHis') . '-' . random_int(100, 999),
                     'fecha' => now()->toDateString(),
                     'hora' => now()->toTimeString(),
                     'tipo' => 'CIRUGIA_INMEDIATA',
                     'descripcion' => $request->descripcion,
-                    'nro_emergencia' => $emergencia->code,
-                    'nro_quirofano' => $quirofano->nro,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'emergencia_id' => $emergencia->id,
+                    'quirofano_id' => $quirofano->id,
                 ]);
+                $quirofano->update(['estado' => 'ocupado']);
                 $acciones['cirugia'] = true;
             }
         }
 
         // Requiere UCI
         if ($request->boolean('requiere_uci')) {
-            $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-            DB::table('hospitalizaciones')->insert([
-                'id' => $idHosp,
-                'fecha_ingreso' => now(),
-                'motivo' => 'Hospitalización en UCI por emergencia',
-                'nro_emergencia' => $emergencia->nro,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $emergencia->update(['ubicacion_actual' => 'uti']);
+            $emergencia->registrarMovimiento('emergencia', 'uti', 'Requiere UCI - registrado desde recepción');
             $acciones['internacion_uti'] = true;
         }
 
@@ -297,35 +307,39 @@ class EmergenciaController extends Controller
 
     private function obtenerOCrearSeguro($seguroNombre)
     {
+        $nombre = strtoupper(trim($seguroNombre));
+
         $seguro = \App\Models\Seguro::firstOrCreate(
-            ['nombre_empresa' => ucfirst($seguroNombre)],
+            ['nombre_empresa' => $nombre],
             [
-                'tipo' => 'EMERGENCIA',
+                'tipo' => $nombre,
                 'cobertura' => 'Cobertura de Emergencia',
                 'telefono' => null,
                 'formulario' => 'EMERGENCIA',
-                'estado' => 'activo'
+                'estado' => 'activo',
             ]
         );
-        
+
         return $seguro->id;
     }
 
     private function obtenerOCrearRegistro()
     {
-        $currentUser = Auth::user();
-        $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-        
+        $codigo = 'REG-' . date('Y') . '-' . str_pad(
+            (Registro::whereYear('fecha', now()->year)->max('id') ?? 0) + 1,
+            6, '0', STR_PAD_LEFT
+        );
+
         $registro = Registro::firstOrCreate(
             ['codigo' => $codigo],
             [
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Emergencia',
-                'user_id' => $currentUser->id
+                'user_id' => Auth::id(),
             ]
         );
-        
+
         return $registro->codigo;
     }
 

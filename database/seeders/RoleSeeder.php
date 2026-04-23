@@ -111,5 +111,49 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // Crear usuario Doctor
+        User::firstOrCreate(
+            ['email' => 'doctor@menucemsa.com'],
+            [
+                'name' => 'Doctor',
+                'password' => bcrypt('doctor123'),
+                'role' => 'doctor',
+                'is_active' => true,
+            ]
+        );
+
+        // Crear usuario Farmacia
+        User::firstOrCreate(
+            ['email' => 'farmacia@menucemsa.com'],
+            [
+                'name' => 'Farmacia',
+                'password' => bcrypt('farmacia123'),
+                'role' => 'farmacia',
+                'is_active' => true,
+            ]
+        );
+
+        // Crear usuario Enfermera Emergencia
+        User::firstOrCreate(
+            ['email' => 'enfermera-emergencia@menucemsa.com'],
+            [
+                'name' => 'Enfermera Emergencia',
+                'password' => bcrypt('enfermera123'),
+                'role' => 'enfermera-emergencia',
+                'is_active' => true,
+            ]
+        );
+
+        // Crear usuario Enfermera Internación
+        User::firstOrCreate(
+            ['email' => 'enfermera-internacion@menucemsa.com'],
+            [
+                'name' => 'Enfermera Internación',
+                'password' => bcrypt('enfermera123'),
+                'role' => 'enfermera-internacion',
+                'is_active' => true,
+            ]
+        );
     }
 }

@@ -80,7 +80,7 @@
                             </svg>
                         </div>
                         <div class="mt-3 pt-3 border-t border-green-200">
-                            <p class="text-xs text-green-700">Monto: S/. {{ number_format($consulta->caja->monto_pagado, 2) }}</p>
+                            <p class="text-xs text-green-700">Monto: Bs. {{ number_format($consulta->caja->monto_pagado, 2) }}</p>
                             <p class="text-xs text-green-700">Factura: {{ $consulta->caja->nro_factura }}</p>
                         </div>
                     </div>

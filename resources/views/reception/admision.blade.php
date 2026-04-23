@@ -76,7 +76,7 @@
                 <div class="flex-1">
                     <h4 class="text-blue-800 font-bold text-sm mb-1">Resultado de búsqueda</h4>
                     <p class="text-blue-700 text-sm mb-4">
-                        Paciente encontrado: <span class="font-bold">García Mendoza, Juan Carlos</span> - <span class="text-gray-500">HC-001234</span>
+                        <span id="resultadoBusqueda">Ingrese un CI y presione Buscar</span>
                     </p>
                     <a href="{{ route('admision.index', ['paso' => 3]) }}" class="inline-flex items-center px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-md transition">
                         Continuar con este paciente
@@ -239,12 +239,12 @@
             </h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                    <p class="text-blue-600 font-medium">Nombre: <span class="text-gray-800 font-bold">García Mendoza, Juan Carlos</span></p>
-                    <p class="text-blue-600 font-medium mt-2">Historia Clínica: <span class="text-gray-800 font-bold">HC-001234</span></p>
+                    <p class="text-blue-600 font-medium">Nombre: <span class="text-gray-800 font-bold">-</span></p>
+                    <p class="text-blue-600 font-medium mt-2">Historia Clínica: <span class="text-gray-800 font-bold">-</span></p>
                 </div>
                 <div>
-                    <p class="text-blue-600 font-medium">DNI: <span class="text-gray-800 font-bold">12345678</span></p>
-                    <p class="text-blue-600 font-medium mt-2">Edad: <span class="text-gray-800 font-bold">45 años</span></p>
+                    <p class="text-blue-600 font-medium">DNI: <span class="text-gray-800 font-bold">-</span></p>
+                    <p class="text-blue-600 font-medium mt-2">Edad: <span class="text-gray-800 font-bold">-</span></p>
                 </div>
             </div>
         </div>

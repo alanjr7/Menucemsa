@@ -67,7 +67,6 @@ class PuntoVentaController extends Controller
             'requiere_receta' => 'boolean',
             'observaciones' => 'nullable|string'
         ]);
-        file_put_contents(storage_path('logs/debug-venta.log'), date('[Y-m-d H:i:s] ') . json_encode($request->all(), JSON_PRETTY_PRINT) . "\n\n", FILE_APPEND);
 
         try {
             \DB::beginTransaction();
@@ -187,9 +186,10 @@ class PuntoVentaController extends Controller
 
         } catch (\Exception $e) {
             \DB::rollBack();
+            \Log::error('Error al procesar venta en punto de venta');
             return response()->json([
                 'success' => false,
-                'message' => 'Error al procesar la venta: ' . $e->getMessage()
+                'message' => 'Ocurrió un error. Por favor contacte al administrador.'
             ], 500);
         }
     }

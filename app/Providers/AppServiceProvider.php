@@ -16,9 +16,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        URL::forceScheme('http');
-        
-        // Registrar observers
+        if (app()->environment('production')) {
+            URL::forceScheme('https');
+        }
+
+        // Registrar observer para auditoría de usuarios
         User::observe(UserObserver::class);
     }
 }

@@ -40,11 +40,6 @@ class Especialidad extends Model
         return $this->hasMany(Consulta::class, 'codigo_especialidad', 'codigo');
     }
 
-    public function cirugias()
-    {
-        return $this->hasMany(Cirugia::class, 'codigo_especialidad', 'codigo');
-    }
-
     protected static function boot()
     {
         parent::boot();

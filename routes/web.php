@@ -47,6 +47,7 @@ use App\Http\Controllers\EmergencyStaffController;
 use App\Http\Controllers\EmergencyMedicamentosController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Medical\UtiOperativoController;
 use App\Http\Controllers\UtiMedicamentosController;
 use App\Http\Controllers\Admin\UtiAdminController;
@@ -58,12 +59,34 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
 Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // API de notificaciones del sistema (nuevo sistema persistente)
+    Route::get('/api/notificaciones', [NotificationController::class, 'index'])->name('notificaciones.index');
+    Route::post('/api/notificaciones/{id}/leer', [NotificationController::class, 'markAsRead'])->name('notificaciones.leer');
+    Route::post('/api/notificaciones/leer-todas', [NotificationController::class, 'markAllAsRead'])->name('notificaciones.leer-todas');
+
+    // Endpoint legacy de alertas (mantener por compatibilidad temporal)
+    Route::get('/api/sistema/alertas', function() {
+        $userId = auth()->id();
+        $count = \App\Services\NotificationService::getUnreadCount($userId);
+        $notifications = \App\Services\NotificationService::getUnreadForUser($userId, 10);
+
+        // Transformar al formato legacy
+        $alertas = array_map(fn($n) => [
+            'tipo' => $n['type'],
+            'nivel' => $n['color'],
+            'mensaje' => $n['message'],
+            'url' => $n['action_url'],
+        ], $notifications);
+
+        return response()->json(['alertas' => $alertas, 'total' => $count]);
+    })->name('sistema.alertas');
 
     // Rutas para medicamentos de quirófano (admin y cirujano) - PRIMERO para evitar conflicto con /quirofano/{cita}
     Route::middleware(['auth', 'role:admin|cirujano'])->group(function () {
@@ -141,7 +164,9 @@ Route::middleware('auth')->group(function () {
     // Rutas para recepción y pacientes (acceso para admin, reception y dirmedico)
     Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
-        Route::get('/admision', [\App\Http\Controllers\ReceptionController::class, 'admision'])->name('admision.index');
+        Route::get('/admision', function() {
+            return redirect()->route('patients.index');
+        })->name('admision.index');
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
         Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
         
@@ -174,6 +199,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/hospitalizacion/{id}/comprobante', [ReceptionHospitalizacionController::class, 'comprobante'])->name('reception.hospitalizacion.comprobante');
         
         // Rutas API para gestión de citas
+        Route::get('/reception/agenda', function() {
+            return view('reception.agenda');
+        })->name('reception.agenda');
         Route::get('/api/agenda-dia', [ReceptionController::class, 'getAgendaDia'])->name('reception.agenda-dia');
         Route::post('/api/nueva-cita', [ReceptionController::class, 'crearNuevaCita'])->name('reception.nueva-cita');
         Route::post('/api/cita/{id}/confirmar', [ReceptionController::class, 'confirmarCita'])->name('reception.confirmar-cita');
@@ -217,6 +245,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/uti-detalle-cuenta/{id}', [CajaOperativaController::class, 'getDetalleCuentaUti'])->name('uti-detalle-cuenta');
         Route::post('/uti-procesar-cobro/{id}', [CajaOperativaController::class, 'procesarCobroUti'])->name('uti-procesar-cobro');
         Route::post('/uti-deposito/{id}', [CajaOperativaController::class, 'registrarDepositoUti'])->name('uti-deposito');
+
+        // Comprobante de pago
+        Route::get('/comprobante/{cuentaId}', [CajaOperativaController::class, 'comprobante'])->name('comprobante');
     });
 
     // Gestión de Caja - Para usuarios con rol ADMIN
@@ -225,6 +256,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/transacciones', [CajaGestionController::class, 'getTransacciones'])->name('transacciones');
         Route::get('/transaccion/{id}', [CajaGestionController::class, 'getDetalleTransaccion'])->name('detalle-transaccion');
         Route::get('/control-cajas', [CajaGestionController::class, 'getControlCajas'])->name('control-cajas');
+        Route::post('/anular-cuenta/{id}', [CajaGestionController::class, 'anularCuenta'])->name('anular');
         Route::get('/resumen-financiero', [CajaGestionController::class, 'getResumenFinanciero'])->name('resumen-financiero');
         Route::get('/auditoria', [CajaGestionController::class, 'getAuditoria'])->name('auditoria');
         Route::get('/datos-facturacion', [CajaGestionController::class, 'getDatosFacturacion'])->name('datos-facturacion');
@@ -273,6 +305,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/consulta-externa/iniciar/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'iniciarConsulta'])->name('consulta.iniciar');
         Route::post('/consulta-externa/completar/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'completarConsulta'])->name('consulta.completar');
         Route::get('/api/paciente/{ci}', [\App\Http\Controllers\DoctorController::class, 'getPaciente'])->name('consulta.paciente');
+
+        // Ruta para imprimir receta
+        Route::get('/medico/receta/{receta}/print', function(\App\Models\Receta $receta) {
+            $receta->load(['detalles.medicamento', 'consulta.paciente', 'consulta.especialidad', 'userMedico']);
+            return view('medical.receta-print', compact('receta'));
+        })->name('medico.receta.print');
+
+        // Ruta para evolución médica en internación
+        Route::get('/medico/internacion/{id}', [
+            \App\Http\Controllers\Medical\HospitalizacionController::class, 'detalle'
+        ])->name('medico.internacion.detalle');
     });
 
     // Rutas para médicos (dirmedico)
@@ -651,7 +694,7 @@ Route::get('/test-farmacia', function() {
 // =================================================================================================
 
 // UTI Operativo - Vista clínica (admin, dirmedico, doctor, enfermeria, uti)
-Route::middleware(['auth', 'role:admin|dirmedico|doctor|enfermeria|uti'])->prefix('uti-operativo')->name('uti.operativa.')->group(function () {
+Route::middleware(['auth', 'role:admin|dirmedico|doctor|uti'])->prefix('uti-operativo')->name('uti.operativa.')->group(function () {
     Route::get('/', [UtiOperativoController::class, 'index'])->name('index');
     Route::get('/paciente/{id}', [UtiOperativoController::class, 'show'])->name('paciente.show');
     

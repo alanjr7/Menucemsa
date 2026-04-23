@@ -190,7 +190,7 @@ class InternacionStaffController extends Controller
                 'tipo_pago' => 'particular',
                 'fecha_ingreso' => now(),
                 'estado' => 'activo',
-                'medico_responsable_id' => $hospitalizacion->ci_medico,
+                'medico_responsable_ci' => $hospitalizacion->ci_medico,
             ]);
 
             // Actualizar cama a ocupada

@@ -40,9 +40,6 @@ class CitaQuirurgica extends Model
 
     protected $casts = [
         'fecha' => 'date',
-        'hora_inicio_estimada' => 'datetime',
-        'hora_inicio_real' => 'datetime',
-        'hora_fin_real' => 'datetime',
         'timestamp_inicio' => 'datetime',
         'timestamp_fin' => 'datetime',
         'costo_base' => 'decimal:2',
@@ -84,18 +81,6 @@ class CitaQuirurgica extends Model
     // Métodos de negocio
     public function getDuracionEstimadaAttribute()
     {
-        $tipos = [
-            'menor' => 60,
-            'mediana' => 90,
-            'mayor' => 80,
-            'ambulatoria' => 45,
-        ];
-
-        // First check hardcoded map, then fallback to DB
-        if (isset($tipos[$this->tipo_cirugia])) {
-            return $tipos[$this->tipo_cirugia];
-        }
-
         $tipoCirugia = TipoCirugia::where('nombre', $this->tipo_cirugia)->first();
         return $tipoCirugia ? (int) $tipoCirugia->duracion_minutos : 60;
     }

@@ -34,7 +34,7 @@
                         </div>
                         <div class="bg-white rounded-xl p-4">
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Médico</p>
-                            <p class="font-semibold text-gray-900">{{ $caja->consulta->medico->usuario->name ?? 'N/A' }}</p>
+                            <p class="font-semibold text-gray-900">{{ $caja->consulta->medico->user->name ?? 'N/A' }}</p>
                             <p class="text-sm text-gray-500">{{ $caja->consulta->especialidad->nombre ?? 'N/A' }}</p>
                         </div>
                         <div class="bg-white rounded-xl p-4">
@@ -64,7 +64,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white rounded-xl p-4">
                         <p class="text-xs text-gray-500 uppercase tracking-wide">Monto a Pagar</p>
-                        <p class="text-2xl font-bold text-green-600">S/. {{ number_format($caja->monto_pagado, 2) }}</p>
+                        <p class="text-2xl font-bold text-green-600">Bs. {{ number_format($caja->monto_pagado, 2) }}</p>
                     </div>
                     <div class="bg-white rounded-xl p-4">
                         <p class="text-xs text-gray-500 uppercase tracking-wide">Estado</p>

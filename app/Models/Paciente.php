@@ -56,7 +56,14 @@ class Paciente extends Model
 
     public function historialMedico()
     {
-        return $this->hasOne(HistorialMedico::class, 'ci_paciente', 'ci');
+        return $this->hasMany(HistorialMedico::class, 'ci_paciente', 'ci')
+                    ->orderBy('fecha', 'desc');
+    }
+
+    public function historialReciente()
+    {
+        return $this->hasOne(HistorialMedico::class, 'ci_paciente', 'ci')
+                    ->orderBy('fecha', 'desc');
     }
 
     public function emergencies()
@@ -67,5 +74,16 @@ class Paciente extends Model
     public function hospitalizaciones()
     {
         return $this->hasMany(Hospitalizacion::class, 'ci_paciente', 'ci');
+    }
+
+    public function cuentasCobro()
+    {
+        return $this->hasMany(\App\Models\CuentaCobro::class, 'paciente_ci', 'ci');
+    }
+
+    public function cuentasPendientes()
+    {
+        return $this->hasMany(\App\Models\CuentaCobro::class, 'paciente_ci', 'ci')
+                    ->whereIn('estado', ['pendiente', 'parcial']);
     }
 }

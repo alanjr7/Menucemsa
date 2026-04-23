@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('tipo_atencion');
             $table->string('referencia_id')->nullable();
             $table->string('referencia_type')->nullable();
-            $table->enum('estado', ['pendiente', 'parcial', 'pagado'])->default('pendiente');
+            $table->enum('estado', ['pendiente', 'parcial', 'pagado', 'anulado'])->default('pendiente');
             $table->decimal('total_calculado', 10, 2)->default(0);
             $table->decimal('total_pagado', 10, 2)->default(0);
             $table->boolean('es_emergencia')->default(false);

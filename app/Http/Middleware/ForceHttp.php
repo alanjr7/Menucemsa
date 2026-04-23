@@ -10,7 +10,7 @@ class ForceHttp
     public function handle(Request $request, Closure $next)
     {
         // Forzar HTTP en desarrollo
-        if (env('APP_ENV') === 'local' && $request->secure()) {
+        if (config('app.env') === 'local' && $request->secure()) {
             return redirect()->to($request->url(), 302, [], false);
         }
 

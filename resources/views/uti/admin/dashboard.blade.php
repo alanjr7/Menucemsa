@@ -2,9 +2,9 @@
 
 @section('content')
     <script>
-        function utiAdmin() {
+        function utiAdmin(initialTab = 'dashboard') {
             return {
-                activeTab: 'dashboard',
+                activeTab: initialTab,
                 stats: null,
                 camas: [],
                 pacientesList: [],
@@ -140,7 +140,7 @@
         }
     </script>
 
-    <div class="flex h-screen" x-data="utiAdmin()" x-init="init()">
+    <div class="flex h-screen" x-data="utiAdmin('{{ $activeTab ?? 'dashboard' }}')" x-init="init()">
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header del Sistema -->
             <div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">

@@ -147,7 +147,10 @@ class UtiMedicamentosController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
-        $medicamento->update($request->all());
+        $medicamento->update($request->only([
+            'nombre', 'descripcion', 'precio', 'fecha_vencimiento', 'lote',
+            'cantidad', 'stock_minimo', 'unidad_medida', 'tipo', 'observaciones',
+        ]));
 
         Log::info('Usuario ' . Auth::user()->name . ' actualizó medicamento/insumo en UTI: ' . $medicamento->nombre, [
             'user_id' => Auth::id(),

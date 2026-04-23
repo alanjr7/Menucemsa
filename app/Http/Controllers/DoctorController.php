@@ -351,21 +351,40 @@ class DoctorController extends Controller
         }
     }
 
-    private function crearReceta($consulta, $request)
+    private function crearReceta($consulta, $request): Receta
     {
-        $user = Auth::user();
-        $medico = Medico::where('user_id', $user->id)->first();
-        
+        $medico = Medico::where('user_id', Auth::id())->first();
+
         $receta = Receta::create([
-            'nro' => 'REC-' . date('Y') . '-' . str_pad(Receta::count() + 1, 6, '0', STR_PAD_LEFT),
-            'consulta_id' => $consulta->id,
-            'fecha' => now(),
-            'indicaciones' => $request->indicaciones ?? '',
-            'user_medico_id' => $medico->user_id ?? null,
+            'nro'           => 'REC-' . date('Y') . '-' . str_pad(
+                                   Receta::whereYear('created_at', date('Y'))->max('id') + 1,
+                                   6, '0', STR_PAD_LEFT
+                               ),
+            'consulta_id'   => $consulta->id,
+            'fecha'         => now()->toDateString(),
+            'indicaciones'  => $request->indicaciones ?? '',
+            'user_medico_id'=> $medico?->user_id,
         ]);
 
-        // Aquí se podrían agregar los detalles de los medicamentos si existe la tabla detalle_receta
-        // Por ahora solo creamos la receta básica
+        // Guardar detalle de medicamentos
+        if ($request->has('medicamentos') && is_array($request->medicamentos)) {
+            foreach ($request->medicamentos as $med) {
+                if (empty($med['codigo'])) continue;
+
+                $medicamento = \App\Models\Medicamentos::where('codigo', $med['codigo'])->first();
+                $precio = $medicamento?->precio ?? 0;
+                $cantidad = (float) ($med['cantidad'] ?? 1);
+
+                \App\Models\DetalleReceta::create([
+                    'receta_id'          => $receta->id,
+                    'codigo_medicamento' => $med['codigo'],
+                    'dosis'              => $med['dosis'] ?? '',
+                    'subtotal'           => $precio * $cantidad,
+                ]);
+            }
+        }
+
+        return $receta;
     }
 
     public function verHistorialMedico($ci_medico = null)

@@ -12,6 +12,7 @@ use App\Models\UtiBed;
 use App\Models\UtiAdmission;
 use App\Models\Emergency;
 use App\Models\Seguro;
+use App\Services\NotificationService;
 
 class UtiRecepcionController extends Controller
 {
@@ -97,7 +98,7 @@ class UtiRecepcionController extends Controller
             'nro_autorizacion' => 'nullable|string|max:50',
             'emergency_id' => 'nullable|exists:emergencies,id',
             'diagnostico_principal' => 'nullable|string|max:500',
-            'medico_responsable_id' => 'nullable|exists:medicos,id',
+            'medico_responsable_ci' => 'nullable|exists:medicos,ci',
         ]);
 
         DB::beginTransaction();
@@ -132,7 +133,7 @@ class UtiRecepcionController extends Controller
                 'nro_autorizacion' => $validated['nro_autorizacion'] ?? null,
                 'fecha_ingreso' => now(),
                 'estado' => 'activo',
-                'medico_responsable_id' => $validated['medico_responsable_id'] ?? null,
+                'medico_responsable_ci' => $validated['medico_responsable_ci'] ?? null,
             ]);
 
             // Actualizar cama a ocupada
@@ -151,6 +152,11 @@ class UtiRecepcionController extends Controller
             }
 
             DB::commit();
+
+            // Notificar sobre ingreso a UTI
+            $paciente = Paciente::find($validated['patient_id']);
+            NotificationService::notifyRole('uti', 'derivacion', 'Nuevo Ingreso UTI', "Paciente: {$paciente->nombre} - Origen: " . ucfirst($validated['tipo_ingreso']), route('uti.operativa.index'), ['admission_id' => $admission->id]);
+            NotificationService::notifyAdmins('derivacion', 'Ingreso UTI', "Paciente {$paciente->nombre} ingresado a UTI desde " . ucfirst($validated['tipo_ingreso']), route('uti.operativa.index'));
 
             return response()->json([
                 'success' => true,

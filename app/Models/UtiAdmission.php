@@ -31,7 +31,7 @@ class UtiAdmission extends Model
         'fecha_alta_administrativa',
         'estado',
         'destino_alta',
-        'medico_responsable_id',
+        'medico_responsable_ci',
         'observaciones',
     ];
 
@@ -53,12 +53,12 @@ class UtiAdmission extends Model
 
     public function seguro()
     {
-        return $this->belongsTo(Seguro::class, 'seguro_id', 'codigo');
+        return $this->belongsTo(Seguro::class, 'seguro_id');
     }
 
     public function medico()
     {
-        return $this->belongsTo(Medico::class, 'medico_responsable_id');
+        return $this->belongsTo(Medico::class, 'medico_responsable_ci', 'ci');
     }
 
     public function vitalSigns()

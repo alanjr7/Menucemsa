@@ -19,6 +19,7 @@ use App\Models\UtiSupply;
 use App\Models\UtiCatering;
 use App\Models\UtiTarifario;
 use App\Services\CuentaCobroService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -414,26 +415,9 @@ class CajaOperativaController extends Controller
             $cuenta->caja_session_id = $cajaAbierta->id;
             $cuenta->save();
 
-            // Registrar el pago
-            $pago = PagoCuenta::create([
-                'cuenta_cobro_id' => $cuenta->id,
-                'monto' => $montoPagar,
-                'metodo_pago' => $request->metodo_pago,
-                'referencia' => $request->referencia,
-                'user_id' => Auth::id(),
-                'caja_session_id' => $cajaAbierta->id,
-            ]);
-
-            // Actualizar totales de la cuenta
-            $cuenta->total_pagado += $montoPagar;
-            $nuevoSaldo = $cuenta->total_calculado - $cuenta->total_pagado;
-
-            if ($nuevoSaldo <= 0) {
-                $cuenta->estado = 'pagado';
-            } else {
-                $cuenta->estado = 'parcial';
-            }
-            $cuenta->save();
+            // Registrar el pago usando el método del modelo
+            $cuenta->registrarPago($montoPagar, $request->metodo_pago, $request->referencia, Auth::id());
+            $cuenta->refresh();
 
             // Si está pagado completamente, actualizar Caja y Consulta
             if ($cuenta->estado === 'pagado') {
@@ -496,12 +480,16 @@ class CajaOperativaController extends Controller
 
             DB::commit();
 
+            // Notificar cuando el pago está completo
+            if ($cuenta->estado === 'pagado') {
+                NotificationService::notifyAdmins('pago', 'Pago Completado', "Paciente: {$nombrePaciente} - Monto: $" . number_format($cuenta->total_pagado, 2), route('caja.gestion.index'));
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => $cuenta->estado === 'pagado' 
-                    ? 'Cuenta pagada completamente' 
+                'message' => $cuenta->estado === 'pagado'
+                    ? 'Cuenta pagada completamente'
                     : 'Pago parcial registrado',
-                'pago_id' => $pago->id,
                 'cuenta' => [
                     'id' => $cuenta->id,
                     'estado' => $cuenta->estado,
@@ -989,5 +977,17 @@ class CajaOperativaController extends Controller
             'fallecido' => 'red',
             default => 'gray',
         };
+    }
+
+    /**
+     * Vista de comprobante de pago imprimible
+     */
+    public function comprobante(string $cuentaId): View
+    {
+        $cuenta = CuentaCobro::with([
+            'paciente', 'detalles', 'pagos.user', 'cajaSession.user'
+        ])->findOrFail($cuentaId);
+
+        return view('caja.comprobante', compact('cuenta'));
     }
 }

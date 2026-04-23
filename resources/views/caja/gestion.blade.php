@@ -13,7 +13,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Total Hoy</p>
-                    <p class="text-xl font-bold text-gray-900" id="statTotalHoy">S/ {{ number_format($estadisticas['total_recaudado_hoy'], 2) }}</p>
+                    <p class="text-xl font-bold text-gray-900" id="statTotalHoy">Bs. {{ number_format($estadisticas['total_recaudado_hoy'], 2) }}</p>
                 </div>
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase">Transacciones</p>
@@ -49,7 +49,7 @@
                             @foreach($metodosPagoHoy as $metodo => $monto)
                             <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                                 <span class="text-sm text-gray-600 capitalize">{{ $metodo }}:</span>
-                                <span class="font-medium">S/ {{ number_format($monto, 2) }}</span>
+                                <span class="font-medium">Bs. {{ number_format($monto, 2) }}</span>
                             </div>
                             @endforeach
                         </div>
@@ -70,8 +70,8 @@
                                     <p class="text-sm text-gray-500">{{ $caja['fecha_apertura'] }}</p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-sm text-gray-600">Inicial: <span class="font-medium">S/ {{ number_format($caja['monto_inicial'], 2) }}</span></p>
-                                    <p class="text-sm text-green-600">+ S/ {{ number_format($caja['total_ingresos'], 2) }}</p>
+                                    <p class="text-sm text-gray-600">Inicial: <span class="font-medium">Bs. {{ number_format($caja['monto_inicial'], 2) }}</span></p>
+                                    <p class="text-sm text-green-600">+ Bs. {{ number_format($caja['total_ingresos'], 2) }}</p>
                                 </div>
                             </div>
                             @empty

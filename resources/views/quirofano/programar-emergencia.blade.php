@@ -65,7 +65,7 @@
                                     <option value="">Seleccionar tipo...</option>
                                     @foreach($tiposCirugia as $tipo)
                                         <option value="{{ $tipo->nombre }}" data-duracion="{{ $tipo->duracion_minutos }}" data-costo="{{ $tipo->costo_base }}">
-                                            {{ $tipo->nombre }} - {{ $tipo->duracion_formateada }} - ${{ number_format($tipo->costo_base, 2) }}
+                                            {{ $tipo->nombre }} - {{ $tipo->duracion_formateada }} - Bs. {{ number_format($tipo->costo_base, 2) }}
                                         </option>
                                     @endforeach
                                 </select>

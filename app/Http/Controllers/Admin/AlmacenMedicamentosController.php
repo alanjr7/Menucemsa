@@ -67,14 +67,14 @@ class AlmacenMedicamentosController extends Controller
             'por_vencer' => AlmacenMedicamento::activos()->porVencer()->count(),
         ];
 
-        $areas = ['emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato', 'internacion'];
+        $areas = ['emergencia', 'cirugia', 'internacion', 'uti', 'usi', 'neonato'];
 
         return view('admin.almacen-medicamentos.index', compact('almacenMedicamentos', 'stats', 'areas'));
     }
 
     public function create()
     {
-        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'hospitalizacion' => 'Hospitalización', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato', 'internacion' => 'Internación'];
+        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'internacion' => 'Internación', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato'];
         $tipos = ['medicamento' => 'Medicamento', 'insumo' => 'Insumo'];
         $unidades = ['unidades', 'ml', 'mg', 'gr', 'cm', 'cajas', 'frascos', 'sobres'];
 
@@ -86,7 +86,7 @@ class AlmacenMedicamentosController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'area' => 'required|in:emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
+            'area' => 'required|in:emergencia,cirugia,internacion,uti,usi,neonato',
             'precio' => 'nullable|numeric|min:0',
             'fecha_vencimiento' => 'nullable|date|after:today',
             'lote' => 'nullable|string|max:100',
@@ -118,7 +118,7 @@ class AlmacenMedicamentosController extends Controller
 
     public function edit(AlmacenMedicamento $almacenMedicamento)
     {
-        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'hospitalizacion' => 'Hospitalización', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato', 'internacion' => 'Internación'];
+        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'internacion' => 'Internación', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato'];
         $tipos = ['medicamento' => 'Medicamento', 'insumo' => 'Insumo'];
         $unidades = ['unidades', 'ml', 'mg', 'gr', 'cm', 'cajas', 'frascos', 'sobres'];
 
@@ -130,7 +130,7 @@ class AlmacenMedicamentosController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'area' => 'required|in:emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
+            'area' => 'required|in:emergencia,cirugia,internacion,uti,usi,neonato',
             'precio' => 'nullable|numeric|min:0',
             'fecha_vencimiento' => 'nullable|date',
             'lote' => 'nullable|string|max:100',
@@ -141,7 +141,10 @@ class AlmacenMedicamentosController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
-        $almacenMedicamento->update($request->all());
+        $almacenMedicamento->update($request->only([
+            'nombre', 'descripcion', 'area', 'precio', 'fecha_vencimiento',
+            'lote', 'cantidad', 'stock_minimo', 'unidad_medida', 'tipo', 'observaciones',
+        ]));
 
         // Registrar actividad en log
         Log::info('Usuario ' . Auth::user()->name . ' actualizó medicamento/insumo en almacén: ' . $almacenMedicamento->nombre, [
