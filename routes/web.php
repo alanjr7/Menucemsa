@@ -86,8 +86,8 @@ Route::middleware('auth')->group(function () {
         return response()->json(['alertas' => $alertas, 'total' => $count]);
     })->name('sistema.alertas');
 
-    // Rutas para medicamentos de quirófano (admin y cirujano) - PRIMERO para evitar conflicto con /quirofano/{cita}
-    Route::middleware(['auth', 'role:admin|cirujano'])->group(function () {
+    // Rutas para medicamentos de quirófano (admin, cirujano y administrador) - PRIMERO para evitar conflicto con /quirofano/{cita}
+    Route::middleware(['auth', 'role:admin|cirujano|administrador'])->group(function () {
         Route::get('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'index'])->name('quirofano.medicamentos.index');
         Route::get('/quirofano/medicamentos/create', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'create'])->name('quirofano.medicamentos.create');
         Route::post('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'store'])->name('quirofano.medicamentos.store');
@@ -98,8 +98,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/quirofano/medicamentos/{medicamento}/stock', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'actualizarStock'])->name('quirofano.medicamentos.stock');
     });
 
-    // Rutas para quirofano (acceso para admin, reception, dirmedico y cirujano)
-    Route::middleware(['auth', 'role:admin|reception|dirmedico|cirujano'])->group(function () {
+    // Rutas para quirofano (acceso para admin, reception, dirmedico, cirujano y administrador)
+    Route::middleware(['auth', 'role:admin|reception|dirmedico|cirujano|administrador'])->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/quirofano', [QuirofanoController::class, 'index'])->name('quirofano.index');
         Route::get('/quirofano/historial', [QuirofanoController::class, 'historial'])->name('quirofano.historial');
@@ -159,8 +159,8 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    // Rutas para recepción y pacientes (acceso para admin, reception y dirmedico)
-    Route::middleware(['auth', 'role:admin|reception|dirmedico'])->group(function () {
+    // Rutas para recepción y pacientes (acceso para admin, reception, dirmedico y administrador)
+    Route::middleware(['auth', 'role:admin|reception|dirmedico|administrador'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
         Route::get('/admision', function() {
             return redirect()->route('patients.index');
@@ -248,8 +248,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/comprobante/{cuentaId}', [CajaOperativaController::class, 'comprobante'])->name('comprobante');
     });
 
-    // Gestión de Caja - Para usuarios con rol ADMIN
-    Route::middleware(['auth', 'role:admin'])->prefix('caja-gestion')->name('caja.gestion.')->group(function () {
+    // Gestión de Caja - Para usuarios con rol ADMIN y ADMINISTRADOR
+    Route::middleware(['auth', 'role:admin|administrador'])->prefix('caja-gestion')->name('caja.gestion.')->group(function () {
         Route::get('/', [CajaGestionController::class, 'index'])->name('index');
         Route::get('/transacciones', [CajaGestionController::class, 'getTransacciones'])->name('transacciones');
         Route::get('/transaccion/{id}', [CajaGestionController::class, 'getDetalleTransaccion'])->name('detalle-transaccion');
@@ -266,8 +266,8 @@ Route::middleware('auth')->group(function () {
     //     Route::get('/', [\App\Http\Controllers\CajaController::class, 'index'])->name('dashboard');
     // });
 
-    // Rutas médicas (admin, dirmedico y doctor) - SIN duplicar rutas de quirofano
-    Route::middleware(['role:admin|dirmedico|doctor'])->group(function () {
+    // Rutas médicas (admin, dirmedico, doctor y administrador) - SIN duplicar rutas de quirofano
+    Route::middleware(['role:admin|dirmedico|doctor|administrador'])->group(function () {
         Route::get('/uti', [UtiController::class, 'index'])->name('uti.index');
         // Rutas de control administrativo para consulta externa (solo admin)
         Route::get('/consulta-externa/historial/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verHistorialMedico'])->name('consulta.historial-medico');
@@ -369,8 +369,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/reporte-morosidad', [CuentaCobrarController::class, 'getReporteMorosidad'])->name('cuentas.api.morosidad');
     });
 
-    // Rutas de administración (solo admin) - Especialidades CRUD
-    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Rutas de administración (admin y administrador) - Especialidades CRUD
+    Route::middleware(['role:admin|administrador'])->prefix('admin')->name('admin.')->group(function () {
         // Dashboard principal del admin
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         
@@ -393,8 +393,8 @@ Route::middleware('auth')->group(function () {
         Route::get('api/medicos-por-especialidad', [DoctorController::class, 'getMedicosByEspecialidad'])->name('doctors.by-especialidad');
     });
 
-    // Rutas de farmacia (admin y farmacia)
-    Route::middleware(['auth', 'role:admin|farmacia'])->prefix('farmacia')->name('farmacia.')->group(function () {
+    // Rutas de farmacia (admin, farmacia y administrador)
+    Route::middleware(['auth', 'role:admin|farmacia|administrador'])->prefix('farmacia')->name('farmacia.')->group(function () {
 
         // URL: /farmacia -> Llama a FarmaciaDashboardController
         Route::get('/', [FarmaciaDashboardController::class, 'index'])->name('index');
@@ -422,8 +422,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/reporte/filtrar', [ReporteController::class, 'filtrar'])->name('reporte.filtrar');
     });
 
-    // Rutas gerenciales (admin y gerente)
-    Route::middleware(['role:admin|gerente'])->prefix('gerencial')->name('gerencial.')->group(function () {
+    // Rutas gerenciales (admin, gerente y administrador)
+    Route::middleware(['role:admin|gerente|administrador'])->prefix('gerencial')->name('gerencial.')->group(function () {
         // Dashboard del gerente
         Route::get('/dashboard', function () {
             return view('dashboard');
@@ -435,15 +435,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
     });
 
-    // Rutas de seguridad (admin, gerente y dirmedico)
-    Route::middleware(['role:admin|gerente|dirmedico'])->prefix('seguridad')->name('seguridad.')->group(function () {
+    // Rutas de seguridad (admin, gerente, dirmedico y administrador)
+    Route::middleware(['role:admin|gerente|dirmedico|administrador'])->prefix('seguridad')->name('seguridad.')->group(function () {
         Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::get('/bitacora', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
-    // Rutas de gestión de usuarios (admin y gerente)
-    Route::middleware(['role:admin|gerente'])->prefix('user-management')->name('user-management.')->group(function () {
+    // Rutas de gestión de usuarios (admin, gerente y administrador)
+    Route::middleware(['role:admin|gerente|administrador'])->prefix('user-management')->name('user-management.')->group(function () {
         Route::get('/', [UserManagementController::class, 'index'])->name('index');
         Route::get('/create', [UserManagementController::class, 'create'])->name('create');
         Route::post('/', [UserManagementController::class, 'store'])->name('store');
@@ -453,8 +453,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
     });
 
-    // Rutas de gestión de emergencias (admin - SOLO LECTURA)
-    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Rutas de gestión de emergencias (admin y administrador - SOLO LECTURA)
+    Route::middleware(['role:admin|administrador'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/emergencies', [AdminEmergencyController::class, 'index'])->name('emergencies.index');
         Route::get('/emergencies/{emergency}', [AdminEmergencyController::class, 'show'])->name('emergencies.show');
         
@@ -482,8 +482,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/completar-datos-paciente-temporal', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal']);
     });
 
-    // Rutas para personal de emergencias - EMERGENCIA, ENFERMERA-EMERGENCIA, ADMIN Y DIR MEDICO
-    Route::middleware(['role:emergencia|enfermera-emergencia|admin|dirmedico'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+    // Rutas para personal de emergencias - EMERGENCIA, ENFERMERA-EMERGENCIA, ADMIN, DIR MEDICO Y ADMINISTRADOR
+    Route::middleware(['role:emergencia|enfermera-emergencia|admin|dirmedico|administrador'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
@@ -545,8 +545,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
     });
 
-    // Rutas para personal de internación - INTERNACION, ADMIN, DIR MEDICO Y ENFERMERAS
-    Route::middleware(['role:internacion|admin|dirmedico|enfermera-internacion'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
+    // Rutas para personal de internación - INTERNACION, ADMIN, DIR MEDICO, ENFERMERAS Y ADMINISTRADOR
+    Route::middleware(['role:internacion|admin|dirmedico|enfermera-internacion|administrador'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
         // Dashboard principal
         Route::get('/dashboard', [InternacionStaffController::class, 'index'])->name('dashboard');
 
@@ -724,8 +724,8 @@ Route::middleware(['auth', 'role:admin|dirmedico|doctor|uti'])->prefix('uti-oper
     });
 });
 
-// UTI Administración - Solo admin
-Route::middleware(['auth', 'role:admin'])->prefix('uti-admin')->name('uti.admin.')->group(function () {
+// UTI Administración - Admin y Administrador
+Route::middleware(['auth', 'role:admin|administrador'])->prefix('uti-admin')->name('uti.admin.')->group(function () {
     Route::get('/', [UtiAdminController::class, 'index'])->name('index');
     Route::get('/camas', [UtiAdminController::class, 'camas'])->name('camas');
     Route::get('/control-financiero', [UtiAdminController::class, 'controlFinanciero'])->name('control-financiero');

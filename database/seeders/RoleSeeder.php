@@ -155,5 +155,16 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // Crear usuario Administrador (rol visualizador general)
+        User::firstOrCreate(
+            ['email' => 'administrador@menucemsa.com'],
+            [
+                'name' => 'Administrador',
+                'password' => bcrypt('administrador123'),
+                'role' => 'administrador',
+                'is_active' => true,
+            ]
+        );
     }
 }

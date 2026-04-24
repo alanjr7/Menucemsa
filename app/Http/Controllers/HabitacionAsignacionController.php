@@ -21,7 +21,7 @@ class HabitacionAsignacionController extends Controller
         AsignacionCamaService $asignacionService,
         LiberacionCamaService $liberacionService
     ) {
-        $this->middleware('role:internacion|admin|dirmedico|enfermera-internacion');
+        $this->middleware('role:internacion|admin|dirmedico|enfermera-internacion|administrador');
         $this->asignacionService = $asignacionService;
         $this->liberacionService = $liberacionService;
     }

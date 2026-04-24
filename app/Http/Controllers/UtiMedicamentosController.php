@@ -12,7 +12,7 @@ class UtiMedicamentosController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin|uti');
+        $this->middleware('role:admin|uti|administrador');
     }
 
     public function index(Request $request)

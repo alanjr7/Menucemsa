@@ -18,7 +18,7 @@ class InternacionNurseController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:internacion|admin');
+        $this->middleware('role:internacion|admin|administrador');
     }
 
     /**

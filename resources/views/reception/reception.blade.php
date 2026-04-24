@@ -792,7 +792,7 @@
                 
                 if (data.success) {
                     data.medicos.forEach(medico => {
-                        select.innerHTML += `<option value="${medico.ci}">Dr. ${medico.usuario.name}</option>`;
+                        select.innerHTML += `<option value="${medico.ci}">Dr. ${medico.nombre}</option>`;
                     });
                 }
             } catch (error) {

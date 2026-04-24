@@ -21,7 +21,7 @@ class HabitacionGestionController extends Controller
 
     public function __construct()
     {
-        $this->middleware('role:internacion|admin|dirmedico');
+        $this->middleware('role:internacion|admin|dirmedico|administrador');
     }
 
     public function index(): View

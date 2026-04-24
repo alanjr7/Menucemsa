@@ -52,6 +52,9 @@ class DashboardController extends Controller
             case 'enfermera-internacion':
                 return redirect()->route('internacion-staff.dashboard');
 
+            case 'administrador':
+                return redirect()->route('admin.dashboard');
+
             default:
                 // Dashboard genérico para roles no definidos
                 return view('dashboard');

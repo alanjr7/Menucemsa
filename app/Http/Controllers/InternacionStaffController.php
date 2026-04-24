@@ -25,7 +25,7 @@ class InternacionStaffController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:internacion|admin|dirmedico|enfermera-internacion');
+        $this->middleware('role:internacion|admin|dirmedico|enfermera-internacion|administrador');
     }
 
     public function index(): View

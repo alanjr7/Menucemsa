@@ -11,15 +11,36 @@ use Illuminate\Validation\Rules\Password;
 
 class UserManagementController extends Controller
 {
+    private function esAdministrador(): bool
+    {
+        return auth()->user()->role === 'administrador';
+    }
+
+    private function esAdmin(User $user): bool
+    {
+        return $user->role === 'admin';
+    }
+
     public function index()
     {
-        $users = User::orderBy('name')->get();
+        $query = User::orderBy('name');
+
+        if ($this->esAdministrador()) {
+            $query->where('role', '!=', 'admin');
+        }
+
+        $users = $query->get();
         return view('user-management.index', compact('users'));
     }
 
     public function create()
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+
+        if (!$this->esAdministrador()) {
+            array_unshift($roles, 'admin');
+        }
+
         return view('user-management.create', compact('roles'));
     }
 
@@ -27,12 +48,23 @@ class UserManagementController extends Controller
     {
         try {
             // Validación básica siempre requerida
+            $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion';
+            if (!$this->esAdministrador()) {
+                $allowedRoles .= ',admin';
+            }
+
             $rules = [
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => ['required', 'confirmed', Password::defaults()],
-                'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion',
+                'role' => 'required|in:' . $allowedRoles,
             ];
+
+            if ($this->esAdministrador() && $request->role === 'admin') {
+                return redirect()->back()
+                    ->with('error', 'No tienes permisos para crear usuarios con rol administrador.')
+                    ->withInput();
+            }
 
             // Validaciones adicionales solo para roles que las necesitan
             if (in_array($request->role, ['doctor', 'dirmedico'])) {
@@ -185,16 +217,36 @@ class UserManagementController extends Controller
 
     public function edit(User $user)
     {
-        $roles = ['admin', 'reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+        if ($this->esAdministrador() && $this->esAdmin($user)) {
+            return redirect()->route('user-management.index')
+                ->with('error', 'No tienes permisos para modificar usuarios administradores.');
+        }
+
+        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+
+        if (!$this->esAdministrador()) {
+            array_unshift($roles, 'admin');
+        }
+
         return view('user-management.edit', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user)
     {
+        if ($this->esAdministrador() && ($this->esAdmin($user) || $request->role === 'admin')) {
+            return redirect()->route('user-management.index')
+                ->with('error', 'No tienes permisos para modificar usuarios con rol administrador.');
+        }
+
+        $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion';
+        if (!$this->esAdministrador()) {
+            $allowedRoles .= ',admin';
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia',
+            'role' => 'required|in:' . $allowedRoles,
         ]);
 
         $user->update([
@@ -223,6 +275,11 @@ class UserManagementController extends Controller
                 ->with('error', 'No puedes eliminar tu propio usuario.');
         }
 
+        if ($this->esAdministrador() && $this->esAdmin($user)) {
+            return redirect()->route('user-management.index')
+                ->with('error', 'No tienes permisos para eliminar usuarios administradores.');
+        }
+
         $user->delete();
 
         return redirect()->route('user-management.index')
@@ -233,6 +290,10 @@ class UserManagementController extends Controller
     {
         if ($user->id === auth()->id()) {
             return response()->json(['error' => 'No puedes desactivar tu propio usuario.'], 403);
+        }
+
+        if ($this->esAdministrador() && $this->esAdmin($user)) {
+            return response()->json(['error' => 'No tienes permisos para modificar usuarios administradores.'], 403);
         }
 
         $user->update([

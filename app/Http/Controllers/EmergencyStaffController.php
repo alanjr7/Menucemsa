@@ -21,7 +21,7 @@ class EmergencyStaffController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:emergencia|enfermera-emergencia|admin|dirmedico')->except(['apiEmergenciasTemporales']);
+        $this->middleware('role:emergencia|enfermera-emergencia|admin|dirmedico|administrador')->except(['apiEmergenciasTemporales']);
     }
 
     public function index(): View

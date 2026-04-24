@@ -18,7 +18,7 @@ class EmergencyNurseController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:emergencia|admin');
+        $this->middleware('role:emergencia|admin|administrador');
     }
 
     /**
