@@ -67,13 +67,22 @@ class CuentaCobroService
      * Flujo: Recepción → Emergencia atiende → Caja cobra después
      */
     public static function crearCuentaEmergencia(
-        int $pacienteCi,
+        string $pacienteCi,
         string $emergencyId,
         array $servicios = [],
-        bool $esPostPago = true
+        bool $esPostPago = true,
+        ?int $seguroId = null
     ): CuentaCobro {
-        return DB::transaction(function () use ($pacienteCi, $emergencyId, $servicios, $esPostPago) {
+        return DB::transaction(function () use ($pacienteCi, $emergencyId, $servicios, $esPostPago, $seguroId) {
             $total = 0;
+
+            $tieneSeguroAplicable = false;
+            if ($seguroId) {
+                $seguro = \App\Models\Seguro::find($seguroId);
+                $tieneSeguroAplicable = $seguro && $seguro->estado === 'activo'
+                    && in_array($seguro->tipo_cobertura, ['porcentaje', 'tope_monto'], true)
+                    && strtolower($seguro->nombre_empresa) !== 'particular';
+            }
 
             // Crear cuenta
             $cuenta = CuentaCobro::create([
@@ -86,6 +95,8 @@ class CuentaCobroService
                 'total_pagado' => 0,
                 'es_emergencia' => true,
                 'es_post_pago' => $esPostPago,
+                'seguro_id' => $tieneSeguroAplicable ? $seguroId : null,
+                'seguro_estado' => $tieneSeguroAplicable ? 'pendiente_autorizacion' : null,
             ]);
 
             // Si hay servicios predefinidos, agregarlos
@@ -121,6 +132,103 @@ class CuentaCobroService
                     'subtotal' => $precioBase,
                     'origen_type' => \App\Models\Emergency::class,
                     'origen_id' => $emergencyId,
+                ]);
+                $total = $precioBase;
+            }
+
+            $cuenta->update([
+                'total_calculado' => $total,
+            ]);
+
+            return $cuenta;
+        });
+    }
+
+    /**
+     * Crear una cuenta por cobrar para una internación (flujo internación: post-pago)
+     *
+     * Flujo: Recepción → Internación atiende → Caja cobra después
+     */
+    public static function crearCuentaInternacion(
+        string $pacienteCi,
+        string $hospitalizacionId,
+        array $servicios = [],
+        bool $esPostPago = true,
+        ?int $seguroId = null
+    ): CuentaCobro {
+        return DB::transaction(function () use ($pacienteCi, $hospitalizacionId, $servicios, $esPostPago, $seguroId) {
+            $total = 0;
+
+            $tieneSeguroAplicable = false;
+            if ($seguroId) {
+                $seguro = \App\Models\Seguro::find($seguroId);
+                $tieneSeguroAplicable = $seguro && $seguro->estado === 'activo'
+                    && in_array($seguro->tipo_cobertura, ['porcentaje', 'tope_monto'], true)
+                    && strtolower($seguro->nombre_empresa) !== 'particular';
+            }
+
+            // Buscar cuenta existente no pagada (Master Account)
+            $cuenta = self::obtenerCuentaPostPagoActiva((string)$pacienteCi);
+
+            if ($cuenta) {
+                // Actualizar la referencia principal a la nueva hospitalización
+                // pero mantenemos la cuenta unificada
+                $cuenta->update([
+                    'tipo_atencion' => 'hospitalizacion',
+                    'referencia_id' => $hospitalizacionId,
+                    'referencia_type' => \App\Models\Hospitalizacion::class,
+                ]);
+                $total = $cuenta->total_calculado; // Mantener el total actual
+            } else {
+                // Crear cuenta nueva si no existe
+                $cuenta = CuentaCobro::create([
+                    'paciente_ci' => $pacienteCi,
+                    'tipo_atencion' => 'internacion',
+                    'referencia_id' => $hospitalizacionId,
+                    'referencia_type' => \App\Models\Hospitalizacion::class,
+                    'estado' => 'pendiente',
+                    'total_calculado' => 0,
+                    'total_pagado' => 0,
+                    'es_emergencia' => false,
+                    'es_post_pago' => $esPostPago,
+                    'seguro_id' => $tieneSeguroAplicable ? $seguroId : null,
+                    'seguro_estado' => $tieneSeguroAplicable ? 'pendiente_autorizacion' : null,
+                ]);
+            }
+
+            // Si hay servicios predefinidos, agregarlos
+            if (!empty($servicios)) {
+                foreach ($servicios as $servicio) {
+                    $precio = $servicio['precio'] ?? 0;
+                    $cuenta->detalles()->create([
+                        'tipo_item' => $servicio['tipo'] ?? 'servicio',
+                        'tarifa_id' => $servicio['tarifa_id'] ?? null,
+                        'descripcion' => $servicio['descripcion'] ?? 'Servicio de Internación',
+                        'cantidad' => $servicio['cantidad'] ?? 1,
+                        'precio_unitario' => $precio,
+                        'subtotal' => $precio * ($servicio['cantidad'] ?? 1),
+                        'origen_type' => $servicio['origen_type'] ?? null,
+                        'origen_id' => $servicio['origen_id'] ?? null,
+                    ]);
+                    $total += $precio * ($servicio['cantidad'] ?? 1);
+                }
+            } else {
+                // Tarifa base de internación (admisión)
+                $tarifaInternacion = Tarifa::where('codigo', 'HOSP-ADM')
+                    ->where('activo', true)
+                    ->first();
+
+                $precioBase = $tarifaInternacion?->precio_particular ?? 150.00;
+
+                $cuenta->detalles()->create([
+                    'tipo_item' => 'servicio',
+                    'tarifa_id' => $tarifaInternacion?->id,
+                    'descripcion' => $tarifaInternacion?->descripcion ?? 'Admisión de Internación',
+                    'cantidad' => 1,
+                    'precio_unitario' => $precioBase,
+                    'subtotal' => $precioBase,
+                    'origen_type' => \App\Models\Hospitalizacion::class,
+                    'origen_id' => $hospitalizacionId,
                 ]);
                 $total = $precioBase;
             }
@@ -277,6 +385,18 @@ class CuentaCobroService
     }
 
     /**
+     * Obtener cuenta activa post-pago (Emergencia o Internación) del paciente
+     */
+    public static function obtenerCuentaPostPagoActiva(string $pacienteCi): ?CuentaCobro
+    {
+        return CuentaCobro::where('paciente_ci', $pacienteCi)
+            ->whereIn('estado', ['pendiente', 'parcial'])
+            ->where('es_post_pago', true)
+            ->orderBy('created_at', 'desc')
+            ->first();
+    }
+
+    /**
      * Obtener o crear cuenta para un paciente en emergencia
      * Usado durante el flujo de emergencia para ir acumulando cargos
      */
@@ -284,18 +404,16 @@ class CuentaCobroService
         int $pacienteCi,
         string $emergencyId
     ): CuentaCobro {
-        // Buscar cuenta existente no pagada
-        $cuenta = CuentaCobro::where('paciente_ci', $pacienteCi)
-            ->where('referencia_id', $emergencyId)
-            ->where('referencia_type', \App\Models\Emergency::class)
-            ->whereIn('estado', ['pendiente', 'parcial'])
-            ->first();
+        // Buscar cuenta existente no pagada (Master Account)
+        $cuenta = self::obtenerCuentaPostPagoActiva((string)$pacienteCi);
 
         if ($cuenta) {
+            // Si ya tiene una cuenta abierta, la reutilizamos para la emergencia
+            // Podríamos actualizar la referencia si quisiéramos, pero por ahora solo la devolvemos
             return $cuenta;
         }
 
-        // Crear nueva cuenta
+        // Crear nueva cuenta si no hay ninguna abierta
         return self::crearCuentaEmergencia($pacienteCi, $emergencyId, [], true);
     }
 

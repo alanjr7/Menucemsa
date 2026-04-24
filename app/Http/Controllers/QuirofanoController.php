@@ -1339,7 +1339,6 @@ class QuirofanoController extends Controller
             ['nombre_empresa' => 'Particular'],
             [
                 'tipo' => 'Particular',
-                'cobertura' => 'Sin cobertura',
                 'telefono' => null,
                 'formulario' => 'PARTICULAR',
                 'estado' => 'activo'

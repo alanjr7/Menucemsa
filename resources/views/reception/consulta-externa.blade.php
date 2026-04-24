@@ -201,51 +201,38 @@
                             </div>
                         </div>
                         
-                        <!-- Seguro - Cards en lugar de select -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-3">Tipo de Seguro *</label>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <label class="relative flex flex-col p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 transition-all has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-                                    <input type="radio" name="seguro" value="particular" class="sr-only peer" checked>
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-3">
-                                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                            </svg>
-                                        </div>
-                                        <span class="font-semibold text-gray-800">Particular</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">Pago directo del paciente</p>
-                                    <div class="absolute top-3 right-3 w-4 h-4 rounded-full border-2 border-gray-300 peer-checked:border-blue-500 peer-checked:bg-blue-500"></div>
-                                </label>
-
-                                <label class="relative flex flex-col p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-400 transition-all has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
-                                    <input type="radio" name="seguro" value="seguro social" class="sr-only peer">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                            </svg>
-                                        </div>
-                                        <span class="font-semibold text-gray-800">Seguro Social</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">IVSS, OPSU, etc.</p>
-                                    <div class="absolute top-3 right-3 w-4 h-4 rounded-full border-2 border-gray-300 peer-checked:border-green-500 peer-checked:bg-green-500"></div>
-                                </label>
-
-                                <label class="relative flex flex-col p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-400 transition-all has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
-                                    <input type="radio" name="seguro" value="seguro privado" class="sr-only peer">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                            </svg>
-                                        </div>
-                                        <span class="font-semibold text-gray-800">Seguro Privado</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">Seguros privados</p>
-                                    <div class="absolute top-3 right-3 w-4 h-4 rounded-full border-2 border-gray-300 peer-checked:border-purple-500 peer-checked:bg-purple-500"></div>
-                                </label>
+                        <!-- Seguro - Select dinámico desde CRUD -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Cobertura *</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                </div>
+                                <select name="seguro_id" id="seguro_select"
+                                        class="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all appearance-none cursor-pointer"
+                                        onchange="mostrarInfoSeguro()">
+                                    <option value="">Particular (Sin seguro) - Pago directo</option>
+                                    @foreach($seguros as $seguro)
+                                        <option value="{{ $seguro->id }}" 
+                                                data-tipo="{{ $seguro->tipo_cobertura }}"
+                                                data-descripcion="{{ $seguro->descripcion_cobertura }}">
+                                            {{ $seguro->nombre_empresa }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div id="info_seguro" class="mt-3 hidden">
+                                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                                    <p class="text-sm text-blue-800 font-medium" id="descripcion_seguro"></p>
+                                    <p class="text-xs text-blue-600 mt-1">El paciente será enviado a autorización de seguros.</p>
+                                </div>
                             </div>
                         </div>
                         
@@ -504,21 +491,26 @@
             const data = Object.fromEntries(formData.entries());
             
             // Validar campos requeridos básicos
-            if (!data.ci || !data.especialidad || !data.medico || !data.seguro || !data.motivo) {
-                alert('Por favor complete todos los campos obligatorios');
+            const camposFaltantes = [];
+            if (!data.ci || data.ci.trim() === '') camposFaltantes.push('C.I. Paciente');
+            if (!data.especialidad || data.especialidad.trim() === '') camposFaltantes.push('Especialidad');
+            if (!data.medico || data.medico.trim() === '') camposFaltantes.push('Médico');
+            if (!data.motivo || data.motivo.trim() === '') camposFaltantes.push('Motivo de Consulta');
+
+            if (camposFaltantes.length > 0) {
+                alert('Faltan los siguientes campos obligatorios:\n\n• ' + camposFaltantes.join('\n• '));
                 return;
             }
 
             // Validar que si es paciente nuevo, complete todos los datos personales
             if (data.tipo_paciente === 'nuevo') {
-                if (!data.nombres || !data.apellidos || !data.sexo) {
-                    alert('Por favor complete todos los datos personales obligatorios (nombres, apellidos, sexo)');
-                    return;
-                }
-                
-                // Validar que el sexo tenga un valor válido
-                if (data.sexo === '' || data.sexo === null) {
-                    alert('Por favor seleccione el sexo del paciente');
+                const datosFaltantes = [];
+                if (!data.nombres || data.nombres.trim() === '') datosFaltantes.push('Nombres');
+                if (!data.apellidos || data.apellidos.trim() === '') datosFaltantes.push('Apellidos');
+                if (!data.sexo || data.sexo.trim() === '') datosFaltantes.push('Sexo');
+
+                if (datosFaltantes.length > 0) {
+                    alert('Faltan los siguientes datos personales obligatorios:\n\n• ' + datosFaltantes.join('\n• '));
                     return;
                 }
             }
@@ -624,12 +616,28 @@
             tipoPacienteSelect.dispatchEvent(new Event('change'));
         }
 
+        // Función para mostrar información del seguro seleccionado
+        function mostrarInfoSeguro() {
+            const select = document.getElementById('seguro_select');
+            const infoDiv = document.getElementById('info_seguro');
+            const descripcionP = document.getElementById('descripcion_seguro');
+            
+            if (select.value) {
+                const option = select.selectedOptions[0];
+                const descripcion = option.getAttribute('data-descripcion');
+                descripcionP.textContent = descripcion;
+                infoDiv.classList.remove('hidden');
+            } else {
+                infoDiv.classList.add('hidden');
+            }
+        }
+
         // Función para habilitar/deshabilitar campos de consulta
         function habilitarCamposConsulta(habilitar) {
             const camposConsulta = [
                 'select[name="especialidad"]',
                 'select[name="medico"]',
-                'select[name="seguro"]',
+                'select[name="seguro_id"]',
                 'input[name="motivo"]',
                 'textarea[name="observaciones"]'
             ];

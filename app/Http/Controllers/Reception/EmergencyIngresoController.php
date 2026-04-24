@@ -10,6 +10,7 @@ use App\Models\Triage;
 use App\Models\Registro;
 use App\Models\Seguro;
 use App\Models\CuentaCobro;
+use App\Services\CuentaCobroService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -45,6 +46,7 @@ class EmergencyIngresoController extends Controller
                 'temperatura' => 'nullable|string',
                 'alergias' => 'nullable|string',
                 'medicamentos' => 'nullable|string',
+                'seguro_id' => 'nullable|integer|exists:seguros,id',
             ]);
 
             $usarTempId = $request->boolean('usar_temp_id');
@@ -97,7 +99,16 @@ class EmergencyIngresoController extends Controller
             // 4. Crear emergencia
             $emergency = Emergency::create($emergencyData);
 
-            // 5. Procesar destino inicial si es necesario
+            // 5. Crear cuenta de cobro con seguro (pre-autorización)
+            $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
+                $paciente->ci ?? $paciente->id,
+                $emergency->id,
+                [], // Sin servicios predefinidos, se agregarán después
+                true, // esPostPago = true
+                $request->seguro_id // seguro_id seleccionado en el formulario
+            );
+
+            // 6. Procesar destino inicial si es necesario
             if (in_array($request->destino_inicial, ['cirugia', 'uti'])) {
                 $this->preReservarRecurso($emergency, $request->destino_inicial);
             }
@@ -234,7 +245,6 @@ class EmergencyIngresoController extends Controller
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
                 'tipo' => 'EMERGENCIA',
-                'cobertura' => 'Cobertura de Emergencia',
                 'telefono' => null,
                 'formulario' => 'EMERGENCIA',
                 'estado' => 'activo'

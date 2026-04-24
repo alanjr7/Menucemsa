@@ -19,7 +19,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             
             <!-- Card 1: Pacientes -->
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition">
+            <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition" style="border: 0.5px solid #e5e7eb;">
                 <div class="flex justify-between items-start">
                     <span class="text-sm font-medium text-gray-500">Pacientes Activos</span>
                     <div class="p-2 bg-blue-50 rounded-lg text-blue-500">
@@ -38,7 +38,7 @@
             </div>
 
             <!-- Card 2: Consultas -->
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition">
+            <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition" style="border: 0.5px solid #e5e7eb;">
                 <div class="flex justify-between items-start">
                     <span class="text-sm font-medium text-gray-500">Consultas Hoy</span>
                     <div class="p-2 bg-green-50 rounded-lg text-green-500">
@@ -57,7 +57,7 @@
             </div>
 
             <!-- Card 3: Facturación -->
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition">
+            <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition" style="border: 0.5px solid #e5e7eb;">
                 <div class="flex justify-between items-start">
                     <span class="text-sm font-medium text-gray-500">Facturación Diaria</span>
                     <div class="p-2 bg-purple-50 rounded-lg text-purple-500">
@@ -76,7 +76,7 @@
             </div>
 
             <!-- Card 4: Cirugías -->
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition">
+            <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-col justify-between h-32 hover:shadow-md transition" style="border: 0.5px solid #e5e7eb;">
                 <div class="flex justify-between items-start">
                     <span class="text-sm font-medium text-gray-500">Cirugías Programadas</span>
                     <div class="p-2 bg-orange-50 rounded-lg text-orange-500">
@@ -96,7 +96,7 @@
         </div>
 
         <!-- Alerts Section -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm p-6 mb-8" style="border: 0.5px solid #e5e7eb;">
             <div class="flex items-center gap-2 mb-4">
                 <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -139,7 +139,7 @@
         </div>
 
         <!-- Action Buttons Section -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm p-6 mb-8" style="border: 0.5px solid #e5e7eb;">
             <div class="flex items-center gap-2 mb-6">
                 <div class="p-1.5 bg-blue-100 rounded-lg">
                     <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +152,7 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <!-- Admin Actions -->
                 @if(auth()->user()->role === 'admin')
-                    <a href="{{ route('seguridad.usuarios.index') }}" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition group">
+                    <a href="{{ route('user-management.index') }}" class="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition group">
                         <div class="p-3 bg-blue-500 text-white rounded-lg group-hover:bg-blue-600 transition mb-3">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -283,7 +283,7 @@
         <!-- Charts Section - Solo para Admin -->
         @if(auth()->user()->role === 'admin' && isset($chartData))
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div class="bg-white p-6 rounded-2xl shadow-sm" style="border: 0.5px solid #e5e7eb;">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold text-gray-800 text-sm">Pacientes Atendidos</h3>
                     <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Semestral</span>
@@ -293,7 +293,7 @@
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div class="bg-white p-6 rounded-2xl shadow-sm" style="border: 0.5px solid #e5e7eb;">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold text-gray-800 text-sm">Ingresos Mensuales ($)</h3>
                     <span class="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Actualizado</span>
@@ -306,7 +306,7 @@
         @endif
 
         <!-- Activity Section -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div class="bg-white rounded-2xl shadow-sm p-6" style="border: 0.5px solid #e5e7eb;">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-2">
                     <div class="p-1.5 bg-gray-100 rounded-lg">
@@ -347,7 +347,6 @@
 
     <!-- Chart.js Scripts - Solo para Admin -->
     @if(auth()->user()->role === 'admin')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             

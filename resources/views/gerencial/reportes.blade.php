@@ -1,274 +1,251 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
-<div class="w-full min-h-screen bg-gray-50/50 p-6">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Reportes Gerenciales</h1>
-                <p class="text-sm text-gray-500 font-medium">Informes y análisis detallado del sistema</p>
-            </div>
-            <button class="flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 shadow-sm transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Seleccionar Periodo
-            </button>
+<div class="w-full p-6 bg-gray-50/50 min-h-screen">
+    <!-- Header -->
+    <div class="flex justify-between items-end mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Panel de Reportes</h1>
+            <p class="text-sm text-gray-500">Genera y exporta reportes gerenciales del sistema</p>
         </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 class="font-bold text-gray-800 mb-6">Atenciones por Tipo</h3>
-                <div class="relative h-[300px]">
-                    <canvas id="chartAtenciones"></canvas>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col">
-                <h3 class="font-bold text-gray-800 mb-6">Distribución por Especialidad</h3>
-                <div class="relative h-[300px] flex justify-center">
-                    <canvas id="chartEspecialidades"></canvas>
-                </div>
-            </div>
+        <div class="text-right">
+            <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">📊 Gerencial</span>
+            <p class="text-[10px] text-gray-400 mt-1 font-medium">{{ now()->format('d M, Y H:i') }}</p>
         </div>
-
-        <div class="space-y-6 -mt-2 mb-10"> <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="p-5 border-b border-gray-50 flex items-center gap-3 bg-gray-50/30">
-                    <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <h2 class="font-bold text-gray-800">Reportes Clínicos</h2>
-                </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-blue-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Atenciones por Especialidad</h4>
-                            <p class="text-xs text-gray-500">Resumen de consultas por área médica</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-blue-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-blue-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Pacientes Hospitalizados</h4>
-                            <p class="text-xs text-gray-500">Detalle de hospitalizaciones activas</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-blue-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-blue-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Cirugías Realizadas</h4>
-                            <p class="text-xs text-gray-500">Listado de procedimientos quirúrgicos</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-blue-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-blue-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Emergencias</h4>
-                            <p class="text-xs text-gray-500">Registro de atenciones en emergencia</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-blue-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="p-5 border-b border-gray-50 flex items-center gap-3 bg-gray-50/30">
-                    <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    <h2 class="font-bold text-gray-800">Reportes Financieros</h2>
-                </div>
-
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-emerald-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Ingresos por Servicio</h4>
-                            <p class="text-xs text-gray-500">Facturación detallada por tipo</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-emerald-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-emerald-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Cuentas por Cobrar</h4>
-                            <p class="text-xs text-gray-500">Estado de cobranza</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-emerald-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-emerald-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Análisis de Morosidad</h4>
-                            <p class="text-xs text-gray-500">Seguimiento de pagos pendientes</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-emerald-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-
-                    <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-emerald-50/50 transition group">
-                        <div>
-                            <h4 class="text-sm font-bold text-gray-800">Cierre de Caja</h4>
-                            <p class="text-xs text-gray-500">Movimientos diarios de caja</p>
-                        </div>
-                        <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-emerald-300">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Generar
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="p-5 border-b border-gray-50 flex items-center gap-3 bg-gray-50/30">
-        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-        </svg>
-        <h2 class="font-bold text-gray-800">Reportes Operativos</h2>
     </div>
-    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-orange-50/50 transition group">
-            <div>
-                <h4 class="text-sm font-bold text-gray-800">Uso de Quirófanos</h4>
-                <p class="text-xs text-gray-500">Ocupación de salas de cirugía</p>
-            </div>
-            <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-orange-300">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Generar
+
+    <!-- Selector de Reportes -->
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6" style="border: 0.5px solid #e5e7eb;">
+        <h3 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Selecciona un Reporte
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            @foreach([
+                ['id' => 'atenciones_especialidad', 'label' => 'Atenciones por Especialidad', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'blue'],
+                ['id' => 'pacientes_hospitalizados', 'label' => 'Pacientes Hospitalizados', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', 'color' => 'green'],
+                ['id' => 'cirugias_realizadas', 'label' => 'Cirugías Realizadas', 'icon' => 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm8.486-8.486a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243z', 'color' => 'red'],
+                ['id' => 'emergencias', 'label' => 'Emergencias', 'icon' => 'M13 10V3L4 14h7v7l9-11h-7z', 'color' => 'orange'],
+                ['id' => 'ingresos_servicio', 'label' => 'Ingresos por Servicio', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'emerald'],
+                ['id' => 'cuentas_cobrar', 'label' => 'Cuentas por Cobrar', 'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', 'color' => 'purple'],
+                ['id' => 'morosidad', 'label' => 'Análisis de Morosidad', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'rose'],
+                ['id' => 'cierre_caja', 'label' => 'Cierre de Caja', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', 'color' => 'cyan'],
+                ['id' => 'uso_quirofanos', 'label' => 'Uso de Quirófanos', 'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', 'color' => 'indigo'],
+                ['id' => 'ocupacion_camas', 'label' => 'Ocupación de Camas', 'icon' => 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01', 'color' => 'teal'],
+                ['id' => 'stock_farmacia', 'label' => 'Stock de Farmacia', 'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', 'color' => 'amber'],
+                ['id' => 'productividad_medica', 'label' => 'Productividad Médica', 'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', 'color' => 'pink'],
+            ] as $reporte)
+            <button onclick="selectReport('{{ $reporte['id'] }}')" id="btn-{{ $reporte['id'] }}" class="report-btn group p-4 rounded-xl border border-gray-200 hover:border-{{ $reporte['color'] }}-400 hover:bg-{{ $reporte['color'] }}-50 transition-all duration-200 text-left">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-{{ $reporte['color'] }}-100 rounded-lg group-hover:bg-{{ $reporte['color'] }}-200 transition">
+                        <svg class="w-5 h-5 text-{{ $reporte['color'] }}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $reporte['icon'] }}"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-gray-700 group-hover:text-{{ $reporte['color'] }}-700 leading-tight">{{ $reporte['label'] }}</span>
+                </div>
             </button>
+            @endforeach
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-2xl shadow-sm p-4 mb-6 flex flex-wrap items-center gap-4" style="border: 0.5px solid #e5e7eb;">
+        <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Período:
+        </div>
+        <div class="flex items-center gap-2">
+            <input type="date" id="desde" value="{{ $desde }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            <span class="text-gray-500">-</span>
+            <input type="date" id="hasta" value="{{ $hasta }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+        </div>
+        <button onclick="generateReport()" id="btn-generar" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition flex items-center gap-2" disabled>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Generar Reporte
+        </button>
+        <button onclick="exportToExcel()" id="btn-exportar" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition flex items-center gap-2 hidden">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Exportar Excel
+        </button>
+    </div>
+
+    <!-- Área de Resultados -->
+    <div id="report-container" class="bg-white rounded-2xl shadow-sm overflow-hidden" style="border: 0.5px solid #e5e7eb;">
+        <!-- Estado Vacío -->
+        <div id="empty-state" class="p-12 text-center">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-800 mb-2">Selecciona un reporte</h3>
+            <p class="text-sm text-gray-500">Elige un tipo de reporte arriba y define el período para generar los datos</p>
         </div>
 
-        <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-orange-50/50 transition group">
-            <div>
-                <h4 class="text-sm font-bold text-gray-800">Ocupación de Camas</h4>
-                <p class="text-xs text-gray-500">Disponibilidad hospitalaria</p>
-            </div>
-            <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-orange-300">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Generar
-            </button>
+        <!-- Loading -->
+        <div id="loading-state" class="hidden p-12 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-3 text-sm text-gray-500">Generando reporte...</p>
         </div>
 
-        <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-orange-50/50 transition group">
-            <div>
-                <h4 class="text-sm font-bold text-gray-800">Stock de Farmacia</h4>
-                <p class="text-xs text-gray-500">Inventario de medicamentos</p>
+        <!-- Resultados -->
+        <div id="results-state" class="hidden">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 id="report-title" class="text-lg font-semibold text-gray-800"></h3>
+                <span id="report-count" class="text-sm text-gray-500"></span>
             </div>
-            <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-orange-300">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Generar
-            </button>
-        </div>
-
-        <div class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-orange-50/50 transition group">
-            <div>
-                <h4 class="text-sm font-bold text-gray-800">Productividad Médica</h4>
-                <p class="text-xs text-gray-500">Atenciones por profesional</p>
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+                <table id="report-table" class="w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr id="report-header"></tr>
+                    </thead>
+                    <tbody id="report-body" class="divide-y divide-gray-200"></tbody>
+                </table>
             </div>
-            <button class="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-700 shadow-sm group-hover:border-orange-300">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Generar
-            </button>
+            <div id="report-summary" class="hidden p-4 bg-gray-50 border-t border-gray-200">
+                <span id="summary-label" class="text-sm font-medium text-gray-700"></span>
+                <span id="summary-value" class="text-sm font-bold text-gray-900 ml-2"></span>
+            </div>
         </div>
     </div>
 </div>
 
-     <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 class="font-bold text-gray-800 mb-4">Opciones de Exportación</h3>
-                <div class="flex flex-wrap gap-4">
+<script>
+let currentReportType = null;
+let currentData = null;
 
-                    <button class="flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm">
-                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                        Exportar a PDF
-                    </button>
+const reportNames = {
+    'atenciones_especialidad': 'Atenciones por Especialidad',
+    'pacientes_hospitalizados': 'Pacientes Hospitalizados',
+    'cirugias_realizadas': 'Cirugías Realizadas',
+    'emergencias': 'Emergencias',
+    'ingresos_servicio': 'Ingresos por Servicio',
+    'cuentas_cobrar': 'Cuentas por Cobrar',
+    'morosidad': 'Análisis de Morosidad',
+    'cierre_caja': 'Cierre de Caja',
+    'uso_quirofanos': 'Uso de Quirófanos',
+    'ocupacion_camas': 'Ocupación de Camas',
+    'stock_farmacia': 'Stock de Farmacia',
+    'productividad_medica': 'Productividad Médica'
+};
 
-                    <button class="flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        Exportar a Excel
-                    </button>
+function selectReport(type) {
+    // Desactivar botón anterior
+    document.querySelectorAll('.report-btn').forEach(btn => {
+        btn.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-400');
+    });
+    
+    // Activar nuevo botón
+    const btn = document.getElementById('btn-' + type);
+    btn.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-400');
+    
+    currentReportType = type;
+    document.getElementById('btn-generar').disabled = false;
+    
+    // Ocultar resultados previos
+    hideResults();
+}
 
-                    <button class="flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition shadow-sm">
-                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                        </svg>
-                        Enviar por Email
-                    </button>
+function hideResults() {
+    document.getElementById('empty-state').classList.remove('hidden');
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('results-state').classList.add('hidden');
+    document.getElementById('btn-exportar').classList.add('hidden');
+    currentData = null;
+}
 
-                </div>
-            </div>
+function generateReport() {
+    if (!currentReportType) return;
+    
+    const desde = document.getElementById('desde').value;
+    const hasta = document.getElementById('hasta').value;
+    
+    document.getElementById('empty-state').classList.add('hidden');
+    document.getElementById('loading-state').classList.remove('hidden');
+    document.getElementById('results-state').classList.add('hidden');
+    document.getElementById('btn-exportar').classList.add('hidden');
+    
+    fetch(`/gerencial/reportes/data?tipo=${currentReportType}&desde=${desde}&hasta=${hasta}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        currentData = data;
+        renderReport(data);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al generar el reporte');
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
+    });
+}
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const tooltipConfig = {
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#1f2937',
-            bodyColor: '#4b5563',
-            borderColor: '#e5e7eb',
-            borderWidth: 1,
-            padding: 12,
-            boxPadding: 6,
-            usePointStyle: true,
-            titleFont: { weight: 'bold', size: 14 }
-        };
+function renderReport(data) {
+    document.getElementById('loading-state').classList.add('hidden');
+    document.getElementById('results-state').classList.remove('hidden');
+    
+    // Título
+    document.getElementById('report-title').textContent = data.title;
+    document.getElementById('report-count').textContent = `${data.rows.length} registros`;
+    
+    // Headers
+    const headerRow = document.getElementById('report-header');
+    headerRow.innerHTML = data.columns.map(col => 
+        `<th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50">${col.label}</th>`
+    ).join('');
+    
+    // Body
+    const tbody = document.getElementById('report-body');
+    if (data.rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${data.columns.length}" class="px-4 py-8 text-center text-gray-500">No se encontraron registros para este período</td></tr>`;
+    } else {
+        tbody.innerHTML = data.rows.map(row => {
+            return `<tr class="hover:bg-gray-50 transition">` + 
+                data.columns.map(col => {
+                    const value = row[col.key] ?? '-';
+                    const isNumeric = !isNaN(parseFloat(value)) && value.toString().includes('.');
+                    const alignClass = isNumeric ? 'text-right' : 'text-left';
+                    return `<td class="px-4 py-3 ${alignClass} text-sm text-gray-700">${value}</td>`;
+                }).join('') + 
+                `</tr>`;
+        }).join('');
+    }
+    
+    // Summary
+    const summaryDiv = document.getElementById('report-summary');
+    if (data.summary) {
+        summaryDiv.classList.remove('hidden');
+        document.getElementById('summary-label').textContent = data.summary.label + ':';
+        document.getElementById('summary-value').textContent = data.summary.value;
+    } else {
+        summaryDiv.classList.add('hidden');
+    }
+    
+    // Mostrar botón exportar
+    if (data.rows.length > 0) {
+        document.getElementById('btn-exportar').classList.remove('hidden');
+    }
+}
 
-        const ctxBar = document.getElementById('chartAtenciones').getContext('2d');
-        new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: ['Ene', 'Feb', 'Mar', 'Abr'],
-                datasets: [
-                    { label: 'Consultas', data: [450, 520, 480, 550], backgroundColor: '#3b82f6', borderRadius: 4 },
-                    { label: 'Emergencias', data: [120, 150, 140, 160], backgroundColor: '#f59e0b', borderRadius: 4 },
-                    { label: 'Cirugías', data: [45, 60, 55, 70], backgroundColor: '#10b981', borderRadius: 4 }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' }, tooltip: tooltipConfig },
-                scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
-            }
-        });
-
-        const ctxPie = document.getElementById('chartEspecialidades').getContext('2d');
-        new Chart(ctxPie, {
-            type: 'doughnut',
-            data: {
-                labels: ['Medicina General', 'Pediatría', 'Cardiología', 'Traumatología', 'Ginecología'],
-                datasets: [{
-                    data: [40, 25, 15, 10, 10],
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'],
-                    borderWidth: 0,
-                    hoverOffset: 20
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { usePointStyle: true, font: { weight: 'bold' } } },
-                    tooltip: tooltipConfig
-                },
-                cutout: '70%'
-            }
-        });
-    </script>
-</div>
+function exportToExcel() {
+    if (!currentReportType) return;
+    
+    const desde = document.getElementById('desde').value;
+    const hasta = document.getElementById('hasta').value;
+    
+    window.location.href = `/gerencial/reportes/export?tipo=${currentReportType}&desde=${desde}&hasta=${hasta}`;
+}
+</script>
 @endsection

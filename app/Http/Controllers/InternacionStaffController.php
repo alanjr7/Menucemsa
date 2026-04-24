@@ -798,24 +798,15 @@ class InternacionStaffController extends Controller
      */
     private function generarCargo($hospitalizacion, $concepto, $precio, $cantidad = 1, $tipoItem = 'servicio', $origenId = null): ?int
     {
-        // Buscar cuenta de cobro existente
-        $cuenta = CuentaCobro::where('paciente_ci', $hospitalizacion->ci_paciente)
-            ->where('tipo_atencion', 'hospitalizacion')
-            ->where('referencia_id', $hospitalizacion->id)
-            ->whereIn('estado', ['pendiente', 'parcial'])
-            ->first();
+        // Usar la cuenta principal del paciente (Master Account)
+        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva((string)$hospitalizacion->ci_paciente);
 
-        // Si no existe, crear nueva
+        // Si por alguna razón crítica no existe (no debería pasar), crear una de internación
         if (!$cuenta) {
-            $cuenta = CuentaCobro::create([
-                'paciente_ci' => $hospitalizacion->ci_paciente,
-                'tipo_atencion' => 'hospitalizacion',
-                'referencia_id' => $hospitalizacion->id,
-                'referencia_type' => Hospitalizacion::class,
-                'estado' => 'pendiente',
-                'total_calculado' => 0,
-                'total_pagado' => 0,
-            ]);
+            $cuenta = \App\Services\CuentaCobroService::crearCuentaInternacion(
+                $hospitalizacion->ci_paciente,
+                $hospitalizacion->id
+            );
         }
 
         $detalleData = [

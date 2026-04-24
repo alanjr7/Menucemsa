@@ -9,6 +9,12 @@
                 <p class="text-gray-500 text-sm">Gestión de cobros y pagos</p>
             </div>
             <div class="flex items-center space-x-4">
+                <a href="{{ route('caja.gestion.index') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Historial y Gestión
+                </a>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                     <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                     Caja Abierta
@@ -616,14 +622,25 @@
                                     <span>Total:</span>
                                     <span>S/ ${parseFloat(data.cuenta.total_calculado).toFixed(2)}</span>
                                 </div>
-                                <div class="flex justify-between text-sm ${data.cuenta.total_pagado > 0 ? 'text-green-600' : ''}">
-                                    <span>Pagado:</span>
-                                    <span>S/ ${parseFloat(data.cuenta.total_pagado).toFixed(2)}</span>
-                                </div>
-                                <div class="flex justify-between font-bold ${data.cuenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}">
-                                    <span>Saldo Pendiente:</span>
-                                    <span>S/ ${parseFloat(data.cuenta.saldo_pendiente).toFixed(2)}</span>
-                                </div>
+                                ${data.cuenta.seguro ? `
+                                    <div class="flex justify-between text-sm text-green-600">
+                                        <span>Seguro ${data.cuenta.seguro.nombre} (-${data.cuenta.seguro.ya_aplicado ? 'aplicado' : 'proyectado'}):</span>
+                                        <span>-S/ ${parseFloat(data.cuenta.seguro.monto_cubierto).toFixed(2)}</span>
+                                    </div>
+                                    <div class="flex justify-between font-bold ${data.cuenta.seguro.monto_paciente > 0 ? 'text-red-600' : 'text-green-600'}">
+                                        <span>A pagar por paciente:</span>
+                                        <span>S/ ${parseFloat(data.cuenta.seguro.monto_paciente).toFixed(2)}</span>
+                                    </div>
+                                ` : `
+                                    <div class="flex justify-between text-sm ${data.cuenta.total_pagado > 0 ? 'text-green-600' : ''}">
+                                        <span>Pagado:</span>
+                                        <span>S/ ${parseFloat(data.cuenta.total_pagado).toFixed(2)}</span>
+                                    </div>
+                                    <div class="flex justify-between font-bold ${data.cuenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}">
+                                        <span>Saldo Pendiente:</span>
+                                        <span>S/ ${parseFloat(data.cuenta.saldo_pendiente).toFixed(2)}</span>
+                                    </div>
+                                `}
                             </div>
                         </div>
                     `;
@@ -636,9 +653,10 @@
                         document.getElementById('razonSocialFactura').value = data.cuenta.razon_social;
                     }
                     
-                    // Pre-llenar monto con saldo pendiente
-                    document.getElementById('montoPago').value = data.cuenta.saldo_pendiente;
-                    document.getElementById('montoPago').max = data.cuenta.saldo_pendiente;
+                    // Pre-llenar monto con saldo pendiente o copago del seguro
+                    const montoSugerido = data.cuenta.seguro ? data.cuenta.seguro.monto_paciente : data.cuenta.saldo_pendiente;
+                    document.getElementById('montoPago').value = montoSugerido;
+                    document.getElementById('montoPago').max = montoSugerido;
                     
                     // Limpiar otros campos
                     document.getElementById('metodoPago').value = '';
@@ -692,6 +710,9 @@
                 
                 if (data.success) {
                     alert(data.message);
+                    if (data.print_url) {
+                        window.open(data.print_url, '_blank');
+                    }
                     cerrarModalCobro();
                     cargarPacientesPendientes();
                     cargarPacientesUti();
@@ -785,7 +806,8 @@
         // Actualizar monto al marcar pago total
         document.getElementById('esPagoTotal').addEventListener('change', function() {
             if (this.checked && cuentaActual) {
-                document.getElementById('montoPago').value = cuentaActual.saldo_pendiente;
+                const montoSugerido = cuentaActual.seguro ? cuentaActual.seguro.monto_paciente : cuentaActual.saldo_pendiente;
+                document.getElementById('montoPago').value = montoSugerido;
             }
         });
     </script>

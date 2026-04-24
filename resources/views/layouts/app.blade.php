@@ -14,6 +14,7 @@
         <!-- Scripts & Styles -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+
         <style>
             [x-cloak] { display: none !important; }
             
@@ -56,7 +57,7 @@
             </div>
 
             <!-- Sidebar -->
-            <aside class="fixed inset-y-0 left-0 z-50 flex flex-col w-72 h-full overflow-hidden text-white transition-all duration-300 ease-in-out bg-gradient-to-b from-[#1a306d] to-[#112048] shadow-2xl"
+            <aside class="fixed inset-y-0 left-0 z-50 flex flex-col w-72 h-full overflow-hidden text-slate-700 transition-all duration-300 ease-in-out bg-[#F5F7FA] shadow-2xl border-r border-slate-200"
                    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-20'">
                 @include('layouts.navigation')
             </aside>
@@ -72,7 +73,7 @@
                     <div class="flex items-center gap-3 sm:gap-4">
                         <button @click="sidebarOpen = !sidebarOpen"
                                 type="button"
-                                class="p-2 text-blue-700 transition-all duration-200 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                class="p-2 text-[#2563EB] transition-all duration-200 rounded-lg bg-slate-100 hover:bg-[#2563EB] hover:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2"
                                 :aria-expanded="sidebarOpen.toString()">
                             <span class="sr-only">Alternar menú</span>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -84,7 +85,7 @@
                             <h1 class="flex items-center gap-2 text-lg font-bold leading-tight text-slate-800">
                                 🏥 Clínica CEMSA
                             </h1>
-                            <span class="text-xs font-semibold tracking-wider text-blue-600 uppercase">
+                            <span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                                 Sede Principal
                             </span>
                         </div>
@@ -113,7 +114,7 @@
                                  class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl ring-1 ring-slate-900/5 z-50 overflow-hidden">
                                 <div class="px-4 py-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Notificaciones</p>
-                                    <button x-show="total > 0" @click="marcarTodas" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                                    <button x-show="total > 0" @click="marcarTodas" class="text-xs text-[#249E94] hover:text-[#1A7A72] font-medium">
                                         Marcar todas
                                     </button>
                                 </div>
@@ -165,7 +166,7 @@
                                         'danger': 'bg-red-100 text-red-600',
                                         'warning': 'bg-amber-100 text-amber-600',
                                         'success': 'bg-green-100 text-green-600',
-                                        'info': 'bg-blue-100 text-blue-600'
+                                        'info': 'bg-[#EFF6FF] text-[#2563EB]'
                                     };
                                     return map[color] || map.info;
                                 },
@@ -247,7 +248,7 @@
                             <button @click="dropdownOpen = !dropdownOpen" 
                                     @click.away="dropdownOpen = false"
                                     type="button"
-                                    class="flex items-center justify-center w-10 h-10 font-bold text-white transition-all rounded-full shadow-md bg-gradient-to-tr from-blue-700 to-blue-500 ring-2 ring-blue-100 hover:scale-105 focus:outline-none focus:ring-offset-2 focus:ring-blue-500"
+                                    class="flex items-center justify-center w-10 h-10 font-bold text-white transition-all rounded-full shadow-md bg-gradient-to-tr from-[#2563EB] to-[#3B82F6] ring-2 ring-[#EFF6FF] hover:scale-105 focus:outline-none focus:ring-offset-2 focus:ring-[#2563EB]"
                                     :aria-expanded="dropdownOpen.toString()">
                                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                             </button>
@@ -259,24 +260,16 @@
                                  x-transition:enter-start="opacity-0 scale-95 translate-y-2"
                                  x-transition:enter-end="opacity-100 scale-100 translate-y-0"
                                  x-transition:leave="transition ease-in duration-150"
-                                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-                                 x-transition:leave-end="opacity-0 scale-95 translate-y-2"
-                                 class="absolute right-0 z-50 w-48 mt-3 origin-top-right bg-white rounded-xl shadow-lg ring-1 ring-slate-900/5 focus:outline-none">
-                                
-                                <div class="py-1">
-                                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-600">
-                                        Mi Perfil
+                                 class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl ring-1 ring-slate-900/5 z-50 overflow-hidden">
+                                <form action="{{ route('logout') }}" method="POST">
+                                    @csrf
+                                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2.5 text-sm font-medium text-[#2563EB] transition-colors hover:bg-slate-50 hover:text-[#1E40AF]">
+                                        Editar Perfil
                                     </a>
-                                    
-                                    <hr class="border-slate-100">
-
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <button type="submit" class="w-full px-4 py-2.5 text-sm font-medium text-left text-red-600 transition-colors hover:bg-red-50 hover:text-red-700">
-                                            Cerrar Sesión
-                                        </button>
-                                    </form>
-                                </div>
+                                    <button type="submit" class="block px-4 py-2.5 text-sm font-medium text-[#2563EB] transition-colors hover:bg-slate-50 hover:text-[#1E40AF]">
+                                        Cerrar Sesión
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

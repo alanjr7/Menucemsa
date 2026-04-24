@@ -33,6 +33,13 @@ class CuentaCobro extends Model
         'caja_session_id',
         'usuario_caja_id',
         'observaciones',
+        'seguro_estado',
+        'seguro_id',
+        'seguro_autorizado_por',
+        'seguro_fecha_autorizacion',
+        'seguro_observaciones',
+        'seguro_monto_cobertura',
+        'seguro_monto_paciente',
     ];
 
     protected $casts = [
@@ -40,6 +47,9 @@ class CuentaCobro extends Model
         'total_pagado' => 'decimal:2',
         'es_emergencia' => 'boolean',
         'es_post_pago' => 'boolean',
+        'seguro_fecha_autorizacion' => 'datetime',
+        'seguro_monto_cobertura' => 'decimal:2',
+        'seguro_monto_paciente' => 'decimal:2',
     ];
 
     protected $appends = [
@@ -54,7 +64,8 @@ class CuentaCobro extends Model
      */
     public function getSaldoPendienteAttribute(): float
     {
-        return max(0, (float) $this->total_calculado - (float) $this->total_pagado);
+        $cobertura = $this->seguro_estado === 'autorizado' ? (float) $this->seguro_monto_cobertura : 0;
+        return max(0, (float) $this->total_calculado - $cobertura - (float) $this->total_pagado);
     }
 
     // Relaciones
@@ -88,10 +99,38 @@ class CuentaCobro extends Model
         return $this->hasMany(PagoCuenta::class);
     }
 
+    public function seguro(): BelongsTo
+    {
+        return $this->belongsTo(Seguro::class);
+    }
+
+    public function seguroAutorizadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'seguro_autorizado_por');
+    }
+
     // Scopes
     public function scopePendiente($query)
     {
         return $query->where('estado', 'pendiente');
+    }
+
+    public function scopeVisiblesEnCaja($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('seguro_estado')
+              ->orWhere('seguro_estado', 'rechazado');
+        });
+    }
+
+    public function scopePendientesSeguro($query)
+    {
+        return $query->where('seguro_estado', 'pendiente_autorizacion');
+    }
+
+    public function scopeAutorizadosSeguro($query)
+    {
+        return $query->where('seguro_estado', 'autorizado');
     }
 
     public function scopePagado($query)
@@ -174,11 +213,19 @@ class CuentaCobro extends Model
     public function recalcularTotales(): void
     {
         $this->total_calculado = $this->detalles->sum('subtotal');
-        $saldoPendiente = (float) $this->total_calculado - (float) $this->total_pagado;
+        
+        if ($this->seguro_estado === 'autorizado' && $this->seguro) {
+            $calculo = $this->seguro->calcularCobertura((float)$this->total_calculado);
+            $this->seguro_monto_cobertura = $calculo['monto_cubierto'];
+            $this->seguro_monto_paciente = $calculo['monto_paciente'];
+        }
+
+        $cobertura = $this->seguro_estado === 'autorizado' ? (float) $this->seguro_monto_cobertura : 0;
+        $saldoPendiente = (float) $this->total_calculado - $cobertura - (float) $this->total_pagado;
         
         if ($saldoPendiente <= 0) {
             $this->estado = 'pagado';
-        } elseif ($this->total_pagado > 0) {
+        } elseif ($this->total_pagado > 0 || $cobertura > 0) {
             $this->estado = 'parcial';
         } else {
             $this->estado = 'pendiente';
@@ -194,7 +241,7 @@ class CuentaCobro extends Model
             'monto' => $monto,
             'metodo_pago' => $metodoPago,
             'referencia' => $referencia,
-            'usuario_id' => $usuarioId ?? auth()->id(),
+            'user_id' => $usuarioId ?? auth()->id(),
             'caja_session_id' => $this->caja_session_id,
         ]);
 

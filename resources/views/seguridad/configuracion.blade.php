@@ -1,4 +1,6 @@
-<x-app-layout>
+@extends('layouts.app')
+
+@section('content')
     <div class="p-8 bg-gray-50/50 min-h-screen" x-data="{ tab: 'general' }">
 
         <div class="mb-6">
@@ -272,7 +274,7 @@
             </div>
         </div>
 
-        <<div x-show="tab === 'notificaciones'" x-cloak class="space-y-6">
+        <div x-show="tab === 'notificaciones'" x-cloak class="space-y-6">
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-6">
         <div class="flex items-center gap-2 mb-8">
             <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,4 +376,4 @@
 
 
 
-</x-app-layout>
+@endsection

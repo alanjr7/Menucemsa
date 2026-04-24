@@ -100,9 +100,9 @@
                 ],
                 'Seguridad' => [
                     'icon' => 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
-                    'active' => request()->is('seguridad*'),
+                    'active' => request()->is('seguridad*') || request()->is('user-management*'),
                     'links' => [
-                        ['r' => 'seguridad.usuarios.index', 'l' => 'Usuarios'],
+                        ['r' => 'user-management.index', 'l' => 'Usuarios'],
                         ['r' => 'seguridad.auditoria.index', 'l' => 'Auditoría'],
                         ['r' => 'seguridad.configuracion.index', 'l' => 'Configuración']
                     ]

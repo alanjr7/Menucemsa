@@ -41,6 +41,10 @@ class AsignacionCamaService
             ? ['paciente_ci' => $hospitalizacion->ci_paciente, 'estado' => 'pendiente']
             : ['referencia_id' => $hospitalizacion->id, 'referencia_type' => Hospitalizacion::class, 'estado' => 'pendiente'];
 
+        $paciente = $hospitalizacion->paciente;
+        $tieneSeguroAplicable = $paciente && $paciente->seguro && $paciente->seguro->estado === 'activo'
+            && in_array($paciente->seguro->tipo_cobertura, ['porcentaje', 'tope_monto'], true);
+
         return CuentaCobro::firstOrCreate(
             $criteria,
             [
@@ -50,6 +54,8 @@ class AsignacionCamaService
                 'referencia_type' => Hospitalizacion::class,
                 'total_calculado' => 0,
                 'total_pagado' => 0,
+                'seguro_id' => $tieneSeguroAplicable ? $paciente->seguro->id : null,
+                'seguro_estado' => $tieneSeguroAplicable ? 'pendiente_autorizacion' : null,
             ]
         );
     }

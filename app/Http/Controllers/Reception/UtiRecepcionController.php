@@ -229,7 +229,7 @@ class UtiRecepcionController extends Controller
     {
         $seguros = Seguro::where('estado', 'activo')
             ->orderBy('nombre_empresa')
-            ->get(['id', 'nombre_empresa', 'cobertura']);
+            ->get(['id', 'nombre_empresa']);
 
         return response()->json([
             'success' => true,

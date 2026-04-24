@@ -19,6 +19,7 @@ use App\Models\UtiSupply;
 use App\Models\UtiCatering;
 use App\Models\UtiTarifario;
 use App\Services\CuentaCobroService;
+use App\Services\AplicarSeguroService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -50,18 +51,36 @@ class CajaOperativaController extends Controller
         }
 
         // Obtener pacientes con cuenta pendiente o parcial
-        $cuentasPendientes = CuentaCobro::with(['paciente', 'detalles'])
+        // Solo muestra cuentas que deben pagar (sin seguro, rechazado, o autorizado con copago)
+        $cuentasPendientes = CuentaCobro::with(['paciente', 'detalles', 'seguro'])
             ->whereIn('estado', ['pendiente', 'parcial'])
+            ->where(function ($query) {
+                $query->whereNull('seguro_estado')
+                      ->orWhere('seguro_estado', 'rechazado')
+                      ->orWhere(function ($q) {
+                          $q->where('seguro_estado', 'autorizado')
+                            ->where('estado', 'parcial');
+                      });
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Estadísticas del día
         $hoy = now()->toDateString();
+        
+        // Cuentas pendientes que son visibles en caja (no tienen seguro pendiente)
+        $cuentasVisiblesQuery = CuentaCobro::where(function ($query) {
+            $query->whereNull('seguro_estado')
+                  ->orWhere('seguro_estado', 'rechazado');
+        });
+        
         $estadisticas = [
             'total_cobrado' => PagoCuenta::delDia($hoy)->sum('monto'),
             'transacciones' => PagoCuenta::delDia($hoy)->count(),
-            'pendientes' => CuentaCobro::pendiente()->count(),
-            'parciales' => CuentaCobro::parcial()->count(),
+            'pendientes' => (clone $cuentasVisiblesQuery)->pendiente()->count(),
+            'parciales' => CuentaCobro::parcial()->where('seguro_estado', 'autorizado')->count() 
+                         + (clone $cuentasVisiblesQuery)->parcial()->count(),
+            'pendientes_seguro' => CuentaCobro::pendientesSeguro()->count(),
         ];
 
         // Desglose por método de pago
@@ -205,12 +224,28 @@ class CajaOperativaController extends Controller
 
     /**
      * Obtener lista de pacientes con cuenta pendiente
+     * Solo muestra cuentas que deben pagar:
+     * - Sin seguro (seguro_estado = null)
+     * - Seguro rechazado (seguro_estado = 'rechazado')
+     * - Seguro autorizado con copago pendiente (estado = 'parcial')
+     * Excluye:
+     * - Seguro pendiente de autorización (seguro_estado = 'pendiente_autorizacion')
+     * - Seguro autorizado pagado completo (estado = 'pagado')
      */
     public function getPacientesPendientes(): JsonResponse
     {
         try {
-            $cuentas = CuentaCobro::with(['paciente', 'referencia', 'detalles.tarifa', 'pagos'])
+            $cuentas = CuentaCobro::with(['paciente', 'referencia', 'detalles.tarifa', 'pagos', 'seguro'])
                 ->whereIn('estado', ['pendiente', 'parcial'])
+                ->where(function ($query) {
+                    // Sin seguro o seguro rechazado o seguro autorizado con copago
+                    $query->whereNull('seguro_estado')
+                          ->orWhere('seguro_estado', 'rechazado')
+                          ->orWhere(function ($q) {
+                              $q->where('seguro_estado', 'autorizado')
+                                ->where('estado', 'parcial'); // Solo si hay copago pendiente
+                          });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($cuenta) {
@@ -236,6 +271,16 @@ class CajaOperativaController extends Controller
                         }
                     }
 
+                    // Información adicional de seguro para mostrar en caja
+                    $infoSeguro = null;
+                    if ($cuenta->seguro_estado === 'autorizado' && $cuenta->seguro) {
+                        $infoSeguro = [
+                            'nombre' => $cuenta->seguro->nombre_empresa,
+                            'monto_cubierto' => $cuenta->seguro_monto_cobertura,
+                            'monto_paciente' => $cuenta->seguro_monto_paciente,
+                        ];
+                    }
+
                     return [
                         'id' => $cuenta->id,
                         'paciente_ci' => $pacienteCi,
@@ -249,6 +294,8 @@ class CajaOperativaController extends Controller
                         'estado_label' => $cuenta->estado_label,
                         'es_emergencia' => $cuenta->es_emergencia,
                         'es_post_pago' => $cuenta->es_post_pago,
+                        'seguro_estado' => $cuenta->seguro_estado,
+                        'info_seguro' => $infoSeguro,
                         'created_at' => $cuenta->created_at->format('d/m/Y H:i'),
                         'items_count' => $cuenta->detalles->count(),
                     ];
@@ -322,13 +369,26 @@ class CajaOperativaController extends Controller
                     'total_calculado' => $cuenta->total_calculado,
                     'total_pagado' => $cuenta->total_pagado,
                     'saldo_pendiente' => $cuenta->total_calculado - $cuenta->total_pagado,
+                    'seguro' => AplicarSeguroService::calcularProyeccion($cuenta),
                     'ci_nit_facturacion' => $cuenta->ci_nit_facturacion,
                     'razon_social' => $cuenta->razon_social,
-                    'detalles' => $cuenta->detalles->map(function ($detalle) {
+                    'detalles' => $cuenta->detalles->map(function ($detalle) use ($cuenta) {
+                        $origen = 'General';
+                        if ($detalle->origen_type === \App\Models\Emergency::class) {
+                            $origen = 'Emergencia';
+                        } elseif ($detalle->origen_type === \App\Models\Hospitalizacion::class) {
+                            $origen = 'Internación';
+                        } elseif ($detalle->origen_type === \App\Models\CitaQuirurgica::class) {
+                            $origen = 'Cirugía';
+                        } elseif ($detalle->origen_type === \App\Models\AlmacenMedicamento::class) {
+                            // Si viene de farmacia y no tiene otro origen asignado, asume el tipo de la cuenta principal
+                            $origen = ucfirst($cuenta->tipo_atencion);
+                        }
+
                         return [
                             'id' => $detalle->id,
                             'tipo_item' => $detalle->tipo_item_label,
-                            'descripcion' => $detalle->descripcion,
+                            'descripcion' => '[' . $origen . '] ' . $detalle->descripcion,
                             'cantidad' => $detalle->cantidad,
                             'precio_unitario' => $detalle->precio_unitario,
                             'subtotal' => $detalle->subtotal,
@@ -389,16 +449,39 @@ class CajaOperativaController extends Controller
 
             DB::beginTransaction();
 
-            $cuenta = CuentaCobro::findOrFail($request->cuenta_cobro_id);
+            $cuenta = CuentaCobro::with('paciente.seguro')->findOrFail($request->cuenta_cobro_id);
+
+            // Aplicar seguro automaticamente si corresponde
+            $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
+            if ($infoSeguro['aplicado']) {
+                $cuenta->refresh();
+            }
 
             // Si es pago total, usar el saldo pendiente calculado
-            $saldoPendiente = $cuenta->total_calculado - $cuenta->total_pagado;
+            $saldoPendiente = $cuenta->saldo_pendiente;
+
+            // Si el seguro cubrio todo, no se requiere pago del paciente
+            if ($saldoPendiente <= 0) {
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => $infoSeguro['aplicado']
+                        ? 'Cobro completado. El seguro cubrio el total.'
+                        : 'Cuenta ya saldada.',
+                    'cuenta' => [
+                        'id' => $cuenta->id,
+                        'estado' => $cuenta->estado,
+                        'total_pagado' => $cuenta->total_pagado,
+                        'saldo_pendiente' => 0,
+                    ]
+                ]);
+            }
             $montoPagar = $request->es_pago_total 
                 ? $saldoPendiente 
                 : $request->monto;
 
-            // Validar que no pague más de lo pendiente
-            if ($montoPagar > $saldoPendiente) {
+            // Validar que no pague más de lo pendiente (con tolerancia a centavos)
+            if (round((float)$montoPagar, 2) > round((float)$saldoPendiente, 2)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'El monto a pagar no puede ser mayor al saldo pendiente'
@@ -490,6 +573,7 @@ class CajaOperativaController extends Controller
                 'message' => $cuenta->estado === 'pagado'
                     ? 'Cuenta pagada completamente'
                     : 'Pago parcial registrado',
+                'print_url' => route('caja.operativa.comprobante', $cuenta->id),
                 'cuenta' => [
                     'id' => $cuenta->id,
                     'estado' => $cuenta->estado,
@@ -867,8 +951,9 @@ class CajaOperativaController extends Controller
         // Descuento por seguro
         $descuento = 0;
         if ($admission->tipo_pago === 'seguro' && $admission->seguro) {
-            $cobertura = $admission->seguro->cobertura ?? 0;
-            $descuento = ($costoEstadia + $costoMedicamentos + $costoInsumos) * ($cobertura / 100);
+            $montoServicios = $costoEstadia + $costoMedicamentos + $costoInsumos;
+            $calculo = $admission->seguro->calcularCobertura($montoServicios);
+            $descuento = $calculo['monto_cubierto'];
         }
 
         $subtotal = $costoEstadia + $costoMedicamentos + $costoInsumos + $costoAlimentacion;

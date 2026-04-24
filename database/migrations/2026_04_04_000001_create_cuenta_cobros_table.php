@@ -24,6 +24,13 @@ return new class extends Migration
             $table->foreignId('caja_session_id')->nullable()->constrained('caja_sessions');
             $table->foreignId('user_caja_id')->nullable()->constrained('users');
             $table->text('observaciones')->nullable();
+            $table->enum('seguro_estado', ['pendiente_autorizacion', 'autorizado', 'rechazado'])->nullable();
+            $table->foreignId('seguro_id')->nullable()->constrained('seguros')->onDelete('set null');
+            $table->foreignId('seguro_autorizado_por')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('seguro_fecha_autorizacion')->nullable();
+            $table->text('seguro_observaciones')->nullable();
+            $table->decimal('seguro_monto_cobertura', 10, 2)->nullable();
+            $table->decimal('seguro_monto_paciente', 10, 2)->nullable();
             $table->timestamps();
             $table->softDeletes();
 

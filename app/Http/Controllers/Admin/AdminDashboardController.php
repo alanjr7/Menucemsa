@@ -188,7 +188,7 @@ class AdminDashboardController extends Controller
         // Cuentas pendientes de cobro
         $cuentasPendientes = CuentaCobro::whereIn('estado', ['pendiente', 'parcial'])->count();
         $montoPendiente = CuentaCobro::whereIn('estado', ['pendiente', 'parcial'])
-            ->selectRaw('SUM(total_calculado - total_pagado) as pendiente')
+            ->selectRaw("SUM(total_calculado - CASE WHEN seguro_estado = 'autorizado' THEN COALESCE(seguro_monto_cobertura, 0) ELSE 0 END - total_pagado) as pendiente")
             ->first()->pendiente ?? 0;
 
         if ($cuentasPendientes > 0) {

@@ -42,10 +42,20 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+            RateLimiter::hit($this->throttleKey(), 900); // 15 minutos de bloqueo
+
+            $maxAttempts = 5;
+            $attempts = RateLimiter::attempts($this->throttleKey());
+            $remaining = $maxAttempts - $attempts;
+
+            if ($remaining > 0) {
+                $message = "Credenciales incorrectas. Le quedan {$remaining} intentos.";
+            } else {
+                $message = "Credenciales incorrectas. Ha agotado sus intentos. Por favor, contacte con el administrador.";
+            }
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => $message,
             ]);
         }
 
@@ -66,12 +76,10 @@ class LoginRequest extends FormRequest
         event(new Lockout($this));
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
+        $minutes = ceil($seconds / 60);
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'email' => "Ha excedido el límite de intentos. Su acceso ha sido bloqueado por seguridad. Por favor, contacte con el administrador o intente de nuevo en {$minutes} minutos.",
         ]);
     }
 

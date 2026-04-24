@@ -102,6 +102,41 @@
                         </div>
                     </div>
 
+                    <!-- Seguro - Select dinámico desde CRUD -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Cobertura *</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                            </div>
+                            <select name="seguro_id" id="seguro_select"
+                                    class="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer"
+                                    onchange="mostrarInfoSeguro()">
+                                <option value="">Particular (Sin seguro) - Pago directo</option>
+                                @foreach($seguros as $seguro)
+                                    <option value="{{ $seguro->id }}"
+                                            data-tipo="{{ $seguro->tipo_cobertura }}"
+                                            data-descripcion="{{ $seguro->descripcion_cobertura }}">
+                                        {{ $seguro->nombre_empresa }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="info_seguro" class="mt-3 hidden">
+                            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                                <p class="text-sm text-blue-800 font-medium" id="descripcion_seguro"></p>
+                                <p class="text-xs text-blue-600 mt-1">El paciente será enviado a autorización de seguros.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Datos de Hospitalización -->
                     <div class="md:col-span-2 space-y-4">
                         <div>
@@ -471,6 +506,24 @@
                 
                 // Disparar el evento change al cargar para establecer el estado inicial
                 tipoPacienteSelect.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // Función para mostrar información del seguro seleccionado
+        function mostrarInfoSeguro() {
+            const select = document.getElementById('seguro_select');
+            const infoDiv = document.getElementById('info_seguro');
+            const descripcionP = document.getElementById('descripcion_seguro');
+            
+            if (select.value) {
+                const option = select.selectedOptions[0];
+                const tipo = option.getAttribute('data-tipo');
+                const descripcion = option.getAttribute('data-descripcion');
+                
+                descripcionP.textContent = `${descripcion}`;
+                infoDiv.classList.remove('hidden');
+            } else {
+                infoDiv.classList.add('hidden');
             }
         }
     </script>

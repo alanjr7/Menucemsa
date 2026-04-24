@@ -103,11 +103,14 @@ class CajaGestionController extends Controller
             $query = CuentaCobro::with(['paciente', 'referencia', 'pagos.user', 'cajaSession.user']);
 
             // Filtro por fecha
-            if ($request->fecha_inicio && $request->fecha_fin) {
-                $query->whereBetween('created_at', [$request->fecha_inicio, $request->fecha_fin]);
-            } elseif ($request->fecha_inicio) {
+            if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+                // Se usa el final del día para la fecha fin
+                $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
+                $query->whereBetween('created_at', [$request->fecha_inicio, $fechaFin]);
+            } elseif ($request->filled('fecha_inicio')) {
                 $query->whereDate('created_at', $request->fecha_inicio);
-            } else {
+            } elseif (!$request->has('fecha_inicio')) {
+                // Si no se envía el parámetro (carga inicial), por defecto hoy
                 $query->whereDate('created_at', now()->toDateString());
             }
 
@@ -285,9 +288,10 @@ class CajaGestionController extends Controller
             $query = CajaSession::with(['user', 'movimientos']);
 
             // Filtros de fecha
-            if ($request->fecha_inicio && $request->fecha_fin) {
-                $query->whereBetween('fecha_apertura', [$request->fecha_inicio, $request->fecha_fin]);
-            } elseif ($request->fecha_inicio) {
+            if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+                $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
+                $query->whereBetween('fecha_apertura', [$request->fecha_inicio, $fechaFin]);
+            } elseif ($request->filled('fecha_inicio')) {
                 $query->whereDate('fecha_apertura', $request->fecha_inicio);
             }
 
@@ -317,7 +321,7 @@ class CajaGestionController extends Controller
                             'id' => $caja->user_id,
                             'nombre' => $caja->user->name ?? 'N/A',
                         ],
-                        'fecha_apertura' => $caja->fecha_apertura->format('d/m/Y H:i'),
+                        'fecha_apertura' => $caja->fecha_apertura ? $caja->fecha_apertura->format('d/m/Y H:i') : 'N/A',
                         'monto_inicial' => $caja->monto_inicial,
                         'monto_final' => $caja->monto_final,
                         'total_ingresos' => $totalIngresos,
@@ -334,10 +338,10 @@ class CajaGestionController extends Controller
                 'cajas' => $cajas
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar cajas: ' . $e->getMessage()
+                'message' => 'Error al cargar cajas: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine()
             ], 500);
         }
     }
@@ -472,9 +476,10 @@ class CajaGestionController extends Controller
             $query = MovimientoCaja::with(['cajaSession.user', 'movable']);
 
             // Filtros de fecha
-            if ($request->fecha_inicio && $request->fecha_fin) {
-                $query->whereBetween('created_at', [$request->fecha_inicio, $request->fecha_fin]);
-            } elseif ($request->fecha_inicio) {
+            if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+                $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
+                $query->whereBetween('created_at', [$request->fecha_inicio, $fechaFin]);
+            } elseif ($request->filled('fecha_inicio')) {
                 $query->whereDate('created_at', $request->fecha_inicio);
             }
 

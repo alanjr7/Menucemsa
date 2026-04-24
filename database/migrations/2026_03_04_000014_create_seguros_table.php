@@ -19,6 +19,10 @@ return new class extends Migration
             $table->string('telefono', 20)->nullable();
             $table->string('formulario', 80);
             $table->enum('estado', ['activo', 'inactivo'])->default('activo');
+            $table->enum('tipo_cobertura', ['porcentaje', 'solo_consulta', 'tope_monto'])->default('porcentaje');
+            $table->decimal('cobertura_porcentaje', 5, 2)->nullable();
+            $table->decimal('tope_monto', 10, 2)->nullable();
+            $table->decimal('copago_porcentaje', 5, 2)->nullable();
             $table->timestamps();
         });
     }

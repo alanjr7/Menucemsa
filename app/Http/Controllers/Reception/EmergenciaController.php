@@ -10,7 +10,9 @@ use App\Models\Triage;
 use App\Models\Registro;
 use App\Models\Cirugia;
 use App\Models\Quirofano;
+use App\Models\Seguro;
 use App\Services\NotificationService;
+use App\Services\CuentaCobroService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -19,7 +21,11 @@ class EmergenciaController extends Controller
 {
     public function index()
     {
-        return view('reception.emergencia');
+        $seguros = Seguro::where('estado', 'activo')
+            ->orderBy('nombre_empresa')
+            ->get();
+
+        return view('reception.emergencia', compact('seguros'));
     }
 
     public function buscarPaciente(Request $request)
@@ -79,8 +85,18 @@ class EmergenciaController extends Controller
             // 3. Crear registro de emergencia usando modelo Emergency
             $emergencia = $this->crearEmergency($request, $paciente, $triage);
 
-            // 4. Procesar acciones adicionales según el nivel
+            // 4. Crear cuenta de cobro inmediatamente para el seguro (pre-autorización)
+            $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
+                $paciente->ci,
+                $emergencia->id,
+                [], // Sin servicios predefinidos, se agregarán después
+                true, // esPostPago = true
+                $request->seguro_id // seguro_id seleccionado en el formulario
+            );
+
+            // 5. Procesar acciones adicionales según el nivel
             $acciones = $this->procesarAccionesEmergencia($request, $paciente, $emergencia, $triage);
+            $acciones['cuenta_cobro_id'] = $cuentaCobro->id;
 
             DB::commit();
 
@@ -159,7 +175,7 @@ class EmergenciaController extends Controller
                 'direccion' => 'Por especificar - ID Temporal',
                 'telefono' => 0,
                 'correo' => 'temporal@emergencia.com',
-                'seguro_id' => $this->obtenerOCrearSeguro('particular'),
+                'seguro_id' => $request->seguro_id ?? $this->obtenerOCrearSeguro('particular'),
                 'triage_id' => null, // Se asignará después
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
@@ -167,7 +183,7 @@ class EmergenciaController extends Controller
 
         // Buscar paciente existente
         $paciente = Paciente::find($ci);
-        
+
         if (!$paciente) {
             // Validar que todos los campos requeridos estén presentes
             $request->validate([
@@ -184,17 +200,24 @@ class EmergenciaController extends Controller
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro ?? 'particular'),
+                'seguro_id' => $request->seguro_id ?? $this->obtenerOCrearSeguro('particular'),
                 'triage_id' => null, // Se asignará después
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
             // Actualizar datos si es necesario
-            $paciente->update([
+            $updateData = [
                 'telefono' => $request->telefono ?? $paciente->telefono,
                 'correo' => $request->correo ?? $paciente->correo,
                 'direccion' => $request->direccion ?? $paciente->direccion,
-            ]);
+            ];
+
+            // Actualizar seguro solo si se envió explicitamente
+            if ($request->has('seguro_id') && $request->seguro_id !== null) {
+                $updateData['seguro_id'] = $request->seguro_id;
+            }
+
+            $paciente->update($updateData);
         }
         
         return $paciente;
@@ -313,7 +336,6 @@ class EmergenciaController extends Controller
             ['nombre_empresa' => $nombre],
             [
                 'tipo' => $nombre,
-                'cobertura' => 'Cobertura de Emergencia',
                 'telefono' => null,
                 'formulario' => 'EMERGENCIA',
                 'estado' => 'activo',

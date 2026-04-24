@@ -9,6 +9,7 @@ use App\Models\CuentaCobroDetalle;
 use App\Models\PagoCuenta;
 use App\Models\Paciente;
 use App\Models\Emergency;
+use App\Services\AplicarSeguroService;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 
@@ -220,7 +221,29 @@ class CuentaCobrarController extends Controller
                 'referencia' => 'nullable|string|max:255',
             ]);
 
-            $cuenta = CuentaCobro::findOrFail($id);
+            $cuenta = CuentaCobro::with('paciente.seguro')->findOrFail($id);
+
+            // Aplicar seguro automaticamente si corresponde
+            $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
+            if ($infoSeguro['aplicado']) {
+                $cuenta->refresh();
+            }
+
+            // Si el seguro cubrio todo, no se requiere pago del paciente
+            if ($cuenta->saldo_pendiente <= 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $infoSeguro['aplicado']
+                        ? 'Cobro completado. El seguro cubrio el total.'
+                        : 'Cuenta ya saldada.',
+                    'cuenta' => [
+                        'id' => $cuenta->id,
+                        'estado' => $cuenta->estado,
+                        'total_pagado' => $cuenta->total_pagado,
+                        'saldo_pendiente' => 0,
+                    ]
+                ]);
+            }
 
             // Verificar que no exceda el saldo
             if ($validated['monto'] > $cuenta->saldo_pendiente) {

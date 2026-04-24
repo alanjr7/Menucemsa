@@ -257,8 +257,9 @@ class UtiCajaController extends Controller
         // Descuento por seguro
         $descuento = 0;
         if ($admission->tipo_pago === 'seguro' && $admission->seguro) {
-            $cobertura = $admission->seguro->cobertura ?? 0;
-            $descuento = ($costoEstadia + $costoMedicamentos + $costoInsumos) * ($cobertura / 100);
+            $montoServicios = $costoEstadia + $costoMedicamentos + $costoInsumos;
+            $calculo = $admission->seguro->calcularCobertura($montoServicios);
+            $descuento = $calculo['monto_cubierto'];
         }
 
         $subtotal = $costoEstadia + $costoMedicamentos + $costoInsumos + $costoAlimentacion;

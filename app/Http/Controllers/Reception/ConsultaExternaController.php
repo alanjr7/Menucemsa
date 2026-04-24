@@ -27,7 +27,11 @@ class ConsultaExternaController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        return view('reception.consulta-externa', compact('especialidades'));
+        $seguros = Seguro::where('estado', 'activo')
+            ->orderBy('nombre_empresa')
+            ->get();
+
+        return view('reception.consulta-externa', compact('especialidades', 'seguros'));
     }
 
     public function buscarPaciente(Request $request)
@@ -92,7 +96,7 @@ class ConsultaExternaController extends Controller
             $consulta = $this->crearConsulta($request, $paciente, $caja);
 
             // 5. Crear cuenta por cobrar para caja
-            $this->crearCuentaCobro($paciente, $consulta, $caja);
+            $this->crearCuentaCobro($request, $paciente, $consulta, $caja);
 
             DB::commit();
 
@@ -126,8 +130,9 @@ class ConsultaExternaController extends Controller
                 'nombres' => 'required|string|max:80',
                 'apellidos' => 'required|string|max:80',
                 'sexo' => 'required|string|in:Masculino,Femenino',
-                'seguro' => 'required|string',
             ]);
+
+            $seguroId = $request->seguro_id ?: $this->obtenerOCrearSeguro('Particular');
 
             // Crear nuevo paciente con todos los campos requeridos
             $paciente = Paciente::create([
@@ -137,7 +142,7 @@ class ConsultaExternaController extends Controller
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
+                'seguro_id' => $seguroId,
                 'triage_id' => $this->obenerOCrearTriage(),
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
@@ -188,17 +193,23 @@ class ConsultaExternaController extends Controller
         ]);
     }
 
-    private function crearCuentaCobro($paciente, $consulta, $caja)
+    private function crearCuentaCobro($request, $paciente, $consulta, $caja)
     {
         $servicio = \App\Models\Servicio::getServicioPorTipo('CONSULTA_EXTERNA');
         $costoConsulta = $servicio ? $servicio->precio : 50.00;
         
+        $tieneSeguro = !empty($request->seguro_id);
+        
         $cuenta = \App\Models\CuentaCobro::create([
             'paciente_ci' => $paciente->ci,
             'tipo_atencion' => 'consulta',
+            'referencia_id' => $consulta->codigo,
+            'referencia_type' => Consulta::class,
             'total_calculado' => $costoConsulta,
             'total_pagado' => 0,
-            'estado' => 'pendiente',
+            'estado' => $tieneSeguro ? 'pendiente' : 'pendiente',
+            'seguro_estado' => $tieneSeguro ? 'pendiente_autorizacion' : null,
+            'seguro_id' => $tieneSeguro ? $request->seguro_id : null,
         ]);
         
         // Crear detalle de la cuenta
@@ -220,7 +231,6 @@ class ConsultaExternaController extends Controller
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
                 'tipo' => 'CONSULTA',
-                'cobertura' => 'Consulta Externa',
                 'telefono' => null,
                 'formulario' => 'ESTANDAR',
                 'estado' => 'activo'
@@ -311,7 +321,7 @@ class ConsultaExternaController extends Controller
                 $consulta = $this->crearConsulta($request, $paciente, $caja);
                 
                 // Crear cuenta por cobrar para caja
-                $this->crearCuentaCobro($paciente, $consulta, $caja);
+                $this->crearCuentaCobro($request, $paciente, $consulta, $caja);
 
                 DB::commit();
                 return response()->json([

@@ -1,19 +1,19 @@
 <div class="flex flex-col h-full w-full">
 
     <!-- Header del Sidebar (Logo y Título) -->
-    <div class="h-16 shrink-0 flex items-center bg-black/10 border-b border-white/5 transition-all duration-300"
+    <div class="h-16 shrink-0 flex items-center bg-slate-100 border-b border-slate-200 transition-all duration-300"
         :class="sidebarOpen ? 'px-6 justify-start' : 'px-0 justify-center'">
         <div class="flex items-center gap-3">
             <div
-                class="p-2 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg shadow-blue-900/50 shrink-0">
+                class="p-2 bg-gradient-to-br from-[#3B82F6] to-[#2563EB] rounded-xl shadow-lg shadow-blue-200 shrink-0">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                         d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
             </div>
             <div x-show="sidebarOpen" x-transition.opacity.duration.200ms class="whitespace-nowrap">
-                <h1 class="font-bold text-lg leading-tight uppercase tracking-wide text-white">HIS / CEMSA</h1>
-                <p class="text-[10px] text-blue-300 uppercase tracking-widest font-bold">Sistema Clínico</p>
+                <h1 class="font-bold text-lg leading-tight uppercase tracking-wide text-slate-800">HIS / CEMSA</h1>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Sistema Clínico</p>
             </div>
         </div>
     </div>
@@ -53,17 +53,17 @@
                             'cyan' => ['bg' => 'bg-cyan-600', 'textActive' => 'text-cyan-400', 'hover' => 'group-hover:text-cyan-300', 'shadow' => 'shadow-cyan-900/20', 'border' => 'border-cyan-500/30'],
                             'orange' => ['bg' => 'bg-orange-600', 'textActive' => 'text-orange-400', 'hover' => 'group-hover:text-orange-300', 'shadow' => 'shadow-orange-900/20', 'border' => 'border-orange-500/30'],
                             'slate' => ['bg' => 'bg-slate-600', 'textActive' => 'text-slate-400', 'hover' => 'group-hover:text-slate-300', 'shadow' => 'shadow-slate-900/20', 'border' => 'border-slate-500/30'],
-                            default => ['bg' => 'bg-blue-600', 'textActive' => 'text-blue-400', 'hover' => 'group-hover:text-blue-300', 'shadow' => 'shadow-blue-900/20', 'border' => 'border-blue-500/30'],
+                            default => ['bg' => 'bg-[#2563EB]', 'textActive' => 'text-[#2563EB]', 'hover' => 'group-hover:text-[#1E40AF]', 'shadow' => 'shadow-blue-200', 'border' => 'border-[#2563EB]/30'],
                         };
                     @endphp
 
                     <!-- Si el menú NO tiene submenús (Es un enlace directo) -->
                     @if($menu->children->isEmpty())
                         <a href="{{ $menu->route && Route::has($menu->route) ? route($menu->route) : '#' }}"
-                            class="flex items-center py-2.5 rounded-lg transition-all duration-200 group {{ $isActive ? $colorClass['bg'] . ' text-white shadow-md ' . $colorClass['shadow'] : 'text-blue-100 hover:bg-white/10 hover:text-white' }}"
+                            class="flex items-center py-2.5 rounded-lg transition-all duration-200 group {{ $isActive ? $colorClass['bg'] . ' text-white shadow-md ' . $colorClass['shadow'] : 'text-slate-700 hover:bg-slate-100 hover:text-[#2563EB]' }}"
                             :class="sidebarOpen ? 'px-3 justify-start' : 'px-0 justify-center'">
 
-                            <svg class="w-6 h-6 shrink-0 transition-colors {{ $isActive ? 'text-white' : $colorClass['textActive'] . ' group-hover:text-white' }}"
+                            <svg class="w-6 h-6 shrink-0 transition-colors text-slate-600 group-hover:text-[#2563EB]"
                                 :class="sidebarOpen ? 'mr-3' : 'mr-0'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <!-- Aquí pintamos el Path del icono desde la base de datos -->
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $menu->icon_path }}" />
@@ -76,10 +76,10 @@
                     @else
                         <div x-data="{ open: {{ $isActive ? 'true' : 'false' }} }">
                             <button @click="if(!sidebarOpen) sidebarOpen = true; else open = !open"
-                                class="w-full flex items-center py-2.5 text-blue-100 hover:bg-white/10 hover:text-white rounded-lg transition-all duration-200 group"
+                                class="w-full flex items-center py-2.5 text-slate-700 hover:bg-slate-100 hover:text-[#2563EB] rounded-lg transition-all duration-200 group"
                                 :class="sidebarOpen ? 'px-3 justify-start' : 'px-0 justify-center'">
 
-                                <svg class="w-6 h-6 shrink-0 transition-colors {{ $isActive ? 'text-white' : $colorClass['textActive'] . ' ' . $colorClass['hover'] }}"
+                                <svg class="w-6 h-6 shrink-0 transition-colors text-slate-600 group-hover:text-[#2563EB]"
                                     :class="sidebarOpen ? 'mr-3' : 'mr-0'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $menu->icon_path }}" />
                                 </svg>
@@ -100,7 +100,7 @@
                                     @if($child->canBeSeenBy(auth()->user()))
                                         @php $isChildActive = request()->routeIs($child->route); @endphp
                                         <a href="{{ $child->route && Route::has($child->route) ? route($child->route) : '#' }}"
-                                            class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ $isChildActive ? 'text-white ' . $colorClass['bg'] . '/50 font-bold' : 'text-blue-200 hover:text-white hover:bg-white/5' }}">
+                                            class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ $isChildActive ? 'text-white ' . $colorClass['bg'] . ' font-bold' : 'text-slate-600 hover:text-[#2563EB] hover:bg-slate-50' }}">
                                             {{ $child->name }}
                                         </a>
                                     @endif

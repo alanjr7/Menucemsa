@@ -125,6 +125,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                             </button>
+                            <button onclick="verTodoHistorial()" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                Ver Todo el Historial
+                            </button>
                         </div>
                     </div>
                     
@@ -374,6 +377,14 @@
             }
         }
 
+        function verTodoHistorial() {
+            document.getElementById('filtroFechaInicio').value = '';
+            document.getElementById('filtroFechaFin').value = '';
+            document.getElementById('filtroEstado').value = 'todos';
+            document.getElementById('filtroTipoFlujo').value = 'todos';
+            cargarTransacciones(1);
+        }
+
         function renderizarTransacciones(transacciones) {
             const tbody = document.getElementById('tablaTransacciones');
             
@@ -433,7 +444,7 @@
                     tbody.innerHTML = data.cajas.data.map(c => `
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${c.id}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${c.usuario.nombre}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${c.user ? c.user.nombre : 'N/A'}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.fecha_apertura}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.fecha_cierre || '-'}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-right">S/ ${parseFloat(c.monto_inicial).toFixed(2)}</td>
@@ -453,10 +464,12 @@
                     `).join('');
                     
                     renderizarPaginacion('paginacionControlCajas', data.cajas, 'cargarControlCajas');
+                } else {
+                    document.getElementById('tablaControlCajas').innerHTML = `<tr><td colspan="10" class="px-4 py-4 text-center text-red-500">${data.message || 'Error al cargar datos'}</td></tr>`;
                 }
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('tablaControlCajas').innerHTML = '<tr><td colspan="10" class="px-4 py-4 text-center text-red-500">Error al cargar datos</td></tr>';
+                document.getElementById('tablaControlCajas').innerHTML = '<tr><td colspan="10" class="px-4 py-4 text-center text-red-500">Error de red o servidor</td></tr>';
             }
         }
 

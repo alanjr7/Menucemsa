@@ -30,8 +30,6 @@ use App\Http\Controllers\Admin\TarifarioController;
 use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
 use App\Http\Controllers\Farmacia\FarmaciaDashboardController;
-use App\Http\Controllers\Seguridad\UsuariosController;
-
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\EmergencyNurseController;
 use App\Http\Controllers\Farmacia\PuntoVentaController;
@@ -349,10 +347,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiShow'])->name('tarifarios.api.show');
 
         Route::get('/seguros', [SeguroController::class, 'index'])->name('seguros');
+        Route::get('/seguros/historial', [SeguroController::class, 'historial'])->name('seguros.historial');
+        Route::get('/seguros/historial/exportar', [SeguroController::class, 'exportarHistorial'])->name('seguros.historial.exportar');
         Route::post('/seguros', [SeguroController::class, 'store'])->name('seguros.store');
         Route::put('/seguros/{seguro}', [SeguroController::class, 'update'])->name('seguros.update');
         Route::delete('/seguros/{seguro}', [SeguroController::class, 'destroy'])->name('seguros.destroy');
-        
+
         // API routes para seguros
         Route::get('/api/seguros', [SeguroController::class, 'apiIndex'])->name('seguros.api.index');
         Route::get('/api/seguros/{seguro}', [SeguroController::class, 'show'])->name('seguros.api.show');
@@ -430,17 +430,13 @@ Route::middleware('auth')->group(function () {
         })->name('dashboard');
         
         Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes');
+        Route::get('/reportes/data', [ReportesController::class, 'data'])->name('reportes.data');
+        Route::get('/reportes/export', [ReportesController::class, 'export'])->name('reportes.export');
         Route::get('/kpis', [KpiController::class, 'index'])->name('kpis');
     });
 
     // Rutas de seguridad (admin, gerente y dirmedico)
     Route::middleware(['role:admin|gerente|dirmedico'])->prefix('seguridad')->name('seguridad.')->group(function () {
-        Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
-        Route::get('/usuarios/create', [UsuariosController::class, 'create'])->name('usuarios.create');
-        Route::post('/usuarios', [UsuariosController::class, 'store'])->name('usuarios.store');
-        Route::get('/usuarios/{user}/edit', [UsuariosController::class, 'edit'])->name('usuarios.edit');
-        Route::put('/usuarios/{user}', [UsuariosController::class, 'update'])->name('usuarios.update');
-        Route::delete('/usuarios/{user}', [UsuariosController::class, 'destroy'])->name('usuarios.destroy');
         Route::get('/auditoria', [App\Http\Controllers\Seguridad\AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/configuracion', [App\Http\Controllers\Seguridad\ConfiguracionController::class, 'index'])->name('configuracion.index');
         Route::get('/bitacora', [ActivityLogController::class, 'index'])->name('activity-logs.index');

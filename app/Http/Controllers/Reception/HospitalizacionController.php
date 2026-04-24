@@ -11,6 +11,7 @@ use App\Models\Registro;
 use App\Models\Seguro;
 use App\Models\Medico;
 use App\Models\Especialidad;
+use App\Services\CuentaCobroService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -19,7 +20,11 @@ class HospitalizacionController extends Controller
 {
     public function index()
     {
-        return view('reception.hospitalizacion');
+        $seguros = Seguro::where('estado', 'activo')
+            ->orderBy('nombre_empresa')
+            ->get();
+
+        return view('reception.hospitalizacion', compact('seguros'));
     }
 
     public function buscarPaciente(Request $request)
@@ -79,8 +84,18 @@ class HospitalizacionController extends Controller
             // 4. Crear registro de hospitalización
             $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage);
 
-            // 5. Procesar acciones adicionales
+            // 5. Crear cuenta de cobro inmediatamente para el seguro (pre-autorización)
+            $cuentaCobro = CuentaCobroService::crearCuentaInternacion(
+                $paciente->ci,
+                $hospitalizacion->id,
+                [], // Sin servicios predefinidos
+                true, // esPostPago = true
+                $request->seguro_id // seguro_id seleccionado en el formulario
+            );
+
+            // 6. Procesar acciones adicionales
             $acciones = $this->procesarAccionesHospitalizacion($request, $paciente, $hospitalizacion);
+            $acciones['cuenta_cobro_id'] = $cuentaCobro->id;
 
             DB::commit();
 
@@ -166,17 +181,24 @@ class HospitalizacionController extends Controller
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
-                'seguro_id' => $this->obtenerOCrearSeguro('particular'), // Por defecto para nuevos
+                'seguro_id' => $request->seguro_id ?? $this->obtenerOCrearSeguro('particular'),
                 'id_triage' => null, // Se asignará después
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
             ]);
         } else {
-            // Actualizar datos si es necesario - No tocamos el seguro de pacientes existentes
-            $paciente->update([
+            // Actualizar datos si es necesario
+            $updateData = [
                 'telefono' => $request->telefono ?? $paciente->telefono,
                 'correo' => $request->correo ?? $paciente->correo,
                 'direccion' => $request->direccion ?? $paciente->direccion,
-            ]);
+            ];
+
+            // Actualizar seguro solo si se envió explicitamente
+            if ($request->has('seguro_id') && $request->seguro_id !== null) {
+                $updateData['seguro_id'] = $request->seguro_id;
+            }
+
+            $paciente->update($updateData);
         }
         
         return $paciente;
@@ -239,7 +261,6 @@ class HospitalizacionController extends Controller
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
                 'tipo' => 'HOSPITALIZACION',
-                'cobertura' => 'Cobertura de Hospitalización',
                 'telefono' => null,
                 'formulario' => 'HOSPITALIZACION',
                 'estado' => 'activo'

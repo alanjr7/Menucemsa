@@ -213,7 +213,6 @@ class ReceptionController extends Controller
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
                 'tipo' => 'CONSULTA',
-                'cobertura' => 'Consulta Externa',
                 'telefono' => null,
                 'formulario' => 'ESTANDAR',
                 'estado' => 'activo'

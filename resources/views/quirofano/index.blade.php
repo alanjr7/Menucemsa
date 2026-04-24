@@ -609,11 +609,12 @@ function actualizarStats(stats) {
 
 function actualizarEmergencias(emergencias) {
     const tbody = document.getElementById('tbody-emergencias');
+    if (!tbody) return;
     if (!emergencias || emergencias.length === 0) {
         tbody.innerHTML = '';
         return;
     }
-    
+
     tbody.innerHTML = emergencias.map(emg => `
         <tr class="hover:bg-purple-50/50">
             <td class="px-4 py-3 whitespace-nowrap">

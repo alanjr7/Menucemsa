@@ -126,33 +126,31 @@
             </div>
 
             <div class="space-y-6">
+                @forelse($actividades as $actividad)
                 <div class="flex gap-4 relative">
+                    @if(!$loop->last)
                     <div class="before:content-[''] before:absolute before:left-2 before:top-8 before:w-0.5 before:h-6 before:bg-gray-100">
+                    @endif
+                        @if($actividad->color == 'green')
                         <div class="w-4 h-4 rounded-full bg-green-500 border-4 border-green-100 z-10 relative"></div>
-                    </div>
-                    <div class="flex-1 flex justify-between">
-                        <p class="text-sm font-bold text-gray-800">Alta médica: <span class="font-medium text-gray-600">Paciente López, María</span></p>
-                        <span class="text-[10px] text-gray-400 font-medium">Hace 5 min</span>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 relative">
-                    <div class="before:content-[''] before:absolute before:left-2 before:top-8 before:w-0.5 before:h-6 before:bg-gray-100">
+                        @elseif($actividad->color == 'blue')
+                        <div class="w-4 h-4 rounded-full bg-blue-500 border-4 border-blue-100 z-10 relative"></div>
+                        @else
                         <div class="w-4 h-4 rounded-full bg-orange-500 border-4 border-orange-100 z-10 relative"></div>
+                        @endif
+                    @if(!$loop->last)
                     </div>
-                    <div class="flex-1 text-sm font-bold text-gray-800">
-                         Alerta: <span class="font-medium text-gray-600">Stock bajo en Farmacia - Paracetamol</span>
-                         <p class="text-[10px] text-gray-400 font-medium mt-0.5">Hace 12 min</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <div class="w-4 h-4 rounded-full bg-blue-500 border-4 border-blue-100 z-10 relative"></div>
-                    <div class="flex-1 text-sm font-bold text-gray-800">
-                         Nueva admisión: <span class="font-medium text-gray-600">Paciente García, Juan</span>
-                         <p class="text-[10px] text-gray-400 font-medium mt-0.5">Hace 18 min</p>
+                    @endif
+                    <div class="flex-1 flex justify-between">
+                        <div class="text-sm font-bold text-gray-800">
+                             {{ $actividad->mensaje }} <span class="font-medium text-gray-600">{{ $actividad->entidad }}</span>
+                             <p class="text-[10px] text-gray-400 font-medium mt-0.5">{{ $actividad->fecha->diffForHumans() }}</p>
+                        </div>
                     </div>
                 </div>
+                @empty
+                <div class="text-sm text-gray-500 text-center py-4">No hay actividad reciente.</div>
+                @endforelse
             </div>
         </div>
 
@@ -160,23 +158,27 @@
 
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
+        var chartMeses = @json($chartMeses);
+        var chartPacientesData = @json($chartPacientes);
+        var chartIngresosData = @json($chartIngresos);
+
         var optBar = {
-            series: [{ name: 'Pacientes', data: [280, 310, 295, 350, 375, 320] }],
+            series: [{ name: 'Pacientes', data: chartPacientesData }],
             chart: { type: 'bar', height: 250, toolbar: {show: false}, animations: { enabled: true, easing: 'easeinout', speed: 800 } },
             plotOptions: { bar: { borderRadius: 8, columnWidth: '50%' } },
             colors: ['#3b82f6'],
-            xaxis: { categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], axisBorder: {show: false} },
+            xaxis: { categories: chartMeses, axisBorder: {show: false} },
             grid: { borderColor: '#f1f1f1', strokeDashArray: 4 }
         };
         new ApexCharts(document.querySelector("#chart-pacientes"), optBar).render();
 
         var optLine = {
-            series: [{ name: 'Ingresos', data: [22000, 42000, 38000, 46000, 50000, 43000] }],
+            series: [{ name: 'Ingresos', data: chartIngresosData }],
             chart: { type: 'area', height: 250, toolbar: {show: false}, animations: { enabled: true, speed: 800 } },
             stroke: { curve: 'smooth', width: 3 },
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } },
             colors: ['#10b981'],
-            xaxis: { categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'] },
+            xaxis: { categories: chartMeses },
             grid: { strokeDashArray: 4 }
         };
         new ApexCharts(document.querySelector("#chart-ingresos"), optLine).render();
