@@ -263,7 +263,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 @if($item->precio)
-                                    ${{ number_format($item->precio, 2) }}
+                                    Bs {{ number_format($item->precio, 2) }}
                                 @else
                                     -
                                 @endif

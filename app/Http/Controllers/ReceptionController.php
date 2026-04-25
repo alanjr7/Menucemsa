@@ -917,7 +917,7 @@ class ReceptionController extends Controller
                   ->orderBy('created_at', 'desc');
             },
             'hospitalizaciones' => function($q) {
-                $q->with(['medico.user', 'servicio'])
+                $q->with(['medico.user', 'habitacion'])
                   ->orderBy('fecha_ingreso', 'desc');
             }
         ])->findOrFail($ci);
@@ -959,7 +959,7 @@ class ReceptionController extends Controller
                   ->orderBy('created_at', 'desc');
             },
             'hospitalizaciones' => function($q) {
-                $q->with(['medico.user', 'servicio'])
+                $q->with(['medico.user', 'habitacion'])
                   ->orderBy('fecha_ingreso', 'desc');
             }
         ])->findOrFail($ci);

@@ -263,7 +263,7 @@
                                         <tr>
                                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $hospitalizacion->fecha_ingreso?->format('d/m/Y H:i') ?? '-' }}</td>
                                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $hospitalizacion->fecha_alta?->format('d/m/Y H:i') ?? 'Activo' }}</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $hospitalizacion->servicio->nombre ?? '-' }}</td>
+                                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $hospitalizacion->habitacion->id ?? '-' }}</td>
                                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $hospitalizacion->medico->usuario->name ?? '-' }}</td>
                                             <td class="px-4 py-3 whitespace-nowrap">
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $hospitalizacion->estado === 'Activo' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">

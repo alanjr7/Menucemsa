@@ -38,7 +38,7 @@
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Total Cobrado Hoy</p>
-                            <p class="text-lg font-bold text-gray-900" id="totalCobrado">S/ 0.00</p>
+                            <p class="text-lg font-bold text-gray-900" id="totalCobrado">Bs 0.00</p>
                         </div>
                     </div>
                 </div>
@@ -208,7 +208,7 @@
                             <form id="formCobro" class="mt-6 space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700">Monto a Pagar (S/)</label>
+                                        <label class="block text-sm font-medium text-gray-700">Monto a Pagar (Bs)</label>
                                         <input type="number" 
                                                id="montoPago" 
                                                name="monto" 
@@ -295,7 +295,7 @@
 
                     <form id="formCierre" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Monto Final (S/)</label>
+                            <label class="block text-sm font-medium text-gray-700">Monto Final (Bs)</label>
                             <input type="number" 
                                    id="montoFinal" 
                                    name="monto_final" 
@@ -364,7 +364,7 @@
                 onData: (data) => {
                     if (data.success) {
                         // Actualizar estadísticas
-                        document.getElementById('totalCobrado').textContent = 'S/ ' + parseFloat(data.resumen.totales.general).toFixed(2);
+                        document.getElementById('totalCobrado').textContent = 'Bs ' + parseFloat(data.resumen.totales.general).toFixed(2);
                         document.getElementById('totalTransacciones').textContent = data.resumen.transacciones.total;
                         document.getElementById('totalPendientes').textContent = data.resumen.cuentas.pendientes;
                         document.getElementById('totalParciales').textContent = data.resumen.cuentas.parciales;
@@ -386,7 +386,7 @@
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-xs text-gray-500">${m.label}</p>
-                                    <p class="text-sm font-bold text-gray-900">S/ ${parseFloat(data.resumen.totales[m.key] || 0).toFixed(2)}</p>
+                                    <p class="text-sm font-bold text-gray-900">Bs ${parseFloat(data.resumen.totales[m.key] || 0).toFixed(2)}</p>
                                 </div>
                             </div>
                         `).join('');
@@ -450,13 +450,13 @@
                         ${cuenta.es_post_pago ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 ml-1">Post-pago</span>' : ''}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                        S/ ${parseFloat(cuenta.total_calculado).toFixed(2)}
+                        Bs ${parseFloat(cuenta.total_calculado).toFixed(2)}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600">
-                        S/ ${parseFloat(cuenta.total_pagado).toFixed(2)}
+                        Bs ${parseFloat(cuenta.total_pagado).toFixed(2)}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold ${cuenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}">
-                        S/ ${parseFloat(cuenta.saldo_pendiente).toFixed(2)}
+                        Bs ${parseFloat(cuenta.saldo_pendiente).toFixed(2)}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${cuenta.estado_color}-100 text-${cuenta.estado_color}-800">
@@ -515,7 +515,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
-                                S/ ${parseFloat(p.cuenta?.total || 0).toFixed(2)}
+                                Bs ${parseFloat(p.cuenta?.total || 0).toFixed(2)}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${p.estado_color}-100 text-${p.estado_color}-800">
@@ -554,7 +554,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('totalCobrado').textContent = 'S/ ' + parseFloat(data.resumen.totales.general).toFixed(2);
+                    document.getElementById('totalCobrado').textContent = 'Bs ' + parseFloat(data.resumen.totales.general).toFixed(2);
                     document.getElementById('totalTransacciones').textContent = data.resumen.transacciones.total;
                     document.getElementById('totalPendientes').textContent = data.resumen.cuentas.pendientes;
                     document.getElementById('totalParciales').textContent = data.resumen.cuentas.parciales;
@@ -576,7 +576,7 @@
                             </div>
                             <div class="ml-3">
                                 <p class="text-xs text-gray-500">${m.label}</p>
-                                <p class="text-sm font-bold text-gray-900">S/ ${parseFloat(data.resumen.totales[m.key] || 0).toFixed(2)}</p>
+                                <p class="text-sm font-bold text-gray-900">Bs ${parseFloat(data.resumen.totales[m.key] || 0).toFixed(2)}</p>
                             </div>
                         </div>
                     `).join('');
@@ -614,31 +614,31 @@
                                     ${data.cuenta.detalles.map(d => `
                                         <li class="flex justify-between">
                                             <span>${d.descripcion} (${d.cantidad}x)</span>
-                                            <span>S/ ${parseFloat(d.subtotal).toFixed(2)}</span>
+                                            <span>Bs ${parseFloat(d.subtotal).toFixed(2)}</span>
                                         </li>
                                     `).join('')}
                                 </ul>
                                 <div class="border-t mt-2 pt-2 flex justify-between font-bold">
                                     <span>Total:</span>
-                                    <span>S/ ${parseFloat(data.cuenta.total_calculado).toFixed(2)}</span>
+                                    <span>Bs ${parseFloat(data.cuenta.total_calculado).toFixed(2)}</span>
                                 </div>
                                 ${data.cuenta.seguro ? `
                                     <div class="flex justify-between text-sm text-green-600">
                                         <span>Seguro ${data.cuenta.seguro.nombre} (-${data.cuenta.seguro.ya_aplicado ? 'aplicado' : 'proyectado'}):</span>
-                                        <span>-S/ ${parseFloat(data.cuenta.seguro.monto_cubierto).toFixed(2)}</span>
+                                        <span>-Bs ${parseFloat(data.cuenta.seguro.monto_cubierto).toFixed(2)}</span>
                                     </div>
                                     <div class="flex justify-between font-bold ${data.cuenta.seguro.monto_paciente > 0 ? 'text-red-600' : 'text-green-600'}">
                                         <span>A pagar por paciente:</span>
-                                        <span>S/ ${parseFloat(data.cuenta.seguro.monto_paciente).toFixed(2)}</span>
+                                        <span>Bs ${parseFloat(data.cuenta.seguro.monto_paciente).toFixed(2)}</span>
                                     </div>
                                 ` : `
                                     <div class="flex justify-between text-sm ${data.cuenta.total_pagado > 0 ? 'text-green-600' : ''}">
                                         <span>Pagado:</span>
-                                        <span>S/ ${parseFloat(data.cuenta.total_pagado).toFixed(2)}</span>
+                                        <span>Bs ${parseFloat(data.cuenta.total_pagado).toFixed(2)}</span>
                                     </div>
                                     <div class="flex justify-between font-bold ${data.cuenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}">
                                         <span>Saldo Pendiente:</span>
-                                        <span>S/ ${parseFloat(data.cuenta.saldo_pendiente).toFixed(2)}</span>
+                                        <span>Bs ${parseFloat(data.cuenta.saldo_pendiente).toFixed(2)}</span>
                                     </div>
                                 `}
                             </div>
@@ -747,15 +747,15 @@
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Monto Inicial:</span>
-                                <span class="font-medium">S/ ${parseFloat(data.resumen.monto_inicial).toFixed(2)}</span>
+                                <span class="font-medium">Bs ${parseFloat(data.resumen.monto_inicial).toFixed(2)}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Total Ingresos:</span>
-                                <span class="font-medium text-green-600">+ S/ ${parseFloat(data.resumen.totales.general).toFixed(2)}</span>
+                                <span class="font-medium text-green-600">+ Bs ${parseFloat(data.resumen.totales.general).toFixed(2)}</span>
                             </div>
                             <div class="border-t pt-2 flex justify-between font-bold">
                                 <span>Total Esperado:</span>
-                                <span>S/ ${(parseFloat(data.resumen.monto_inicial) + parseFloat(data.resumen.totales.general)).toFixed(2)}</span>
+                                <span>Bs ${(parseFloat(data.resumen.monto_inicial) + parseFloat(data.resumen.totales.general)).toFixed(2)}</span>
                             </div>
                         </div>
                     `;

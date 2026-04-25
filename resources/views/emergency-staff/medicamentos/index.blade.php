@@ -218,7 +218,7 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">
                                     @if($medicamento->precio)
-                                        ${{ number_format($medicamento->precio, 2) }}
+                                        Bs {{ number_format($medicamento->precio, 2) }}
                                     @else
                                         <span class="text-gray-400">-</span>
                                     @endif

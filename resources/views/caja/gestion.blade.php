@@ -380,14 +380,14 @@
                 
                 if (data.success) {
                     const r = data.resumen;
-                    document.getElementById('statTotalHoy').textContent = 'S/ ' + parseFloat(r.totales_generales.total_recaudado).toFixed(2);
+                    document.getElementById('statTotalHoy').textContent = 'Bs ' + parseFloat(r.totales_generales.total_recaudado).toFixed(2);
                     document.getElementById('statTransacciones').textContent = r.totales_generales.total_transacciones;
                     
                     // Actualizar métodos de pago
                     document.getElementById('metodosPagoContainer').innerHTML = Object.entries(r.por_metodo_pago).map(([k, v]) => `
                         <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                             <span class="text-sm text-gray-600 capitalize">${k}:</span>
-                            <span class="font-medium">S/ ${parseFloat(v).toFixed(2)}</span>
+                            <span class="font-medium">Bs ${parseFloat(v).toFixed(2)}</span>
                         </div>
                     `).join('');
                 }
@@ -452,9 +452,9 @@
                             : `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Normal</span>`
                         }
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium">S/ ${parseFloat(t.monto).toFixed(2)}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600">S/ ${parseFloat(t.total_pagado).toFixed(2)}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right ${t.saldo_pendiente > 0 ? 'text-red-600' : 'text-gray-500'}">S/ ${parseFloat(t.saldo_pendiente).toFixed(2)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium">Bs ${parseFloat(t.monto).toFixed(2)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600">Bs ${parseFloat(t.total_pagado).toFixed(2)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right ${t.saldo_pendiente > 0 ? 'text-red-600' : 'text-gray-500'}">Bs ${parseFloat(t.saldo_pendiente).toFixed(2)}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-center">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${t.estado_color}-100 text-${t.estado_color}-800">${t.estado_label}</span>
                     </td>
@@ -495,12 +495,12 @@
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${c.user ? c.user.nombre : 'N/A'}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.fecha_apertura}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.fecha_cierre || '-'}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right">S/ ${parseFloat(c.monto_inicial).toFixed(2)}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600">+ S/ ${parseFloat(c.total_ingresos).toFixed(2)}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium">S/ ${parseFloat(c.monto_final || 0).toFixed(2)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right">Bs ${parseFloat(c.monto_inicial).toFixed(2)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600">+ Bs ${parseFloat(c.total_ingresos).toFixed(2)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium">Bs ${parseFloat(c.monto_final || 0).toFixed(2)}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-center">
                                 ${c.diferencia !== null 
-                                    ? `<span class="${Math.abs(c.diferencia) < 0.01 ? 'text-green-600' : 'text-red-600 font-bold'}">S/ ${parseFloat(c.diferencia).toFixed(2)}</span>`
+                                    ? `<span class="${Math.abs(c.diferencia) < 0.01 ? 'text-green-600' : 'text-red-600 font-bold'}">Bs ${parseFloat(c.diferencia).toFixed(2)}</span>`
                                     : '-'
                                 }
                             </td>
@@ -539,7 +539,7 @@
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h5 class="font-medium text-gray-900 mb-3">Totales Generales</h5>
                                 <div class="space-y-2">
-                                    <div class="flex justify-between"><span class="text-gray-600">Total Recaudado:</span><span class="font-bold">S/ ${parseFloat(r.totales_generales.total_recaudado).toFixed(2)}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Total Recaudado:</span><span class="font-bold">Bs ${parseFloat(r.totales_generales.total_recaudado).toFixed(2)}</span></div>
                                     <div class="flex justify-between"><span class="text-gray-600">Total Transacciones:</span><span class="font-bold">${r.totales_generales.total_transacciones}</span></div>
                                 </div>
                             </div>
@@ -547,22 +547,22 @@
                                 <h5 class="font-medium text-gray-900 mb-3">Por Método de Pago</h5>
                                 <div class="space-y-2">
                                     ${Object.entries(r.por_metodo_pago).map(([k, v]) => `
-                                        <div class="flex justify-between"><span class="text-gray-600 capitalize">${k}:</span><span class="font-medium">S/ ${parseFloat(v).toFixed(2)}</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-600 capitalize">${k}:</span><span class="font-medium">Bs ${parseFloat(v).toFixed(2)}</span></div>
                                     `).join('')}
                                 </div>
                             </div>
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h5 class="font-medium text-gray-900 mb-3">Flujos</h5>
                                 <div class="space-y-2">
-                                    <div class="flex justify-between"><span class="text-gray-600">Normal:</span><span class="font-medium">${r.flujos.normal.cantidad} trans. - S/ ${parseFloat(r.flujos.normal.monto).toFixed(2)}</span></div>
-                                    <div class="flex justify-between"><span class="text-gray-600">Emergencias:</span><span class="font-medium">${r.flujos.emergencia.cantidad} trans. (${r.flujos.emergencia.post_pago} post-pago) - S/ ${parseFloat(r.flujos.emergencia.monto).toFixed(2)}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Normal:</span><span class="font-medium">${r.flujos.normal.cantidad} trans. - Bs ${parseFloat(r.flujos.normal.monto).toFixed(2)}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Emergencias:</span><span class="font-medium">${r.flujos.emergencia.cantidad} trans. (${r.flujos.emergencia.post_pago} post-pago) - Bs ${parseFloat(r.flujos.emergencia.monto).toFixed(2)}</span></div>
                                 </div>
                             </div>
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h5 class="font-medium text-gray-900 mb-3">Cuentas Pendientes</h5>
                                 <div class="space-y-2">
                                     <div class="flex justify-between"><span class="text-gray-600">Total Pendientes:</span><span class="font-bold text-yellow-600">${r.pendientes.total}</span></div>
-                                    <div class="flex justify-between"><span class="text-gray-600">Monto Pendiente:</span><span class="font-bold text-yellow-600">S/ ${parseFloat(r.pendientes.monto).toFixed(2)}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Monto Pendiente:</span><span class="font-bold text-yellow-600">Bs ${parseFloat(r.pendientes.monto).toFixed(2)}</span></div>
                                     <div class="flex justify-between"><span class="text-gray-600">Emergencias sin pagar:</span><span class="font-bold text-red-600">${r.pendientes.emergencias}</span></div>
                                 </div>
                             </div>
@@ -637,12 +637,12 @@
                             <table class="min-w-full text-sm">
                                 <thead><tr class="border-b"><th class="text-left py-1">Item</th><th class="text-right py-1">Cant.</th><th class="text-right py-1">Precio</th><th class="text-right py-1">Subtotal</th>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? '<th class="text-center py-1">Acciones</th>' : ''}</tr></thead>
                                 <tbody>
-                                    ${t.detalles.map(d => `<tr class="border-b border-gray-100"><td class="py-1">${d.descripcion}</td><td class="text-right">${d.cantidad}</td><td class="text-right">S/ ${parseFloat(d.precio_unitario).toFixed(2)}</td><td class="text-right">S/ ${parseFloat(d.subtotal).toFixed(2)}</td>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? `<td class="text-center py-1"><button onclick="eliminarDetalleItem('${d.id}', '${d.descripcion.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-900 text-xs">Eliminar</button></td>` : ''}</tr>`).join('')}
+                                    ${t.detalles.map(d => `<tr class="border-b border-gray-100"><td class="py-1">${d.descripcion}</td><td class="text-right">${d.cantidad}</td><td class="text-right">Bs ${parseFloat(d.precio_unitario).toFixed(2)}</td><td class="text-right">Bs ${parseFloat(d.subtotal).toFixed(2)}</td>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? `<td class="text-center py-1"><button onclick="eliminarDetalleItem('${d.id}', '${d.descripcion.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-900 text-xs">Eliminar</button></td>` : ''}</tr>`).join('')}
                                 </tbody>
                                 <tfoot>
-                                    <tr class="font-bold"><td colspan="3" class="text-right py-2">Total:</td><td class="text-right py-2">S/ ${parseFloat(t.total_calculado).toFixed(2)}</td></tr>
-                                    <tr class="text-green-600"><td colspan="3" class="text-right py-1">Pagado:</td><td class="text-right py-1">S/ ${parseFloat(t.total_pagado).toFixed(2)}</td></tr>
-                                    <tr class="${t.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'} font-bold"><td colspan="3" class="text-right py-1">Saldo:</td><td class="text-right py-1">S/ ${parseFloat(t.saldo_pendiente).toFixed(2)}</td></tr>
+                                    <tr class="font-bold"><td colspan="3" class="text-right py-2">Total:</td><td class="text-right py-2">Bs ${parseFloat(t.total_calculado).toFixed(2)}</td></tr>
+                                    <tr class="text-green-600"><td colspan="3" class="text-right py-1">Pagado:</td><td class="text-right py-1">Bs ${parseFloat(t.total_pagado).toFixed(2)}</td></tr>
+                                    <tr class="${t.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'} font-bold"><td colspan="3" class="text-right py-1">Saldo:</td><td class="text-right py-1">Bs ${parseFloat(t.saldo_pendiente).toFixed(2)}</td></tr>
                                 </tfoot>
                             </table>
                         </div>
@@ -656,7 +656,7 @@
                                             ${p.referencia ? `<span class="text-sm text-gray-500 ml-2">(Ref: ${p.referencia})</span>` : ''}
                                             <span class="text-sm text-gray-500 ml-2">- ${p.usuario}</span>
                                         </div>
-                                        <div class="font-bold">S/ ${parseFloat(p.monto).toFixed(2)}</div>
+                                        <div class="font-bold">Bs ${parseFloat(p.monto).toFixed(2)}</div>
                                     </div>
                                 `).join('')}
                             </div>
@@ -737,8 +737,8 @@
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.tipo_item}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${item.descripcion}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-right">${item.cantidad}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right">S/ ${parseFloat(item.precio_unitario).toFixed(2)}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-red-600">S/ ${parseFloat(item.subtotal).toFixed(2)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right">Bs ${parseFloat(item.precio_unitario).toFixed(2)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-red-600">Bs ${parseFloat(item.subtotal).toFixed(2)}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.motivo_eliminacion}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.usuario}</td>
                         </tr>
@@ -813,7 +813,7 @@
                 });
             });
 
-            document.getElementById('statTotalHoy').textContent = 'S/ ' + totalHoy.toFixed(2);
+            document.getElementById('statTotalHoy').textContent = 'Bs ' + totalHoy.toFixed(2);
             document.getElementById('statTransacciones').textContent = totalTrans;
             document.getElementById('statPendientes').textContent = pendientes;
             document.getElementById('statEmergencias').textContent = emergencias;
@@ -822,7 +822,7 @@
             document.getElementById('metodosPagoContainer').innerHTML = Object.entries(metodos).map(([k, v]) => `
                 <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                     <span class="text-sm text-gray-600 capitalize">${k}:</span>
-                    <span class="font-medium">S/ ${v.toFixed(2)}</span>
+                    <span class="font-medium">Bs ${v.toFixed(2)}</span>
                 </div>
             `).join('');
         }

@@ -75,7 +75,7 @@
                                     <td><strong>Precio Unitario:</strong></td>
                                     <td>
                                         @if($almacenMedicamento->precio)
-                                            ${{ number_format($almacenMedicamento->precio, 2) }}
+                                            Bs {{ number_format($almacenMedicamento->precio, 2) }}
                                         @else
                                             -
                                         @endif

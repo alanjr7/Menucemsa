@@ -261,43 +261,102 @@ $medsArray = [];
         <!-- Sección 4: Equipos Médicos y Procedimientos -->
         @if($hasPermission('aplicar_medicamentos'))
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
-                        <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800">Equipos Médicos y Procedimientos</h3>
-                        <p class="text-sm text-gray-500">Agregue equipos o procedimientos utilizados</p>
-                    </div>
-                </div>
-                <button type="button" onclick="agregarEquipoMedico()" class="flex items-center px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors text-sm font-medium">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Agregar Equipo
-                </button>
-            </div>
-
-            <!-- Lista de equipos médicos seleccionados -->
-            <div id="listaEquiposMedicos" class="space-y-3">
-                <div id="mensajeVacioEquipos" class="text-center py-8 bg-gray-50 rounded-xl">
-                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
                     </svg>
-                    <p class="text-gray-500 text-sm">No hay equipos médicos agregados</p>
-                    <p class="text-gray-400 text-xs mt-1">Haga clic en "Agregar Equipo" para registrar</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Equipos Médicos y Procedimientos</h3>
+                    <p class="text-sm text-gray-500">Complete el formulario y vea el historial en tiempo real</p>
                 </div>
             </div>
 
-            <!-- Total estimado -->
-            <div id="resumenCostosEquipos" class="hidden mt-6 pt-6 border-t border-gray-200">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-600">Total estimado de equipos:</span>
-                    <span class="text-2xl font-bold text-cyan-600" id="totalEquiposMedicos">Bs. 0.00</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <!-- Columna izquierda: formulario inline -->
+                <div class="bg-cyan-50 border border-cyan-100 rounded-xl p-4 flex flex-col gap-3">
+                    <p class="text-xs font-bold text-cyan-700 uppercase tracking-wide">Nuevo equipo / procedimiento</p>
+
+                    <div id="equipoErrorMsg" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2">
+                        <span id="equipoErrorText"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre <span class="text-red-500">*</span></label>
+                        <input type="text" id="equipoNombre" placeholder="Ej: Oxímetro, Nebulizador, Sutura..."
+                            class="w-full border border-cyan-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 transition-all"
+                            onkeydown="if(event.key==='Enter') document.getElementById('equipoPrecio').focus()">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Precio <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-cyan-600">Bs.</span>
+                                <input type="number" id="equipoPrecio" min="0" step="0.01" placeholder="0.00"
+                                    class="w-full border border-cyan-200 bg-white rounded-lg pl-8 pr-2 py-2 text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 transition-all"
+                                    oninput="actualizarSubtotalPreview()"
+                                    onkeydown="if(event.key==='Enter') document.getElementById('equipoCantidad').focus()">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Cantidad</label>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="cambiarCantidadForm(-1)"
+                                    class="w-8 h-[34px] flex-shrink-0 rounded-lg bg-white border border-cyan-200 hover:bg-cyan-100 flex items-center justify-center">
+                                    <svg class="w-3.5 h-3.5 text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+                                </button>
+                                <input type="number" id="equipoCantidad" value="1" min="1"
+                                    class="w-full text-center border border-cyan-200 bg-white rounded-lg py-2 text-sm focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 transition-all"
+                                    oninput="actualizarSubtotalPreview()"
+                                    onkeydown="if(event.key==='Enter') confirmarAgregarEquipo()">
+                                <button type="button" onclick="cambiarCantidadForm(1)"
+                                    class="w-8 h-[34px] flex-shrink-0 rounded-lg bg-white border border-cyan-200 hover:bg-cyan-100 flex items-center justify-center">
+                                    <svg class="w-3.5 h-3.5 text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-white border border-cyan-100 rounded-lg px-3 py-2">
+                        <span class="text-xs text-gray-500">Subtotal:</span>
+                        <span id="equipoSubtotalPreview" class="text-sm font-bold text-cyan-700">Bs. 0.00</span>
+                    </div>
+
+                    <button type="button" onclick="confirmarAgregarEquipo()"
+                        class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all text-sm flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Agregar a la lista
+                    </button>
                 </div>
+
+                <!-- Columna derecha: historial -->
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Historial registrado</p>
+                        <span id="contadorEquipos" class="bg-cyan-100 text-cyan-700 text-xs font-bold px-2 py-0.5 rounded-full">0 items</span>
+                    </div>
+
+                    <div id="listaEquiposMedicos" class="flex-1 space-y-2 overflow-y-auto max-h-[260px] pr-0.5">
+                        <div id="mensajeVacioEquipos" class="flex flex-col items-center justify-center py-10 text-center">
+                            <svg class="w-10 h-10 mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                            <p class="text-gray-400 text-sm">Sin equipos aún</p>
+                            <p class="text-gray-300 text-xs mt-0.5">Complete el formulario de la izquierda</p>
+                        </div>
+                    </div>
+
+                    <div id="resumenCostosEquipos" class="hidden mt-3 pt-3 border-t border-gray-100">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">Total equipos:</span>
+                            <span class="text-xl font-bold text-cyan-600" id="totalEquiposMedicos">Bs. 0.00</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
         @endif
@@ -397,6 +456,7 @@ $medsArray = [];
         </div>
     </div>
 </div>
+
 
 @php
     $medsArray = $medicamentos->map(function($med) {
@@ -564,38 +624,60 @@ $medsArray = [];
         document.getElementById('totalMedicamentos').textContent = 'Bs. ' + total.toFixed(2);
     }
 
-    // Variables y funciones para equipos médicos
+    // ── Equipos médicos (formulario inline) ──
     let equiposMedicosSeleccionados = [];
 
-    function agregarEquipoMedico() {
-        // Crear modal para agregar equipo médico
-        const nombre = prompt('Nombre del equipo o procedimiento:');
-        if (!nombre || nombre.trim() === '') return;
+    function cambiarCantidadForm(delta) {
+        const input = document.getElementById('equipoCantidad');
+        const v = parseInt(input.value) || 1;
+        if (v + delta >= 1) input.value = v + delta;
+        actualizarSubtotalPreview();
+    }
 
-        const precioStr = prompt('Precio unitario (Bs.):');
-        if (!precioStr || precioStr.trim() === '') return;
+    function actualizarSubtotalPreview() {
+        const precio = parseFloat(document.getElementById('equipoPrecio').value) || 0;
+        const cantidad = parseInt(document.getElementById('equipoCantidad').value) || 0;
+        document.getElementById('equipoSubtotalPreview').textContent = 'Bs. ' + (precio * cantidad).toFixed(2);
+    }
 
-        const precio = parseFloat(precioStr);
+    function confirmarAgregarEquipo() {
+        const nombre = document.getElementById('equipoNombre').value.trim();
+        const precioVal = document.getElementById('equipoPrecio').value.trim();
+        const cantidadVal = document.getElementById('equipoCantidad').value.trim();
+        const errorMsg = document.getElementById('equipoErrorMsg');
+        const errorText = document.getElementById('equipoErrorText');
+
+        if (!nombre) {
+            errorText.textContent = 'El nombre del equipo es obligatorio.';
+            errorMsg.classList.remove('hidden');
+            document.getElementById('equipoNombre').focus();
+            return;
+        }
+        const precio = parseFloat(precioVal);
         if (isNaN(precio) || precio < 0) {
-            alert('Precio inválido');
+            errorText.textContent = 'Ingrese un precio válido (mayor o igual a 0).';
+            errorMsg.classList.remove('hidden');
+            document.getElementById('equipoPrecio').focus();
             return;
         }
-
-        const cantidadStr = prompt('Cantidad (default: 1):', '1');
-        const cantidad = cantidadStr ? parseInt(cantidadStr) : 1;
+        const cantidad = parseInt(cantidadVal);
         if (isNaN(cantidad) || cantidad < 1) {
-            alert('Cantidad inválida');
+            errorText.textContent = 'La cantidad debe ser al menos 1.';
+            errorMsg.classList.remove('hidden');
+            document.getElementById('equipoCantidad').focus();
             return;
         }
+        errorMsg.classList.add('hidden');
 
-        const equipo = {
-            id: Date.now(), // ID temporal único
-            nombre: nombre.trim(),
-            precio: precio,
-            cantidad: cantidad
-        };
+        equiposMedicosSeleccionados.push({ id: Date.now(), nombre, precio, cantidad });
 
-        equiposMedicosSeleccionados.push(equipo);
+        // Limpiar formulario
+        document.getElementById('equipoNombre').value = '';
+        document.getElementById('equipoPrecio').value = '';
+        document.getElementById('equipoCantidad').value = '1';
+        document.getElementById('equipoSubtotalPreview').textContent = 'Bs. 0.00';
+        document.getElementById('equipoNombre').focus();
+
         renderizarEquiposMedicos();
     }
 
@@ -622,72 +704,40 @@ $medsArray = [];
         const contenedor = document.getElementById('listaEquiposMedicos');
         const mensajeVacio = document.getElementById('mensajeVacioEquipos');
         const resumenCostos = document.getElementById('resumenCostosEquipos');
+        const contador = document.getElementById('contadorEquipos');
+
+        // Limpiar items dinámicos
+        Array.from(contenedor.children).forEach(child => {
+            if (child.id !== 'mensajeVacioEquipos') child.remove();
+        });
 
         if (equiposMedicosSeleccionados.length === 0) {
-            mensajeVacio.style.display = 'block';
+            mensajeVacio.style.display = '';
             resumenCostos.classList.add('hidden');
-            Array.from(contenedor.children).forEach(child => {
-                if (child.id !== 'mensajeVacioEquipos') {
-                    child.remove();
-                }
-            });
+            if (contador) contador.textContent = '0 items';
             return;
         }
 
         mensajeVacio.style.display = 'none';
         resumenCostos.classList.remove('hidden');
-
-        Array.from(contenedor.children).forEach(child => {
-            if (child.id !== 'mensajeVacioEquipos') {
-                child.remove();
-            }
-        });
+        if (contador) contador.textContent = equiposMedicosSeleccionados.length + ' item' + (equiposMedicosSeleccionados.length > 1 ? 's' : '');
 
         let total = 0;
-
         equiposMedicosSeleccionados.forEach((equipo, index) => {
             const subtotal = equipo.precio * equipo.cantidad;
             total += subtotal;
 
             const item = document.createElement('div');
-            item.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
+            item.className = 'flex items-center gap-2 p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm';
             item.innerHTML = `
-                <div class="flex-1">
-                    <h4 class="font-semibold text-gray-800">${equipo.nombre}</h4>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="text-sm text-gray-500">Bs.</span>
-                        <input type="number" value="${equipo.precio.toFixed(2)}" min="0" step="0.01"
-                            onchange="actualizarPrecioEquipo(${index}, this.value)"
-                            class="w-24 text-sm border border-gray-200 rounded-lg px-2 py-1">
-                        <span class="text-sm text-gray-500">x</span>
-                    </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-gray-800 truncate">${equipo.nombre}</p>
+                    <p class="text-xs text-gray-400">Bs. ${equipo.precio.toFixed(2)} × ${equipo.cantidad}</p>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button type="button" onclick="actualizarCantidadEquipo(${index}, ${equipo.cantidad - 1})"
-                        class="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                        ${equipo.cantidad <= 1 ? 'disabled' : ''}>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                        </svg>
-                    </button>
-                    <input type="number" value="${equipo.cantidad}" min="1"
-                        onchange="actualizarCantidadEquipo(${index}, this.value)"
-                        class="w-16 text-center border border-gray-200 rounded-lg py-1 text-sm">
-                    <button type="button" onclick="actualizarCantidadEquipo(${index}, ${equipo.cantidad + 1})"
-                        class="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="text-right min-w-[100px]">
-                    <span class="block font-bold text-cyan-600">Bs. ${subtotal.toFixed(2)}</span>
-                </div>
+                <span class="font-bold text-cyan-600 whitespace-nowrap">Bs. ${subtotal.toFixed(2)}</span>
                 <button type="button" onclick="eliminarEquipoMedico(${index})"
-                    class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+                    class="w-6 h-6 rounded-full bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 transition-colors flex-shrink-0">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             `;
             contenedor.appendChild(item);
@@ -696,11 +746,9 @@ $medsArray = [];
         document.getElementById('totalEquiposMedicos').textContent = 'Bs. ' + total.toFixed(2);
     }
 
-    // Cerrar modal al hacer click fuera
+    // Cerrar modal medicamentos al click fuera
     document.getElementById('modalMedicamentos').addEventListener('click', function(e) {
-        if (e.target === this) {
-            cerrarModalMedicamentos();
-        }
+        if (e.target === this) cerrarModalMedicamentos();
     });
 
     // Manejar envío del formulario
