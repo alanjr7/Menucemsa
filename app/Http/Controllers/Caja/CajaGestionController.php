@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CajaSession;
 use App\Models\CuentaCobro;
 use App\Models\CuentaCobroDetalle;
+use App\Models\CuentaCobroDetalleEliminado;
 use App\Models\PagoCuenta;
 use App\Models\MovimientoCaja;
 use App\Models\User;
@@ -613,6 +614,140 @@ class CajaGestionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cargar usuarios: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar un detalle de cuenta y guardar en historial
+     */
+    public function eliminarDetalle(Request $request, string $detalleId): JsonResponse
+    {
+        $request->validate(['motivo' => 'required|string|max:500']);
+
+        $user = auth()->user();
+        if (!$user->hasRole('admin') && !$user->hasRole('administrador')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        DB::beginTransaction();
+        try {
+            $detalle = CuentaCobroDetalle::with('cuentaCobro')->findOrFail($detalleId);
+            $cuenta = $detalle->cuentaCobro;
+
+            if ($cuenta->estado === 'pagado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar ítems de una cuenta ya pagada.'
+                ], 422);
+            }
+
+            CuentaCobroDetalleEliminado::create([
+                'cuenta_cobro_id'        => $detalle->cuenta_cobro_id,
+                'tipo_item'              => $detalle->tipo_item,
+                'tarifa_id'              => $detalle->tarifa_id,
+                'descripcion'            => $detalle->descripcion,
+                'cantidad'               => $detalle->cantidad,
+                'precio_unitario'        => $detalle->precio_unitario,
+                'subtotal'               => $detalle->subtotal,
+                'origen_type'            => $detalle->origen_type,
+                'origen_id'              => $detalle->origen_id,
+                'area_origen'            => $detalle->area_origen,
+                'observaciones'          => $detalle->observaciones,
+                'usuario_eliminacion_id' => $user->id,
+                'motivo_eliminacion'     => $request->motivo,
+                'eliminado_en'           => now(),
+            ]);
+
+            $nuevoTotal = max(0, (float) $cuenta->total_calculado - (float) $detalle->subtotal);
+            $estadoNuevo = $cuenta->estado;
+            if ($nuevoTotal <= 0) {
+                $estadoNuevo = 'pendiente';
+            } elseif ($cuenta->total_pagado > 0 && $nuevoTotal <= $cuenta->total_pagado) {
+                $estadoNuevo = 'pagado';
+            } elseif ($cuenta->total_pagado > 0 && $nuevoTotal > $cuenta->total_pagado) {
+                $estadoNuevo = 'parcial';
+            }
+
+            $cuenta->update([
+                'total_calculado' => $nuevoTotal,
+                'estado'          => $estadoNuevo,
+            ]);
+
+            $detalle->delete();
+
+            \Log::info('Detalle de cuenta eliminado', [
+                'detalle_id'   => $detalleId,
+                'cuenta_id'    => $cuenta->id,
+                'motivo'       => $request->motivo,
+                'user_id'      => $user->id,
+                'subtotal'     => $detalle->subtotal,
+            ]);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Ítem eliminado y registrado en historial.']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error al eliminar detalle: ' . $e->getMessage(), ['user_id' => $user->id ?? null]);
+            return response()->json(['success' => false, 'message' => 'Error al eliminar el ítem.'], 500);
+        }
+    }
+
+    /**
+     * Obtener listado de detalles eliminados con filtros
+     */
+    public function getDetallesEliminados(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'fecha_inicio' => 'nullable|date',
+                'fecha_fin' => 'nullable|date',
+                'cuenta_cobro_id' => 'nullable|string',
+            ]);
+
+            $query = CuentaCobroDetalleEliminado::with(['cuentaCobro.paciente', 'usuarioEliminacion']);
+
+            if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+                $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
+                $query->whereBetween('eliminado_en', [$request->fecha_inicio, $fechaFin]);
+            } elseif ($request->filled('fecha_inicio')) {
+                $query->whereDate('eliminado_en', $request->fecha_inicio);
+            }
+
+            if ($request->filled('cuenta_cobro_id')) {
+                $query->where('cuenta_cobro_id', $request->cuenta_cobro_id);
+            }
+
+            $eliminados = $query->orderBy('eliminado_en', 'desc')
+                ->paginate(25)
+                ->through(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'cuenta_cobro_id' => $item->cuenta_cobro_id,
+                        'paciente' => [
+                            'ci' => $item->cuentaCobro?->paciente_ci ?? 'N/A',
+                            'nombre' => $item->cuentaCobro?->paciente?->nombre ?? 'N/A',
+                        ],
+                        'tipo_item' => $item->tipo_item_label,
+                        'descripcion' => $item->descripcion,
+                        'cantidad' => $item->cantidad,
+                        'precio_unitario' => $item->precio_unitario,
+                        'subtotal' => $item->subtotal,
+                        'motivo_eliminacion' => $item->motivo_eliminacion,
+                        'usuario' => $item->usuarioEliminacion?->name ?? 'N/A',
+                        'eliminado_en' => $item->eliminado_en->format('d/m/Y H:i'),
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'eliminados' => $eliminados,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar ítems eliminados: ' . $e->getMessage(),
             ], 500);
         }
     }

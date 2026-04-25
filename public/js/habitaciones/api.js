@@ -42,10 +42,6 @@ const HabitacionApi = (function() {
     }
 
     return {
-        async listar() {
-            return request(`${BASE_URL}/api/habitaciones`);
-        },
-
         async detalle(habitacionId, signal) {
             return request(`${BASE_URL}/api/habitaciones/${habitacionId}`, { signal });
         },

@@ -19,6 +19,8 @@ return new class extends Migration
             $table->decimal('total_pagado', 10, 2)->default(0);
             $table->boolean('es_emergencia')->default(false);
             $table->boolean('es_post_pago')->default(false);
+            $table->unsignedInteger('episodio_numero')->default(1)
+                ->comment('Número de episodio del paciente, se incrementa en cada nuevo ingreso');
             $table->string('ci_nit_facturacion', 30)->nullable();
             $table->string('razon_social', 255)->nullable();
             $table->foreignId('caja_session_id')->nullable()->constrained('caja_sessions');

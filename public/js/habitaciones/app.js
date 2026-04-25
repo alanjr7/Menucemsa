@@ -1,6 +1,6 @@
 /**
- * HabitacionApp - Aplicación principal para gestión de habitaciones
- * Coordina API, Cache y UI
+ * HabitacionApp - Ultra simple: todo renderizado server-side
+ * Solo maneja filtros y show/hide de paneles pre-renderizados
  */
 
 const HabitacionApp = (function() {
@@ -8,30 +8,28 @@ const HabitacionApp = (function() {
 
     const elements = {
         lista: null,
-        detalle: null,
+        detalleContainer: null,
+        detalleVacio: null,
         filtros: null,
     };
 
     let habitacionActual = null;
-    let habitacionesData = [];
     let filtroActivo = 'todas';
-    let abortController = null;
 
-    async function init() {
+    function init() {
         cachearElementos();
         bindEvents();
 
-        const hash = window.location.hash.replace('#', '');
-        if (hash && hash.startsWith('h')) {
-            await Promise.all([cargarLista(), seleccionarHabitacion(hash)]);
-        } else {
-            await cargarLista(true);
+        const hash = decodeURIComponent(window.location.hash.replace('#', ''));
+        if (hash) {
+            seleccionarHabitacion(hash);
         }
     }
 
     function cachearElementos() {
         elements.lista = document.getElementById('habitaciones-lista');
-        elements.detalle = document.getElementById('habitacion-detalle');
+        elements.detalleContainer = document.getElementById('habitacion-detalle-container');
+        elements.detalleVacio = document.getElementById('detalle-vacio');
         elements.filtros = document.querySelectorAll('[data-filtro]');
     }
 
@@ -40,14 +38,14 @@ const HabitacionApp = (function() {
             btn.addEventListener('click', (e) => {
                 filtroActivo = e.currentTarget.dataset.filtro;
                 aplicarFiltroUI(e.currentTarget);
-                renderizarListaFiltrada();
+                aplicarFiltroDOM();
             });
         });
 
         window.addEventListener('hashchange', () => {
-            const hash = window.location.hash.replace('#', '');
-            if (hash && hash.startsWith('h')) {
-                seleccionarHabitacion(hash);
+            const hash = decodeURIComponent(window.location.hash.replace('#', ''));
+            if (hash && hash !== habitacionActual) {
+                seleccionarHabitacion(hash, true); // true = no actualizar hash
             }
         });
     }
@@ -61,185 +59,123 @@ const HabitacionApp = (function() {
         activo.classList.add('bg-indigo-600', 'text-white');
     }
 
-    async function cargarLista(seleccionarPrimera = false) {
-        const cacheKey = 'habitaciones:lista';
-
-        if (HabitacionCache.has(cacheKey)) {
-            habitacionesData = HabitacionCache.get(cacheKey);
-            renderizarListaFiltrada();
-            if (seleccionarPrimera && !window.location.hash && habitacionesData.length > 0) {
-                await seleccionarHabitacion(habitacionesData[0].id);
-            }
-            return;
-        }
-
-        try {
-            const response = await HabitacionApi.listar();
-            if (response.success) {
-                habitacionesData = response.habitaciones;
-                HabitacionCache.set(cacheKey, habitacionesData);
-                renderizarListaFiltrada();
-
-                if (seleccionarPrimera && !window.location.hash && habitacionesData.length > 0) {
-                    await seleccionarHabitacion(habitacionesData[0].id);
-                }
-            }
-        } catch (error) {
-            console.error('Error cargando habitaciones:', error);
-            HabitacionNotificaciones.error('Error al cargar la lista de habitaciones');
-        }
+    function aplicarFiltroDOM() {
+        const items = elements.lista.querySelectorAll('.habitacion-item');
+        items.forEach(item => {
+            const estado = item.dataset.estado;
+            item.style.display = (filtroActivo === 'todas' || estado === filtroActivo) ? '' : 'none';
+        });
     }
 
-    function renderizarListaFiltrada() {
-        const filtradas = HabitacionListaUI.aplicarFiltro(habitacionesData, filtroActivo);
-        HabitacionListaUI.render(elements.lista, filtradas, habitacionActual);
-    }
-
-    async function seleccionarHabitacion(habitacionId) {
+    function seleccionarHabitacion(habitacionId, skipHashUpdate = false) {
         habitacionActual = habitacionId;
-        HabitacionListaUI.actualizarSeleccionVisual(elements.lista, habitacionId);
-        window.location.hash = habitacionId;
+        actualizarSeleccionVisual(habitacionId);
 
-        // Cancelar petición anterior si existe
-        if (abortController) {
-            abortController.abort();
-        }
-        abortController = new AbortController();
-
-        HabitacionDetalleUI.renderLoading(elements.detalle);
-        await cargarDetalle(habitacionId, abortController.signal);
-    }
-
-    async function cargarDetalle(habitacionId, signal) {
-        const cacheKey = HabitacionCache.makeKey('habitacion', habitacionId);
-
-        if (HabitacionCache.has(cacheKey)) {
-            const cached = HabitacionCache.get(cacheKey);
-            // Solo renderizar si seguimos en la misma habitación
-            if (habitacionActual === habitacionId) {
-                HabitacionDetalleUI.render(elements.detalle, cached.habitacion, cached.pacientes);
+        // Solo actualizar hash si no viene del evento hashchange
+        if (!skipHashUpdate) {
+            const newHash = encodeURIComponent(habitacionId);
+            if (window.location.hash !== '#' + newHash) {
+                window.location.hash = newHash;
             }
-            actualizarEnSegundoPlano(habitacionId, cacheKey, signal);
-            return;
         }
 
-        try {
-            const [habitacionResponse, pacientesResponse] = await Promise.all([
-                HabitacionApi.detalle(habitacionId, signal),
-                HabitacionApi.pacientesSinHabitacion(signal),
-            ]);
+        // Ocultar estado vacío y todos los paneles
+        elements.detalleVacio.classList.add('hidden');
+        elements.detalleContainer.querySelectorAll('.habitacion-detalle-panel').forEach(panel => {
+            panel.classList.add('hidden');
+        });
 
-            // Verificar que seguimos en la misma habitación antes de renderizar
-            if (habitacionActual !== habitacionId) {
-                return;
-            }
-
-            if (habitacionResponse.success) {
-                const data = {
-                    habitacion: habitacionResponse.habitacion,
-                    pacientes: pacientesResponse.success ? pacientesResponse.pacientes : [],
-                };
-                HabitacionCache.set(cacheKey, data, HabitacionCache.DETAIL_TTL);
-                HabitacionDetalleUI.render(elements.detalle, data.habitacion, data.pacientes);
-            }
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                return; // Petición cancelada, no es un error real
-            }
-            console.error('Error cargando detalle:', error);
-            HabitacionNotificaciones.error('Error al cargar el detalle de la habitación');
+        // Mostrar panel seleccionado
+        const panel = document.getElementById('detalle-' + habitacionId);
+        if (panel) {
+            panel.classList.remove('hidden');
         }
     }
 
-    function actualizarEnSegundoPlano(habitacionId, cacheKey, signal) {
-        Promise.all([
-            HabitacionApi.detalle(habitacionId, signal),
-            HabitacionApi.pacientesSinHabitacion(signal),
-        ]).then(([habitacionResponse, pacientesResponse]) => {
-            // Solo actualizar si seguimos en la misma habitación
-            if (habitacionActual !== habitacionId) {
-                return;
-            }
-            if (habitacionResponse.success) {
-                const data = {
-                    habitacion: habitacionResponse.habitacion,
-                    pacientes: pacientesResponse.success ? pacientesResponse.pacientes : [],
-                };
-                HabitacionCache.set(cacheKey, data, HabitacionCache.DETAIL_TTL);
-                HabitacionDetalleUI.render(elements.detalle, data.habitacion, data.pacientes);
-            }
-        }).catch((error) => {
-            if (error.name === 'AbortError') {
-                return; // Petición cancelada, ignorar
+    function actualizarSeleccionVisual(habitacionId) {
+        elements.lista.querySelectorAll('.habitacion-item').forEach(el => {
+            if (el.dataset.id === habitacionId) {
+                el.classList.add('bg-blue-50', 'border-l-blue-500');
+                el.classList.remove('border-l-transparent');
+            } else {
+                el.classList.remove('bg-blue-50', 'border-l-blue-500');
+                el.classList.add('border-l-transparent');
             }
         });
     }
 
-    async function recargarDatos() {
-        HabitacionCache.invalidate('habitaciones:lista');
-        if (habitacionActual) {
-            HabitacionCache.invalidate(HabitacionCache.makeKey('habitacion', habitacionActual));
-        }
-        await Promise.all([cargarLista(), cargarDetalle(habitacionActual)]);
-    }
-
     async function liberarCama(camaId) {
-        const confirmar = await HabitacionModal.confirmar('¿Está seguro de liberar esta cama?');
-        if (!confirmar) return;
+        if (!confirm('¿Está seguro de liberar esta cama?')) return;
 
         try {
-            const response = await HabitacionApi.liberarCama(camaId);
+            const formData = new FormData();
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
+
+            const response = await fetch('/internacion-staff/camas/' + camaId + '/liberar', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            }).then(r => r.json());
+
             if (response.success) {
-                HabitacionNotificaciones.success(response.message);
-                await recargarDatos();
+                window.location.reload();
             } else {
-                HabitacionNotificaciones.error(response.error || 'Error al liberar cama');
+                alert(response.error || 'Error al liberar cama');
             }
         } catch (error) {
-            console.error('Error:', error);
-            HabitacionNotificaciones.error('Error de conexión');
+            alert('Error de conexión');
         }
     }
 
     function mostrarModalAsignar(camaId, habitacionId) {
-        const pacientes = HabitacionDetalleUI.getPacientesData(elements.detalle);
+        const container = elements.detalleContainer;
+        const pacientes = JSON.parse(container.dataset.pacientes || '[]');
         HabitacionModal.asignarPaciente(camaId, pacientes, async (formData) => {
             try {
-                const response = await HabitacionApi.asignarPaciente(habitacionId, formData);
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
+
+                const response = await fetch('/internacion-staff/habitaciones/' + habitacionId + '/asignar-paciente', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                }).then(r => r.json());
+
                 if (response.success) {
-                    HabitacionNotificaciones.success(response.message);
-                    await recargarDatos();
+                    window.location.reload();
                 } else {
-                    HabitacionNotificaciones.error(response.error || 'Error al asignar paciente');
+                    alert(response.error || 'Error al asignar paciente');
                 }
             } catch (error) {
-                console.error('Error:', error);
-                HabitacionNotificaciones.error('Error de conexión');
+                alert('Error de conexión');
             }
         });
     }
 
     async function toggleMantenimiento(habitacionId) {
-        const estadoActual = elements.detalle.dataset.estado;
+        const panel = document.getElementById('detalle-' + habitacionId);
+        const estadoActual = panel?.dataset.estado;
         const mensaje = estadoActual === 'mantenimiento'
             ? '¿Activar esta habitación?'
             : '¿Marcar habitación en mantenimiento?';
 
-        const confirmar = await HabitacionModal.confirmar(mensaje);
-        if (!confirmar) return;
+        if (!confirm(mensaje)) return;
 
         try {
-            const response = await HabitacionApi.toggleMantenimiento(habitacionId);
+            const response = await fetch('/internacion-staff/habitaciones/' + habitacionId, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                }
+            }).then(r => r.json());
+
             if (response.success) {
-                HabitacionNotificaciones.success(response.message || 'Estado actualizado');
-                HabitacionCache.invalidateAll();
-                await recargarDatos();
+                window.location.reload();
             } else {
-                HabitacionNotificaciones.error(response.error || 'Error al cambiar estado');
+                alert(response.error || 'Error al cambiar estado');
             }
         } catch (error) {
-            console.error('Error:', error);
-            HabitacionNotificaciones.error('Error de conexión');
+            alert('Error de conexión');
         }
     }
 
@@ -252,7 +188,7 @@ const HabitacionApp = (function() {
     };
 })();
 
-// Exponer globalmente para los eventos onclick
+// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('habitaciones-lista')) {
         window.habitacionApp = HabitacionApp;

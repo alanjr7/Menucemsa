@@ -22,6 +22,8 @@ return new class extends Migration
             $table->enum('tipo_ingreso', ['emergencia', 'quirofano', 'derivacion_interna'])->default('emergencia');
             $table->enum('tipo_pago', ['particular', 'seguro'])->default('particular');
             $table->unsignedBigInteger('seguro_id')->nullable();
+            $table->string('cuenta_cobro_id')->nullable()
+                ->comment('ID de la cuenta maestra del paciente');
             $table->string('nro_autorizacion', 50)->nullable();
             $table->timestamp('fecha_ingreso');
             $table->timestamp('fecha_alta_clinica')->nullable();

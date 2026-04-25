@@ -86,17 +86,20 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex" aria-label="Tabs">
-                        <button onclick="cambiarTab('transacciones')" id="tab-transacciones" class="w-1/4 py-4 px-1 text-center border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
+                        <button onclick="cambiarTab('transacciones')" id="tab-transacciones" class="w-1/5 py-4 px-1 text-center border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
                             Transacciones
                         </button>
-                        <button onclick="cambiarTab('control')" id="tab-control" class="w-1/4 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                        <button onclick="cambiarTab('control')" id="tab-control" class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
                             Control de Cajas
                         </button>
-                        <button onclick="cambiarTab('resumen')" id="tab-resumen" class="w-1/4 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                        <button onclick="cambiarTab('resumen')" id="tab-resumen" class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
                             Resumen Financiero
                         </button>
-                        <button onclick="cambiarTab('auditoria')" id="tab-auditoria" class="w-1/4 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                        <button onclick="cambiarTab('auditoria')" id="tab-auditoria" class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
                             Auditoría
+                        </button>
+                        <button onclick="cambiarTab('items-eliminados')" id="tab-items-eliminados" class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            Ítems Eliminados
                         </button>
                     </nav>
                 </div>
@@ -261,6 +264,46 @@
                     </div>
                     <div id="paginacionAuditoria" class="mt-4"></div>
                 </div>
+
+                <!-- Tab: Ítems Eliminados -->
+                <div id="panel-items-eliminados" class="p-4 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+                        <h4 class="text-md font-medium text-gray-900">Ítems Eliminados de Cuentas</h4>
+                        <div class="flex items-center space-x-2">
+                            <input type="date" id="filtroItemsEliminadosFechaInicio" class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <span class="text-gray-500">-</span>
+                            <input type="date" id="filtroItemsEliminadosFechaFin" class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <input type="text" id="filtroItemsEliminadosCuenta" placeholder="ID cuenta..." class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <button onclick="cargarItemsEliminados()" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Eliminación</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuenta</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cant.</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Eliminado por</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="tablaItemsEliminados">
+                                <tr><td colspan="10" class="px-4 py-4 text-center text-gray-500">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="paginacionItemsEliminados" class="mt-4"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -291,6 +334,8 @@
         let transaccionesPage = 1;
         let controlCajasPage = 1;
         let auditoriaPage = 1;
+        let itemsEliminadosPage = 1;
+        const userRole = @json(auth()->user()->role);
 
         document.addEventListener('DOMContentLoaded', function() {
             cargarEstadisticas();
@@ -303,12 +348,14 @@
             document.getElementById('filtroCajaFechaInicio').value = hoy;
             document.getElementById('filtroCajaFechaFin').value = hoy;
             document.getElementById('filtroAuditoriaFecha').value = hoy;
+            document.getElementById('filtroItemsEliminadosFechaInicio').value = hoy;
+            document.getElementById('filtroItemsEliminadosFechaFin').value = hoy;
         });
 
         // Cambiar entre tabs
         function cambiarTab(tab) {
             // Ocultar todos los panels
-            ['transacciones', 'control', 'resumen', 'auditoria'].forEach(t => {
+            ['transacciones', 'control', 'resumen', 'auditoria', 'items-eliminados'].forEach(t => {
                 document.getElementById('panel-' + t).classList.add('hidden');
                 document.getElementById('tab-' + t).classList.remove('border-blue-500', 'text-blue-600');
                 document.getElementById('tab-' + t).classList.add('border-transparent', 'text-gray-500');
@@ -322,6 +369,7 @@
             // Cargar datos según tab
             if (tab === 'control') cargarControlCajas();
             if (tab === 'auditoria') cargarAuditoria();
+            if (tab === 'items-eliminados') cargarItemsEliminados();
         }
 
         // Cargar estadísticas principales desde el servidor
@@ -587,9 +635,9 @@
                         <div class="border-t pt-4 mb-4">
                             <h5 class="font-medium text-gray-900 mb-2">Detalle de Cargos:</h5>
                             <table class="min-w-full text-sm">
-                                <thead><tr class="border-b"><th class="text-left py-1">Item</th><th class="text-right py-1">Cant.</th><th class="text-right py-1">Precio</th><th class="text-right py-1">Subtotal</th></tr></thead>
+                                <thead><tr class="border-b"><th class="text-left py-1">Item</th><th class="text-right py-1">Cant.</th><th class="text-right py-1">Precio</th><th class="text-right py-1">Subtotal</th>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? '<th class="text-center py-1">Acciones</th>' : ''}</tr></thead>
                                 <tbody>
-                                    ${t.detalles.map(d => `<tr class="border-b border-gray-100"><td class="py-1">${d.descripcion}</td><td class="text-right">${d.cantidad}</td><td class="text-right">S/ ${parseFloat(d.precio_unitario).toFixed(2)}</td><td class="text-right">S/ ${parseFloat(d.subtotal).toFixed(2)}</td></tr>`).join('')}
+                                    ${t.detalles.map(d => `<tr class="border-b border-gray-100"><td class="py-1">${d.descripcion}</td><td class="text-right">${d.cantidad}</td><td class="text-right">S/ ${parseFloat(d.precio_unitario).toFixed(2)}</td><td class="text-right">S/ ${parseFloat(d.subtotal).toFixed(2)}</td>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? `<td class="text-center py-1"><button onclick="eliminarDetalleItem('${d.id}', '${d.descripcion.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-900 text-xs">Eliminar</button></td>` : ''}</tr>`).join('')}
                                 </tbody>
                                 <tfoot>
                                     <tr class="font-bold"><td colspan="3" class="text-right py-2">Total:</td><td class="text-right py-2">S/ ${parseFloat(t.total_calculado).toFixed(2)}</td></tr>
@@ -621,11 +669,88 @@
                             </div>
                         ` : '<div class="border-t pt-4"><p class="text-yellow-600 text-sm"><strong>Sin datos de facturación completos</strong></p></div>'}
                     `;
+                    document.getElementById('detalleTransaccionContent').dataset.cuentaId = id;
                     document.getElementById('modalDetalle').classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error al cargar detalle');
+            }
+        }
+
+        async function eliminarDetalleItem(detalleId, descripcion) {
+            const motivo = prompt('Motivo de eliminación del ítem: ' + descripcion);
+            if (!motivo || motivo.trim() === '') return;
+
+            if (!confirm('¿Confirmar eliminación del ítem "' + descripcion + '"?')) return;
+
+            try {
+                const url = '{{ route('caja.gestion.eliminar-detalle', ['detalleId' => 'DETALLE_ID']) }}'.replace('DETALLE_ID', detalleId);
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ motivo: motivo.trim() })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Ítem eliminado correctamente.');
+                    const cuentaIdActual = document.getElementById('detalleTransaccionContent').dataset.cuentaId;
+                    if (cuentaIdActual) verDetalleTransaccion(cuentaIdActual);
+                    cargarTransacciones();
+                } else {
+                    alert(data.message || 'Error al eliminar.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de red al eliminar ítem.');
+            }
+        }
+
+        async function cargarItemsEliminados(page = 1) {
+            try {
+                const params = new URLSearchParams({
+                    fecha_inicio: document.getElementById('filtroItemsEliminadosFechaInicio').value,
+                    fecha_fin: document.getElementById('filtroItemsEliminadosFechaFin').value,
+                    cuenta_cobro_id: document.getElementById('filtroItemsEliminadosCuenta').value,
+                    page: page
+                });
+
+                const response = await fetch(`{{ route('caja.gestion.detalles-eliminados') }}?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('tablaItemsEliminados');
+                    if (data.eliminados.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="10" class="px-4 py-4 text-center text-gray-500">No hay ítems eliminados</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.eliminados.data.map(item => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.eliminado_en}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.cuenta_cobro_id.substring(0, 15)}...</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${item.paciente.nombre}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.tipo_item}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${item.descripcion}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right">${item.cantidad}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right">S/ ${parseFloat(item.precio_unitario).toFixed(2)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-red-600">S/ ${parseFloat(item.subtotal).toFixed(2)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.motivo_eliminacion}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.usuario}</td>
+                        </tr>
+                    `).join('');
+
+                    renderizarPaginacion('paginacionItemsEliminados', data.eliminados, 'cargarItemsEliminados');
+                } else {
+                    document.getElementById('tablaItemsEliminados').innerHTML = `<tr><td colspan="10" class="px-4 py-4 text-center text-red-500">${data.message || 'Error al cargar datos'}</td></tr>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('tablaItemsEliminados').innerHTML = '<tr><td colspan="10" class="px-4 py-4 text-center text-red-500">Error de red o servidor</td></tr>';
             }
         }
 

@@ -36,7 +36,23 @@ class HabitacionGestionController extends Controller
             'camas_ocupadas' => Cama::where('disponibilidad', 'ocupada')->count(),
         ];
 
-        return view('internacion-staff.habitaciones.index', compact('stats'));
+        $habitaciones = Habitacion::with(['camas' => function($q) {
+                $q->orderBy('nro')->with(['hospitalizacionActiva.paciente']);
+            }])
+            ->withCount(['camas as camas_disponibles' => fn($q) => $q->where('disponibilidad', 'disponible')])
+            ->withCount('camas')
+            ->orderBy('id')
+            ->get();
+
+        $pacientesSinHabitacion = \App\Models\Hospitalizacion::whereNull('fecha_alta')
+            ->whereNull('habitacion_id')
+            ->with('paciente')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->unique('ci_paciente')
+            ->values();
+
+        return view('internacion-staff.habitaciones.index', compact('stats', 'habitaciones', 'pacientesSinHabitacion'));
     }
 
     public function create(): View
@@ -125,8 +141,15 @@ class HabitacionGestionController extends Controller
         }
     }
 
-    public function destroy(Habitacion $habitacion): RedirectResponse
+    public function destroy(Habitacion $habitacion)
     {
+        if (request()->wantsJson()) {
+            if ($habitacion->estado === 'mantenimiento') {
+                return $this->activarHabitacionAjax($habitacion);
+            }
+            return $this->marcarMantenimientoAjax($habitacion);
+        }
+
         if ($habitacion->estado === 'mantenimiento') {
             return $this->activarHabitacion($habitacion);
         }
@@ -160,5 +183,39 @@ class HabitacionGestionController extends Controller
 
         return redirect()->route('internacion-staff.habitaciones.index')
             ->with('success', 'Habitación marcada en mantenimiento.');
+    }
+
+    private function activarHabitacionAjax(Habitacion $habitacion): array
+    {
+        $tieneCamasOcupadas = $habitacion->camas()->where('disponibilidad', 'ocupada')->exists();
+        $nuevoEstado = $tieneCamasOcupadas ? 'ocupada' : 'disponible';
+
+        $habitacion->update(['estado' => $nuevoEstado]);
+
+        return [
+            'success' => true,
+            'message' => $tieneCamasOcupadas
+                ? 'Habitación activada y marcada como ocupada.'
+                : 'Habitación activada y marcada como disponible.'
+        ];
+    }
+
+    private function marcarMantenimientoAjax(Habitacion $habitacion): array
+    {
+        $camasOcupadas = $habitacion->camas()->where('disponibilidad', 'ocupada')->count();
+
+        if ($camasOcupadas > 0) {
+            return [
+                'success' => false,
+                'error' => 'No se puede poner en mantenimiento una habitación con camas ocupadas.'
+            ];
+        }
+
+        $habitacion->update(['estado' => 'mantenimiento']);
+
+        return [
+            'success' => true,
+            'message' => 'Habitación marcada en mantenimiento.'
+        ];
     }
 }

@@ -108,39 +108,161 @@
                 </div>
             </div>
             <!-- Lista -->
-            <div id="habitaciones-lista" class="flex-1 overflow-y-auto">
-                <div class="p-8 text-center text-gray-500">
-                    <div class="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-                    <p class="text-sm">Cargando habitaciones...</p>
-                </div>
+            <div id="habitaciones-lista" class="flex-1 overflow-y-auto" data-habitaciones='@json($habitaciones)'>
+                @forelse($habitaciones as $habitacion)
+                    @php
+                        $libres = $habitacion->camas_disponibles ?? 0;
+                        $total = $habitacion->camas_count ?? 0;
+                        $ocupadas = $total - $libres;
+                        $color = match($habitacion->estado) {
+                            'disponible' => 'green',
+                            'ocupada' => 'yellow',
+                            'mantenimiento' => 'red',
+                            default => 'gray',
+                        };
+                    @endphp
+                    <div class="habitacion-item cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition border-l-4 border-l-transparent"
+                         data-id="{{ $habitacion->id }}"
+                         data-estado="{{ $habitacion->estado }}"
+                         onclick="window.habitacionApp.seleccionarHabitacion('{{ $habitacion->id }}')">
+                        <div class="p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-semibold text-gray-900">Habitación {{ $habitacion->id }}</h4>
+                                <span class="px-2 py-0.5 text-xs rounded-full bg-{{ $color }}-100 text-{{ $color }}-800">
+                                    {{ ucfirst($habitacion->estado) }}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-500 truncate">{{ $habitacion->detalle ?: 'Sin detalle' }}</p>
+                            <div class="mt-2 flex items-center text-xs text-gray-500 gap-3">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                                    </svg>
+                                    {{ $total }} camas
+                                </span>
+                                @if($ocupadas > 0)
+                                    <span class="text-amber-600 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/>
+                                        </svg>
+                                        {{ $ocupadas }} ocupadas
+                                    </span>
+                                @else
+                                    <span class="text-emerald-600 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Disponible
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="p-8 text-center text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        <p>No hay habitaciones registradas</p>
+                    </div>
+                @endforelse
             </div>
         </div>
 
-        <!-- Panel Derecho: Detalle de Habitación -->
-        <div class="w-2/3 bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto">
-            <div id="habitacion-detalle" data-estado="">
-                <div class="h-full min-h-[400px] flex items-center justify-center bg-slate-50">
-                    <div class="text-center p-8">
-                        <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-semibold text-slate-700 mb-2">Selecciona una habitación</h3>
-                        <p class="text-sm text-slate-500 max-w-xs">Haz clic en una habitación de la lista para ver sus detalles, camas disponibles y asignar pacientes.</p>
+        <!-- Panel Derecho: Detalle de Habitación (renderizado server-side) -->
+        <div class="w-2/3 bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto relative">
+            <!-- Estado vacío -->
+            <div id="detalle-vacio" class="h-full min-h-[400px] flex items-center justify-center bg-slate-50">
+                <div class="text-center p-8">
+                    <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
                     </div>
+                    <h3 class="text-lg font-semibold text-slate-700 mb-2">Selecciona una habitación</h3>
+                    <p class="text-sm text-slate-500 max-w-xs">Haz clic en una habitación de la lista para ver sus detalles.</p>
                 </div>
+            </div>
+
+            <!-- Detalles de todas las habitaciones (ocultos) -->
+            <div id="habitacion-detalle-container" data-pacientes='@json($pacientesSinHabitacion)'>
+                @foreach($habitaciones as $habitacion)
+                    @php
+                        $colorDetalle = match($habitacion->estado) {
+                            'disponible' => 'green',
+                            'ocupada' => 'yellow',
+                            'mantenimiento' => 'red',
+                            default => 'gray',
+                        };
+                    @endphp
+                    <div id="detalle-{{ $habitacion->id }}" class="habitacion-detalle-panel hidden p-6" data-estado="{{ $habitacion->estado }}">
+                        <div class="flex items-center justify-between mb-4 pb-4 border-b">
+                            <h2 class="text-xl font-bold text-gray-900">Habitación {{ $habitacion->id }}</h2>
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-{{ $colorDetalle }}-100 text-{{ $colorDetalle }}-800">
+                                {{ ucfirst($habitacion->estado) }}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach($habitacion->camas as $cama)
+                                @if($cama->disponibilidad === 'ocupada' && $cama->hospitalizacionActiva)
+                                    @php $paciente = $cama->hospitalizacionActiva->paciente; @endphp
+                                    <div class="border-2 border-red-200 bg-red-50 rounded-lg p-4">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="font-semibold text-gray-900">Cama {{ $cama->nro }}</span>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Ocupada</span>
+                                        </div>
+                                        <div class="bg-white rounded p-3 mb-3">
+                                            <p class="text-sm font-medium text-gray-900">{{ $paciente?->nombre ?? 'N/A' }}</p>
+                                            <p class="text-xs text-gray-500">CI: {{ $paciente?->ci ?? 'N/A' }}</p>
+                                        </div>
+                                        <button onclick="window.habitacionApp.liberarCama('{{ $cama->id }}')"
+                                                class="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition">
+                                            Liberar Cama
+                                        </button>
+                                    </div>
+                                @elseif($cama->disponibilidad === 'disponible')
+                                    <div class="border-2 border-green-200 bg-green-50 rounded-lg p-4">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="font-semibold text-gray-900">Cama {{ $cama->nro }}</span>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Disponible</span>
+                                        </div>
+                                        <button onclick="window.habitacionApp.mostrarModalAsignar({{ $cama->id }}, '{{ $habitacion->id }}')"
+                                                class="w-full px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
+                                            Asignar Paciente
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="border-2 border-gray-200 bg-gray-50 rounded-lg p-4">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-semibold text-gray-900">Cama {{ $cama->nro }}</span>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Mantenimiento</span>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+
+                        @php $isMantenimiento = $habitacion->estado === 'mantenimiento'; @endphp
+                        <div class="flex gap-3 mt-6 pt-6 border-t">
+                            <a href="/internacion-staff/habitaciones/{{ $habitacion->id }}/edit"
+                               class="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm">
+                                Editar Habitación
+                            </a>
+                            <button onclick="window.habitacionApp.toggleMantenimiento('{{ $habitacion->id }}')"
+                                    class="flex-1 flex items-center justify-center px-4 py-2 {{ $isMantenimiento ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700' }} text-white rounded-lg transition text-sm">
+                                {{ $isMantenimiento ? 'Activar' : 'Mantenimiento' }}
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
     </div>
 </div>
 
-<!-- Módulos JavaScript optimizados -->
-<script src="{{ asset('js/habitaciones/cache.js') }}" defer></script>
-<script src="{{ asset('js/habitaciones/api.js') }}" defer></script>
+<!-- Scripts necesarios -->
 <script src="{{ asset('js/habitaciones/ui-notificaciones.js') }}" defer></script>
 <script src="{{ asset('js/habitaciones/ui-modal.js') }}" defer></script>
-<script src="{{ asset('js/habitaciones/ui-lista.js') }}" defer></script>
-<script src="{{ asset('js/habitaciones/ui-detalle.js') }}" defer></script>
 <script src="{{ asset('js/habitaciones/app.js') }}" defer></script>
 @endsection

@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('origen_id')->nullable();
             $table->string('origen_type')->nullable();
             $table->text('observaciones')->nullable();
+            $table->string('area_origen', 50)->nullable()
+                ->comment('emergencia|quirofano|internacion|uti|farmacia|consulta_externa');
             $table->timestamps();
 
             // Foreign keys

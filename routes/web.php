@@ -268,6 +268,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/auditoria', [CajaGestionController::class, 'getAuditoria'])->name('auditoria');
         Route::get('/datos-facturacion', [CajaGestionController::class, 'getDatosFacturacion'])->name('datos-facturacion');
         Route::get('/usuarios-caja', [CajaGestionController::class, 'getUsuariosCaja'])->name('usuarios-caja');
+        Route::delete('/detalles/{detalleId}', [CajaGestionController::class, 'eliminarDetalle'])->name('eliminar-detalle');
+        Route::get('/detalles-eliminados', [CajaGestionController::class, 'getDetallesEliminados'])->name('detalles-eliminados');
     });
 
     // Sistema antiguo de caja ELIMINADO - usar /caja-operativa o /caja-gestion
