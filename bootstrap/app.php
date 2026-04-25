@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class,
             'user.status' => \App\Http\Middleware\CheckUserStatus::class,
             'force.http' => \App\Http\Middleware\ForceHttp::class,
+            'ip.access' => \App\Http\Middleware\CheckIpAccess::class,
         ]);
         
         // Aplicar el middleware de estado a todas las rutas web

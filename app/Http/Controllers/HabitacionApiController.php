@@ -47,10 +47,15 @@ class HabitacionApiController extends Controller
 
     public function pacientesSinHabitacion(): JsonResponse
     {
+        // Obtener solo el registro de hospitalización más reciente por paciente
+        // para evitar duplicados cuando un mismo paciente tiene múltiples registros abiertos
         $pacientes = Hospitalizacion::whereNull('fecha_alta')
             ->whereNull('habitacion_id')
             ->with('paciente')
+            ->orderBy('created_at', 'desc')
             ->get()
+            ->unique('ci_paciente')   // deduplicar: quedarse con el más reciente por CI
+            ->values()
             ->map(fn($h) => [
                 'id' => $h->id,
                 'paciente' => [

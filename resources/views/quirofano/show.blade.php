@@ -239,7 +239,7 @@
                 </div>
             </div>
 
-            @if(in_array($cita->estado, ['programada', 'en_curso']) && Auth::user()->isAdmin())
+            @if(in_array($cita->estado, ['programada', 'en_curso']) && (Auth::user()->isAdmin() || Auth::user()->isCirujano() || Auth::user()->hasRole('administrador')))
             <!-- Medicamentos e Insumos -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
                 <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center">
@@ -601,6 +601,47 @@
             </div>
             @endif
 
+            @if(in_array($cita->estado, ['programada', 'en_curso']) && (Auth::user()->isAdmin() || Auth::user()->isCirujano() || Auth::user()->hasRole('administrador')))
+            <!-- Equipos Médicos y Procedimientos -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
+                    Equipos Médicos y Procedimientos
+                </h3>
+
+                <!-- Lista de equipos médicos agregados -->
+                <div id="lista-equipos-medicos" class="space-y-2 mb-4">
+                    <div class="text-center text-gray-500 text-sm py-4">
+                        Cargando equipos médicos...
+                    </div>
+                </div>
+
+                <!-- Formulario para agregar equipo médico -->
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Equipo/Procedimiento</h4>
+                    <div class="space-y-3">
+                        <input type="text" id="nombre-equipo-medico" placeholder="Nombre del equipo o procedimiento"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <div class="flex gap-3">
+                            <input type="number" id="precio-equipo-medico" placeholder="Precio (Bs.)" min="0" step="0.01"
+                                   class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <input type="number" id="cantidad-equipo-medico" placeholder="Cantidad" min="1" value="1"
+                                   class="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        </div>
+                        <button onclick="agregarEquipoMedicoCirugia()"
+                                class="w-full bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Agregar Equipo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Timeline -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Timeline</h3>
@@ -787,7 +828,7 @@ let medicamentosDisponiblesDesktop = [];
 
 // Cargar medicamentos disponibles al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
-    @if(in_array($cita->estado, ['programada', 'en_curso']) && Auth::user()->isAdmin())
+    @if(in_array($cita->estado, ['programada', 'en_curso']) && (Auth::user()->isAdmin() || Auth::user()->isCirujano() || Auth::user()->hasRole('administrador')))
     // Cargar para versión móvil
     if (document.getElementById('buscar-medicamento')) {
         cargarMedicamentosDisponibles();
@@ -1167,7 +1208,7 @@ async function agregarMedicamentoCirugiaDesktop() {
         });
         
         const data = await response.json();
-        
+
         if (data.success) {
             // Recargar listas
             cargarMedicamentosDisponiblesDesktop();
@@ -1183,5 +1224,122 @@ async function agregarMedicamentoCirugiaDesktop() {
         alert('Error al agregar medicamento');
     }
 }
+
+// Funciones para equipos médicos en cirugía
+async function cargarEquiposMedicos() {
+    try {
+        const response = await fetch('{{ route("quirofano.equipos-medicos.lista", $cita) }}', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+        const data = await response.json();
+
+        const container = document.getElementById('lista-equipos-medicos');
+        if (!container) return;
+
+        if (data.success && data.equipos.length > 0) {
+            container.innerHTML = '';
+            let totalEquipos = 0;
+
+            data.equipos.forEach(equipo => {
+                totalEquipos += parseFloat(equipo.subtotal);
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-gray-50 rounded-lg p-3';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-medium text-sm text-gray-900">${equipo.nombre}</p>
+                        <p class="text-xs text-gray-500">${equipo.cantidad} x Bs.${parseFloat(equipo.precio_unitario).toFixed(2)}</p>
+                    </div>
+                    <span class="font-semibold text-sm text-cyan-600">Bs.${parseFloat(equipo.subtotal).toFixed(2)}</span>
+                `;
+                container.appendChild(div);
+            });
+
+            // Agregar total
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'flex justify-between items-center border-t border-gray-200 pt-2 mt-2';
+            totalDiv.innerHTML = `
+                <span class="font-semibold text-sm text-gray-700">Total Equipos:</span>
+                <span class="font-bold text-cyan-600">Bs.${totalEquipos.toFixed(2)}</span>
+            `;
+            container.appendChild(totalDiv);
+        } else {
+            container.innerHTML = '<div class="text-center text-gray-400 text-sm py-4">No hay equipos médicos agregados aún</div>';
+        }
+    } catch (error) {
+        console.error('Error cargando equipos médicos:', error);
+        const container = document.getElementById('lista-equipos-medicos');
+        if (container) {
+            container.innerHTML = '<div class="text-center text-red-400 text-sm py-4">Error al cargar equipos médicos</div>';
+        }
+    }
+}
+
+async function agregarEquipoMedicoCirugia() {
+    const nombreInput = document.getElementById('nombre-equipo-medico');
+    const precioInput = document.getElementById('precio-equipo-medico');
+    const cantidadInput = document.getElementById('cantidad-equipo-medico');
+
+    const nombre = nombreInput.value.trim();
+    const precio = parseFloat(precioInput.value);
+    const cantidad = parseInt(cantidadInput.value);
+
+    if (!nombre) {
+        alert('Por favor ingrese el nombre del equipo o procedimiento');
+        return;
+    }
+
+    if (isNaN(precio) || precio < 0) {
+        alert('Por favor ingrese un precio válido');
+        return;
+    }
+
+    if (isNaN(cantidad) || cantidad < 1) {
+        alert('Por favor ingrese una cantidad válida');
+        return;
+    }
+
+    try {
+        const response = await fetch('{{ route("quirofano.equipos-medicos.agregar", $cita) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                nombre: nombre,
+                precio: precio,
+                cantidad: cantidad
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Recargar lista
+            cargarEquiposMedicos();
+            // Resetear formulario
+            nombreInput.value = '';
+            precioInput.value = '';
+            cantidadInput.value = '1';
+        } else {
+            alert(data.message || 'Error al agregar equipo médico');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al agregar equipo médico');
+    }
+}
+
+// Cargar equipos médicos al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    @if(in_array($cita->estado, ['programada', 'en_curso']) && (Auth::user()->isAdmin() || Auth::user()->isCirujano() || Auth::user()->hasRole('administrador')))
+    if (document.getElementById('lista-equipos-medicos')) {
+        cargarEquiposMedicos();
+    }
+    @endif
+});
 </script>
 @endsection

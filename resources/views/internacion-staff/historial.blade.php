@@ -41,7 +41,21 @@
         $totalMedicamentos = $medicamentos->sum(function($m) { return $m->medicamento?->precio * $m->cantidad ?? 0; });
         $totalCatering = $catering->where('estado', 'dado')->sum('precio');
         $totalDrenajes = $drenajes->where('realizado', true)->sum('precio');
-        $totalGeneral = $costoEstancia + $totalMedicamentos + $totalCatering + $totalDrenajes;
+
+        // Calcular total equipos médicos
+        $equiposMedicosList = [];
+        $totalEquiposMedicos = 0;
+        $equiposMedicosData = $hospitalizacion->equipos_medicos ?? [];
+        foreach ($equiposMedicosData as $evolucion) {
+            if (isset($evolucion['equipos_medicos']) && is_array($evolucion['equipos_medicos'])) {
+                foreach ($evolucion['equipos_medicos'] as $equipo) {
+                    $equiposMedicosList[] = $equipo;
+                    $totalEquiposMedicos += $equipo['subtotal'] ?? 0;
+                }
+            }
+        }
+
+        $totalGeneral = $costoEstancia + $totalMedicamentos + $totalCatering + $totalDrenajes + $totalEquiposMedicos;
     @endphp
 
     <!-- Navegación de Tabs -->
@@ -65,6 +79,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
                 Servicios
+                <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs">{{ count($equiposMedicosList) }}</span>
             </button>
             <button onclick="cambiarTab('medica')" class="tab-btn flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 border-transparent hover:bg-slate-50 transition-all whitespace-nowrap" data-tab="medica">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -219,7 +234,7 @@
             </div>
         </div>
         <div class="p-6">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
                     <p class="text-xs text-slate-500 uppercase">Estancia</p>
                     <p class="text-lg font-semibold text-slate-800">{{ $diasEstancia }} {{ $diasEstancia == 1 ? 'día' : 'días' }}</p>
@@ -239,6 +254,11 @@
                     <p class="text-xs text-cyan-600 uppercase">Drenajes</p>
                     <p class="text-lg font-semibold text-cyan-800">{{ $drenajes->where('realizado', true)->count() }} proc.</p>
                     <p class="text-sm text-cyan-600">Bs. {{ number_format($totalDrenajes, 2) }}</p>
+                </div>
+                <div class="bg-teal-50 rounded-lg p-4 border border-teal-200">
+                    <p class="text-xs text-teal-600 uppercase">Equipos Médicos</p>
+                    <p class="text-lg font-semibold text-teal-800">{{ count($equiposMedicosList) }} equipos</p>
+                    <p class="text-sm text-teal-600">Bs. {{ number_format($totalEquiposMedicos, 2) }}</p>
                 </div>
             </div>
         </div>
@@ -424,6 +444,59 @@
                 @endif
             </div>
         </div>
+
+        <!-- Equipos Médicos -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-cyan-50 to-teal-50 border-b border-cyan-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-cyan-600 rounded-lg flex items-center justify-center shadow-md">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-cyan-900">Equipos Médicos</h3>
+                            <p class="text-xs text-cyan-600">{{ count($equiposMedicosList) }} equipos/procedimientos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                @if(count($equiposMedicosList) > 0)
+                <div class="space-y-3">
+                    @foreach($equiposMedicosList as $equipo)
+                    <div class="flex items-center justify-between p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">{{ $equipo['nombre'] }}</p>
+                                <p class="text-xs text-slate-500">{{ $equipo['cantidad'] }} x Bs. {{ number_format($equipo['precio_unitario'] ?? $equipo['precio'] ?? 0, 2) }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-medium text-slate-700">Bs. {{ number_format($equipo['subtotal'] ?? 0, 2) }}</span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-slate-600">Total Equipos Médicos</span>
+                        <span class="text-lg font-bold text-cyan-700">Bs. {{ number_format($totalEquiposMedicos, 2) }}</span>
+                    </div>
+                </div>
+                @else
+                <div class="text-center py-6">
+                    <p class="text-slate-400">No hay equipos médicos registrados</p>
+                </div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 
@@ -556,6 +629,7 @@
                                     @case('medicamento') bg-indigo-500 ring-indigo-100 @break
                                     @case('catering') bg-orange-500 ring-orange-100 @break
                                     @case('drenaje') bg-cyan-500 ring-cyan-100 @break
+                                    @case('equipo_medico') bg-teal-500 ring-teal-100 @break
                                     @case('alta') bg-green-500 ring-green-100 @break
                                     @default bg-slate-500 ring-slate-100 @break
                                 @endswitch">
@@ -578,6 +652,11 @@
                                     @case('drenaje')
                                         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                                        </svg>
+                                        @break
+                                    @case('equipo_medico')
+                                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
                                         </svg>
                                         @break
                                     @case('alta')
@@ -608,10 +687,11 @@
                                             @case('medicamento') bg-indigo-100 text-indigo-700 @break
                                             @case('catering') bg-orange-100 text-orange-700 @break
                                             @case('drenaje') bg-cyan-100 text-cyan-700 @break
+                                            @case('equipo_medico') bg-teal-100 text-teal-700 @break
                                             @case('alta') bg-green-100 text-green-700 @break
                                             @default bg-slate-100 text-slate-700 @break
                                         @endswitch">
-                                        {{ ucfirst($evento['tipo']) }}
+                                        {{ ucfirst(str_replace('_', ' ', $evento['tipo'])) }}
                                     </span>
                                 </div>
                                 @if($evento['descripcion'])
@@ -645,6 +725,12 @@
                                             <span class="ml-3 inline-block px-2 py-0.5 rounded text-xs {{ $evento['detalles']['realizado'] ? 'bg-cyan-100 text-cyan-700' : 'bg-gray-100 text-gray-700' }}">
                                                 {{ $evento['detalles']['realizado'] ? 'Realizado' : 'No realizado' }}
                                             </span>
+                                        </div>
+                                    @elseif($evento['tipo'] === 'equipo_medico')
+                                        <div class="text-sm">
+                                            <span class="text-slate-600">Cantidad: <strong>{{ $evento['detalles']['cantidad'] }}</strong></span>
+                                            <span class="ml-3 text-slate-600">Precio: <strong>Bs. {{ number_format($evento['detalles']['precio_unitario'] ?? $evento['detalles']['precio'] ?? 0, 2) }}</strong></span>
+                                            <span class="ml-3 text-teal-600 font-semibold">Subtotal: Bs. {{ number_format($evento['detalles']['subtotal'] ?? 0, 2) }}</span>
                                         </div>
                                     @endif
                                 </div>

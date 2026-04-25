@@ -258,7 +258,51 @@ $medsArray = [];
         </div>
         @endif
 
-        <!-- Sección 4: Motivo y Observaciones -->
+        <!-- Sección 4: Equipos Médicos y Procedimientos -->
+        @if($hasPermission('aplicar_medicamentos'))
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Equipos Médicos y Procedimientos</h3>
+                        <p class="text-sm text-gray-500">Agregue equipos o procedimientos utilizados</p>
+                    </div>
+                </div>
+                <button type="button" onclick="agregarEquipoMedico()" class="flex items-center px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors text-sm font-medium">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Agregar Equipo
+                </button>
+            </div>
+
+            <!-- Lista de equipos médicos seleccionados -->
+            <div id="listaEquiposMedicos" class="space-y-3">
+                <div id="mensajeVacioEquipos" class="text-center py-8 bg-gray-50 rounded-xl">
+                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
+                    <p class="text-gray-500 text-sm">No hay equipos médicos agregados</p>
+                    <p class="text-gray-400 text-xs mt-1">Haga clic en "Agregar Equipo" para registrar</p>
+                </div>
+            </div>
+
+            <!-- Total estimado -->
+            <div id="resumenCostosEquipos" class="hidden mt-6 pt-6 border-t border-gray-200">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total estimado de equipos:</span>
+                    <span class="text-2xl font-bold text-cyan-600" id="totalEquiposMedicos">Bs. 0.00</span>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <!-- Sección 5: Motivo y Observaciones -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
@@ -520,6 +564,138 @@ $medsArray = [];
         document.getElementById('totalMedicamentos').textContent = 'Bs. ' + total.toFixed(2);
     }
 
+    // Variables y funciones para equipos médicos
+    let equiposMedicosSeleccionados = [];
+
+    function agregarEquipoMedico() {
+        // Crear modal para agregar equipo médico
+        const nombre = prompt('Nombre del equipo o procedimiento:');
+        if (!nombre || nombre.trim() === '') return;
+
+        const precioStr = prompt('Precio unitario (Bs.):');
+        if (!precioStr || precioStr.trim() === '') return;
+
+        const precio = parseFloat(precioStr);
+        if (isNaN(precio) || precio < 0) {
+            alert('Precio inválido');
+            return;
+        }
+
+        const cantidadStr = prompt('Cantidad (default: 1):', '1');
+        const cantidad = cantidadStr ? parseInt(cantidadStr) : 1;
+        if (isNaN(cantidad) || cantidad < 1) {
+            alert('Cantidad inválida');
+            return;
+        }
+
+        const equipo = {
+            id: Date.now(), // ID temporal único
+            nombre: nombre.trim(),
+            precio: precio,
+            cantidad: cantidad
+        };
+
+        equiposMedicosSeleccionados.push(equipo);
+        renderizarEquiposMedicos();
+    }
+
+    function eliminarEquipoMedico(index) {
+        equiposMedicosSeleccionados.splice(index, 1);
+        renderizarEquiposMedicos();
+    }
+
+    function actualizarCantidadEquipo(index, cantidad) {
+        cantidad = parseInt(cantidad);
+        if (cantidad < 1) cantidad = 1;
+        equiposMedicosSeleccionados[index].cantidad = cantidad;
+        renderizarEquiposMedicos();
+    }
+
+    function actualizarPrecioEquipo(index, precio) {
+        precio = parseFloat(precio);
+        if (precio < 0) precio = 0;
+        equiposMedicosSeleccionados[index].precio = precio;
+        renderizarEquiposMedicos();
+    }
+
+    function renderizarEquiposMedicos() {
+        const contenedor = document.getElementById('listaEquiposMedicos');
+        const mensajeVacio = document.getElementById('mensajeVacioEquipos');
+        const resumenCostos = document.getElementById('resumenCostosEquipos');
+
+        if (equiposMedicosSeleccionados.length === 0) {
+            mensajeVacio.style.display = 'block';
+            resumenCostos.classList.add('hidden');
+            Array.from(contenedor.children).forEach(child => {
+                if (child.id !== 'mensajeVacioEquipos') {
+                    child.remove();
+                }
+            });
+            return;
+        }
+
+        mensajeVacio.style.display = 'none';
+        resumenCostos.classList.remove('hidden');
+
+        Array.from(contenedor.children).forEach(child => {
+            if (child.id !== 'mensajeVacioEquipos') {
+                child.remove();
+            }
+        });
+
+        let total = 0;
+
+        equiposMedicosSeleccionados.forEach((equipo, index) => {
+            const subtotal = equipo.precio * equipo.cantidad;
+            total += subtotal;
+
+            const item = document.createElement('div');
+            item.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
+            item.innerHTML = `
+                <div class="flex-1">
+                    <h4 class="font-semibold text-gray-800">${equipo.nombre}</h4>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-sm text-gray-500">Bs.</span>
+                        <input type="number" value="${equipo.precio.toFixed(2)}" min="0" step="0.01"
+                            onchange="actualizarPrecioEquipo(${index}, this.value)"
+                            class="w-24 text-sm border border-gray-200 rounded-lg px-2 py-1">
+                        <span class="text-sm text-gray-500">x</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="actualizarCantidadEquipo(${index}, ${equipo.cantidad - 1})"
+                        class="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                        ${equipo.cantidad <= 1 ? 'disabled' : ''}>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                        </svg>
+                    </button>
+                    <input type="number" value="${equipo.cantidad}" min="1"
+                        onchange="actualizarCantidadEquipo(${index}, this.value)"
+                        class="w-16 text-center border border-gray-200 rounded-lg py-1 text-sm">
+                    <button type="button" onclick="actualizarCantidadEquipo(${index}, ${equipo.cantidad + 1})"
+                        class="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="text-right min-w-[100px]">
+                    <span class="block font-bold text-cyan-600">Bs. ${subtotal.toFixed(2)}</span>
+                </div>
+                <button type="button" onclick="eliminarEquipoMedico(${index})"
+                    class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            `;
+            contenedor.appendChild(item);
+        });
+
+        document.getElementById('totalEquiposMedicos').textContent = 'Bs. ' + total.toFixed(2);
+    }
+
     // Cerrar modal al hacer click fuera
     document.getElementById('modalMedicamentos').addEventListener('click', function(e) {
         if (e.target === this) {
@@ -555,6 +731,11 @@ $medsArray = [];
             medicamentos: medicamentosSeleccionados.map(m => ({
                 id: m.id,
                 cantidad: m.cantidad
+            })),
+            equipos_medicos: equiposMedicosSeleccionados.map(e => ({
+                nombre: e.nombre,
+                precio: e.precio,
+                cantidad: e.cantidad
             }))
         };
 

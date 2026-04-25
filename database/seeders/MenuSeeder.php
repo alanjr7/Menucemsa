@@ -37,6 +37,23 @@ class MenuSeeder extends Seeder
             'order' => 20,
         ]);
 
+        // 2.5 Historial de Pacientes (Recepción)
+        $historialPacientes = Menu::create([
+            'name' => 'Historial de Pacientes',
+            'active_pattern' => 'reception.pacientes*',
+            'icon_path' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+            'color' => 'blue',
+            'roles' => 'reception',
+            'order' => 22,
+        ]);
+
+        $historialPacientes->children()->create([
+            'name' => 'Buscar Pacientes',
+            'route' => 'reception.pacientes.index',
+            'roles' => 'reception',
+            'order' => 1,
+        ]);
+
         // 3. Panel Enfermería Emergencia (Con Submenús)
         $panelEnfermeria = Menu::create([
             'name' => 'Panel Enfermería Emergencia',
@@ -97,8 +114,9 @@ class MenuSeeder extends Seeder
         $adminEmergencias->children()->createMany([
             ['name' => 'Dashboard', 'route' => 'emergency-staff.dashboard', 'roles' => 'admin,dir_medico,administrador', 'order' => 1],
             ['name' => 'Gestión Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'admin', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'admin', 'order' => 4],
+            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Historial', 'route' => 'emergency-staff.historial.general', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
 
         // 5. Pacientes (Con Submenús) - Admin/Director Médico/Doctor/Administrador
@@ -116,7 +134,7 @@ class MenuSeeder extends Seeder
             ['name' => 'UTI - Administración', 'route' => 'uti.admin.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 2],
             ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 3],
             ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 4],
-            ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 5],
+          //  ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 5],
             ['name' => 'Consulta Externa', 'route' => 'consulta.index', 'roles' => 'doctor', 'order' => 6],
             ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
         ]);
@@ -151,12 +169,12 @@ class MenuSeeder extends Seeder
 
             // Gestión Hospitalaria
             ['name' => 'Almacén Central', 'route' => 'admin.almacen-medicamentos.index', 'roles' => 'admin,administrador', 'order' => 10],
-            ['name' => 'Farmacias', 'route' => 'farmacias.index', 'roles' => 'admin,administrador', 'order' => 11],
+           // ['name' => 'Farmacias', 'route' => 'farmacias.index', 'roles' => 'admin,administrador', 'order' => 11],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 13],
 
             // Gestión Operativa y Financiera
             ['name' => 'Gestionar Consulta Externa', 'route' => 'admin.consulta-externa-gestion', 'roles' => 'admin,administrador', 'order' => 20],
-            ['name' => 'Facturación', 'route' => 'admin.facturacion.index', 'roles' => 'admin,administrador', 'order' => 21],
+           // ['name' => 'Facturación', 'route' => 'admin.facturacion.index', 'roles' => 'admin,administrador', 'order' => 21],
             ['name' => 'Cuentas por Cobrar', 'route' => 'admin.cuentas', 'roles' => 'admin,administrador', 'order' => 22],
         ]);
 
@@ -236,9 +254,11 @@ class MenuSeeder extends Seeder
         ]);
 
         $adminInternacion->children()->createMany([
-            ['name' => 'Gestión Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 1],
-            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'admin', 'order' => 2],
-            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'admin', 'order' => 3],
+            //['name' => 'Gestión Internación', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 1],
+            ['name' => 'Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
 
         // 12. Gerencial
@@ -269,6 +289,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Bitácora de Actividades', 'route' => 'seguridad.activity-logs.index', 'roles' => 'admin,gerente,administrador', 'order' => 2],
             // Agregamos el submenú aquí:
             ['name' => 'Gestión de Menús', 'route' => 'menus.index', 'roles' => 'admin', 'order' => 3],
+            ['name' => 'Control de Accesos', 'route' => 'seguridad.accesos.index', 'roles' => 'admin,gerente,administrador', 'order' => 4],
         ]);
     }
 }

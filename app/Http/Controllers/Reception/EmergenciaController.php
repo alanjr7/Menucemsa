@@ -86,8 +86,14 @@ class EmergenciaController extends Controller
             $emergencia = $this->crearEmergency($request, $paciente, $triage);
 
             // 4. Crear cuenta de cobro inmediatamente para el seguro (pre-autorización)
+            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
+            // ya que paciente_ci en BD es integer y temp_id es string
+            $pacienteCi = $emergencia->is_temp_id
+                ? (int) $emergencia->id  // Usar ID de emergencia como identificador numérico
+                : (int) $paciente->ci;
+
             $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
-                $paciente->ci,
+                $pacienteCi,
                 $emergencia->id,
                 [], // Sin servicios predefinidos, se agregarán después
                 true, // esPostPago = true
@@ -336,6 +342,7 @@ class EmergenciaController extends Controller
             ['nombre_empresa' => $nombre],
             [
                 'tipo' => $nombre,
+                'cobertura' => 'Sin cobertura',
                 'telefono' => null,
                 'formulario' => 'EMERGENCIA',
                 'estado' => 'activo',

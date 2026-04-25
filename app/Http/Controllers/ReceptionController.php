@@ -13,11 +13,16 @@ use App\Models\Triage;
 use App\Models\Registro;
 use App\Models\User;
 use App\Models\Cita;
+use App\Models\Hospitalizacion;
+use App\Models\HistorialMedico;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\Emergency;
+use App\Models\UtiAdmission;
+use App\Models\Cirugia;
+use Illuminate\View\View;
 
 class ReceptionController extends Controller
 {
@@ -860,7 +865,7 @@ class ReceptionController extends Controller
                 ->get()
                 ->unique(fn ($esp) => strtolower(trim($esp->nombre)))
                 ->values();
-            
+
             return response()->json($especialidades);
         } catch (\Exception $e) {
             return response()->json([
@@ -868,5 +873,116 @@ class ReceptionController extends Controller
                 'message' => 'Error al cargar especialidades: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Vista de listado de pacientes para recepción (Historial de Pacientes)
+     */
+    public function pacientesIndex(Request $request): View
+    {
+        $query = Paciente::with(['seguro', 'triage', 'registro.user'])
+            ->whereHas('registro');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nombre', 'LIKE', "%{$search}%")
+                  ->orWhere('ci', 'LIKE', "%{$search}%")
+                  ->orWhereHas('registro', function($rq) use ($search) {
+                      $rq->where('codigo', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        return view('reception.pacientes.index', compact('pacientes'));
+    }
+
+    /**
+     * Vista de historial clínico completo de un paciente
+     */
+    public function pacientesHistorial($ci): View
+    {
+        $paciente = Paciente::with([
+            'seguro',
+            'triage',
+            'registro.user',
+            'consultas' => function($q) {
+                $q->with(['medico.user', 'especialidad', 'caja'])
+                  ->orderBy('fecha', 'desc');
+            },
+            'emergencies' => function($q) {
+                $q->with(['user', 'evaluaciones', 'movimientos'])
+                  ->orderBy('created_at', 'desc');
+            },
+            'hospitalizaciones' => function($q) {
+                $q->with(['medico.user', 'servicio'])
+                  ->orderBy('fecha_ingreso', 'desc');
+            }
+        ])->findOrFail($ci);
+
+        $utiHistorial = UtiAdmission::where('patient_id', $ci)
+            ->with(['bed', 'medicamentos', 'costos'])
+            ->orderBy('fecha_ingreso', 'desc')
+            ->get();
+
+        $cirugiasHistorial = Cirugia::whereHas('emergencia', function($q) use ($ci) {
+                $q->where('patient_id', $ci);
+            })
+            ->with(['quirofano', 'emergencia.paciente'])
+            ->orderBy('fecha', 'desc')
+            ->get();
+
+        return view('reception.pacientes.historial', compact(
+            'paciente',
+            'utiHistorial',
+            'cirugiasHistorial'
+        ));
+    }
+
+    /**
+     * Vista de historial clínico optimizada para impresión
+     */
+    public function pacientesHistorialPrint($ci): View
+    {
+        $paciente = Paciente::with([
+            'seguro',
+            'triage',
+            'registro.user',
+            'consultas' => function($q) {
+                $q->with(['medico.user', 'especialidad', 'caja'])
+                  ->orderBy('fecha', 'desc');
+            },
+            'emergencies' => function($q) {
+                $q->with(['user', 'evaluaciones'])
+                  ->orderBy('created_at', 'desc');
+            },
+            'hospitalizaciones' => function($q) {
+                $q->with(['medico.user', 'servicio'])
+                  ->orderBy('fecha_ingreso', 'desc');
+            }
+        ])->findOrFail($ci);
+
+        $utiHistorial = UtiAdmission::where('patient_id', $ci)
+            ->with(['bed'])
+            ->orderBy('fecha_ingreso', 'desc')
+            ->get();
+
+        $cirugiasHistorial = Cirugia::whereHas('emergencia', function($q) use ($ci) {
+                $q->where('patient_id', $ci);
+            })
+            ->with(['quirofano', 'emergencia.paciente'])
+            ->orderBy('fecha', 'desc')
+            ->get();
+
+        $fechaImpresion = Carbon::now();
+
+        return view('reception.pacientes.historial-print', compact(
+            'paciente',
+            'utiHistorial',
+            'cirugiasHistorial',
+            'fechaImpresion'
+        ));
     }
 }

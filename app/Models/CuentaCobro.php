@@ -28,6 +28,7 @@ class CuentaCobro extends Model
         'total_pagado',
         'es_emergencia',
         'es_post_pago',
+        'episodio_numero',
         'ci_nit_facturacion',
         'razon_social',
         'caja_session_id',
@@ -207,6 +208,37 @@ class CuentaCobro extends Model
             'farmacia' => 'Farmacia',
             default => ucfirst(str_replace('_', ' ', $this->tipo_atencion)),
         };
+    }
+
+    /**
+     * Retorna los detalles agrupados por área para mostrar en el recibo.
+     * Formato: ['emergencia' => [detalles...], 'quirofano' => [...], ...]
+     */
+    public function detallesPorArea(): array
+    {
+        $this->loadMissing('detalles');
+        $areaLabels = [
+            'emergencia'       => 'Emergencia',
+            'quirofano'        => 'Quirófano / Cirugía',
+            'internacion'      => 'Internación',
+            'uti'              => 'UTI (Terapia Intensiva)',
+            'farmacia'         => 'Farmacia',
+            'consulta_externa' => 'Consulta Externa',
+            null               => 'General',
+        ];
+
+        $grupos = [];
+        foreach ($this->detalles as $detalle) {
+            $area = $detalle->area_origen ?? null;
+            $label = $areaLabels[$area] ?? ucfirst((string)$area);
+            if (!isset($grupos[$label])) {
+                $grupos[$label] = ['items' => [], 'subtotal' => 0];
+            }
+            $grupos[$label]['items'][] = $detalle;
+            $grupos[$label]['subtotal'] += (float) $detalle->subtotal;
+        }
+
+        return $grupos;
     }
 
     // Calcular totales

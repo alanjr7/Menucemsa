@@ -40,6 +40,9 @@ class CitaQuirurgica extends Model
 
     protected $casts = [
         'fecha' => 'date',
+        'hora_inicio_estimada' => 'datetime',
+        'hora_inicio_real' => 'datetime',
+        'hora_fin_real' => 'datetime',
         'timestamp_inicio' => 'datetime',
         'timestamp_fin' => 'datetime',
         'costo_base' => 'decimal:2',

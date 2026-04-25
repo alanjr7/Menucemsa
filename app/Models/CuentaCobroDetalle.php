@@ -23,6 +23,7 @@ class CuentaCobroDetalle extends Model
         'origen_type',
         'origen_id',
         'observaciones',
+        'area_origen',
     ];
 
     protected $casts = [
@@ -71,6 +72,11 @@ class CuentaCobroDetalle extends Model
         return $query->where('tipo_item', $tipo);
     }
 
+    public function scopePorArea($query, $area)
+    {
+        return $query->where('area_origen', $area);
+    }
+
     public function scopeServicios($query)
     {
         return $query->where('tipo_item', 'servicio');
@@ -103,6 +109,7 @@ class CuentaCobroDetalle extends Model
             'imagenologia' => 'Imagenología',
             'farmacia' => 'Farmacia',
             'material' => 'Material/Insumo',
+            'equipo_medico' => 'Equipo Médico',
             default => ucfirst($this->tipo_item),
         };
     }

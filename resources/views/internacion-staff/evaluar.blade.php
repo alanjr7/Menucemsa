@@ -93,6 +93,17 @@
                     <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs" id="count-drenajes">0</span>
                 </button>
                 @endif
+
+                <!-- Tab Equipos Médicos - Visible para médicos -->
+                @if(in_array('editar_diagnostico', $userPermissions) || empty($userPermissions))
+                <button onclick="mostrarTab('equipos')" id="tab-equipos" class="tab-btn border-b-2 border-transparent text-gray-500 hover:text-gray-700 py-4 px-6 font-medium text-sm flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
+                    Equipos Médicos
+                    <span class="bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full text-xs" id="count-equipos">0</span>
+                </button>
+                @endif
             </nav>
         </div>
 
@@ -329,6 +340,57 @@
                 </div>
             </div>
         </div>
+
+        <!-- Tab Equipos Médicos -->
+        <div id="panel-equipos" class="tab-panel p-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Formulario -->
+                <div class="lg:col-span-1">
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Nuevo Equipo/Procedimiento
+                        </h3>
+                        <form id="formEquipo" class="space-y-4" onsubmit="event.preventDefault(); guardarEquipoMedico();">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Equipo/Procedimiento</label>
+                                <input type="text" id="nombreEquipo" placeholder="Ej: Rayos X, Tomografía, etc." class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Precio (Bs.)</label>
+                                <input type="number" id="precioEquipo" step="0.01" min="0" placeholder="0.00" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                                <input type="number" id="cantidadEquipo" min="1" value="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500" required>
+                            </div>
+                            <button type="submit" class="w-full bg-cyan-600 text-white font-medium py-2 rounded-lg hover:bg-cyan-700 transition-colors flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Agregar Equipo
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Lista -->
+                <div class="lg:col-span-2">
+                    <h3 class="font-semibold text-gray-800 mb-4">Equipos y Procedimientos Registrados</h3>
+                    <div id="listaEquipos" class="space-y-3">
+                        <p class="text-gray-400 text-sm text-center py-8">Cargando...</p>
+                    </div>
+                    <div id="totalEquiposContainer" class="hidden mt-4 pt-4 border-t-2 border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600">Total en Equipos Médicos</span>
+                            <span class="text-xl font-bold text-cyan-700" id="totalEquiposMonto">Bs. 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -362,12 +424,15 @@
             tabBtn.classList.add('border-orange-500', 'text-orange-600');
         } else if (tab === 'drenajes') {
             tabBtn.classList.add('border-cyan-500', 'text-cyan-600');
+        } else if (tab === 'equipos') {
+            tabBtn.classList.add('border-cyan-500', 'text-cyan-600');
         }
 
         // Cargar datos
         if (tab === 'medicamentos') cargarMedicamentos();
         else if (tab === 'catering') cargarCatering();
         else if (tab === 'drenajes') cargarDrenajes();
+        else if (tab === 'equipos') cargarEquiposMedicos();
     }
 
     // ==================== MEDICAMENTOS ====================
@@ -717,6 +782,127 @@
             alert('Error al registrar drenaje');
         }
     });
+
+    // ==================== EQUIPOS MÉDICOS ====================
+    async function cargarEquiposMedicos() {
+        try {
+            const response = await fetch(`/internacion-staff/api/internacion/${hospitalizacionId}/equipos-medicos`);
+            const data = await response.json();
+            const lista = document.getElementById('listaEquipos');
+
+            if (data.success && data.equipos) {
+                const equiposList = data.equipos;
+                const totalEquipos = data.total;
+
+                document.getElementById('count-equipos').textContent = equiposList.length;
+
+                if (equiposList.length > 0) {
+                    lista.innerHTML = equiposList.map(equipo => `
+                        <div class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800">${equipo.nombre}</p>
+                                    <p class="text-sm text-gray-500">${equipo.cantidad} x Bs. ${parseFloat(equipo.precio_unitario).toFixed(2)}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-lg font-bold text-cyan-600">Bs. ${parseFloat(equipo.subtotal).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    // Mostrar total
+                    document.getElementById('totalEquiposContainer').classList.remove('hidden');
+                    document.getElementById('totalEquiposMonto').textContent = `Bs. ${totalEquipos.toFixed(2)}`;
+                } else {
+                    lista.innerHTML = `
+                        <div class="text-center py-12">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                            <p class="text-gray-400">No hay equipos médicos registrados</p>
+                            <p class="text-sm text-gray-300 mt-1">Use el formulario para agregar el primero</p>
+                        </div>
+                    `;
+                    document.getElementById('totalEquiposContainer').classList.add('hidden');
+                }
+            } else {
+                lista.innerHTML = `
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                        <p class="text-gray-400">No hay equipos médicos registrados</p>
+                        <p class="text-sm text-gray-300 mt-1">Use el formulario para agregar el primero</p>
+                    </div>
+                `;
+                document.getElementById('count-equipos').textContent = '0';
+                document.getElementById('totalEquiposContainer').classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Error al cargar equipos médicos:', error);
+            document.getElementById('listaEquipos').innerHTML = `
+                <div class="text-center py-8">
+                    <p class="text-red-400">Error al cargar equipos médicos</p>
+                </div>
+            `;
+        }
+    }
+
+    async function guardarEquipoMedico() {
+        const nombre = document.getElementById('nombreEquipo').value.trim();
+        const precio = parseFloat(document.getElementById('precioEquipo').value);
+        const cantidad = parseInt(document.getElementById('cantidadEquipo').value);
+
+        if (!nombre) {
+            alert('Ingrese el nombre del equipo/procedimiento');
+            return;
+        }
+        if (isNaN(precio) || precio < 0) {
+            alert('Ingrese un precio válido');
+            return;
+        }
+        if (isNaN(cantidad) || cantidad < 1) {
+            alert('Ingrese una cantidad válida');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/internacion-staff/api/internacion/${hospitalizacionId}/evolucion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    diagnostico: document.getElementById('diagnosticoText').value || '',
+                    tratamiento: document.getElementById('tratamientoText').value || '',
+                    equipos_medicos: [{
+                        nombre: nombre,
+                        precio: precio,
+                        cantidad: cantidad
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('Equipo médico agregado correctamente');
+                document.getElementById('formEquipo').reset();
+                await cargarEquiposMedicos();
+            } else {
+                alert('Error: ' + (data.message || 'No se pudo guardar el equipo'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al guardar el equipo médico');
+        }
+    }
 
     // ==================== RECETA / DIAGNÓSTICO ====================
     async function guardarReceta() {

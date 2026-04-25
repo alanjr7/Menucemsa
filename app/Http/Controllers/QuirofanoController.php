@@ -752,14 +752,26 @@ class QuirofanoController extends Controller
                     ->update(['estado' => 'disponible']);
             }
 
-            // Crear registro automático en caja
-            $this->crearRegistroCajaCirugia($cita);
+            // NO crear cuenta aquí: ya fue creada al programar la cirugía.
+            // Solo verificar si existe y actualizar el total si tiene detalles adicionales.
+            $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
+                ->where(function($q) {
+                    $q->where('referencia_type', CitaQuirurgica::class)
+                      ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                })
+                ->where('estado', 'pendiente')
+                ->first();
+
+            if (!$cuentaCobro) {
+                // Solo crear si genuinamente no existe (ej. cirugía de emergencia inmediata sin programar)
+                $this->crearRegistroCajaCirugia($cita);
+            }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cirugía finalizada exitosamente. Se ha generado el cobro automático en caja.',
+                'message' => 'Cirugía finalizada exitosamente.',
                 'cita' => $cita->fresh(),
                 'cobro_generado' => true
             ]);
@@ -777,79 +789,45 @@ class QuirofanoController extends Controller
 
     private function crearRegistroCajaCirugia(CitaQuirurgica $cita)
     {
-        // Refrescar para obtener costo_final calculado
         $cita->refresh();
         $monto = $cita->costo_final ?? $cita->costo_base ?? 0;
-        
-        \Log::info('Verificando cuenta de cobro para cirugía', [
-            'cita_id' => $cita->id,
-            'monto' => $monto,
-            'paciente' => $cita->ci_paciente
+
+        \Log::info('[CuentaMaestra] Registrando cargo de cirugía', [
+            'cita_id'   => $cita->id,
+            'monto'     => $monto,
+            'paciente'  => $cita->ci_paciente,
         ]);
-        
+
         try {
-            // Buscar si ya existe una cuenta de cobro para esta cirugía
-            $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
-                ->where(function($q) {
-                    $q->where('referencia_type', CitaQuirurgica::class)
-                      ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
-                })
-                ->where('estado', 'pendiente')
-                ->first();
-            
-            // Si ya existe, no crear duplicado - solo retornar la existente
-            if ($cuentaCobro) {
-                \Log::info('Cuenta de cobro ya existe, usando existente', [
-                    'cita_id' => $cita->id,
-                    'cuenta_cobro_id' => $cuentaCobro->id
-                ]);
-                return $cuentaCobro;
-            }
-            
-            // Crear cuenta de cobro para que aparezca en caja operativa
-            $cuentaCobro = \App\Models\CuentaCobro::create([
-                'paciente_ci' => $cita->ci_paciente,
-                'tipo_atencion' => 'cirugia',
-                'referencia_id' => $cita->id,
-                'referencia_type' => CitaQuirurgica::class,
-                'estado' => 'pendiente',
-                'total_calculado' => $monto,
-                'total_pagado' => 0,
-                'es_emergencia' => false,
-                'es_post_pago' => true,
-                'observaciones' => 'Cirugía programada - Quirófano: ' . $cita->quirofano_id,
-            ]);
+            // Obtener o crear la cuenta maestra del paciente (nunca duplica)
+            $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
+                $cita->ci_paciente,
+                'quirofano'
+            );
 
-            // Crear detalle de la cuenta de cobro
-            \App\Models\CuentaCobroDetalle::create([
-                'cuenta_cobro_id' => $cuentaCobro->id,
-                'tipo_item' => 'procedimiento',
-                'descripcion' => 'Cirugía ' . $cita->tipo_cirugia . ' - ' . ($cita->descripcion_cirugia ?? 'Sin descripción'),
-                'cantidad' => 1,
-                'precio_unitario' => $monto,
-                'subtotal' => $monto,
-            ]);
+            // Agregar el cargo de cirugía con deduplicación automática
+            \App\Services\CuentaCobroService::agregarCargoConDeduplicacion(
+                $cuenta->id,
+                'procedimiento',
+                'Cirugía ' . $cita->tipo_cirugia . ' - ' . ($cita->descripcion_cirugia ?? 'Sin descripción'),
+                (float) $monto,
+                1,
+                'quirofano',
+                CitaQuirurgica::class,
+                $cita->id
+            );
 
-            // Relacionar la cita con la cuenta de cobro
-            $cita->observaciones = ($cita->observaciones ?? '') . ' | Cuenta Cobro: ' . $cuentaCobro->id;
-            $cita->save();
-            
-            \Log::info('Cuenta de cobro creada exitosamente', [
-                'cita_id' => $cita->id,
-                'cuenta_cobro_id' => $cuentaCobro->id,
-                'monto' => $monto
-            ]);
-            
-            return $cuentaCobro;
+            return $cuenta;
+
         } catch (\Exception $e) {
-            \Log::error('Error al crear cuenta de cobro: ' . $e->getMessage(), [
+            \Log::error('[CuentaMaestra] Error al registrar cargo de cirugía: ' . $e->getMessage(), [
                 'cita_id' => $cita->id,
-                'monto' => $monto,
-                'error' => $e->getMessage()
+                'monto'   => $monto,
             ]);
             throw $e;
         }
     }
+
 
     public function cancelar(Request $request, CitaQuirurgica $cita): JsonResponse
     {
@@ -1121,21 +1099,23 @@ class QuirofanoController extends Controller
     public function getMedicamentosUsados(CitaQuirurgica $cita): JsonResponse
     {
         try {
-            // Buscar la cuenta de cobro relacionada a esta cita
-            $cuentaCobro = \App\Models\CuentaCobro::where('referencia_type', CitaQuirurgica::class)
-                ->where('referencia_id', $cita->id)
-                ->first();
-
-            if (!$cuentaCobro) {
-                return response()->json([
-                    'success' => true,
-                    'medicamentos' => []
-                ]);
-            }
-
-            // Obtener detalles de tipo medicamento
-            $medicamentos = $cuentaCobro->detalles()
-                ->where('tipo_item', 'medicamento')
+            // Obtener detalles de tipo medicamento buscando por origen o por la cuenta vinculada
+            $medicamentos = \App\Models\CuentaCobroDetalle::where('tipo_item', 'medicamento')
+                ->where(function ($q) use ($cita) {
+                    // Si el detalle tiene origen_type específico a esta cirugía
+                    $q->where(function ($sub) use ($cita) {
+                        $sub->where('origen_type', CitaQuirurgica::class)
+                            ->orWhere('origen_type', 'like', '%CitaQuirurgica%');
+                    })->where('origen_id', $cita->id);
+                    
+                    // O si pertenece a una cuenta no unificada que referencia directamente a la cirugía
+                    $q->orWhereHas('cuentaCobro', function ($qCuenta) use ($cita) {
+                        $qCuenta->where(function ($qRef) {
+                            $qRef->where('referencia_type', CitaQuirurgica::class)
+                                 ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                        })->where('referencia_id', $cita->id);
+                    });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -1255,6 +1235,8 @@ class QuirofanoController extends Controller
                     'cantidad' => $validated['cantidad'],
                     'precio_unitario' => $precioUnitario,
                     'subtotal' => $subtotal,
+                    'origen_type' => CitaQuirurgica::class,
+                    'origen_id' => $cita->id,
                 ]);
 
                 // Actualizar total de cuenta de cobro
@@ -1312,6 +1294,198 @@ class QuirofanoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al agregar medicamento: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Agregar equipo médico a una cirugía en curso
+     */
+    public function agregarEquipoMedico(Request $request, CitaQuirurgica $cita): JsonResponse
+    {
+        try {
+            // Verificar que la cirugía esté programada o en curso
+            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cirugía debe estar programada o en curso'
+                ], 422);
+            }
+
+            // Validar input
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:255',
+                'precio' => 'required|numeric|min:0',
+                'cantidad' => 'required|integer|min:1'
+            ]);
+
+            DB::beginTransaction();
+
+            try {
+                // Buscar cuenta de cobro existente
+                $refType = 'App\Models\CitaQuirurgica';
+                $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
+                    ->where(function($q) use ($refType) {
+                        $q->where('referencia_type', $refType)
+                          ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                    })
+                    ->where('estado', 'pendiente')
+                    ->first();
+
+                // Si no existe por referencia, buscar por paciente y tipo
+                if (!$cuentaCobro) {
+                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
+                        ->where('tipo_atencion', 'cirugia')
+                        ->where('estado', 'pendiente')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    if ($cuentaCobro) {
+                        $cuentaCobro->referencia_id = $cita->id;
+                        $cuentaCobro->referencia_type = $refType;
+                        $cuentaCobro->save();
+                    }
+                }
+
+                // Si aún no existe, crearla automáticamente
+                if (!$cuentaCobro) {
+                    $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
+                }
+
+                $precioUnitario = $validated['precio'];
+                $cantidad = $validated['cantidad'];
+                $subtotal = $precioUnitario * $cantidad;
+
+                // Crear detalle en cuenta de cobro
+                $detalle = $cuentaCobro->detalles()->create([
+                    'tipo_item' => 'equipo_medico',
+                    'descripcion' => 'Cirugía - Equipo/Procedimiento: ' . $validated['nombre'],
+                    'cantidad' => $cantidad,
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $subtotal,
+                    'origen_type' => CitaQuirurgica::class,
+                    'origen_id' => $cita->id,
+                ]);
+
+                // Actualizar total de cuenta de cobro
+                $cuentaCobro->total_calculado = $cuentaCobro->detalles()->sum('subtotal');
+                $cuentaCobro->save();
+
+                // Actualizar equipos_medicos en la cita (cirugía)
+                $equiposMedicos = $cita->equipos_medicos ?? [];
+                $equiposMedicos[] = [
+                    'nombre' => $validated['nombre'],
+                    'precio_unitario' => $precioUnitario,
+                    'cantidad' => $cantidad,
+                    'subtotal' => $subtotal,
+                    'fecha' => now()->toDateTimeString(),
+                    'usuario_id' => auth()->id(),
+                ];
+                $cita->update(['equipos_medicos' => $equiposMedicos]);
+
+                // Registrar en ActivityLog para historial
+                \App\Models\ActivityLog::create([
+                    'user_id' => auth()->id(),
+                    'action' => 'equipo_medico_cirugia_agregado',
+                    'model_type' => CitaQuirurgica::class,
+                    'model_id' => $cita->id,
+                    'description' => 'Equipo médico agregado a cirugía: ' . $validated['nombre'],
+                    'new_values' => json_encode([
+                        'nombre' => $validated['nombre'],
+                        'cantidad' => $cantidad,
+                        'precio_unitario' => $precioUnitario,
+                        'subtotal' => $subtotal,
+                        'cuenta_cobro_id' => $cuentaCobro->id,
+                        'detalle_id' => $detalle->id
+                    ]),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Equipo médico agregado exitosamente',
+                    'equipo' => [
+                        'nombre' => $validated['nombre'],
+                        'cantidad' => $cantidad,
+                        'precio_unitario' => $precioUnitario,
+                        'subtotal' => $subtotal
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al agregar equipo médico: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener equipos médicos agregados a una cirugía
+     */
+    public function getEquiposMedicos(CitaQuirurgica $cita): JsonResponse
+    {
+        try {
+            $equiposMedicos = $cita->equipos_medicos ?? [];
+
+            // También buscar en detalles de cuentas de cobro que pertenezcan a esta cirugía
+            $detallesEquipos = \App\Models\CuentaCobroDetalle::where('tipo_item', 'equipo_medico')
+                ->where(function ($q) use ($cita) {
+                    // Detalles con origen explícito
+                    $q->where(function ($sub) use ($cita) {
+                        $sub->where('origen_type', CitaQuirurgica::class)
+                            ->orWhere('origen_type', 'like', '%CitaQuirurgica%');
+                    })->where('origen_id', $cita->id);
+                    
+                    // Detalles de cuenta específica para esta cirugía
+                    $q->orWhereHas('cuentaCobro', function ($qCuenta) use ($cita) {
+                        $qCuenta->where(function ($qRef) {
+                            $qRef->where('referencia_type', CitaQuirurgica::class)
+                                 ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                        })->where('referencia_id', $cita->id);
+                    });
+                })
+                ->get();
+
+            $equiposDesdeCuenta = [];
+            foreach ($detallesEquipos as $detalle) {
+                $equiposDesdeCuenta[] = [
+                    'nombre' => str_replace('Cirugía - Equipo/Procedimiento: ', '', $detalle->descripcion),
+                    'precio_unitario' => $detalle->precio_unitario,
+                    'cantidad' => $detalle->cantidad,
+                    'subtotal' => $detalle->subtotal,
+                    'fecha' => $detalle->created_at->toDateTimeString(),
+                ];
+            }
+
+            // Combinar ambas fuentes (priorizar los de la cita)
+            $equipos = !empty($equiposMedicos) ? $equiposMedicos : $equiposDesdeCuenta;
+
+            return response()->json([
+                'success' => true,
+                'equipos' => $equipos,
+                'total' => count($equipos),
+                'total_monto' => array_sum(array_column($equipos, 'subtotal'))
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener equipos médicos: ' . $e->getMessage()
             ], 500);
         }
     }

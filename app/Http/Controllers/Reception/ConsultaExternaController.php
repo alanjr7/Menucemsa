@@ -231,6 +231,7 @@ class ConsultaExternaController extends Controller
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
                 'tipo' => 'CONSULTA',
+                'cobertura' => 'Sin cobertura',
                 'telefono' => null,
                 'formulario' => 'ESTANDAR',
                 'estado' => 'activo'

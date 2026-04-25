@@ -163,23 +163,31 @@ class EmergencyStaffController extends Controller
                 case 'hospitalizacion':
                     $nroHosp = $this->generarNroHospitalizacion($emergency);
                     $emergency->update([
-                        'status' => 'hospitalizacion',
-                        'ubicacion_actual' => 'hospitalizacion',
-                        'nro_hospitalizacion' => $nroHosp,
+                        'status'             => 'hospitalizacion',
+                        'ubicacion_actual'   => 'hospitalizacion',
+                        'nro_hospitalizacion'=> $nroHosp,
                     ]);
 
                     // Crear registro en hospitalizaciones
-                    // Si es paciente temporal (temp_id), ci_paciente debe ser null
                     $ciPaciente = $emergency->is_temp_id ? null : $emergency->patient_id;
                     Hospitalizacion::create([
-                        'id' => $nroHosp,
-                        'ci_paciente' => $ciPaciente,
-                        'fecha_ingreso' => now(),
-                        'estado' => 'activo',
-                        'diagnostico' => $emergency->initial_assessment,
-                        'nro_emergencia' => $emergency->id,
+                        'id'           => $nroHosp,
+                        'ci_paciente'  => $ciPaciente,
+                        'fecha_ingreso'=> now(),
+                        'estado'       => 'activo',
+                        'diagnostico'  => $emergency->initial_assessment,
+                        'nro_emergencia'=> $emergency->id,
                     ]);
+
+                    // Vincular a cuenta maestra (reutiliza la de emergencia si existe)
+                    if ($ciPaciente) {
+                        \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
+                            $ciPaciente,
+                            'internacion'
+                        );
+                    }
                     break;
+
             }
 
             // Registrar movimiento
@@ -400,6 +408,10 @@ class EmergencyStaffController extends Controller
             'medicamentos' => 'nullable|array',
             'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_medicamentos,id',
             'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
+            'equipos_medicos' => 'nullable|array',
+            'equipos_medicos.*.nombre' => 'required_with:equipos_medicos|string|max:255',
+            'equipos_medicos.*.precio' => 'required_with:equipos_medicos|numeric|min:0',
+            'equipos_medicos.*.cantidad' => 'required_with:equipos_medicos|integer|min:1',
         ]);
 
         try {
@@ -469,35 +481,77 @@ class EmergencyStaffController extends Controller
                 }
             }
 
-            // 4. Crear o actualizar cuenta de cobro para la emergencia
-            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
-            // ya que paciente_ci en BD es integer y temp_id es string
+            // 4. Procesar equipos médicos agregados
+            $equiposMedicosAplicados = [];
+            $totalEquiposMedicos = 0;
+
+            if (!empty($validated['equipos_medicos'])) {
+                foreach ($validated['equipos_medicos'] as $equipo) {
+                    $subtotal = $equipo['precio'] * $equipo['cantidad'];
+                    $equiposMedicosAplicados[] = [
+                        'nombre' => $equipo['nombre'],
+                        'precio_unitario' => $equipo['precio'],
+                        'cantidad' => $equipo['cantidad'],
+                        'subtotal' => $subtotal,
+                    ];
+                    $totalEquiposMedicos += $subtotal;
+
+                    \Log::info('Equipo médico aplicado en emergencia', [
+                        'emergency_id' => $emergency->id,
+                        'equipo_nombre' => $equipo['nombre'],
+                        'precio' => $equipo['precio'],
+                        'cantidad' => $equipo['cantidad'],
+                        'usuario_id' => auth()->id(),
+                    ]);
+                }
+            }
+
+            // 5. Obtener o crear cuenta maestra del paciente
             $pacienteCi = $emergency->is_temp_id
-                ? (int) $emergency->id  // Usar ID de emergencia como identificador numérico
+                ? (int) $emergency->id
                 : (int) $emergency->patient_id;
 
-            $cuenta = CuentaCobroService::obtenerOCrearCuentaEmergencia(
+            $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
                 $pacienteCi,
-                $emergency->id
+                'emergencia'
             );
 
-            // Agregar cargos por medicamentos a la cuenta
+            // Agregar cargos por medicamentos a la cuenta (con deduplicación)
             if (!empty($medicamentosAplicados)) {
                 foreach ($medicamentosAplicados as $med) {
                     if ($med['subtotal'] > 0) {
-                        CuentaCobroService::agregarCargo(
+                        CuentaCobroService::agregarCargoConDeduplicacion(
                             $cuenta->id,
                             'medicamento',
                             'Emergencia - ' . $med['nombre'] . ' (' . $med['cantidad'] . ' ' . $med['unidad_medida'] . ')',
                             $med['precio_unitario'],
                             $med['cantidad'],
-                            null,
+                            'emergencia',
                             AlmacenMedicamento::class,
                             $med['id']
                         );
                     }
                 }
             }
+
+            // Agregar cargos por equipos médicos a la cuenta (con deduplicación)
+            if (!empty($equiposMedicosAplicados)) {
+                foreach ($equiposMedicosAplicados as $equipo) {
+                    if ($equipo['subtotal'] > 0) {
+                        CuentaCobroService::agregarCargoConDeduplicacion(
+                            $cuenta->id,
+                            'equipo_medico',
+                            'Emergencia - Equipo/Procedimiento: ' . $equipo['nombre'],
+                            $equipo['precio_unitario'],
+                            $equipo['cantidad'],
+                            'emergencia',
+                            Emergency::class,
+                            $emergency->id
+                        );
+                    }
+                }
+            }
+
 
             // 5. Actualizar costo total de la emergencia
             $emergency->update([
@@ -509,6 +563,8 @@ class EmergencyStaffController extends Controller
                         'nivel_gravedad' => $validated['nivel_gravedad'],
                         'medicamentos' => $medicamentosAplicados,
                         'total_medicamentos' => $totalMedicamentos,
+                        'equipos_medicos' => $equiposMedicosAplicados,
+                        'total_equipos_medicos' => $totalEquiposMedicos,
                         'usuario_id' => auth()->id(),
                     ]
                 ]),
@@ -517,12 +573,13 @@ class EmergencyStaffController extends Controller
             // Registrar en auditoría la evaluación completa
             ActivityLogService::log(
                 'evaluacion_paciente',
-                'Evaluación realizada a ' . ($emergency->paciente?->nombre ?? 'Paciente Temporal') . 
-                '. Gravedad: ' . $validated['nivel_gravedad'] . 
-                '. Medicamentos: ' . count($medicamentosAplicados),
+                'Evaluación realizada a ' . ($emergency->paciente?->nombre ?? 'Paciente Temporal') .
+                '. Gravedad: ' . $validated['nivel_gravedad'] .
+                '. Medicamentos: ' . count($medicamentosAplicados) .
+                '. Equipos Médicos: ' . count($equiposMedicosAplicados),
                 $emergency,
                 ['vital_signs' => $emergency->getOriginal('vital_signs'), 'status' => $estadoAnterior],
-                ['vital_signs' => $vitalSigns, 'status' => 'en_evaluacion', 'medicamentos_aplicados' => $medicamentosAplicados]
+                ['vital_signs' => $vitalSigns, 'status' => 'en_evaluacion', 'medicamentos_aplicados' => $medicamentosAplicados, 'equipos_medicos_aplicados' => $equiposMedicosAplicados]
             );
 
             DB::commit();
@@ -534,6 +591,8 @@ class EmergencyStaffController extends Controller
                 'status' => $emergency->status,
                 'medicamentos_aplicados' => count($medicamentosAplicados),
                 'total_medicamentos' => $totalMedicamentos,
+                'equipos_medicos_aplicados' => count($equiposMedicosAplicados),
+                'total_equipos_medicos' => $totalEquiposMedicos,
                 'redirect' => route('emergency-staff.dashboard'),
             ]);
 

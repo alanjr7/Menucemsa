@@ -84,13 +84,28 @@ class HospitalizacionController extends Controller
             // 4. Crear registro de hospitalización
             $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage);
 
-            // 5. Crear cuenta de cobro inmediatamente para el seguro (pre-autorización)
-            $cuentaCobro = CuentaCobroService::crearCuentaInternacion(
+            // 5. Obtener o crear cuenta maestra (reutiliza la de emergencia si ya existe)
+            $cuentaCobro = CuentaCobroService::obtenerOCrearCuentaMaestra(
                 $paciente->ci,
+                'internacion',
+                $request->seguro_id
+            );
+
+            // Agregar cargo de admisión de internación (con deduplicación)
+            $tarifaInternacion = \App\Models\Tarifa::where('codigo', 'HOSP-ADM')
+                ->where('activo', true)->first();
+            $precioAdmision = $tarifaInternacion?->precio_particular ?? 150.00;
+
+            CuentaCobroService::agregarCargoConDeduplicacion(
+                $cuentaCobro->id,
+                'servicio',
+                $tarifaInternacion?->descripcion ?? 'Admisión de Internación',
+                $precioAdmision,
+                1,
+                'internacion',
+                \App\Models\Hospitalizacion::class,
                 $hospitalizacion->id,
-                [], // Sin servicios predefinidos
-                true, // esPostPago = true
-                $request->seguro_id // seguro_id seleccionado en el formulario
+                $tarifaInternacion?->id
             );
 
             // 6. Procesar acciones adicionales
@@ -115,6 +130,7 @@ class HospitalizacionController extends Controller
             ], 500);
         }
     }
+
 
     public function getHospitalizacionesActivas()
     {
@@ -261,6 +277,7 @@ class HospitalizacionController extends Controller
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
                 'tipo' => 'HOSPITALIZACION',
+                'cobertura' => 'Sin cobertura',
                 'telefono' => null,
                 'formulario' => 'HOSPITALIZACION',
                 'estado' => 'activo'

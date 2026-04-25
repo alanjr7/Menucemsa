@@ -59,6 +59,7 @@ class InternacionStaffController extends Controller
     {
         $query = Hospitalizacion::with(['paciente', 'medico.user', 'medico.especialidad'])
             ->whereNull('fecha_alta')
+            ->where('estado', '!=', 'trasladado')
             ->orderBy('fecha_ingreso', 'desc');
 
         if ($request->has('estado') && $request->estado !== 'todos') {
@@ -83,10 +84,10 @@ class InternacionStaffController extends Controller
         });
 
         $stats = [
-            'activos' => Hospitalizacion::whereNull('fecha_alta')->count(),
-            'espera' => Hospitalizacion::whereNull('fecha_alta')->whereNull('habitacion_id')->count(),
-            'atencion' => Hospitalizacion::whereNull('fecha_alta')->whereNotNull('habitacion_id')->count(),
-            'hoy' => Hospitalizacion::whereDate('fecha_ingreso', today())->count(),
+            'activos' => Hospitalizacion::whereNull('fecha_alta')->where('estado', '!=', 'trasladado')->count(),
+            'espera' => Hospitalizacion::whereNull('fecha_alta')->where('estado', '!=', 'trasladado')->whereNull('habitacion_id')->count(),
+            'atencion' => Hospitalizacion::whereNull('fecha_alta')->where('estado', '!=', 'trasladado')->whereNotNull('habitacion_id')->count(),
+            'hoy' => Hospitalizacion::whereDate('fecha_ingreso', today())->where('estado', '!=', 'trasladado')->count(),
         ];
 
         return response()->json([
@@ -102,10 +103,10 @@ class InternacionStaffController extends Controller
     public function apiEstadisticas(): JsonResponse
     {
         $stats = [
-            'activos' => Hospitalizacion::whereNull('fecha_alta')->count(),
-            'espera' => Hospitalizacion::whereNull('fecha_alta')->whereNull('habitacion_id')->count(),
-            'atencion' => Hospitalizacion::whereNull('fecha_alta')->whereNotNull('habitacion_id')->count(),
-            'hoy' => Hospitalizacion::whereDate('fecha_ingreso', today())->count(),
+            'activos' => Hospitalizacion::whereNull('fecha_alta')->where('estado', '!=', 'trasladado')->count(),
+            'espera' => Hospitalizacion::whereNull('fecha_alta')->where('estado', '!=', 'trasladado')->whereNull('habitacion_id')->count(),
+            'atencion' => Hospitalizacion::whereNull('fecha_alta')->where('estado', '!=', 'trasladado')->whereNotNull('habitacion_id')->count(),
+            'hoy' => Hospitalizacion::whereDate('fecha_ingreso', today())->where('estado', '!=', 'trasladado')->count(),
         ];
 
         return response()->json([
@@ -501,18 +502,30 @@ class InternacionStaffController extends Controller
             // Descontar del inventario
             $medicamento->decrement('cantidad', $validated['cantidad']);
 
+            // Obtener CI del paciente (manejar pacientes temporales de emergencia)
+            $ciPaciente = $hospitalizacion->ci_paciente;
+            if (!$ciPaciente && $hospitalizacion->nro_emergencia) {
+                $emergencia = Emergency::where('code', $hospitalizacion->nro_emergencia)
+                    ->orWhere('id', $hospitalizacion->nro_emergencia)
+                    ->first();
+                if ($emergencia) {
+                    $ciPaciente = $emergencia->patient_id;
+                }
+            }
+
             // Calcular precio y generar cargo
             $cuentaCobroDetalleId = null;
             $cargoGenerado = false;
             $precio = $medicamento->precio ?? 0;
             $subtotal = $precio * $validated['cantidad'];
 
-            if ($subtotal > 0) {
+            if ($subtotal > 0 && $ciPaciente) {
                 $cuentaCobroDetalleId = $this->generarCargo(
                     $hospitalizacion,
+                    $ciPaciente,
                     'Medicamento: ' . $medicamento->nombre,
                     $subtotal,
-                    1,
+            1,
                     'medicamento',
                     $medicamento->id
                 );
@@ -634,7 +647,18 @@ class InternacionStaffController extends Controller
             $cuentaCobroDetalleId = null;
             $cargoGenerado = false;
 
-            if ($validated['estado'] === 'dado') {
+            // Obtener CI del paciente (manejar pacientes temporales de emergencia)
+            $ciPaciente = $hospitalizacion->ci_paciente;
+            if (!$ciPaciente && $hospitalizacion->nro_emergencia) {
+                $emergencia = Emergency::where('code', $hospitalizacion->nro_emergencia)
+                    ->orWhere('id', $hospitalizacion->nro_emergencia)
+                    ->first();
+                if ($emergencia) {
+                    $ciPaciente = $emergencia->patient_id;
+                }
+            }
+
+            if ($validated['estado'] === 'dado' && $ciPaciente) {
                 $precios = config('hospitalizacion.catering.precios', []);
                 $precio = $precios[$validated['tipo_comida']] ?? 0;
 
@@ -645,6 +669,7 @@ class InternacionStaffController extends Controller
                 } elseif ($precio > 0) {
                     $cuentaCobroDetalleId = $this->generarCargo(
                         $hospitalizacion,
+                        $ciPaciente,
                         'Catering: ' . ucfirst($validated['tipo_comida']),
                         $precio,
                         1,
@@ -743,17 +768,29 @@ class InternacionStaffController extends Controller
                 'observaciones' => 'nullable|string',
             ]);
 
+            // Obtener CI del paciente (manejar pacientes temporales de emergencia)
+            $ciPaciente = $hospitalizacion->ci_paciente;
+            if (!$ciPaciente && $hospitalizacion->nro_emergencia) {
+                $emergencia = Emergency::where('code', $hospitalizacion->nro_emergencia)
+                    ->orWhere('id', $hospitalizacion->nro_emergencia)
+                    ->first();
+                if ($emergencia) {
+                    $ciPaciente = $emergencia->patient_id;
+                }
+            }
+
             $precio = 0;
             $cuentaCobroDetalleId = null;
             $cargoGenerado = false;
 
-            if ($validated['realizado']) {
+            if ($validated['realizado'] && $ciPaciente) {
                 $precios = config('hospitalizacion.drenajes.precios', []);
                 $precio = $precios[$validated['tipo_drenaje']] ?? config('hospitalizacion.drenajes.precio_default', 40);
 
                 if ($precio > 0) {
                     $cuentaCobroDetalleId = $this->generarCargo(
                         $hospitalizacion,
+                        $ciPaciente,
                         'Drenaje: ' . ($validated['tipo_drenaje'] ?? 'General'),
                         $precio,
                         1,
@@ -796,15 +833,15 @@ class InternacionStaffController extends Controller
     /**
      * Helper: Generar cargo en cuenta de cobro
      */
-    private function generarCargo($hospitalizacion, $concepto, $precio, $cantidad = 1, $tipoItem = 'servicio', $origenId = null): ?int
+    private function generarCargo($hospitalizacion, $ciPaciente, $concepto, $precio, $cantidad = 1, $tipoItem = 'servicio', $origenId = null): ?int
     {
         // Usar la cuenta principal del paciente (Master Account)
-        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva((string)$hospitalizacion->ci_paciente);
+        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva((string)$ciPaciente);
 
         // Si por alguna razón crítica no existe (no debería pasar), crear una de internación
         if (!$cuenta) {
             $cuenta = \App\Services\CuentaCobroService::crearCuentaInternacion(
-                $hospitalizacion->ci_paciente,
+                (string)$ciPaciente,
                 $hospitalizacion->id
             );
         }
@@ -949,6 +986,29 @@ class InternacionStaffController extends Controller
                     'realizado' => $dren->realizado,
                 ],
             ]);
+        }
+
+        // Equipos Médicos
+        $equiposMedicos = $hospitalizacion->equipos_medicos ?? [];
+        foreach ($equiposMedicos as $evolucion) {
+            if (isset($evolucion['equipos_medicos']) && is_array($evolucion['equipos_medicos'])) {
+                $fechaEvolucion = $evolucion['fecha'] ?? null;
+                foreach ($evolucion['equipos_medicos'] as $equipo) {
+                    $timeline->push([
+                        'tipo' => 'equipo_medico',
+                        'titulo' => $equipo['nombre'] ?? 'Equipo Médico',
+                        'descripcion' => null,
+                        'fecha' => $fechaEvolucion ? \Carbon\Carbon::parse($fechaEvolucion)->format('d/m/Y') : 'N/A',
+                        'hora' => $fechaEvolucion ? \Carbon\Carbon::parse($fechaEvolucion)->format('H:i') : 'N/A',
+                        'responsable' => 'Médico',
+                        'detalles' => [
+                            'cantidad' => $equipo['cantidad'] ?? 1,
+                            'precio_unitario' => $equipo['precio_unitario'] ?? $equipo['precio'] ?? 0,
+                            'subtotal' => $equipo['subtotal'] ?? 0,
+                        ],
+                    ]);
+                }
+            }
         }
 
         // Evento de alta si existe
@@ -1105,5 +1165,35 @@ class InternacionStaffController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * API: Get equipos médicos del paciente
+     */
+    public function apiEquiposMedicos($id): JsonResponse
+    {
+        $hospitalizacion = Hospitalizacion::findOrFail($id);
+
+        $equiposMedicos = $hospitalizacion->equipos_medicos ?? [];
+
+        // Procesar equipos de las evoluciones
+        $equiposList = [];
+        $totalEquipos = 0;
+
+        foreach ($equiposMedicos as $evolucion) {
+            if (isset($evolucion['equipos_medicos']) && is_array($evolucion['equipos_medicos'])) {
+                foreach ($evolucion['equipos_medicos'] as $equipo) {
+                    $equiposList[] = $equipo;
+                    $totalEquipos += floatval($equipo['subtotal'] ?? 0);
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'equipos' => $equiposList,
+            'total' => $totalEquipos,
+            'count' => count($equiposList)
+        ]);
     }
 }

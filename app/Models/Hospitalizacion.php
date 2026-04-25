@@ -34,6 +34,7 @@ class Hospitalizacion extends Model
         'contacto_telefono',
         'contacto_parentesco',
         'contacto_relacion',
+        'equipos_medicos',
     ];
 
     protected $casts = [
@@ -43,6 +44,7 @@ class Hospitalizacion extends Model
         'ci_medico' => 'integer',
         'precio_cama_dia' => 'decimal:2',
         'total_estancia' => 'decimal:2',
+        'equipos_medicos' => 'array',
     ];
 
     public function paciente()

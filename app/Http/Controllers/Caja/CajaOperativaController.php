@@ -426,6 +426,13 @@ class CajaOperativaController extends Controller
     public function procesarCobro(Request $request): JsonResponse
     {
         try {
+            // Sanitizar monto: reemplazar coma por punto para soportar locales con coma decimal
+            if ($request->has('monto')) {
+                $request->merge([
+                    'monto' => str_replace(',', '.', (string) $request->monto)
+                ]);
+            }
+
             $request->validate([
                 'cuenta_cobro_id' => 'required|string|exists:cuenta_cobros,id',
                 'monto' => 'required|numeric|min:0.01',

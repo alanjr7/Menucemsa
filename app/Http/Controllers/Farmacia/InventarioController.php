@@ -16,7 +16,7 @@ class InventarioController extends Controller
         $this->middleware('auth');
         // Verificar que el usuario tenga rol farmacia o admin
         $this->middleware(function ($request, $next) {
-            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin'])) {
+            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin', 'administrador'])) {
                 abort(403, 'No tienes permisos para acceder a este módulo.');
             }
             return $next($request);

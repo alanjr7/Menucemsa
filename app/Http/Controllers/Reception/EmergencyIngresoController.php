@@ -100,8 +100,14 @@ class EmergencyIngresoController extends Controller
             $emergency = Emergency::create($emergencyData);
 
             // 5. Crear cuenta de cobro con seguro (pre-autorización)
+            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
+            // ya que paciente_ci en BD es integer y temp_id es string
+            $pacienteCi = $usarTempId
+                ? (int) $emergency->id  // Usar ID de emergencia como identificador numérico
+                : (int) $paciente->ci;
+
             $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
-                $paciente->ci ?? $paciente->id,
+                $pacienteCi,
                 $emergency->id,
                 [], // Sin servicios predefinidos, se agregarán después
                 true, // esPostPago = true
@@ -245,6 +251,7 @@ class EmergencyIngresoController extends Controller
             ['nombre_empresa' => ucfirst($seguroNombre)],
             [
                 'tipo' => 'EMERGENCIA',
+                'cobertura' => 'Sin cobertura',
                 'telefono' => null,
                 'formulario' => 'EMERGENCIA',
                 'estado' => 'activo'
@@ -382,7 +389,24 @@ class EmergencyIngresoController extends Controller
                     'paciente_ci' => $validated['ci'],
                 ]);
 
-            // 5. Registrar en el historial
+            // 5. Actualizar la hospitalización asociada (si existe) con el nuevo CI
+            if ($emergency->nro_hospitalizacion) {
+                \App\Models\Hospitalizacion::where('id', $emergency->nro_hospitalizacion)
+                    ->whereNull('ci_paciente')
+                    ->update([
+                        'ci_paciente' => $validated['ci'],
+                    ]);
+
+                // 5b. Actualizar la cuenta de cobro asociada a la hospitalización
+                CuentaCobro::where('referencia_type', \App\Models\Hospitalizacion::class)
+                    ->where('referencia_id', $emergency->nro_hospitalizacion)
+                    ->whereNull('paciente_ci')
+                    ->update([
+                        'paciente_ci' => $validated['ci'],
+                    ]);
+            }
+
+            // 6. Registrar en el historial
             $emergency->registrarMovimiento(
                 'emergencia',
                 'emergencia',

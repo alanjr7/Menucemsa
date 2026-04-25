@@ -25,6 +25,7 @@ class UtiAdmission extends Model
         'tipo_ingreso',
         'tipo_pago',
         'seguro_id',
+        'cuenta_cobro_id',
         'nro_autorizacion',
         'fecha_ingreso',
         'fecha_alta_clinica',
@@ -54,6 +55,11 @@ class UtiAdmission extends Model
     public function seguro()
     {
         return $this->belongsTo(Seguro::class, 'seguro_id');
+    }
+
+    public function cuentaCobro()
+    {
+        return $this->belongsTo(\App\Models\CuentaCobro::class, 'cuenta_cobro_id');
     }
 
     public function medico()

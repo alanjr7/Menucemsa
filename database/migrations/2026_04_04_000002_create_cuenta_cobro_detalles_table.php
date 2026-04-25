@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('cuenta_cobro_detalles', function (Blueprint $table) {
             $table->id();
             $table->string('cuenta_cobro_id');
-            $table->enum('tipo_item', ['servicio', 'medicamento', 'procedimiento', 'estadia', 'laboratorio', 'imagenologia', 'farmacia', 'material']);
+            $table->enum('tipo_item', ['servicio', 'medicamento', 'procedimiento', 'estadia', 'laboratorio', 'imagenologia', 'farmacia', 'material', 'equipo_medico']);
             $table->foreignId('tarifa_id')->nullable()->constrained('tarifas');
             $table->string('descripcion');
             $table->decimal('cantidad', 10, 2)->default(1);

@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             EspecialidadMedicoSeeder::class,
             MenuSeeder::class,
             AlmacenMedicamentoSeeder::class,
+            IpAccessSeeder::class,
         ]);
     }
 }

@@ -36,6 +36,7 @@ class Emergency extends Model
         'estado_parto',
         'admission_date',
         'discharge_date',
+        'equipos_medicos',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class Emergency extends Model
         'total_pagado' => 'decimal:2',
         'flujo_historial' => 'array',
         'detalle_costos' => 'array',
+        'equipos_medicos' => 'array',
     ];
 
     public function paciente(): BelongsTo

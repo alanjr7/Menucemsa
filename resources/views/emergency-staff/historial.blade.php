@@ -381,6 +381,112 @@
                 </div>
             </div>
 
+            <!-- Equipos Médicos y Procedimientos -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-cyan-200 px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-cyan-600 rounded-lg flex items-center justify-center shadow-md">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-cyan-900">Equipos Médicos y Procedimientos</h3>
+                            <p class="text-xs text-cyan-600">Equipos y procedimientos aplicados</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    @php
+                        $hayEquipos = false;
+                        $totalEquipos = 0;
+                    @endphp
+
+                    @foreach($detalleCostos as $evaluacion)
+                        @if(isset($evaluacion['tipo']) && $evaluacion['tipo'] === 'evaluacion' && !empty($evaluacion['equipos_medicos']))
+                            @php
+                                $hayEquipos = true;
+                                $responsable = isset($evaluacion['usuario_id']) && isset($usuariosMedicamentos[$evaluacion['usuario_id']])
+                                    ? $usuariosMedicamentos[$evaluacion['usuario_id']]
+                                    : 'Sistema';
+                            @endphp
+                            <div class="mb-5 last:mb-0">
+                                <!-- Header de evaluación -->
+                                <div class="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span class="text-sm font-medium text-slate-700">{{ \Carbon\Carbon::parse($evaluacion['fecha'])->format('d/m/Y H:i') }}</span>
+                                    </div>
+                                    @if(isset($evaluacion['nivel_gravedad']))
+                                    <span class="px-2 py-0.5 rounded text-xs font-medium
+                                        @switch($evaluacion['nivel_gravedad'])
+                                            @case('leve') bg-emerald-100 text-emerald-700 @break
+                                            @case('moderado') bg-yellow-100 text-yellow-700 @break
+                                            @case('grave') bg-orange-100 text-orange-700 @break
+                                            @case('critico') bg-red-100 text-red-700 @break
+                                        @endswitch
+                                    ">{{ ucfirst($evaluacion['nivel_gravedad']) }}</span>
+                                    @endif
+                                </div>
+
+                                <!-- Tabla de equipos médicos -->
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="border-b border-slate-200">
+                                                <th class="text-left py-2 text-xs font-medium text-slate-500 uppercase">Equipo/Procedimiento</th>
+                                                <th class="text-center py-2 text-xs font-medium text-slate-500 uppercase">Cantidad</th>
+                                                <th class="text-right py-2 text-xs font-medium text-slate-500 uppercase">Costo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($evaluacion['equipos_medicos'] as $equipo)
+                                                @php $totalEquipos += $equipo['subtotal'] ?? 0; @endphp
+                                                <tr class="border-b border-slate-100 last:border-0">
+                                                    <td class="py-2">
+                                                        <p class="font-medium text-slate-800">{{ $equipo['nombre'] }}</p>
+                                                    </td>
+                                                    <td class="py-2 text-center text-slate-600">{{ $equipo['cantidad'] }}</td>
+                                                    <td class="py-2 text-right font-medium text-slate-800">Bs. {{ number_format($equipo['subtotal'] ?? 0, 2) }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Responsable -->
+                                <div class="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    <span>Aplicado por: <span class="font-medium text-slate-700">{{ $responsable }}</span></span>
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+
+                    @if(!$hayEquipos)
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                        </div>
+                        <p class="text-slate-400">No hay equipos médicos registrados</p>
+                    </div>
+                    @else
+                    <div class="mt-4 pt-4 border-t-2 border-slate-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-slate-600">Total en Equipos Médicos</span>
+                            <span class="text-xl font-bold text-cyan-700">Bs. {{ number_format($totalEquipos, 2) }}</span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Cuenta de Cobro -->
             @if($cuenta)
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

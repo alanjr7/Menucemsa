@@ -655,8 +655,9 @@
                     
                     // Pre-llenar monto con saldo pendiente o copago del seguro
                     const montoSugerido = data.cuenta.seguro ? data.cuenta.seguro.monto_paciente : data.cuenta.saldo_pendiente;
-                    document.getElementById('montoPago').value = montoSugerido;
-                    document.getElementById('montoPago').max = montoSugerido;
+                    const montoSugeridoFloat = parseFloat(String(montoSugerido).replace(',', '.')) || 0;
+                    document.getElementById('montoPago').value = montoSugeridoFloat.toFixed(2);
+                    document.getElementById('montoPago').max = montoSugeridoFloat.toFixed(2);
                     
                     // Limpiar otros campos
                     document.getElementById('metodoPago').value = '';
@@ -681,9 +682,18 @@
         async function procesarCobro() {
             if (!cuentaActual) return;
             
+            // Sanitizar el monto: reemplazar coma por punto y convertir a número
+            const montoRaw = String(document.getElementById('montoPago').value).replace(',', '.');
+            const montoParsed = parseFloat(montoRaw);
+
+            if (isNaN(montoParsed) || montoParsed <= 0) {
+                alert('Ingrese un monto válido mayor a 0');
+                return;
+            }
+
             const formData = {
                 cuenta_cobro_id: cuentaActual.id,
-                monto: document.getElementById('montoPago').value,
+                monto: montoParsed,
                 metodo_pago: document.getElementById('metodoPago').value,
                 referencia: document.getElementById('referenciaPago').value,
                 ci_nit_facturacion: document.getElementById('ciNitFactura').value,

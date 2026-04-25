@@ -83,7 +83,7 @@
 
                         <div class="hidden sm:flex flex-col justify-center">
                             <h1 class="flex items-center gap-2 text-lg font-bold leading-tight text-slate-800">
-                                🏥 Clínica CEMSA
+                                 Clínica CEMSA
                             </h1>
                             <span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                                 Sede Principal
