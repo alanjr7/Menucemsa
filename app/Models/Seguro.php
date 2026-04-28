@@ -17,7 +17,6 @@ class Seguro extends Model
     protected $fillable = [
         'nombre_empresa',
         'tipo',
-        'cobertura',
         'telefono',
         'formulario',
         'estado',
