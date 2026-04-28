@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Seguro;
 use App\Models\Paciente;
 use App\Models\CuentaCobro;
+use App\Models\Emergency;
 use Illuminate\Http\JsonResponse;
 
 class SeguroController extends Controller
@@ -315,6 +316,38 @@ class SeguroController extends Controller
         } else {
             $descripcion = "Rechazo de seguro {$seguroNombre} para {$tipoAtencion}. ";
             $descripcion .= "Motivo: {$observaciones}. ";
+        }
+
+        // Verificar y crear paciente temporal si no existe
+        $pacienteExiste = \App\Models\Paciente::where('ci', $cuenta->paciente_ci)->exists();
+
+        if (!$pacienteExiste) {
+            $nombre = 'Paciente Temporal';
+            $sexo = 'otro';
+            $telefono = '0000000000';
+
+            $referencia = $cuenta->referencia;
+            if ($referencia) {
+                if ($referencia instanceof \App\Models\Emergency) {
+                    $nombre = $referencia->is_temp_id
+                        ? 'Temporal-' . $referencia->temp_id
+                        : ($referencia->paciente?->nombre ?? 'Paciente Temporal');
+                    $telefono = $referencia->paciente?->telefono ?? '0000000000';
+                    $sexo = $referencia->paciente?->sexo ?? 'otro';
+                } else {
+                    $nombre = $referencia->paciente?->nombre ?? 'Paciente Temporal';
+                    $telefono = $referencia->paciente?->telefono ?? '0000000000';
+                    $sexo = $referencia->paciente?->sexo ?? 'otro';
+                }
+            }
+
+            \App\Models\Paciente::create([
+                'ci' => $cuenta->paciente_ci,
+                'nombre' => $nombre,
+                'sexo' => $sexo,
+                'telefono' => $telefono,
+                'seguro_id' => $cuenta->seguro_id,
+            ]);
         }
 
         \App\Models\HistorialMedico::create([
