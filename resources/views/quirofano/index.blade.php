@@ -1,23 +1,23 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="w-full p-4 bg-gray-50/50 min-h-screen">
+<div class="w-full p-4 bg-slate-50/50 min-h-screen">
 
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Horario Semanal de Quirófanos</h1>
-            <p class="text-sm text-gray-500">Programación quirúrgica de la semana</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-800">Horario Semanal de Quirófanos</h1>
+            <p class="text-sm text-slate-500">Programación quirúrgica de la semana</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('quirofano.historial') }}" class="flex items-center px-3 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 font-medium transition-colors text-sm">
+            <a href="{{ route('quirofano.historial') }}" class="flex items-center px-3 py-2 border border-slate-600 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors text-sm">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
                 <span class="hidden sm:inline">Historial</span>
                 <span class="sm:hidden">Hist.</span>
             </a>
-            <a href="{{ route('quirofano.create') }}" class="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors text-sm">
+            <a href="{{ route('quirofano.create') }}" class="flex items-center px-3 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium transition-colors text-sm">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -25,25 +25,25 @@
                 <span class="sm:hidden">+</span>
             </a>
             @if(Auth::user()->isAdmin())
-            <a href="{{ route('quirofanos.management.index') }}" class="flex items-center px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 font-medium transition-colors">
+            <a href="{{ route('quirofanos.management.index') }}" class="flex items-center px-4 py-2 border border-slate-600 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
                 Gestionar Quirófanos
             </a>
-            <a href="{{ route('quirofano.medicamentos.index') }}" class="flex items-center px-4 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 font-medium transition-colors">
+            <a href="{{ route('quirofano.medicamentos.index') }}" class="flex items-center px-4 py-2 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 font-medium transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                 </svg>
                 Gestionar Medicamentos
             </a>
             @endif
-            <button onclick="window.print()" class="flex items-center px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors">
+            <!-- <button onclick="window.print()" class="flex items-center px-4 py-2 border border-slate-200 rounded-lg text-slate-600 bg-white hover:bg-slate-50 font-medium transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                 </svg>
                 Imprimir Horario
-            </button>
+            </button> -->
         </div>
     </div>
 
@@ -52,11 +52,11 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm font-medium text-gray-500">Total Semana</p>
-                    <p class="text-lg lg:text-2xl font-bold text-gray-900" id="stat-total">{{ $stats['total_semana'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-slate-500">Total Semana</p>
+                    <p class="text-lg lg:text-2xl font-bold text-slate-900" id="stat-total">{{ $stats['total_semana'] }}</p>
                 </div>
-                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                 </div>
@@ -66,11 +66,11 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm font-medium text-gray-500">Citas Hoy</p>
-                    <p class="text-lg lg:text-2xl font-bold text-amber-600" id="stat-hoy">{{ $stats['hoy'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-slate-500">Citas Hoy</p>
+                    <p class="text-lg lg:text-2xl font-bold text-orange-600" id="stat-hoy">{{ $stats['hoy'] }}</p>
                 </div>
-                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
@@ -80,7 +80,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm font-medium text-gray-500">En Curso</p>
+                    <p class="text-xs lg:text-sm font-medium text-slate-500">En Curso</p>
                     <p class="text-lg lg:text-2xl font-bold text-red-600" id="stat-en-curso">{{ $stats['en_curso'] }}</p>
                 </div>
                 <div class="w-8 h-8 lg:w-12 lg:h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -95,11 +95,11 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm font-medium text-gray-500">Finalizadas Hoy</p>
-                    <p class="text-lg lg:text-2xl font-bold text-green-600" id="stat-finalizadas">{{ $stats['finalizadas'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-slate-500">Finalizadas Hoy</p>
+                    <p class="text-lg lg:text-2xl font-bold text-emerald-600" id="stat-finalizadas">{{ $stats['finalizadas'] }}</p>
                 </div>
-                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-6m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
@@ -107,14 +107,14 @@
         </div>
 
         <!-- Emergencias en Quirófano -->
-        <div class="bg-white rounded-xl shadow-sm border border-purple-200 p-4 lg:p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 lg:p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs lg:text-sm font-medium text-purple-600">Emergencias</p>
-                    <p class="text-lg lg:text-2xl font-bold text-purple-700" id="stat-emergencias">{{ $stats['emergencias'] }}</p>
+                    <p class="text-xs lg:text-sm font-medium text-slate-600">Emergencias</p>
+                    <p class="text-lg lg:text-2xl font-bold text-slate-700" id="stat-emergencias">{{ $stats['emergencias'] }}</p>
                 </div>
-                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                 </div>
@@ -124,66 +124,66 @@
 
     <!-- Emergencias en Quirófano -->
     @if($emergenciasEnQuirofano->count() > 0)
-    <div class="bg-white rounded-xl shadow-sm border border-purple-200 mb-6 overflow-hidden">
-        <div class="p-4 bg-purple-50 border-b border-purple-200 flex items-center justify-between">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div class="flex items-center">
-                <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-slate-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-                <h3 class="font-bold text-purple-800">Pacientes en Quirófano</h3>
+                <h3 class="font-bold text-slate-800">Pacientes en Quirófano</h3>
             </div>
-            <span class="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
+            <span class="px-3 py-1 bg-slate-100 text-slate-700 text-sm font-semibold rounded-full">
                 {{ $emergenciasEnQuirofano->count() }} paciente(s)
             </span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-gray-50">
+                <thead class="bg-slate-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Cirugía</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora Ingreso</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origen</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Código</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Paciente</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">N° Cirugía</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hora Ingreso</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Origen</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200" id="tbody-emergencias">
+                <tbody class="divide-y divide-slate-200" id="tbody-emergencias">
                     @foreach($emergenciasEnQuirofano as $emg)
-                    <tr class="hover:bg-purple-50/50">
+                    <tr class="hover:bg-slate-50/50">
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="font-mono text-sm font-medium text-purple-600">{{ $emg['code'] }}</span>
+                            <span class="font-mono text-sm font-medium text-slate-600">{{ $emg['code'] }}</span>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center mr-3">
+                                    <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                     </svg>
                                 </div>
-                                <span class="text-sm font-medium text-gray-900">{{ $emg['paciente_nombre'] }}</span>
+                                <span class="text-sm font-medium text-slate-900">{{ $emg['paciente_nombre'] }}</span>
                             </div>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="font-mono text-sm text-gray-600">{{ $emg['nro_cirugia'] ?? 'N/A' }}</span>
+                            <span class="font-mono text-sm text-slate-600">{{ $emg['nro_cirugia'] ?? 'N/A' }}</span>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800">
                                 {{ $emg['status_label'] }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
                             {{ $emg['hora_ingreso'] }}
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             @php
                                 $origenColor = match($emg['origen_label'] ?? '') {
-                                    'Derivado desde Internación' => 'bg-blue-100 text-blue-800',
-                                    'Ingreso desde Recepción' => 'bg-purple-100 text-purple-800',
+                                    'Derivado desde Internación' => 'bg-slate-100 text-slate-800',
+                                    'Ingreso desde Recepción' => 'bg-slate-100 text-slate-800',
                                     'Derivado desde Emergencia' => 'bg-red-100 text-red-800',
                                     'Derivado desde UTI' => 'bg-orange-100 text-orange-800',
-                                    default => 'bg-gray-100 text-gray-800',
+                                    default => 'bg-slate-100 text-slate-800',
                                 };
                             @endphp
                             <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $origenColor }}">
@@ -192,10 +192,10 @@
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-center">
                             <div class="flex flex-col gap-2">
-                                <a href="{{ route('emergency-staff.show', $emg['id']) }}" class="text-purple-600 hover:text-purple-900 text-sm font-medium">
+                                <a href="{{ route('emergency-staff.show', $emg['id']) }}" class="text-slate-600 hover:text-slate-900 text-sm font-medium">
                                     Ver detalle
                                 </a>
-                                <a href="{{ route('quirofano.programar-emergencia', $emg['id']) }}" class="inline-flex items-center justify-center px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors">
+                                <a href="{{ route('quirofano.programar-emergencia', $emg['id']) }}" class="inline-flex items-center justify-center px-3 py-1 bg-slate-700 text-white text-xs font-medium rounded hover:bg-slate-800 transition-colors">
                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                     </svg>
@@ -212,11 +212,11 @@
     @endif
 
     <!-- Vista: Tabla Horario -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
             <div class="flex justify-between items-center">
-                <h2 class="text-lg font-bold text-gray-800">Horario Semanal Detallado</h2>
-                <div class="text-sm text-gray-500">
+                <h2 class="text-lg font-bold text-slate-800">Horario Semanal Detallado</h2>
+                <div class="text-sm text-slate-500">
                     {{ $diasSemana[0]['fecha']->format('d/m/Y') }} - {{ $diasSemana[6]['fecha']->format('d/m/Y') }}
                 </div>
             </div>
@@ -225,44 +225,44 @@
         <div class="overflow-x-auto">
             <!-- Tabla de Horario por Horas -->
             <table class="w-full text-xs">
-                <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider w-24 border-r border-gray-200">
+                        <th class="px-3 py-2 text-left font-medium text-slate-500 uppercase tracking-wider w-24 border-r border-slate-200">
                             Día
                         </th>
                         @foreach($horasDia as $hora)
-                            <th class="px-2 py-2 text-center font-medium text-gray-500 uppercase tracking-wider min-w-[80px] border-r border-gray-200">
+                            <th class="px-2 py-2 text-center font-medium text-slate-500 uppercase tracking-wider min-w-[80px] border-r border-slate-200">
                                 {{ $hora }}
                             </th>
                         @endforeach
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200" id="tbody-horario">
+                <tbody class="bg-white divide-y divide-slate-200" id="tbody-horario">
                     @foreach($diasSemana as $dia)
-                        <tr class="{{ $dia['fecha']->isToday() ? 'bg-blue-50' : 'hover:bg-gray-50' }}">
-                            <td class="px-3 py-2 font-medium text-gray-900 border-r border-gray-200 sticky left-0 bg-white z-5">
+                        <tr class="{{ $dia['fecha']->isToday() ? 'bg-slate-50' : 'hover:bg-slate-50' }}">
+                            <td class="px-3 py-2 font-medium text-slate-900 border-r border-slate-200 sticky left-0 bg-white z-5">
                                 <div>{{ $dia['nombre'] }}</div>
-                                <div class="text-gray-500 text-xs">{{ $dia['dia_mes'] }}</div>
+                                <div class="text-slate-500 text-xs">{{ $dia['dia_mes'] }}</div>
                                 @if($dia['fecha']->isToday())
-                                    <div class="text-blue-600 font-semibold text-xs">Hoy</div>
+                                    <div class="text-slate-600 font-semibold text-xs">Hoy</div>
                                 @endif
                             </td>
                             
                             @foreach($horasDia as $hora)
-                                <td class="px-2 py-2 border-r border-gray-200 align-top h-20">
+                                <td class="px-2 py-2 border-r border-slate-200 align-top h-20">
                                     <div class="space-y-1">
                                         @if(isset($citasPorDiaHora[$dia['fecha_key']][$hora]))
                                             @foreach($quirofanos as $quirofano)
                                                 @if(isset($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->id]))
                                                     @foreach($citasPorDiaHora[$dia['fecha_key']][$hora][$quirofano->id] as $cita)
-                                                        <div class="p-1 rounded text-xs cursor-pointer hover:shadow-md transition-all {{ $cita->estado === 'programada' ? 'bg-blue-100 border border-blue-300 hover:bg-blue-200' : ($cita->estado === 'en_curso' ? 'bg-amber-100 border border-amber-300 hover:bg-amber-200' : ($cita->estado === 'finalizada' ? 'bg-green-100 border border-green-300 hover:bg-green-200' : 'bg-red-100 border border-red-300 hover:bg-red-200')) }}"
+                                                        <div class="p-1 rounded text-xs cursor-pointer hover:shadow-md transition-all {{ $cita->estado === 'programada' ? 'bg-slate-100 border border-slate-300 hover:bg-slate-200' : ($cita->estado === 'en_curso' ? 'bg-orange-100 border border-orange-300 hover:bg-orange-200' : ($cita->estado === 'finalizada' ? 'bg-emerald-100 border border-emerald-300 hover:bg-emerald-200' : 'bg-red-100 border border-red-300 hover:bg-red-200')) }}"
                                                              onclick="verDetalles({{ $cita->id }})"
                                                              title="{{ $cita->paciente->nombre }} - {{ optional($cita->cirujano->user)->name ?? 'N/A' }}">
-                                                            <div class="font-semibold text-gray-900 truncate">Q{{ $quirofano->id }}</div>
-                                                            <div class="text-gray-700 truncate">{{ $cita->paciente->nombre }}</div>
-                                                            <div class="text-gray-500">{{ $cita->hora_inicio_estimada->format('H:i') }}</div>
+                                                            <div class="font-semibold text-slate-900 truncate">Q{{ $quirofano->id }}</div>
+                                                            <div class="text-slate-700 truncate">{{ $cita->paciente->nombre }}</div>
+                                                            <div class="text-slate-500">{{ $cita->hora_inicio_estimada->format('H:i') }}</div>
                                                             @if($cita->duracion_real && $cita->duracion_real > $cita->duracion_estimada)
-                                                                <div class="text-amber-700 font-bold">+{{ $cita->duracion_real - $cita->duracion_estimada }}min</div>
+                                                                <div class="text-orange-700 font-bold">+{{ $cita->duracion_real - $cita->duracion_estimada }}min</div>
                                                             @endif
                                                         </div>
                                                     @endforeach
@@ -280,39 +280,39 @@
     </div>
 
     <!-- Vista Alternativa: Por Quirófano -->
-    <div class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100">
-            <h2 class="text-lg font-bold text-gray-800">Vista por Quirófano</h2>
+    <div class="mt-8 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800">Vista por Quirófano</h2>
         </div>
         
         <div class="overflow-x-auto">
             <table class="w-full text-xs">
-                <thead class="bg-gray-50 border-b border-gray-200">
+                <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider w-32 border-r border-gray-200">
+                        <th class="px-3 py-2 text-left font-medium text-slate-500 uppercase tracking-wider w-32 border-r border-slate-200">
                             Quirófano
                         </th>
                         @foreach($diasSemana as $dia)
-                            <th class="px-3 py-2 text-center font-medium text-gray-500 uppercase tracking-wider min-w-[120px] border-r border-gray-200">
+                            <th class="px-3 py-2 text-center font-medium text-slate-500 uppercase tracking-wider min-w-[120px] border-r border-slate-200">
                                 <div>{{ $dia['nombre'] }}</div>
-                                <div class="text-gray-400">{{ $dia['dia_mes'] }}</div>
+                                <div class="text-slate-400">{{ $dia['dia_mes'] }}</div>
                                 @if($dia['fecha']->isToday())
-                                    <div class="text-blue-600 font-semibold">Hoy</div>
+                                    <div class="text-slate-600 font-semibold">Hoy</div>
                                 @endif
                             </th>
                         @endforeach
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200" id="tbody-quirofanos">
+                <tbody class="bg-white divide-y divide-slate-200" id="tbody-quirofanos">
                     @foreach($quirofanos as $quirofano)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-3 py-2 font-medium text-gray-900 border-r border-gray-200">
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-3 py-2 font-medium text-slate-900 border-r border-slate-200">
                                 <div>Q{{ $quirofano->id }}</div>
-                                <div class="text-gray-500">{{ $quirofano->tipo }}</div>
+                                <div class="text-slate-500">{{ $quirofano->tipo }}</div>
                             </td>
                             
                             @foreach($diasSemana as $dia)
-                                <td class="px-3 py-2 border-r border-gray-200">
+                                <td class="px-3 py-2 border-r border-slate-200">
                                     <div class="space-y-1 min-h-[60px]">
                                         @php
                                             $citasDelDia = [];
@@ -325,19 +325,19 @@
                                         
                                         @if(!empty($citasDelDia))
                                             @foreach($citasDelDia as $cita)
-                                                <div class="p-1 rounded text-xs cursor-pointer hover:shadow-md transition-all {{ $cita->estado === 'programada' ? 'bg-blue-50 border border-blue-200 hover:bg-blue-100' : ($cita->estado === 'en_curso' ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' : ($cita->estado === 'finalizada' ? 'bg-green-50 border border-green-200 hover:bg-green-100' : 'bg-red-50 border border-red-200 hover:bg-red-100')) }}"
+                                                <div class="p-1 rounded text-xs cursor-pointer hover:shadow-md transition-all {{ $cita->estado === 'programada' ? 'bg-slate-50 border border-slate-200 hover:bg-slate-100' : ($cita->estado === 'en_curso' ? 'bg-orange-50 border border-orange-200 hover:bg-orange-100' : ($cita->estado === 'finalizada' ? 'bg-emerald-50 border border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 border border-red-200 hover:bg-red-100')) }}"
                                                      onclick="verDetalles({{ $cita->id }})">
-                                                    <div class="font-semibold text-gray-900 truncate">{{ $cita->paciente->nombre }}</div>
-                                                    <div class="text-gray-600">{{ $cita->hora_inicio_estimada->format('H:i') }}-{{ $cita->hora_fin_estimada->format('H:i') }}</div>
-                                                    <div class="text-gray-500 truncate">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</div>
-                                                    <div class="capitalize text-gray-500">{{ $cita->tipo_cirugia }}</div>
+                                                    <div class="font-semibold text-slate-900 truncate">{{ $cita->paciente->nombre }}</div>
+                                                    <div class="text-slate-600">{{ $cita->hora_inicio_estimada->format('H:i') }}-{{ $cita->hora_fin_estimada->format('H:i') }}</div>
+                                                    <div class="text-slate-500 truncate">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</div>
+                                                    <div class="capitalize text-slate-500">{{ $cita->tipo_cirugia }}</div>
                                                     @if($cita->duracion_real && $cita->duracion_real > $cita->duracion_estimada)
-                                                        <div class="text-amber-600 font-semibold">+{{ $cita->duracion_real - $cita->duracion_estimada }}min</div>
+                                                        <div class="text-orange-600 font-semibold">+{{ $cita->duracion_real - $cita->duracion_estimada }}min</div>
                                                     @endif
                                                 </div>
                                             @endforeach
                                         @else
-                                            <div class="text-gray-400 text-xs text-center py-4">
+                                            <div class="text-slate-400 text-xs text-center py-4">
                                                 Libre
                                             </div>
                                         @endif
@@ -352,28 +352,28 @@
     </div>
 
     <!-- Leyenda -->
-    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">Leyenda de Estados</h3>
+    <div class="mt-6 bg-white rounded-xl shadow-sm border border-slate-100 p-4">
+        <h3 class="text-sm font-semibold text-slate-700 mb-3">Leyenda de Estados</h3>
         <div class="flex flex-wrap gap-4 text-xs">
             <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
-                <span class="text-gray-600">Programada</span>
+                <div class="w-4 h-4 bg-slate-50 border border-slate-200 rounded"></div>
+                <span class="text-slate-600">Programada</span>
             </div>
             <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-amber-50 border border-amber-200 rounded"></div>
-                <span class="text-gray-600">En Curso</span>
+                <div class="w-4 h-4 bg-orange-50 border border-orange-200 rounded"></div>
+                <span class="text-slate-600">En Curso</span>
             </div>
             <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
-                <span class="text-gray-600">Finalizada</span>
+                <div class="w-4 h-4 bg-emerald-50 border border-emerald-200 rounded"></div>
+                <span class="text-slate-600">Finalizada</span>
             </div>
             <div class="flex items-center gap-2">
                 <div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
-                <span class="text-gray-600">Cancelada</span>
+                <span class="text-slate-600">Cancelada</span>
             </div>
             <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-amber-100 rounded"></div>
-                <span class="text-amber-600 font-semibold">+Tiempo extra</span>
+                <div class="w-4 h-4 bg-orange-100 rounded"></div>
+                <span class="text-orange-600 font-semibold">+Tiempo extra</span>
             </div>
         </div>
     </div>
@@ -383,7 +383,7 @@
 <div id="modalCirujano" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <!-- Overlay de fondo -->
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="cerrarModalCirujano()"></div>
+        <div class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="cerrarModalCirujano()"></div>
 
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
@@ -391,30 +391,30 @@
         <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
-                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 sm:mx-0 sm:h-10 sm:w-10">
-                        <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-slate-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                     </div>
                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        <h3 class="text-lg leading-6 font-medium text-slate-900" id="modal-title">
                             Seleccionar Cirujano
                         </h3>
                         <div class="mt-2">
-                            <p class="text-sm text-gray-500 mb-4">
+                            <p class="text-sm text-slate-500 mb-4">
                                 Seleccione el cirujano que realizará la cirugía de emergencia.
                             </p>
                             
                             <!-- Lista de cirujanos -->
                             <div id="listaCirujanos" class="space-y-2 max-h-64 overflow-y-auto">
-                                <div class="text-center text-gray-500 py-4">
+                                <div class="text-center text-slate-500 py-4">
                                     Cargando médicos...
                                 </div>
                             </div>
 
                             <!-- Cirujano seleccionado -->
-                            <div id="cirujanoSeleccionadoInfo" class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 hidden">
-                                <p class="text-sm text-green-800">
+                            <div id="cirujanoSeleccionadoInfo" class="mt-4 p-3 bg-emerald-50 rounded-lg border border-emerald-200 hidden">
+                                <p class="text-sm text-emerald-800">
                                     <span class="font-semibold">Cirujano seleccionado:</span>
                                     <span id="nombreCirujanoSeleccionado"></span>
                                 </p>
@@ -423,13 +423,13 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button type="button" id="btnIniciarCirugia" onclick="confirmarIniciarEmergencia()" disabled
-                    class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-slate-700 text-base font-medium text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                     Iniciar Cirugía
                 </button>
                 <button type="button" onclick="cerrarModalCirujano()"
-                    class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    class="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                     Cancelar
                 </button>
             </div>
@@ -475,24 +475,24 @@ async function iniciarEmergencia(emergencyId) {
             
             data.medicos.forEach(medico => {
                 const div = document.createElement('div');
-                div.className = `p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${medico.disponible ? 'border-gray-200 hover:border-purple-300 bg-white' : 'border-gray-100 bg-gray-50 opacity-60'}`;
+                div.className = `p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${medico.disponible ? 'border-slate-200 hover:border-slate-300 bg-white' : 'border-slate-100 bg-slate-50 opacity-60'}`;
                 div.onclick = () => medico.disponible && seleccionarCirujano(medico, div);
                 
                 div.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-semibold text-sm">
                                 ${medico.nombre.charAt(0).toUpperCase()}
                             </div>
                             <div class="ml-3">
-                                <p class="text-sm font-medium text-gray-900">${medico.nombre}</p>
-                                <p class="text-xs text-gray-500">${medico.especialidad}</p>
+                                <p class="text-sm font-medium text-slate-900">${medico.nombre}</p>
+                                <p class="text-xs text-slate-500">${medico.especialidad}</p>
                             </div>
                         </div>
                         <div class="flex items-center">
                             ${medico.disponible 
-                                ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Disponible</span>`
-                                : `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No disponible</span>`
+                                ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Disponible</span>`
+                                : `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">No disponible</span>`
                             }
                         </div>
                     </div>
@@ -501,7 +501,7 @@ async function iniciarEmergencia(emergencyId) {
                 container.appendChild(div);
             });
         } else {
-            document.getElementById('listaCirujanos').innerHTML = '<div class="text-center text-gray-500 py-4">No hay médicos disponibles</div>';
+            document.getElementById('listaCirujanos').innerHTML = '<div class="text-center text-slate-500 py-4">No hay médicos disponibles</div>';
         }
     } catch (error) {
         console.error('Error cargando médicos:', error);
@@ -515,11 +515,11 @@ function seleccionarCirujano(medico, elemento) {
     
     // Actualizar UI - quitar selección anterior
     document.querySelectorAll('#listaCirujanos > div').forEach(div => {
-        div.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-50');
+        div.classList.remove('ring-2', 'ring-slate-500', 'bg-slate-50');
     });
     
     // Marcar seleccionado
-    elemento.classList.add('ring-2', 'ring-purple-500', 'bg-purple-50');
+    elemento.classList.add('ring-2', 'ring-slate-500', 'bg-slate-50');
     
     // Mostrar info
     document.getElementById('nombreCirujanoSeleccionado').textContent = medico.nombre + ' (' + medico.especialidad + ')';

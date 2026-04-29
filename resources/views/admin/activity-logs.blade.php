@@ -149,6 +149,21 @@
                                                 <div class="space-y-2">
                                                     @if($log->old_values)
                                                         @php
+                                                            if (!function_exists('formatLogValue')) {
+                                                                function formatLogValue($value) {
+                                                                if (is_array($value)) {
+                                                                    $json = json_encode($value);
+                                                                    return strlen($json) > 50 ? substr($json, 0, 50) . '...' : $json;
+                                                                }
+                                                                if (is_bool($value)) {
+                                                                    return $value ? 'true' : 'false';
+                                                                }
+                                                                if (is_null($value)) {
+                                                                    return 'null';
+                                                                }
+                                                                return $value;
+                                                                }
+                                                            }
                                                             $relevantOld = [];
                                                             foreach($log->old_values as $key => $value) {
                                                                 if (!in_array($key, ['id', 'created_at', 'updated_at', 'email_verified_at', 'remember_token'])) {
@@ -163,7 +178,7 @@
                                                                     @foreach($relevantOld as $key => $value)
                                                                         <div class="flex items-center gap-2 text-sm">
                                                                             <span class="font-medium capitalize">{{ $key }}:</span>
-                                                                            <span class="bg-red-50 px-2 py-1 rounded text-xs">{{ $value }}</span>
+                                                                            <span class="bg-red-50 px-2 py-1 rounded text-xs">{{ formatLogValue($value) }}</span>
                                                                         </div>
                                                                     @endforeach
                                                                 </div>
@@ -187,7 +202,7 @@
                                                                     @foreach($relevantNew as $key => $value)
                                                                         <div class="flex items-center gap-2 text-sm">
                                                                             <span class="font-medium capitalize">{{ $key }}:</span>
-                                                                            <span class="bg-green-50 px-2 py-1 rounded text-xs">{{ $value }}</span>
+                                                                            <span class="bg-green-50 px-2 py-1 rounded text-xs">{{ formatLogValue($value) }}</span>
                                                                         </div>
                                                                     @endforeach
                                                                 </div>

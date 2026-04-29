@@ -20,7 +20,7 @@
                     Volver
                 </a>
                 <a href="{{ route('internacion-staff.habitaciones.create') }}" 
-                   class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                   class="bg-blue-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -32,7 +32,7 @@
 
     <!-- Estadísticas -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-400 p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600">Total</p>
@@ -45,7 +45,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-400 p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600">Disponibles</p>
@@ -58,7 +58,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-400 p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600">Ocupadas</p>
@@ -71,7 +71,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-400 p-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600">Camas Ocupadas</p>
@@ -89,9 +89,9 @@
     <!-- Split View: Lista + Detalle -->
     <div class="flex gap-6 h-[calc(100vh-280px)] min-h-[500px]">
         <!-- Panel Izquierdo: Lista de Habitaciones -->
-        <div class="w-1/3 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
+        <div class="w-1/3 bg-white rounded-xl shadow-sm border border-gray-400 flex flex-col">
             <!-- Filtros -->
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-4 border-b border-gray-400">
                 <div class="flex gap-2 overflow-x-auto">
                     <button data-filtro="todas" class="tab-btn bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap">
                         Todas
@@ -121,7 +121,7 @@
                             default => 'gray',
                         };
                     @endphp
-                    <div class="habitacion-item cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition border-l-4 border-l-transparent"
+                    <div class="habitacion-item cursor-pointer border-b border-gray-400-100 hover:bg-gray-50 transition border-l-4 border-l-transparent"
                          data-id="{{ $habitacion->id }}"
                          data-estado="{{ $habitacion->estado }}"
                          onclick="window.habitacionApp.seleccionarHabitacion('{{ $habitacion->id }}')">
@@ -170,7 +170,7 @@
         </div>
 
         <!-- Panel Derecho: Detalle de Habitación (renderizado server-side) -->
-        <div class="w-2/3 bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto relative">
+        <div class="w-2/3 bg-white rounded-xl shadow-sm border border-gray-400 overflow-y-auto relative">
             <!-- Estado vacío -->
             <div id="detalle-vacio" class="h-full min-h-[400px] flex items-center justify-center bg-slate-50">
                 <div class="text-center p-8">
@@ -228,12 +228,12 @@
                                             <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Disponible</span>
                                         </div>
                                         <button onclick="window.habitacionApp.mostrarModalAsignar({{ $cama->id }}, '{{ $habitacion->id }}')"
-                                                class="w-full px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
+                                                class="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
                                             Asignar Paciente
                                         </button>
                                     </div>
                                 @else
-                                    <div class="border-2 border-gray-200 bg-gray-50 rounded-lg p-4">
+                                    <div class="border-2 border-gray-400 bg-gray-50 rounded-lg p-4">
                                         <div class="flex items-center justify-between">
                                             <span class="font-semibold text-gray-900">Cama {{ $cama->nro }}</span>
                                             <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Mantenimiento</span>
@@ -246,7 +246,7 @@
                         @php $isMantenimiento = $habitacion->estado === 'mantenimiento'; @endphp
                         <div class="flex gap-3 mt-6 pt-6 border-t">
                             <a href="/internacion-staff/habitaciones/{{ $habitacion->id }}/edit"
-                               class="flex-1 flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm">
+                               class="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm">
                                 Editar Habitación
                             </a>
                             <button onclick="window.habitacionApp.toggleMantenimiento('{{ $habitacion->id }}')"

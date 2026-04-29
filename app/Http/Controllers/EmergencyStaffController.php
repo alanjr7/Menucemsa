@@ -340,6 +340,33 @@ class EmergencyStaffController extends Controller
         };
     }
 
+    /**
+     * Asignar emergencia al usuario actual (enfermera-emergencia o emergencia)
+     */
+    public function assignToMe(Emergency $emergency): RedirectResponse
+    {
+        if ($emergency->status !== 'recibido') {
+            return redirect()->route('emergency-staff.pending')
+                ->with('error', 'Esta emergencia ya no está disponible para asignación');
+        }
+
+        $emergency->update([
+            'user_id' => auth()->id(),
+            'status' => 'en_evaluacion',
+        ]);
+
+        ActivityLogService::log(
+            'asignar_emergencia',
+            'Usuario asignó la emergencia ' . $emergency->code,
+            $emergency,
+            ['status' => 'recibido', 'user_id' => null],
+            ['status' => 'en_evaluacion', 'user_id' => auth()->id()]
+        );
+
+        return redirect()->route('emergency-staff.evaluacion', $emergency)
+            ->with('success', 'Emergencia asignada correctamente');
+    }
+
     public function create(): View
     {
         return view('emergency-staff.create');

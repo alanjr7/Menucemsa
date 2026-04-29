@@ -148,7 +148,7 @@ $hasPermission = function($permission) use ($userPermissions) {
     <div id="modalAcciones" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white shadow-2xl rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <!-- Header con color -->
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 rounded-t-2xl">
+            <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-8 py-6 rounded-t-2xl">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-4">
                         <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
@@ -158,7 +158,7 @@ $hasPermission = function($permission) use ($userPermissions) {
                         </div>
                         <div>
                             <h3 class="text-2xl font-bold text-white">Acciones del Paciente</h3>
-                            <p class="text-base text-blue-100 mt-1" id="modal-paciente-nombre"></p>
+                            <p class="text-base text-slate-200 mt-1" id="modal-paciente-nombre"></p>
                         </div>
                     </div>
                     <button onclick="cerrarModal()" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
@@ -173,9 +173,9 @@ $hasPermission = function($permission) use ($userPermissions) {
             <div class="p-8 bg-slate-50">
                 <div class="grid grid-cols-2 gap-5">
                     @if($hasPermission('cambiar_estados'))
-                    <button onclick="iniciarEvaluacion()" class="group flex items-center p-5 bg-white border-2 border-blue-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left shadow-sm hover:shadow-md">
-                        <div class="w-14 h-14 bg-blue-100 group-hover:bg-blue-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="iniciarEvaluacion()" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
@@ -187,9 +187,9 @@ $hasPermission = function($permission) use ($userPermissions) {
                     @endif
 
                     @if($hasPermission('ver_historial'))
-                    <button onclick="verHistorial()" class="group flex items-center p-5 bg-white border-2 border-violet-200 rounded-xl hover:border-violet-500 hover:bg-violet-50 transition-all text-left shadow-sm hover:shadow-md">
-                        <div class="w-14 h-14 bg-violet-100 group-hover:bg-violet-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                            <svg class="w-7 h-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="verHistorial()" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
@@ -217,9 +217,9 @@ $hasPermission = function($permission) use ($userPermissions) {
                     @if($hasPermission('derivar_pacientes'))
                         {{-- Rol emergencia solo puede derivar a cirugia e internacion (hospitalizacion) --}}
                         @if(auth()->user()->isEmergencia())
-                        <button onclick="derivarA('cirugia')" class="group flex items-center p-5 bg-white border-2 border-cyan-200 rounded-xl hover:border-cyan-500 hover:bg-cyan-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-cyan-100 group-hover:bg-cyan-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="derivarA('cirugia')" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
+                            <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                                <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                                 </svg>
                             </div>
@@ -242,9 +242,9 @@ $hasPermission = function($permission) use ($userPermissions) {
                         </button>
                         @else
                         {{-- Admin y otros roles mantienen todas las opciones --}}
-                        <button onclick="derivarA('cirugia')" class="group flex items-center p-5 bg-white border-2 border-cyan-200 rounded-xl hover:border-cyan-500 hover:bg-cyan-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-cyan-100 group-hover:bg-cyan-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="derivarA('cirugia')" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
+                            <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                                <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                                 </svg>
                             </div>
@@ -254,9 +254,9 @@ $hasPermission = function($permission) use ($userPermissions) {
                             </div>
                         </button>
 
-                        <button onclick="derivarA('uti')" class="group flex items-center p-5 bg-white border-2 border-rose-200 rounded-xl hover:border-rose-500 hover:bg-rose-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-rose-100 group-hover:bg-rose-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="derivarA('uti')" class="group flex items-center p-5 bg-white border-2 border-red-200 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all text-left shadow-sm hover:shadow-md">
+                            <div class="w-14 h-14 bg-red-100 group-hover:bg-red-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                                <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                                 </svg>
                             </div>
@@ -278,9 +278,9 @@ $hasPermission = function($permission) use ($userPermissions) {
                             </div>
                         </button>
 
-                        <button onclick="derivarA('observacion')" class="group flex items-center p-5 bg-white border-2 border-indigo-200 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-indigo-100 group-hover:bg-indigo-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="derivarA('observacion')" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
+                            <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                                <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
@@ -294,9 +294,9 @@ $hasPermission = function($permission) use ($userPermissions) {
                     @endif
 
                     @if($hasPermission('dar_alta'))
-                    <button onclick="darAlta()" class="group flex items-center p-5 bg-white border-2 border-green-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all text-left shadow-sm hover:shadow-md">
-                        <div class="w-14 h-14 bg-green-100 group-hover:bg-green-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                            <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="darAlta()" class="group flex items-center p-5 bg-white border-2 border-emerald-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left shadow-sm hover:shadow-md">
+                        <div class="w-14 h-14 bg-emerald-100 group-hover:bg-emerald-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
+                            <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                             </svg>
                         </div>

@@ -563,6 +563,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/{emergency}/update-status', [EmergencyStaffController::class, 'updateStatus'])->name('update-status');
         Route::post('/{emergency}/derivar', [EmergencyStaffController::class, 'derivar'])->name('derivar');
         Route::post('/{emergency}/alta', [EmergencyStaffController::class, 'darAlta'])->name('alta');
+        Route::post('/{emergency}/assign-to-me', [EmergencyStaffController::class, 'assignToMe'])->name('assign-to-me');
         Route::get('/{emergency}', [EmergencyStaffController::class, 'show'])->name('show');
         Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
     });

@@ -392,8 +392,21 @@ class EmergencyNurseController extends Controller
         // Obtener permisos actuales de la enfermera
         $currentPermissions = $enfermera->getPermissionKeys();
 
-        // Obtener todos los permisos disponibles
-        $availablePermissions = EnfermeraPermission::AVAILABLE_PERMISSIONS;
+        // Filtrar solo permisos de emergencia (ocultar los de internación)
+        $emergencyPermissionKeys = [
+            'ver_pacientes',
+            'registrar_signos_vitales',
+            'cambiar_estados',
+            'aplicar_medicamentos',
+            'ver_historial',
+            'derivar_pacientes',
+            'dar_alta',
+        ];
+
+        $availablePermissions = array_intersect_key(
+            EnfermeraPermission::AVAILABLE_PERMISSIONS,
+            array_flip($emergencyPermissionKeys)
+        );
 
         return view('emergency-staff.enfermeras.permissions', compact(
             'enfermera',
