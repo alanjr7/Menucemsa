@@ -283,7 +283,18 @@
         <div id="panel-catering" class="tab-panel p-6 hidden">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-semibold text-gray-800">Registro de Comidas - {{ now()->format('d/m/Y') }}</h3>
-                <span class="text-sm text-gray-500">Precios configurados: Desayuno Bs. {{ config('hospitalizacion.catering.precios.desayuno', 15) }}, Almuerzo Bs. {{ config('hospitalizacion.catering.precios.almuerzo', 25) }}</span>
+                <div class="flex items-center gap-3">
+                    <span id="precios-catering-display" class="text-sm text-gray-500">Cargando precios...</span>
+                    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('administrador') || auth()->user()->hasRole('dirmedico'))
+                        <button onclick="abrirModalPreciosCatering()" class="px-3 py-1.5 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg hover:bg-orange-200 transition flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Configurar Precios
+                        </button>
+                    @endif
+                </div>
             </div>
             <div id="catering-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Se carga dinámicamente -->
@@ -1013,5 +1024,116 @@
         cargarDatosEmergencia();
         @endif
     });
+
+    // ==================== PRECIO CATERING ====================
+    async function cargarPreciosCateringDisplay() {
+        try {
+            const response = await fetch('/internacion-staff/api/catering-precios');
+            const data = await response.json();
+            if (data.success) {
+                const precios = data.precios;
+                const texto = `Desayuno: Bs. ${precios.desayuno} | Almuerzo: Bs. ${precios.almuerzo} | Merienda: Bs. ${precios.merienda} | Cena: Bs. ${precios.cena}`;
+                document.getElementById('precios-catering-display').textContent = texto;
+            }
+        } catch (error) {
+            console.error('Error al cargar precios:', error);
+            document.getElementById('precios-catering-display').textContent = 'Error al cargar precios';
+        }
+    }
+
+    function abrirModalPreciosCatering() {
+        cargarPreciosCateringModal();
+        document.getElementById('modalPreciosCatering').classList.remove('hidden');
+    }
+
+    function cerrarModalPreciosCatering() {
+        document.getElementById('modalPreciosCatering').classList.add('hidden');
+    }
+
+    async function cargarPreciosCateringModal() {
+        try {
+            const response = await fetch('/internacion-staff/api/catering-precios');
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('precioDesayuno').value = data.precios.desayuno;
+                document.getElementById('precioAlmuerzo').value = data.precios.almuerzo;
+                document.getElementById('precioMerienda').value = data.precios.merienda;
+                document.getElementById('precioCena').value = data.precios.cena;
+            }
+        } catch (error) {
+            console.error('Error al cargar precios:', error);
+        }
+    }
+
+    async function guardarPreciosCatering() {
+        const precios = {
+            desayuno: parseFloat(document.getElementById('precioDesayuno').value) || 0,
+            almuerzo: parseFloat(document.getElementById('precioAlmuerzo').value) || 0,
+            merienda: parseFloat(document.getElementById('precioMerienda').value) || 0,
+            cena: parseFloat(document.getElementById('precioCena').value) || 0,
+        };
+
+        try {
+            const response = await fetch('/internacion-staff/api/catering-precios', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(precios)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert(data.message);
+                cargarPreciosCateringDisplay();
+                cerrarModalPreciosCatering();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al guardar los precios');
+        }
+    }
+
+    // Cargar precios al iniciar
+    cargarPreciosCateringDisplay();
 </script>
+
+<!-- Modal Precios Catering -->
+<div id="modalPreciosCatering" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+        <div class="flex justify-between items-center p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-800">Configurar Precios de Catering</h3>
+            <button onclick="cerrarModalPreciosCatering()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Desayuno (Bs.)</label>
+                <input type="number" id="precioDesayuno" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Almuerzo (Bs.)</label>
+                <input type="number" id="precioAlmuerzo" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Merienda (Bs.)</label>
+                <input type="number" id="precioMerienda" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cena (Bs.)</label>
+                <input type="number" id="precioCena" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500" required>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-xl">
+            <button onclick="cerrarModalPreciosCatering()" class="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition">Cancelar</button>
+            <button onclick="guardarPreciosCatering()" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">Guardar</button>
+        </div>
+    </div>
+</div>
 @endsection

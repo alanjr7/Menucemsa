@@ -14,6 +14,7 @@ use App\Models\AlmacenMedicamento;
 use App\Models\HospMedicamentoAdministrado;
 use App\Models\HospCatering;
 use App\Models\HospDrenaje;
+use App\Models\CateringPrecio;
 use App\Models\Emergency;
 use App\Models\Quirofano;
 use Illuminate\View\View;
@@ -596,7 +597,7 @@ class InternacionStaffController extends Controller
                     'cargo_generado' => $registro->cargo_generado,
                 ];
             } else {
-                $precios = config('hospitalizacion.catering.precios', []);
+                $precios = CateringPrecio::getPreciosArray();
                 $catering[] = [
                     'id' => null,
                     'tipo_comida' => $tipo,
@@ -659,8 +660,7 @@ class InternacionStaffController extends Controller
             }
 
             if ($validated['estado'] === 'dado' && $ciPaciente) {
-                $precios = config('hospitalizacion.catering.precios', []);
-                $precio = $precios[$validated['tipo_comida']] ?? 0;
+                $precio = CateringPrecio::getPrecio($validated['tipo_comida']);
 
                 // Si ya tenía un cargo anterior, no generar otro
                 if ($registro && $registro->cargo_generado && $registro->estado === 'dado') {
@@ -1195,5 +1195,67 @@ class InternacionStaffController extends Controller
             'total' => $totalEquipos,
             'count' => count($equiposList)
         ]);
+    }
+
+    /**
+     * API: Get precios de catering
+     */
+    public function apiCateringPrecios(): JsonResponse
+    {
+        $precios = CateringPrecio::getPreciosArray();
+
+        return response()->json([
+            'success' => true,
+            'precios' => $precios
+        ]);
+    }
+
+    /**
+     * API: Actualizar precios de catering
+     */
+    public function actualizarCateringPrecios(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $rolesPermitidos = ['admin', 'administrador', 'dirmedico'];
+            $tienePermiso = false;
+
+            foreach ($rolesPermitidos as $rol) {
+                if ($user->hasRole($rol)) {
+                    $tienePermiso = true;
+                    break;
+                }
+            }
+
+            if (!$tienePermiso) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tiene permisos para actualizar los precios'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'desayuno' => 'required|numeric|min:0',
+                'almuerzo' => 'required|numeric|min:0',
+                'merienda' => 'required|numeric|min:0',
+                'cena' => 'required|numeric|min:0',
+            ]);
+
+            foreach ($validated as $tipo => $precio) {
+                CateringPrecio::actualizarPrecio($tipo, floatval($precio));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Precios de catering actualizados correctamente',
+                'precios' => CateringPrecio::getPreciosArray()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar precios: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

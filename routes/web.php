@@ -593,6 +593,10 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/internacion/{id}/catering', [InternacionStaffController::class, 'apiCatering'])->name('api.catering');
         Route::post('/api/internacion/{id}/catering', [InternacionStaffController::class, 'storeCatering'])->name('api.catering.store');
 
+        // API Precios de Catering (gestión global)
+        Route::get('/api/catering-precios', [InternacionStaffController::class, 'apiCateringPrecios'])->name('api.catering-precios');
+        Route::post('/api/catering-precios', [InternacionStaffController::class, 'actualizarCateringPrecios'])->name('api.catering-precios.update');
+
         // API Drenajes
         Route::get('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'apiDrenajes'])->name('api.drenajes');
         Route::post('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'storeDrenaje'])->name('api.drenajes.store');
