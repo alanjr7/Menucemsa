@@ -98,7 +98,7 @@
                         <dt class="text-sm text-gray-500">Triage:</dt>
                         <dd class="text-sm font-medium text-gray-900">
                             @if($paciente->triage)
-                                Nivel {{ $paciente->triage->nivel }} - {{ $paciente->triage->categoria }}
+                                {{ $paciente->triage->prioridad }} - {{ $paciente->triage->descripcion }}
                             @else
                                 No asignado
                             @endif

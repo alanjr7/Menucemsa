@@ -78,7 +78,7 @@
                 </div>
                 <div>
                     <span class="text-gray-600 font-medium">Triage:</span>
-                    <span class="text-gray-900 ml-1">{{ $paciente->triage ? 'Nivel ' . $paciente->triage->nivel : 'No asignado' }}</span>
+                    <span class="text-gray-900 ml-1">{{ $paciente->triage ? $paciente->triage->prioridad . ' - ' . $paciente->triage->descripcion : 'No asignado' }}</span>
                 </div>
                 <div class="col-span-2">
                     <span class="text-gray-600 font-medium">Dirección:</span>

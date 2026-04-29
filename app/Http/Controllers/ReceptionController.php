@@ -913,7 +913,7 @@ class ReceptionController extends Controller
                   ->orderBy('fecha', 'desc');
             },
             'emergencies' => function($q) {
-                $q->with(['user', 'evaluaciones', 'movimientos'])
+                $q->with(['user'])
                   ->orderBy('created_at', 'desc');
             },
             'hospitalizaciones' => function($q) {
@@ -955,7 +955,7 @@ class ReceptionController extends Controller
                   ->orderBy('fecha', 'desc');
             },
             'emergencies' => function($q) {
-                $q->with(['user', 'evaluaciones'])
+                $q->with(['user'])
                   ->orderBy('created_at', 'desc');
             },
             'hospitalizaciones' => function($q) {
