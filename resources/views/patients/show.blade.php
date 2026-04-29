@@ -56,7 +56,7 @@
             </span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
                 <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Información Personal</h3>
                 <dl class="space-y-2">
@@ -139,6 +139,44 @@
                         <dt class="text-sm text-gray-500">Motivo:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ $paciente->registro->motivo ?? '-' }}</dd>
                     </div>
+                </dl>
+            </div>
+
+            @php
+                $contactoEmergencia = $paciente->hospitalizaciones()
+                    ->whereNotNull('contacto_nombre')
+                    ->whereNotNull('contacto_telefono')
+                    ->orderBy('fecha_ingreso', 'desc')
+                    ->first();
+            @endphp
+            <div>
+                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Contacto de Emergencia</h3>
+                <dl class="space-y-2">
+                    @if($contactoEmergencia)
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Nombre:</dt>
+                            <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_nombre }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Teléfono:</dt>
+                            <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_telefono }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Parentesco:</dt>
+                            <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_parentesco }}</dd>
+                        </div>
+                        @if($contactoEmergencia->contacto_relacion)
+                            <div class="flex justify-between">
+                                <dt class="text-sm text-gray-500">Relación:</dt>
+                                <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_relacion }}</dd>
+                            </div>
+                        @endif
+                    @else
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Estado:</dt>
+                            <dd class="text-sm font-medium text-gray-400">No registrado</dd>
+                        </div>
+                    @endif
                 </dl>
             </div>
         </div>
