@@ -159,10 +159,8 @@ class ConsultaExternaController extends Controller
 
     private function crearRegistroCajaPendiente($request, $paciente)
     {
-        // Obtener precio del servicio desde la base de datos
-        $servicio = \App\Models\Servicio::getServicioPorTipo('CONSULTA_EXTERNA');
-        $costoConsulta = $servicio ? $servicio->precio : 50.00;
-        
+        $costoConsulta = $this->obtenerPrecioConsultaExterna();
+
         return Caja::create([
             'fecha' => now(),
             'total_dia' => $costoConsulta,
@@ -195,9 +193,8 @@ class ConsultaExternaController extends Controller
 
     private function crearCuentaCobro($request, $paciente, $consulta, $caja)
     {
-        $servicio = \App\Models\Servicio::getServicioPorTipo('CONSULTA_EXTERNA');
-        $costoConsulta = $servicio ? $servicio->precio : 50.00;
-        
+        $costoConsulta = $this->obtenerPrecioConsultaExterna();
+
         $tieneSeguro = !empty($request->seguro_id);
         
         $cuenta = \App\Models\CuentaCobro::create([
@@ -515,5 +512,18 @@ class ConsultaExternaController extends Controller
                 'user_id' => Auth::id(),
             ]
         );
+    }
+
+    private function obtenerPrecioConsultaExterna(): float
+    {
+        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('consulta_externa');
+
+        if ($precioNuevo !== null) {
+            return (float) $precioNuevo;
+        }
+
+        $servicio = \App\Models\Servicio::getServicioPorTipo('CONSULTA_EXTERNA');
+
+        return $servicio ? (float) $servicio->precio : 50.00;
     }
 }

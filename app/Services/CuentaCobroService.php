@@ -265,17 +265,12 @@ class CuentaCobroService
                         $total += $precio * ($servicio['cantidad'] ?? 1);
                     }
                 } else {
-                    // Tarifa base de emergencia
-                    $tarifaEmergencia = Tarifa::where('codigo', 'EMG-BASE')
-                        ->where('activo', true)
-                        ->first();
-
-                    $precioBase = $tarifaEmergencia?->precio_particular ?? 200.00;
+                    // Precio de emergencia (con fallback al sistema anterior)
+                    $precioBase = self::obtenerPrecioEmergencia();
 
                     $cuentaExistente->detalles()->create([
                         'tipo_item' => 'servicio',
-                        'tarifa_id' => $tarifaEmergencia?->id,
-                        'descripcion' => $tarifaEmergencia?->descripcion ?? 'Atención de Emergencia',
+                        'descripcion' => 'Atención de Emergencia',
                         'cantidad' => 1,
                         'precio_unitario' => $precioBase,
                         'subtotal' => $precioBase,
@@ -333,17 +328,12 @@ class CuentaCobroService
                     $total += $precio * ($servicio['cantidad'] ?? 1);
                 }
             } else {
-                // Tarifa base de emergencia
-                $tarifaEmergencia = Tarifa::where('codigo', 'EMG-BASE')
-                    ->where('activo', true)
-                    ->first();
-
-                $precioBase = $tarifaEmergencia?->precio_particular ?? 200.00;
+                // Precio de emergencia (con fallback al sistema anterior)
+                $precioBase = self::obtenerPrecioEmergencia();
 
                 $cuenta->detalles()->create([
                     'tipo_item' => 'servicio',
-                    'tarifa_id' => $tarifaEmergencia?->id,
-                    'descripcion' => $tarifaEmergencia?->descripcion ?? 'Atención de Emergencia',
+                    'descripcion' => 'Atención de Emergencia',
                     'cantidad' => 1,
                     'precio_unitario' => $precioBase,
                     'subtotal' => $precioBase,
@@ -408,17 +398,12 @@ class CuentaCobroService
                         $total += $precio * ($servicio['cantidad'] ?? 1);
                     }
                 } else {
-                    // Tarifa base de internación (admisión)
-                    $tarifaInternacion = Tarifa::where('codigo', 'HOSP-ADM')
-                        ->where('activo', true)
-                        ->first();
-
-                    $precioBase = $tarifaInternacion?->precio_particular ?? 150.00;
+                    // Precio de internación (con fallback al sistema anterior)
+                    $precioBase = self::obtenerPrecioInternacion();
 
                     $cuentaExistente->detalles()->create([
                         'tipo_item' => 'servicio',
-                        'tarifa_id' => $tarifaInternacion?->id,
-                        'descripcion' => $tarifaInternacion?->descripcion ?? 'Admisión de Internación',
+                        'descripcion' => 'Admisión de Internación',
                         'cantidad' => 1,
                         'precio_unitario' => $precioBase,
                         'subtotal' => $precioBase,
@@ -476,17 +461,12 @@ class CuentaCobroService
                     $total += $precio * ($servicio['cantidad'] ?? 1);
                 }
             } else {
-                // Tarifa base de internación (admisión)
-                $tarifaInternacion = Tarifa::where('codigo', 'HOSP-ADM')
-                    ->where('activo', true)
-                    ->first();
-
-                $precioBase = $tarifaInternacion?->precio_particular ?? 150.00;
+                // Precio de internación (con fallback al sistema anterior)
+                $precioBase = self::obtenerPrecioInternacion();
 
                 $cuenta->detalles()->create([
                     'tipo_item' => 'servicio',
-                    'tarifa_id' => $tarifaInternacion?->id,
-                    'descripcion' => $tarifaInternacion?->descripcion ?? 'Admisión de Internación',
+                    'descripcion' => 'Admisión de Internación',
                     'cantidad' => 1,
                     'precio_unitario' => $precioBase,
                     'subtotal' => $precioBase,
@@ -776,5 +756,41 @@ class CuentaCobroService
                 ];
             }),
         ];
+    }
+
+    /**
+     * Obtener precio de emergencia con fallback al sistema anterior (tarifas)
+     */
+    private static function obtenerPrecioEmergencia(): float
+    {
+        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('emergencia');
+
+        if ($precioNuevo !== null) {
+            return (float) $precioNuevo;
+        }
+
+        $tarifaEmergencia = Tarifa::where('codigo', 'EMG-BASE')
+            ->where('activo', true)
+            ->first();
+
+        return $tarifaEmergencia?->precio_particular ?? 200.00;
+    }
+
+    /**
+     * Obtener precio de internación con fallback al sistema anterior (tarifas)
+     */
+    private static function obtenerPrecioInternacion(): float
+    {
+        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('internacion');
+
+        if ($precioNuevo !== null) {
+            return (float) $precioNuevo;
+        }
+
+        $tarifaInternacion = Tarifa::where('codigo', 'HOSP-ADM')
+            ->where('activo', true)
+            ->first();
+
+        return $tarifaInternacion?->precio_particular ?? 150.00;
     }
 }

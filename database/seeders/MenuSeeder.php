@@ -166,6 +166,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Doctores', 'route' => 'admin.doctors.index', 'roles' => 'admin,administrador', 'order' => 2],
             ['name' => 'Tarifarios', 'route' => 'admin.tarifarios', 'roles' => 'admin,administrador', 'order' => 3],
             ['name' => 'Seguros', 'route' => 'admin.seguros', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Precios de Ingresos', 'route' => 'admin.ingreso-precios.index', 'roles' => 'admin,administrador', 'order' => 5],
 
             // Gestión Hospitalaria
             ['name' => 'Almacén Central', 'route' => 'admin.almacen-medicamentos.index', 'roles' => 'admin,administrador', 'order' => 10],

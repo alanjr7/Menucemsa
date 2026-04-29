@@ -357,6 +357,9 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/tarifarios', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiIndex'])->name('tarifarios.api.index');
         Route::get('/api/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiShow'])->name('tarifarios.api.show');
 
+        Route::get('/ingreso-precios', [\App\Http\Controllers\Admin\IngresoPrecioController::class, 'index'])->name('ingreso-precios.index');
+        Route::put('/ingreso-precios', [\App\Http\Controllers\Admin\IngresoPrecioController::class, 'update'])->name('ingreso-precios.update');
+
         Route::get('/seguros', [SeguroController::class, 'index'])->name('seguros');
         Route::get('/seguros/historial', [SeguroController::class, 'historial'])->name('seguros.historial');
         Route::get('/seguros/historial/exportar', [SeguroController::class, 'exportarHistorial'])->name('seguros.historial.exportar');

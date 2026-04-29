@@ -92,20 +92,18 @@ class HospitalizacionController extends Controller
             );
 
             // Agregar cargo de admisión de internación (con deduplicación)
-            $tarifaInternacion = \App\Models\Tarifa::where('codigo', 'HOSP-ADM')
-                ->where('activo', true)->first();
-            $precioAdmision = $tarifaInternacion?->precio_particular ?? 150.00;
+            $precioAdmision = self::obtenerPrecioInternacion();
 
             CuentaCobroService::agregarCargoConDeduplicacion(
                 $cuentaCobro->id,
                 'servicio',
-                $tarifaInternacion?->descripcion ?? 'Admisión de Internación',
+                'Admisión de Internación',
                 $precioAdmision,
                 1,
                 'internacion',
                 \App\Models\Hospitalizacion::class,
                 $hospitalizacion->id,
-                $tarifaInternacion?->id
+                null
             );
 
             // 6. Procesar acciones adicionales
@@ -385,10 +383,25 @@ class HospitalizacionController extends Controller
     public function comprobante($id)
     {
         $hospitalizacion = Hospitalizacion::with(['paciente', 'medico.user'])->findOrFail($id);
-        
+
         // Obtener el triage del paciente (si tiene)
         $triage = $hospitalizacion->paciente->triage ?? null;
-        
+
         return view('reception.hospitalizacion-comprobante', compact('hospitalizacion', 'triage'));
+    }
+
+    private function obtenerPrecioInternacion(): float
+    {
+        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('internacion');
+
+        if ($precioNuevo !== null) {
+            return (float) $precioNuevo;
+        }
+
+        $tarifaInternacion = \App\Models\Tarifa::where('codigo', 'HOSP-ADM')
+            ->where('activo', true)
+            ->first();
+
+        return $tarifaInternacion?->precio_particular ?? 150.00;
     }
 }
