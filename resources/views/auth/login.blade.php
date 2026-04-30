@@ -130,7 +130,7 @@
             <div class="inline-block p-4 rounded-2xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-2xl mb-4">
                 <h2 class="text-white text-4xl xl:text-5xl font-serif italic drop-shadow-xl leading-tight">
                     Clínica de Especialidades<br>
-                    <span class="text-blue-200">Santa Cruz S.R.L.</span>
+                    <span class="text-blue-200">Medicas Santa Cruz S.R.L.</span>
                 </h2>
             </div>
             <p class="text-gray-200 text-lg xl:text-xl font-light tracking-wide mt-2 drop-shadow-md">

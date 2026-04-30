@@ -144,168 +144,206 @@ $hasPermission = function($permission) use ($userPermissions) {
         </div>
     </div>
 
-    <!-- Modal de Acciones -->
-    <div id="modalAcciones" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white shadow-2xl rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <!-- Header con color -->
-            <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-8 py-6 rounded-t-2xl">
-                <div class="flex justify-between items-center">
+    <!-- Modal de Acciones Profesional -->
+    <div id="modalAcciones" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300">
+        <div class="bg-white shadow-2xl rounded-2xl max-w-2xl w-full overflow-hidden transform transition-all duration-300 scale-100">
+            <!-- Header Médico Profesional -->
+            <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 px-6 py-4 rounded-t-2xl relative overflow-hidden">
+                <!-- Decoración sutil -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                <div class="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/20 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+
+                <div class="flex justify-between items-center relative z-10">
                     <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        <div class="w-11 h-11 bg-white/15 backdrop-blur rounded-lg flex items-center justify-center border border-white/20">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-2xl font-bold text-white">Acciones del Paciente</h3>
-                            <p class="text-base text-slate-200 mt-1" id="modal-paciente-nombre"></p>
+                            <h3 class="text-xl font-bold text-white tracking-tight">Acciones del Paciente</h3>
+                            <p class="text-sm text-blue-100 mt-1 flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                                <span id="modal-paciente-nombre" class="font-medium"></span>
+                            </p>
                         </div>
                     </div>
-                    <button onclick="cerrarModal()" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    <button onclick="cerrarModal()" class="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all duration-200 border border-white/20 hover:border-white/30 group">
+                        <svg class="w-5 h-5 text-white/80 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
             </div>
 
-            <!-- Contenido con botones coloridos y grandes -->
-            <div class="p-8 bg-slate-50">
-                <div class="grid grid-cols-2 gap-5">
-                    @if($hasPermission('cambiar_estados'))
-                    <button onclick="iniciarEvaluacion()" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                            <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <span class="font-bold text-slate-800 text-lg block">Iniciar Evaluación</span>
-                            <p class="text-sm text-slate-500 mt-1">Comenzar atención médica</p>
-                        </div>
-                    </button>
-                    @endif
-
-                    @if($hasPermission('ver_historial'))
-                    <button onclick="verHistorial()" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                            <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <span class="font-bold text-slate-800 text-lg block">Ver Historial</span>
-                            <p class="text-sm text-slate-500 mt-1">Evaluaciones y medicamentos</p>
-                        </div>
-                    </button>
-                    @endif
-
-                    @if($hasPermission('cambiar_estados'))
-                    <button onclick="cambiarEstado('estabilizado')" class="group flex items-center p-5 bg-white border-2 border-emerald-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left shadow-sm hover:shadow-md">
-                        <div class="w-14 h-14 bg-emerald-100 group-hover:bg-emerald-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                            <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <span class="font-bold text-slate-800 text-lg block">Marcar Estabilizado</span>
-                            <p class="text-sm text-slate-500 mt-1">Paciente estable y listo</p>
-                        </div>
-                    </button>
-                    @endif
-
-                    @if($hasPermission('derivar_pacientes'))
-                        {{-- Rol emergencia solo puede derivar a cirugia e internacion (hospitalizacion) --}}
-                        @if(auth()->user()->isEmergencia())
-                        <button onclick="derivarA('cirugia')" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+            <!-- Secciones Organizadas -->
+            <div class="p-4 bg-slate-50/70">
+                <!-- Sección: Atención Principal -->
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Atención Principal</h4>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        @if($hasPermission('cambiar_estados'))
+                        <button onclick="iniciarEvaluacion()" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-blue-50 group-hover:bg-blue-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
-                            <div>
-                                <span class="font-bold text-slate-800 text-lg block">Enviar a Cirugía</span>
-                                <p class="text-sm text-slate-500 mt-1">Derivar a quirófano</p>
-                            </div>
-                        </button>
-
-                        <button onclick="derivarA('hospitalizacion')" class="group flex items-center p-5 bg-white border-2 border-amber-200 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-amber-100 group-hover:bg-amber-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="font-bold text-slate-800 text-lg block">Internación</span>
-                                <p class="text-sm text-slate-500 mt-1">Hospitalización general</p>
-                            </div>
-                        </button>
-                        @else
-                        {{-- Admin y otros roles mantienen todas las opciones --}}
-                        <button onclick="derivarA('cirugia')" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="font-bold text-slate-800 text-lg block">Enviar a Cirugía</span>
-                                <p class="text-sm text-slate-500 mt-1">Derivar a quirófano</p>
-                            </div>
-                        </button>
-
-                        <button onclick="derivarA('uti')" class="group flex items-center p-5 bg-white border-2 border-red-200 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-red-100 group-hover:bg-red-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="font-bold text-slate-800 text-lg block">Enviar a UTI</span>
-                                <p class="text-sm text-slate-500 mt-1">Unidad Terapia Intensiva</p>
-                            </div>
-                        </button>
-
-                        <button onclick="derivarA('hospitalizacion')" class="group flex items-center p-5 bg-white border-2 border-amber-200 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-amber-100 group-hover:bg-amber-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="font-bold text-slate-800 text-lg block">Internación</span>
-                                <p class="text-sm text-slate-500 mt-1">Hospitalización general</p>
-                            </div>
-                        </button>
-
-                        <button onclick="derivarA('observacion')" class="group flex items-center p-5 bg-white border-2 border-slate-200 rounded-xl hover:border-slate-500 hover:bg-slate-50 transition-all text-left shadow-sm hover:shadow-md">
-                            <div class="w-14 h-14 bg-slate-100 group-hover:bg-slate-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                                <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="font-bold text-slate-800 text-lg block">Observación</span>
-                                <p class="text-sm text-slate-500 mt-1">Área de observación</p>
-                            </div>
+                            <span class="font-semibold text-slate-800 text-base block mb-1">Iniciar Evaluación</span>
+                            <span class="text-xs text-slate-500">Comenzar atención</span>
+                            <div class="absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-blue-400/20 transition-colors duration-200 pointer-events-none"></div>
                         </button>
                         @endif
-                    @endif
 
-                    @if($hasPermission('dar_alta'))
-                    <button onclick="darAlta()" class="group flex items-center p-5 bg-white border-2 border-emerald-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left shadow-sm hover:shadow-md">
-                        <div class="w-14 h-14 bg-emerald-100 group-hover:bg-emerald-200 rounded-xl flex items-center justify-center mr-4 transition-colors shadow-sm">
-                            <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <span class="font-bold text-slate-800 text-lg block">Dar de Alta</span>
-                            <p class="text-sm text-slate-500 mt-1">Paciente egresado</p>
-                        </div>
-                    </button>
-                    @endif
+                        @if($hasPermission('ver_historial'))
+                        <button onclick="verHistorial()" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-violet-400 hover:shadow-md hover:shadow-violet-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-violet-50 group-hover:bg-violet-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-base block mb-1">Ver Historial</span>
+                            <span class="text-xs text-slate-500">Evaluaciones previas</span>
+                            <div class="absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-violet-400/20 transition-colors duration-200 pointer-events-none"></div>
+                        </button>
+                        @endif
+
+                        @if($hasPermission('cambiar_estados'))
+                        <button onclick="cambiarEstado('estabilizado')" class="group relative flex flex-col items-center p-3 bg-white border border-emerald-200 rounded-lg hover:border-emerald-400 hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-emerald-50 group-hover:bg-emerald-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-base block mb-1">Marcar Estabilizado</span>
+                            <span class="text-xs text-slate-500">Paciente estable</span>
+                            <div class="absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-emerald-400/20 transition-colors duration-200 pointer-events-none"></div>
+                        </button>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Sección: Derivaciones -->
+                @if($hasPermission('derivar_pacientes'))
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-1 h-4 bg-amber-500 rounded-full"></div>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Derivaciones</h4>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        @if(auth()->user()->isEmergencia())
+                        <!-- Rol emergencia: solo cirugía e internación -->
+                        <button onclick="derivarA('cirugia')" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-rose-400 hover:shadow-md hover:shadow-rose-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-rose-50 group-hover:bg-rose-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-sm block mb-0.5">Cirugía</span>
+                            <span class="text-xs text-slate-500">Quirófano</span>
+                        </button>
+
+                        <button onclick="derivarA('hospitalizacion')" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-amber-400 hover:shadow-md hover:shadow-amber-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-amber-50 group-hover:bg-amber-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-sm block mb-0.5">Internación</span>
+                            <span class="text-xs text-slate-500">Hospitalización</span>
+                        </button>
+                        @else
+                        <!-- Admin y otros roles: todas las opciones -->
+                        <button onclick="derivarA('cirugia')" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-rose-400 hover:shadow-md hover:shadow-rose-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-rose-50 group-hover:bg-rose-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-sm block mb-0.5">Cirugía</span>
+                            <span class="text-xs text-slate-500">Quirófano</span>
+                        </button>
+
+                        <button onclick="derivarA('uti')" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-red-400 hover:shadow-md hover:shadow-red-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-red-50 group-hover:bg-red-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-sm block mb-0.5">UTI</span>
+                            <span class="text-xs text-slate-500">Terapia Intensiva</span>
+                        </button>
+
+                        <button onclick="derivarA('hospitalizacion')" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-amber-400 hover:shadow-md hover:shadow-amber-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-amber-50 group-hover:bg-amber-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-sm block mb-0.5">Internación</span>
+                            <span class="text-xs text-slate-500">Hospitalización</span>
+                        </button>
+
+                        <button onclick="derivarA('observacion')" class="group relative flex flex-col items-center p-3 bg-white border border-slate-200 rounded-lg hover:border-slate-400 hover:shadow-md hover:shadow-slate-500/10 transition-all duration-200 text-center">
+                            <div class="w-9 h-9 bg-slate-100 group-hover:bg-slate-200 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </div>
+                            <span class="font-semibold text-slate-800 text-sm block mb-0.5">Observación</span>
+                            <span class="text-xs text-slate-500">Área de obs.</span>
+                        </button>
+                        @endif
+                    </div>
+                </div>
+                @endif
+
+                <!-- Sección: Egreso -->
+                @if($hasPermission('dar_alta'))
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Egreso</h4>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="darAlta()" class="group relative flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-2 border-emerald-200 rounded-lg hover:border-emerald-400 hover:shadow-md hover:shadow-emerald-500/15 transition-all duration-200">
+                            <div class="w-9 h-9 bg-emerald-500 group-hover:bg-emerald-600 rounded-md flex items-center justify-center transition-colors duration-200 shadow-sm">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                            </div>
+                            <div class="text-left">
+                                <span class="font-bold text-emerald-800 text-base block">Dar de Alta</span>
+                                <span class="text-xs text-emerald-600">Paciente egresado</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                @endif
+            </div>
+
+            <!-- Footer del Modal -->
+            <div class="px-4 py-2 bg-slate-100 border-t border-slate-200 rounded-b-2xl">
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            Atención
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                            Derivación
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                            Egreso
+                        </span>
+                    </div>
+                    <span>Presione ESC para cerrar</span>
                 </div>
             </div>
         </div>
@@ -605,6 +643,13 @@ $hasPermission = function($permission) use ($userPermissions) {
     // Cerrar modal al hacer click fuera
     document.getElementById('modalAcciones').addEventListener('click', function(e) {
         if (e.target === this) {
+            cerrarModal();
+        }
+    });
+
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !document.getElementById('modalAcciones').classList.contains('hidden')) {
             cerrarModal();
         }
     });
