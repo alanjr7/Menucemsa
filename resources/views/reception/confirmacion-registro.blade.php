@@ -28,7 +28,7 @@
 
                 @if($caja->consulta)
                     <!-- Paciente -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="mb-6">
                         <div class="bg-gray-50 rounded-xl p-4">
                             <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
                                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,31 +36,128 @@
                                 </svg>
                                 Datos del Paciente
                             </h4>
-                            <div class="space-y-2">
-                                <div class="flex justify-between">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                                <div class="flex justify-between border-b border-gray-200 pb-1 md:col-span-2">
                                     <span class="text-sm text-gray-600">Nombre:</span>
                                     <span class="text-sm font-medium">{{ $caja->consulta->paciente->nombre ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between">
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
                                     <span class="text-sm text-gray-600">CI:</span>
-                                    <span class="text-sm font-medium font-mono">{{ $caja->consulta->paciente->ci ?? 'N/A' }}</span>
+                                    <span class="text-sm font-medium font-mono">{{ $caja->consulta->paciente->ci ?? 'N/A' }} {{ $caja->consulta->paciente->lugar_expedicion ? '- '.$caja->consulta->paciente->lugar_expedicion : '' }}</span>
                                 </div>
-                                <div class="flex justify-between">
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Edad:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->fecha_nacimiento ? \Carbon\Carbon::parse($caja->consulta->paciente->fecha_nacimiento)->age.' años' : 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Sexo:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->sexo === 'M' ? 'Masculino' : ($caja->consulta->paciente->sexo === 'F' ? 'Femenino' : 'N/A') }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Estado civil:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->estado_civil ?? 'No registrado' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Nacionalidad:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->nacionalidad ?? 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
                                     <span class="text-sm text-gray-600">Teléfono:</span>
                                     <span class="text-sm font-medium">{{ $caja->consulta->paciente->telefono ?? 'N/A' }}</span>
                                 </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Correo:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->correo ?? 'No registrado' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Profesión:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->profesion ?? 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Empresa:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->empresa_trabajo ?? 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Seguro:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->seguro->nombre ?? 'Sin seguro' }}</span>
+                                </div>
+                                <div class="flex justify-between md:col-span-2 border-b border-gray-200 pb-1">
+                                    <span class="text-sm text-gray-600">Dirección:</span>
+                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->direccion_residencia ?? ($caja->consulta->paciente->direccion ?? 'No registrada') }}</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Consulta -->
-                        <div class="bg-blue-50 rounded-xl p-4">
-                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
-                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    <!-- Garante (condicional) -->
+                    @if($caja->consulta->paciente->garante)
+                    <div class="mb-6">
+                        <div class="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                            <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                                 </svg>
-                                Detalles de la Consulta
+                                Datos del Garante / Responsable
                             </h4>
-                            <div class="space-y-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                                <div class="flex justify-between border-b border-purple-200 pb-1 md:col-span-2">
+                                    <span class="text-sm text-gray-600">Nombre Completo:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->nombre ?? 'N/A' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">CI:</span>
+                                    <span class="text-sm font-medium font-mono">{{ $caja->consulta->paciente->garante->ci ?? 'N/A' }} {{ $caja->consulta->paciente->garante->lugar_expedicion ? '- '.$caja->consulta->paciente->garante->lugar_expedicion : '' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Edad:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->fecha_nacimiento ? \Carbon\Carbon::parse($caja->consulta->paciente->garante->fecha_nacimiento)->age.' años' : 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Sexo:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->sexo === 'M' ? 'Masculino' : ($caja->consulta->paciente->garante->sexo === 'F' ? 'Femenino' : 'N/A') }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Estado civil:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->estado_civil ?? 'No registrado' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Nacionalidad:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->nacionalidad ?? 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Teléfono:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->telefono ?? 'No registrado' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Correo:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->correo ?? 'No registrado' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Profesión:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->profesion ?? 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Empresa:</span>
+                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->empresa_trabajo ?? 'No registrada' }}</span>
+                                </div>
+                                <div class="flex justify-between md:col-span-2 border-b border-purple-200 pb-1">
+                                    <span class="text-sm text-gray-600">Dirección:</span>
+                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->garante->direccion_residencia ?? ($caja->consulta->paciente->garante->direccion ?? 'No registrada') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Consulta -->
+                    <div class="bg-blue-50 rounded-xl p-4 mb-6">
+                        <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Detalles de la Consulta
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
                                 <div class="flex justify-between">
                                     <span class="text-sm text-gray-600">Médico:</span>
                                     <span class="text-sm font-medium">{{ $caja->consulta->medico->user->name ?? 'N/A' }}</span>
@@ -76,6 +173,14 @@
                                 <div class="flex justify-between">
                                     <span class="text-sm text-gray-600">Hora:</span>
                                     <span class="text-sm font-medium">{{ $caja->consulta->hora ?? 'N/A' }}</span>
+                                </div>
+                                <div class="flex justify-between border-t border-blue-200 pt-2 mt-2 md:col-span-2">
+                                    <span class="text-sm text-gray-600">Motivo:</span>
+                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->motivo ?? 'No registrado' }}</span>
+                                </div>
+                                <div class="flex justify-between md:col-span-2">
+                                    <span class="text-sm text-gray-600">Observaciones:</span>
+                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->observaciones ?? 'Sin observaciones' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -157,252 +262,491 @@
                 </svg>
                 Volver a Recepción
             </a>
-            <button onclick="window.print()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center text-sm">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                </svg>
-                Imprimir Registro
-            </button>
-        </div>
+         <button onclick="imprimir()" 
+            class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center text-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+            Imprimir Registro
+        </button>
     </div>
 </div>
 
-<!-- FORMATO DE IMPRESION - Solo visible al imprimir -->
+<!-- FORMATO DE IMPRESION - Oculto en pantalla, visible solo al imprimir -->
 <div class="print-only" style="display: none;">
-    <!-- Encabezado -->
-    <div class="print-header">
-        <h1>CEMSA - COMPROBANTE DE CONSULTA EXTERNA</h1>
-        <p>Código: {{ $caja->id }}</p>
-    </div>
-
-    <!-- Línea separadora -->
-    <div class="print-line"></div>
-
-    @if($caja->consulta)
-    <!-- Datos del Paciente -->
-    <div class="print-section">
-        <h2>DATOS DEL PACIENTE</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Nombre:</strong> {{ $caja->consulta->paciente->nombre ?? 'N/A' }}</td>
-                <td><strong>CI:</strong> {{ $caja->consulta->paciente->ci ?? 'N/A' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Teléfono:</strong> {{ $caja->consulta->paciente->telefono ?? 'No registrado' }}</td>
-                <td><strong>Sexo:</strong> {{ $caja->consulta->paciente->sexo ?? 'N/A' }}</td>
-            </tr>
-            <tr>
-                <td colspan="2"><strong>Dirección:</strong> {{ $caja->consulta->paciente->direccion ?? 'No registrada' }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- Detalles de la Consulta -->
-    <div class="print-section">
-        <h2>DETALLES DE LA CONSULTA</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Médico:</strong> Dr. {{ $caja->consulta->medico->user->name ?? 'No asignado' }}</td>
-                <td><strong>Especialidad:</strong> {{ $caja->consulta->especialidad->nombre ?? 'N/A' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($caja->consulta->fecha)->format('d/m/Y') ?? 'N/A' }}</td>
-                <td><strong>Hora:</strong> {{ $caja->consulta->hora ?? 'N/A' }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- Información de Pago -->
-    <div class="print-section">
-        <h2>INFORMACIÓN DE PAGO</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Monto a Pagar:</strong> Bs. {{ number_format($caja->monto_pagado, 2) }}</td>
-                <td><strong>Estado:</strong> PENDIENTE DE PAGO</td>
-            </tr>
-            <tr>
-                <td><strong>Tipo:</strong> {{ $caja->tipo }}</td>
-                <td><strong>Impreso:</strong> {{ now()->format('d/m/Y H:i') }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- Instrucciones -->
-    <div class="print-section">
-        <h2>INSTRUCCIONES</h2>
-        <div class="print-instructions">
-            <p><strong>1.</strong> El paciente debe pasar a módulo de caja para realizar el pago.</p>
-            <p><strong>2.</strong> Una vez pagado, el paciente aparecerá en el dashboard del médico.</p>
-            <p><strong>3.</strong> Conserve este comprobante hasta ser atendido.</p>
+    <div class="doc-container">
+        
+        <!-- ENCABEZADO -->
+        <div class="header-section">
+            <div class="logo-area">
+                <div style="font-family: Arial, sans-serif;">
+                    <h1 style="font-size: 16pt; font-style: italic; font-weight: normal; margin: 0; color: #444;">Clínica Médica</h1>
+                    <h2 style="font-size: 20pt; font-weight: bold; margin: -5pt 0 0 0; letter-spacing: 1px;">SIRANI</h2>
+                    <div style="border-bottom: 2px solid #000; width: 100%; margin-top: 2px;"></div>
+                </div>
+            </div>
+            
+            <div class="info-area">
+                <div class="doc-number text-right">
+                    <strong>Nº: <span style="margin-left: 20pt;">{{ $caja->id ?? '926010073' }}</span></strong>
+                </div>
+                <div class="notice-box">
+                    <p><strong>ESTIMADO PACIENTE:</strong></p>
+                    <p>SI DESEA GUARDAR SUS OBJETOS DE VALOR (JOYAS, DINERO, CELULAR U OTROS). UD.</p>
+                    <p>PUEDE HACERLO EN LA ADMINISTRACIÓN</p>
+                    <p><strong>LA CLINICA MEDICA SIRANI LTDA. NO SE RESPONSABILIZARÁ EN CASO DE PÉRDIDAS.</strong></p>
+                </div>
+            </div>
         </div>
-    </div>
-    @endif
 
-    <!-- Firma -->
-    <div class="print-signature">
-        <p>_______________________________</p>
-        <p>Firma del Paciente / Responsable</p>
-    </div>
+        <h3 class="main-title">REGISTRO DE ADMISIÓN Y CONTRATO DE SERVICIOS</h3>
 
-    <!-- Footer -->
-    <div class="print-footer">
-        <p>CEMSA - Centro Médico de Especialidades | Documento generado el {{ now()->format('d/m/Y H:i') }}</p>
+        @if($caja->consulta)
+        <!-- DATOS DEL PACIENTE -->
+        <div class="form-section">
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Paciente - Sr. (a):</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->nombre ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">F. N.</span>
+                    <span class="f-value text-center">{{ $caja->consulta->paciente->fecha_nacimiento ? \Carbon\Carbon::parse($caja->consulta->paciente->fecha_nacimiento)->format('Y-m-d') : '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.2;">
+                    <span class="f-label">Estado Civil</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->estado_civil ?? 'SOLTERO(A)') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Nacionalidad</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->nacionalidad ?? 'BOLIVIANA') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Lugar</span>
+                    <span class="f-value text-center">{{ strtoupper($caja->consulta->paciente->lugar_expedicion ?? 'SC') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Teléfono Nº</span>
+                    <span class="f-value">{{ $caja->consulta->paciente->telefono ?? '' }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">C.I. Nº</span>
+                    <span class="f-value">{{ $caja->consulta->paciente->ci ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Teléfono Nº</span>
+                    <span class="f-value"></span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Dirección</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion_residencia ?? $caja->consulta->paciente->direccion ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Empresa</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->empresa_trabajo ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Profesión</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->profesion ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Dirección</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion_residencia ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Hora de Ingreso</span>
+                    <span class="f-value">{{ now()->format('H:i') }}</span>
+                </div>
+                <div style="flex: 3;"></div>
+            </div>
+        </div>
+
+        <!-- GARANTE RESPONSABLE -->
+        <h4 class="section-title">GARANTE RESPONSABLE</h4>
+        <div class="form-section">
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Señor (a):</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->nombre ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">F. N.</span>
+                    <span class="f-value text-center">{{ $caja->consulta->paciente->garante->fecha_nacimiento ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.2;">
+                    <span class="f-label">Estado Civil</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->estado_civil ?? 'SOLTERO(A)') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Nacionalidad</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->nacionalidad ?? 'BOLIVIA') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.2;">
+                    <span class="f-label">Teléfono Nº</span>
+                    <span class="f-value">{{ $caja->consulta->paciente->garante->telefono ?? '' }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">C.I. Nº</span>
+                    <span class="f-value">{{ $caja->consulta->paciente->garante->ci ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Lugar</span>
+                    <span class="f-value text-center">{{ strtoupper($caja->consulta->paciente->garante->lugar_expedicion ?? 'SC') }}</span>
+                </div>
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Profesión</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->profesion ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Dirección</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->direccion ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.2;">
+                    <span class="f-label">Teléfono Nº</span>
+                    <span class="f-value"></span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Empresa</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->empresa_trabajo ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Dirección</span>
+                    <span class="f-value"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAUSA O MOTIVO -->
+        <h4 class="section-title" style="margin-top: 15pt;">CAUSA O MOTIVO DE LA INTERNACION:</h4>
+        <div class="form-section">
+            <div class="f-row text-center" style="margin-bottom: 10pt; justify-content: center;">
+                <span style="margin-right: 40pt;">Cirugía ( {{ $caja->consulta->tipo === 'CIRUGIA' ? 'X' : ' ' }} )</span>
+                <span>Tratamiento ( {{ $caja->consulta->tipo === 'TRATAMIENTO' ? 'X' : ' ' }} )</span>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">MEDICO QUE DISPONE LA INTERNACION Dr.</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->medico->user->name ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">DIAGNOSTICO PRELIMINAR</span>
+                    <span class="f-value" style="padding-left: 20pt;">{{ strtoupper($caja->consulta->especialidad->nombre ?? 'CIRUGIA') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">MEDICO QUE ADMITE AL PACIENTE Dr.</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->medico->user->name ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">HABITACION ASIGNADA Nº</span>
+                    <span class="f-value"></span>
+                </div>
+                <div style="flex: 1;"></div>
+            </div>
+        </div>
+        @endif
+
+        <!-- ACEPTACION -->
+        <h4 class="section-title text-center" style="margin-top: 15pt;">ACEPTACION</h4>
+        <div class="form-section">
+            <p class="text-justify" style="line-height: 1.6; margin-bottom: 15pt;">
+                <strong>NOTA:</strong> Las condiciones del contrato de prestación de servicios, aparecen en el <strong>REVERSO</strong> y los otorgantes declaran haberlas leído atentamente y en señal de conformidad con las mismas, suscriben este documento en doble ejemplar de un mismo tenor y para un solo efecto.
+            </p>
+            
+            <div class="f-row" style="margin-bottom: 30pt;">
+                <div class="f-field" style="width: 300px;">
+                    <span class="f-label">Santa Cruz,</span>
+                    <span class="f-value text-center">{{ now()->format('d') }} de {{ now()->locale('es')->isoFormat('MMMM') }} de {{ now()->format('Y') }}</span>
+                </div>
+            </div>
+
+            <!-- FIRMAS 1 -->
+            <div class="signatures">
+                <div class="sig-box">
+                    <div class="sig-line"></div>
+                    <div>PACIENTE</div>
+                </div>
+                <div class="sig-box">
+                    <div class="sig-line"></div>
+                    <div>GARANTE RESPONSABLE</div>
+                </div>
+                <div class="sig-box stamp-area">
+                    <div class="stamp-text">
+                        Ruth Mery Silva Guzman<br>
+                        <strong>RECEPCIÓN</strong><br>
+                        Clinica Medica Sirani Ltda.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTA DE RECONOCIMIENTO -->
+        <h4 class="section-title text-center" style="margin-top: 15pt;">ACTA DE RECONOCIMIENTO DE FIRMAS</h4>
+        <div class="form-section text-justify" style="line-height: 1.8;">
+            <p style="margin-bottom: 10pt;">
+                En esta Ciudad de Santa Cruz, a horas <span class="inline-val" style="width: 40pt;">{{ now()->format('H:i') }}</span> 
+                de día <span class="inline-val" style="width: 40pt;"></span> 
+                <span class="inline-val" style="width: 60pt;">{{ now()->format('d') }} de {{ now()->locale('es')->isoFormat('MMMM') }}</span> 
+                de dos mil <span class="inline-val" style="width: 60pt;">{{ strtoupper(\NumberFormatter::create('es', \NumberFormatter::SPELLOUT)->format(now()->format('Y'))) }}</span> 
+                ante el suscrito Juez de Mínima Cuantía Nº <span class="inline-val" style="width: 30pt;"></span> 
+                de la Capital comparecieron voluntariamente los señores:
+            </p>
+
+            <div style="margin-left: 20pt; margin-bottom: 10pt;">
+                <div class="f-row">
+                    <span class="f-value" style="flex: 2;">{{ strtoupper($caja->consulta->paciente->nombre ?? '') }}</span>
+                    <span class="f-label" style="margin: 0 10pt;">con C.I.Nº</span>
+                    <span class="f-value text-center" style="flex: 1;">{{ $caja->consulta->paciente->ci ?? '' }}</span>
+                </div>
+                <div class="f-row">
+                    <span class="f-value" style="flex: 2;">{{ strtoupper($caja->consulta->paciente->garante->nombre ?? '') }}</span>
+                    <span class="f-label" style="margin: 0 10pt;">con C.I.Nº</span>
+                    <span class="f-value text-center" style="flex: 1;">{{ $caja->consulta->paciente->garante->ci ?? '' }}</span>
+                </div>
+                <div class="f-row">
+                    <span class="f-value" style="flex: 2;"></span>
+                    <span class="f-label" style="margin: 0 10pt;">con C.I.Nº</span>
+                    <span class="f-value" style="flex: 1;"></span>
+                </div>
+            </div>
+
+            <p style="margin-bottom: 30pt;">
+                a reconocer sus firmas que tienen estampadas al pie del documento anterior, Juramentos en legal forma y puéstoles de manifiesto sus firmas, los comparecientes expresaron ser las suyas y las reconocen como auténticas a los efectos de Ley, en constancia firman con el suscrito Juez y testigo de Actuación que certifica.
+            </p>
+
+            <!-- FIRMAS 2 -->
+            <div class="signatures">
+                <div class="sig-box">
+                    <div class="sig-line"></div>
+                    <div>PACIENTE</div>
+                </div>
+                <div class="sig-box">
+                    <div class="sig-line"></div>
+                    <div>GARANTE RESPONSABLE</div>
+                </div>
+                <div class="sig-box stamp-area">
+                    <div class="stamp-text" style="opacity: 0.8;">
+                        Ruth Mery Silva Guzman<br>
+                        <strong>RECEPCIÓN</strong><br>
+                        Clinica Medica Sirani Ltda.
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
-<style>
-/* Estilos para pantalla */
-.screen-only { display: block; }
-.print-only { display: none; }
+<script>
+function imprimir() {
+    const contenido = document.querySelector('.print-only').innerHTML;
+    const ventana = window.open('', '_blank', 'width=900,height=700');
 
-/* Estilos para impresión */
-@media print {
-    /* Ocultar elementos de la UI de la aplicación */
-    nav, aside, header:not(.print-header), .screen-only,
-    [class*="sidebar"], [class*="navbar"], [class*="menu"],
-    #app nav, .bg-gray-50, .bg-gray-100, .shadow-lg, .shadow-sm {
-        display: none !important;
-    }
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Imprimir Registro Sirani</title>
+            <style>
+                /* Estilos base y de reseteo para impresión */
+                @page {
+                    size: letter; /* Tamaño carta estándar */
+                    margin: 1.5cm; 
+                }
+                
+                body {
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 8.5pt;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                }
 
-    /* Mostrar solo el contenido de impresión */
-    .print-only {
-        display: block !important;
-        position: static !important;
-    }
+                * {
+                    box-sizing: border-box;
+                }
 
-    /* Configuración de página */
-    @page {
-        size: letter; /* Hoja carta 8.5" x 11" */
-        margin: 1.5cm 2cm;
-    }
+                .doc-container {
+                    width: 100%;
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
 
-    /* Reset de estilos */
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 11pt;
-        line-height: 1.4;
-        color: #000;
-        background: white;
-        margin: 0;
-        padding: 0;
-    }
+                /* Encabezado */
+                .header-section {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 15pt;
+                }
 
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
+                .logo-area {
+                    width: 40%;
+                }
 
-    /* Encabezado */
-    .print-header {
-        text-align: center;
-        margin-bottom: 15pt;
-        border-bottom: 2pt solid #000;
-        padding-bottom: 10pt;
-    }
+                .info-area {
+                    width: 55%;
+                }
 
-    .print-header h1 {
-        font-size: 16pt;
-        font-weight: bold;
-        margin: 0 0 5pt 0;
-        text-transform: uppercase;
-    }
+                .doc-number {
+                    font-size: 10pt;
+                    margin-bottom: 10pt;
+                }
 
-    .print-header p {
-        font-size: 11pt;
-        margin: 0;
-        font-family: "Courier New", monospace;
-    }
+                .notice-box {
+                    font-size: 7.5pt;
+                    line-height: 1.3;
+                }
+                .notice-box p { margin: 2px 0; }
 
-    /* Línea separadora */
-    .print-line {
-        border-bottom: 0.5pt solid #000;
-        margin: 8pt 0;
-    }
+                /* Títulos */
+                .main-title {
+                    text-align: center;
+                    font-size: 11pt;
+                    font-weight: bold;
+                    margin: 20pt 0 15pt 0;
+                }
 
-    /* Secciones */
-    .print-section {
-        margin-bottom: 12pt;
-        page-break-inside: avoid;
-    }
+                .section-title {
+                    font-size: 8.5pt;
+                    font-weight: bold;
+                    margin: 10pt 0 5pt 0;
+                    text-transform: uppercase;
+                }
 
-    .print-section h2 {
-        font-size: 12pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin: 0 0 6pt 0;
-        padding: 3pt 0;
-        border-bottom: 0.5pt solid #333;
-    }
+                /* Sistema de filas tipo formulario (Líneas punteadas) */
+                .form-section {
+                    margin-bottom: 10pt;
+                }
 
-    /* Tablas */
-    .print-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 10.5pt;
-    }
+                .f-row {
+                    display: flex;
+                    align-items: flex-end;
+                    margin-bottom: 6pt;
+                    width: 100%;
+                    gap: 10pt;
+                }
 
-    .print-table td {
-        padding: 4pt 6pt;
-        vertical-align: top;
-        border: 0.5pt solid #666;
-    }
+                .f-field {
+                    display: flex;
+                    align-items: flex-end;
+                }
 
-    .print-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
+                .f-label {
+                    white-space: nowrap;
+                    margin-right: 5pt;
+                    font-size: 8pt;
+                    color: #111;
+                }
 
-    /* Instrucciones */
-    .print-instructions {
-        font-size: 10pt;
-        line-height: 1.6;
-        padding: 8pt;
-        border: 0.5pt solid #999;
-        background-color: #fafafa;
-    }
+                .f-value {
+                    flex-grow: 1;
+                    border-bottom: 1.5px dotted #000; /* La línea punteada clave */
+                    min-height: 12pt;
+                    font-weight: normal;
+                    font-family: monospace, sans-serif;
+                    font-size: 8.5pt;
+                    padding-bottom: 1px;
+                }
 
-    .print-instructions p {
-        margin: 4pt 0;
-    }
+                .w-100 { width: 100%; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .text-justify { text-align: justify; }
 
-    /* Área de firma */
-    .print-signature {
-        margin-top: 40pt;
-        text-align: center;
-        page-break-inside: avoid;
-    }
+                /* Textos en línea (Para el Acta) */
+                .inline-val {
+                    display: inline-block;
+                    border-bottom: 1.5px dotted #000;
+                    min-height: 10pt;
+                    text-align: center;
+                    font-family: monospace, sans-serif;
+                }
 
-    .print-signature p {
-        margin: 3pt 0;
-        font-size: 10pt;
-    }
+                /* Firmas */
+                .signatures {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    margin-top: 40pt;
+                }
 
-    .print-signature p:first-child {
-        font-size: 12pt;
-        letter-spacing: 2pt;
-    }
+                .sig-box {
+                    width: 30%;
+                    text-align: center;
+                    font-size: 8pt;
+                }
 
-    /* Footer */
-    .print-footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 8pt;
-        color: #555;
-        border-top: 0.5pt solid #999;
-        padding-top: 5pt;
-        margin-top: 15pt;
-    }
+                .sig-line {
+                    border-bottom: 1px solid #000;
+                    margin-bottom: 5pt;
+                    width: 100%;
+                    height: 20pt;
+                }
 
-    /* Evitar saltos de página en secciones importantes */
-    .print-section, .print-signature {
-        page-break-inside: avoid;
-    }
+                .stamp-area {
+                    position: relative;
+                }
 
-    h2 {
-        page-break-after: avoid;
-    }
+                .stamp-text {
+                    color: #4a5568; /* Color gris oscuro simulando sello */
+                    font-family: 'Times New Roman', serif;
+                    font-style: italic;
+                    font-size: 10pt;
+                    line-height: 1.2;
+                }
+            </style>
+        </head>
+        <body onload="setTimeout(() => { window.print(); window.close(); }, 250);">
+            ${contenido}
+        </body>
+        </html>
+    `);
+
+    ventana.document.close();
 }
-</style>
+</script>
 @endsection

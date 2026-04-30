@@ -224,6 +224,11 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/medicos-disponibles', [ReceptionController::class, 'buscarMedicosDisponibles'])->name('reception.medicos-disponibles');
         Route::get('/api/especialidades', [ReceptionController::class, 'getEspecialidades'])->name('reception.especialidades');
 
+        // Rutas API para garantes
+        Route::get('/api/buscar-garante', [ReceptionController::class, 'buscarGarante'])->name('reception.buscar-garante');
+        Route::post('/api/buscar-garante-exacto', [ReceptionController::class, 'buscarGaranteExacto'])->name('reception.buscar-garante-exacto');
+        Route::post('/api/registrar-garante', [ReceptionController::class, 'registrarGarante'])->name('reception.registrar-garante');
+
         // Rutas para completar datos de paciente temporal
         Route::get('/reception/completar-datos-paciente/{emergencyId}', [EmergencyIngresoController::class, 'mostrarFormularioCompletarDatos'])->name('reception.completar-datos-paciente');
         Route::post('/reception/completar-datos-paciente', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal'])->name('reception.completar-datos-paciente.store');

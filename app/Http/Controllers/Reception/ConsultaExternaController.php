@@ -129,28 +129,41 @@ class ConsultaExternaController extends Controller
             $request->validate([
                 'nombres' => 'required|string|max:80',
                 'apellidos' => 'required|string|max:80',
-                'sexo' => 'required|string|in:Masculino,Femenino',
+                'sexo' => 'required|string|in:M,F',
             ]);
 
             $seguroId = $request->seguro_id ?: $this->obtenerOCrearSeguro('Particular');
 
-            // Crear nuevo paciente con todos los campos requeridos
+            // Crear nuevo paciente con todos los campos del formulario
             $paciente = Paciente::create([
                 'ci' => $ci,
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
-                'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
-                'direccion' => $request->direccion ?? 'Sin especificar',
-                'telefono' => $request->telefono ?? 0,
-                'correo' => $request->correo ?? 'sin@email.com',
+                'sexo' => $request->sexo,
+                'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
+                'lugar_expedicion' => $request->lugar_expedicion ?? null,
+                'nacionalidad' => $request->nacionalidad ?? 'Boliviana',
+                'estado_civil' => $request->estado_civil ?? null,
+                'telefono' => $request->telefono ?? null,
+                'correo' => $request->correo ?? null,
+                'profesion' => $request->profesion ?? null,
+                'empresa_trabajo' => $request->empresa_trabajo ?? null,
+                'direccion_residencia' => $request->direccion_residencia ?? null,
+                'direccion' => $request->direccion_residencia ?? null,
                 'seguro_id' => $seguroId,
                 'triage_id' => $this->obenerOCrearTriage(),
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
+                'id_garante_referencia' => $request->id_garante_referencia ?? null,
             ]);
         } else {
             // Actualizar datos si es necesario
             $paciente->update([
                 'telefono' => $request->telefono ?? $paciente->telefono,
                 'correo' => $request->correo ?? $paciente->correo,
+                'direccion_residencia' => $request->direccion_residencia ?? $paciente->direccion_residencia,
+                'direccion' => $request->direccion_residencia ?? $paciente->direccion,
+                'profesion' => $request->profesion ?? $paciente->profesion,
+                'empresa_trabajo' => $request->empresa_trabajo ?? $paciente->empresa_trabajo,
+                'id_garante_referencia' => $request->id_garante_referencia ?? $paciente->id_garante_referencia,
             ]);
         }
         

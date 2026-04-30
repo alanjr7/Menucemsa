@@ -45,11 +45,11 @@ class ReceptionController extends Controller
     public function buscarPaciente(Request $request)
     {
         $ci = $request->get('ci');
-        
-        if (strlen($ci) < 8) {
+
+        if (strlen($ci) < 3) {
             return response()->json([
                 'success' => false,
-                'message' => 'El CI debe tener al menos 8 dígitos'
+                'message' => 'El CI debe tener al menos 3 dígitos'
             ]);
         }
 
@@ -128,30 +128,40 @@ class ReceptionController extends Controller
     private function crearOActualizarPaciente($request)
     {
         $ci = $request->ci;
-        
+
         // Buscar paciente existente
         $paciente = Paciente::find($ci);
-        
+
         if (!$paciente) {
             // Validar que todos los campos requeridos estén presentes
             $request->validate([
                 'nombres' => 'required|string|max:80',
                 'apellidos' => 'required|string|max:80',
-                'sexo' => 'required|string|in:Masculino,Femenino',
-                'seguro' => 'required|string',
+                'sexo' => 'required|string|in:M,F',
+                'fecha_nacimiento' => 'required|date',
             ]);
 
             // Crear nuevo paciente con todos los campos requeridos
+            $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
             $paciente = Paciente::create([
                 'ci' => $ci,
-                'nombre' => trim($request->nombres . ' ' . $request->apellidos),
+                'nombre_completo' => $nombreCompleto,
+                'nombre' => $nombreCompleto,
                 'sexo' => $request->sexo,
-                'direccion' => $request->direccion ?? 'Sin especificar',
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'lugar_expedicion' => $request->lugar_expedicion ?? null,
+                'nacionalidad' => $request->nacionalidad ?? 'Boliviana',
+                'estado_civil' => $request->estado_civil ?? null,
+                'direccion_residencia' => $request->direccion_residencia ?? null,
+                'direccion' => $request->direccion ?? $request->direccion_residencia ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? null,
                 'correo' => $request->correo ?? null,
-                'seguro_id' => $this->obtenerOCrearSeguro($request->seguro),
+                'profesion' => $request->profesion ?? null,
+                'empresa_trabajo' => $request->empresa_trabajo ?? null,
+                'seguro_id' => $request->seguro_id ?: null,
                 'triage_id' => $this->obenerOCrearTriage(),
                 'registro_codigo' => $this->obtenerOCrearRegistro(),
+                'id_garante_referencia' => $request->id_garante_referencia ?? null,
             ]);
         } else {
             // Permitir múltiples consultas sin límite
@@ -170,6 +180,10 @@ class ReceptionController extends Controller
             $paciente->update([
                 'telefono' => $request->telefono ?? $paciente->telefono,
                 'correo' => $request->correo ?? $paciente->correo,
+                'direccion_residencia' => $request->direccion_residencia ?? $paciente->direccion_residencia,
+                'profesion' => $request->profesion ?? $paciente->profesion,
+                'empresa_trabajo' => $request->empresa_trabajo ?? $paciente->empresa_trabajo,
+                'id_garante_referencia' => $request->id_garante_referencia ?? $paciente->id_garante_referencia,
             ]);
         }
         
@@ -340,9 +354,9 @@ class ReceptionController extends Controller
 
     public function confirmacionRegistro($id)
     {
-        $caja = Caja::with(['consulta.paciente', 'consulta.medico.user', 'consulta.especialidad'])
+        $caja = Caja::with(['consulta.paciente.seguro', 'consulta.paciente.triage', 'consulta.paciente.garante', 'consulta.medico.user', 'consulta.especialidad'])
                      ->findOrFail($id);
-        
+
         return view('reception.confirmacion-registro', compact('caja'));
     }
 
@@ -358,10 +372,20 @@ class ReceptionController extends Controller
 
     public function procesarTriageGeneral(Request $request)
     {
-        $request->validate([
-            'ci' => 'required|string|min:6',
+        $rules = [
+            'ci' => 'required|string|min:3',
             'triage_tipo' => 'required|in:rojo,amarillo,verde',
-        ]);
+        ];
+
+        // Si es paciente nuevo, validar campos adicionales
+        if ($request->tipo_paciente === 'nuevo') {
+            $rules['nombres'] = 'required|string|max:80';
+            $rules['apellidos'] = 'required|string|max:80';
+            $rules['sexo'] = 'required|string|in:M,F';
+            $rules['fecha_nacimiento'] = 'required|date';
+        }
+
+        $request->validate($rules);
 
         try {
             DB::beginTransaction();
@@ -880,7 +904,14 @@ class ReceptionController extends Controller
      */
     public function pacientesIndex(Request $request): View
     {
-        $query = Paciente::with(['seguro', 'triage', 'registro.user'])
+        $query = Paciente::with([
+                'seguro',
+                'triage',
+                'registro.user',
+                'consultas' => function($q) {
+                    $q->with('caja')->orderBy('fecha', 'desc')->limit(1);
+                }
+            ])
             ->whereHas('registro');
 
         if ($request->filled('search')) {
@@ -984,5 +1015,130 @@ class ReceptionController extends Controller
             'cirugiasHistorial',
             'fechaImpresion'
         ));
+    }
+
+    public function buscarGarante(Request $request)
+    {
+        $ci = $request->get('ci');
+
+        if (strlen($ci) < 3) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El CI debe tener al menos 3 dígitos'
+            ]);
+        }
+
+        $garante = Paciente::where('ci', $ci)
+            ->where(function($q) {
+                $q->whereNull('seguro_id')
+                  ->whereNull('triage_id')
+                  ->whereNull('registro_codigo');
+            })
+            ->orWhere(function($q) {
+                $q->whereNotNull('ci');
+            })
+            ->first();
+
+        if ($garante) {
+            return response()->json([
+                'success' => true,
+                'garante' => $garante,
+                'message' => 'Persona encontrada'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Persona no encontrada. Debe registrarla primero.',
+                'show_form' => true
+            ]);
+        }
+    }
+
+    public function buscarGaranteExacto(Request $request)
+    {
+        $ci = $request->input('ci');
+
+        if (strlen($ci) < 3) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El CI debe tener al menos 3 caracteres'
+            ]);
+        }
+
+        $garante = Paciente::where('ci', $ci)->first();
+
+        if ($garante) {
+            return response()->json([
+                'success' => true,
+                'garante' => [
+                    'ci' => $garante->ci,
+                    'nombre' => $garante->nombre,
+                    'telefono' => $garante->telefono,
+                    'correo' => $garante->correo,
+                    'direccion' => $garante->direccion_residencia
+                ],
+                'message' => 'Garante encontrado'
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Garante no encontrado'
+        ]);
+    }
+
+    public function registrarGarante(Request $request)
+    {
+        try {
+            $request->validate([
+                'ci' => 'required|string|max:20|unique:pacientes,ci',
+                'lugar_expedicion' => 'nullable|string|max:2',
+                'nombres' => 'required|string|max:150',
+                'apellidos' => 'required|string|max:150',
+                'sexo' => 'required|in:M,F',
+                'fecha_nacimiento' => 'required|date',
+                'nacionalidad' => 'nullable|string|max:100',
+                'estado_civil' => 'nullable|string|max:50',
+                'telefono' => 'nullable|string|max:20',
+                'correo' => 'nullable|email|max:100',
+                'profesion' => 'nullable|string|max:150',
+                'empresa_trabajo' => 'nullable|string|max:150',
+                'direccion_residencia' => 'nullable|string',
+            ]);
+
+            $nombreCompleto = $request->nombres . ' ' . $request->apellidos;
+
+            $garante = Paciente::create([
+                'ci' => $request->ci,
+                'lugar_expedicion' => $request->lugar_expedicion,
+                'nombre' => $nombreCompleto,
+                'nombre_completo' => $nombreCompleto,
+                'sexo' => $request->sexo,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'nacionalidad' => $request->nacionalidad,
+                'estado_civil' => $request->estado_civil,
+                'telefono' => $request->telefono,
+                'correo' => $request->correo,
+                'profesion' => $request->profesion,
+                'empresa_trabajo' => $request->empresa_trabajo,
+                'direccion_residencia' => $request->direccion_residencia,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'garante' => [
+                    'ci' => $garante->ci,
+                    'nombre' => $garante->nombre,
+                    'telefono' => $garante->telefono
+                ],
+                'message' => 'Garante registrado exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar garante: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
