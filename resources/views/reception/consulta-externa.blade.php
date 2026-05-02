@@ -233,7 +233,7 @@
                                     </div>
                                 </div>
                                 <div class="md:col-span-2 lg:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Dirección de Residencia</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,7 +241,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             </svg>
                                         </div>
-                                        <input type="text" name="direccion_residencia" placeholder="Dirección completa de residencia" 
+                                        <input type="text" name="direccion" placeholder="Dirección completa" 
                                                class="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all">
                                     </div>
                                 </div>
@@ -771,7 +771,7 @@
                     <div><strong>Nacionalidad:</strong> ${paciente.nacionalidad || 'N/A'}</div>
                     <div><strong>Estado Civil:</strong> ${paciente.estado_civil || 'N/A'}</div>
                     <div><strong>Profesión:</strong> ${paciente.profesion || 'N/A'}</div>
-                    <div class="md:col-span-2 lg:col-span-3"><strong>Dirección:</strong> ${paciente.direccion_residencia || paciente.direccion || 'N/A'}</div>
+                    <div class="md:col-span-2 lg:col-span-3"><strong>Dirección:</strong> ${paciente.direccion || 'N/A'}</div>
                     ${paciente.empresa_trabajo ? `<div class="md:col-span-2 lg:col-span-3"><strong>Empresa:</strong> ${paciente.empresa_trabajo}</div>` : ''}
                 </div>
                 <div class="mt-3 text-sm text-green-700">
@@ -1081,7 +1081,7 @@
                 correo: correo,
                 profesion: profesion,
                 empresa_trabajo: empresa,
-                direccion_residencia: direccion
+                direccion: direccion
             };
 
             try {

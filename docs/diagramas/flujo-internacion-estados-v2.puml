@@ -1,0 +1,309 @@
+@startuml Flujo_Internacion_Estados_Con_Traslados
+
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam handwritten false
+
+skinparam state {
+    BackgroundColor<<pendiente>> #FFEBEE
+    BackgroundColor<<proceso>> #E3F2FD
+    BackgroundColor<<completado>> #E8F5E9
+    BackgroundColor<<rechazado>> #FFF3E0
+    BackgroundColor<<traslado>> #FFCCBC
+    BorderColor #333
+}
+
+title Estados del Flujo de Internación con Traslados entre Áreas
+
+state "Paciente" as PACIENTE {
+    [*] --> SinCuenta
+    SinCuenta --> CuentaActiva : Ingresa a clínica
+    
+    state CuentaActiva {
+        state "Pendiente" as PENDIENTE <<pendiente>>
+        state "Parcial" as PARCIAL <<proceso>>
+        state "Pagado" as PAGADO <<completado>>
+        
+        [*] --> PENDIENTE : Crear cuenta
+        
+        PENDIENTE --> PARCIAL : Registrar pago parcial
+        PENDIENTE --> PAGADO : Pago completo / Seguro cubre todo
+        
+        PARCIAL --> PAGADO : Pago complementario
+        PARCIAL --> [*] : Cancelación
+        
+        PAGADO --> [*] : Cerrar cuenta
+    }
+    
+    CuentaActiva --> SinCuenta : Cuenta cerrada
+}
+
+state "Hospitalización" as HOSPITALIZACION {
+    [*] --> Registrada
+    
+    state Registrada <<proceso>>
+    state "Con Habitación" as CON_HAB <<proceso>>
+    state "En Atención" as EN_ATENCION <<proceso>>
+    state "Trasladado" as TRASLADADO <<traslado>>
+    state "Alta Médica" as ALTA_MEDICA <<completado>>
+    state "Cerrada" as CERRADA <<completado>>
+    
+    Registrada --> CON_HAB : Asignar habitación
+    Registrada --> CON_HAB : En lista de espera
+    
+    CON_HAB --> EN_ATENCION : Inicia atención médica
+    
+    EN_ATENCION --> EN_ATENCION : Nueva evolución
+    EN_ATENCION --> EN_ATENCION : Agregar medicamentos
+    EN_ATENCION --> EN_ATENCION : Agregar equipos médicos
+    
+    ' ============================================================
+    ' TRASLADOS DESDE HOSPITALIZACIÓN
+    ' ============================================================
+    
+    EN_ATENCION --> TRASLADADO : Derivación a UTI
+    note right of EN_ATENCION
+      **Derivación a UTI:**
+      - Se crea UtiAdmission
+      - Se vincula: hospitalization_id
+      - Cama UTI asignada
+    end note
+    
+    EN_ATENCION --> TRASLADADO : Derivación a Quirófano
+    note right of TRASLADADO
+      **Derivación a Quirófano:**
+      - Se crea registro en Emergencies
+      - status = 'cirugia'
+      - ubicacion_actual = 'cirugia'
+      - flujo_historial actualizado
+    end note
+    
+    TRASLADADO --> [*] : Fin en Internación
+    
+    EN_ATENCION --> ALTA_MEDICA : Dar de alta
+    
+    ALTA_MEDICA --> CERRADA : Liberar cama
+    CERRADA --> [*]
+}
+
+state "UTI" as UTI {
+    [*] --> IngresoUTI
+    
+    state IngresoUTI <<proceso>>
+    state "En Atención UTI" as ATENCION_UTI <<proceso>>
+    state "Trasladado desde UTI" as TRASLADADO_UTI <<traslado>>
+    state "Alta Clínica UTI" as ALTA_UTI <<completado>>
+    
+    IngresoUTI --> ATENCION_UTI : Inicia atención intensiva
+    
+    ATENCION_UTI --> ATENCION_UTI : Registrar signos vitales
+    ATENCION_UTI --> ATENCION_UTI : Validar día
+    ATENCION_UTI --> ATENCION_UTI : Administrar medicamentos
+    
+    ' ============================================================
+    ' TRASLADOS DESDE UTI
+    ' ============================================================
+    
+    ATENCION_UTI --> TRASLADADO_UTI : Traslado a Hospitalización
+    note right of ATENCION_UTI
+      **Traslado a Hospitalización:**
+      - Paciente estable
+      - Libera cama UTI
+      - Estado = 'trasladado'
+    end note
+    
+    ATENCION_UTI --> TRASLADADO_UTI : Traslado a Quirófano
+    note right of TRASLADADO_UTI
+      **Traslado a Quirófano:**
+      - Requiere cirugía urgente
+      - Libera cama UTI temporalmente
+      - Estado = 'trasladado'
+    end note
+    
+    TRASLADADO_UTI --> [*] : Fin en UTI
+    
+    ATENCION_UTI --> ALTA_UTI : Alta clínica
+    note left of ALTA_UTI
+      **Requisitos para alta UTI:**
+      - Día validado
+      - Signos vitales registrados
+      - Ronda médica completada
+      
+      **Destinos posibles:**
+      - hospitalizacion
+      - domicilio
+      - otro_hospital
+    end note
+    
+    ALTA_UTI --> [*]
+}
+
+state "Emergencia" as EMERGENCIA {
+    [*] --> Recibido
+    
+    state Recibido <<pendiente>>
+    state "En Evaluación" as EVALUACION <<proceso>>
+    state "Estabilizado" as ESTABILIZADO <<proceso>>
+    state "Trasladado desde Emergencia" as TRASLADADO_EMG <<traslado>>
+    state "Alta Emergencia" as ALTA_EMG <<completado>>
+    
+    Recibido --> EVALUACION : Iniciar evaluación
+    
+    EVALUACION --> EVALUACION : Registrar signos vitales
+    EVALUACION --> EVALUACION : Aplicar medicamentos
+    EVALUACION --> EVALUACION : Agregar equipos médicos
+    
+    EVALUACION --> ESTABILIZADO : Paciente estable
+    
+    ' ============================================================
+    ' TRASLADOS DESDE EMERGENCIA
+    ' ============================================================
+    
+    EVALUACION --> TRASLADADO_EMG : Derivación a Hospitalización
+    note right of EVALUACION
+      **Derivación a Hospitalización:**
+      - Se crea Hospitalizacion
+      - nro_emergencia vinculado
+      - Cuenta maestra unificada
+    end note
+    
+    EVALUACION --> TRASLADADO_EMG : Derivación a Cirugía
+    note right of TRASLADADO_EMG
+      **Derivación a Cirugía:**
+      - status = 'cirugia'
+      - ubicacion_actual = 'cirugia'
+      - nro_cirugia generado
+    end note
+    
+    TRASLADADO_EMG --> [*] : Fin en Emergencia
+    
+    ESTABILIZADO --> ALTA_EMG : Dar de alta
+    EVALUACION --> ALTA_EMG : Alta directa
+    
+    ALTA_EMG --> [*]
+}
+
+state "Cama" as CAMA {
+    [*] --> Disponible
+    
+    state Disponible <<completado>>
+    state Ocupada <<proceso>>
+    state Mantenimiento <<rechazado>>
+    
+    Disponible --> Ocupada : Asignar paciente
+    Ocupada --> Disponible : Liberar
+    Disponible --> Mantenimiento : En mantenimiento
+    Mantenimiento --> Disponible : Finalizar mantenimiento
+}
+
+state "Seguro" as SEGURO {
+    state "Sin Seguro" as SIN_SEGURO
+    state "Pendiente Autorización" as PENDIENTE_AUT <<pendiente>>
+    state Autorizado <<completado>>
+    state Rechazado <<rechazado>>
+    
+    [*] --> SIN_SEGURO : Particular / No tiene
+    [*] --> PENDIENTE_AUT : Seguro aplicable
+    
+    PENDIENTE_AUT --> Autorizado : Aprobado por aseguradora
+    PENDIENTE_AUT --> Rechazado : Rechazado / No cubre
+    
+    Autorizado --> [*] : Aplicado en cuenta
+    Rechazado --> [*] : Pago por paciente
+    
+    SIN_SEGURO --> [*]
+}
+
+' ============================================================
+' TRANSICIONES ENTRE ÁREAS (TRASLADOS)
+' ============================================================
+
+SinCuenta --> Registrada : Ingreso directo a Hospitalización
+SinCuenta --> Recibido : Ingreso por Emergencia
+SinCuenta --> IngresoUTI : Ingreso directo a UTI
+
+' Hospitalización → UTI
+TRASLADADO --> IngresoUTI : Derivación a UTI
+
+' Hospitalización → Quirófano (vía Emergencias)
+TRASLADADO --> Recibido : Derivación a Cirugía
+
+' UTI → Hospitalización
+TRASLADADO_UTI --> Registrada : Traslado a Hospitalización
+
+' UTI → Quirófano (vía Emergencias)
+TRASLADADO_UTI --> Recibido : Traslado a Cirugía
+
+' Emergencia → Hospitalización
+TRASLADADO_EMG --> Registrada : Derivación a Hospitalización
+
+' Emergencia → Quirófano
+TRASLADADO_EMG --> Recibido : Derivación a Cirugía
+
+' Pagos y cierres
+PAGADO --> CERRADA : Cuenta saldada
+PAGADO --> ALTA_UTI : UTI cobrada
+PAGADO --> ALTA_EMG : Emergencia cobrada
+
+note right of HOSPITALIZACION
+  **Condiciones de transición:**
+  
+  Derivación a UTI:
+  - Médico solicita UTI
+  - Cama UTI disponible
+  - Se crea UtiAdmission vinculada
+  
+  Derivación a Quirófano:
+  - Médico solicita cirugía
+  - Quirofano disponible
+  - Se crea Emergency status='cirugia'
+end note
+
+note right of UTI
+  **Flujo en UTI:**
+  
+  Ingreso:
+  - Puede ser directo o desde
+    hospitalización (derivación)
+  
+  Traslados desde UTI:
+  - A hospitalización: paciente estable
+  - A quirófano: cirugía urgente
+  
+  Alta UTI:
+  - Requiere día validado
+  - Destinos: hospitalización, domicilio,
+    otro hospital
+end note
+
+note right of EMERGENCIA
+  **Flujo en Emergencia:**
+  
+  Derivaciones:
+  - A hospitalización: necesita cama
+  - A cirugía: necesita quirófano
+  
+  Validación de recursos:
+  - validarRecursos('hospitalizacion')
+  - validarRecursos('cirugia')
+  - validarRecursos('uti')
+  
+  Cuenta maestra:
+  - Se reutiliza entre emergencia
+    e internación
+end note
+
+note bottom of CAMA
+  **Tipos de Camas:**
+  
+  1. Camas de Hospitalización
+     - Tabla: camas
+     - disponibilidad: disponible/ocupada
+  
+  2. Camas UTI
+     - Tabla: uti_beds
+     - status: disponible/ocupada
+     - tipo: estandar/pediatrica/aislamiento
+end note
+
+@enduml

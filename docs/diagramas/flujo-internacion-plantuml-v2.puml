@@ -1,0 +1,405 @@
+@startuml Flujo_Internacion_Completo_Con_Traslados
+
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam handwritten false
+
+skinparam activity {
+    BackgroundColor<<recepcion>> #E3F2FD
+    BackgroundColor<<medico>> #E8F5E9
+    BackgroundColor<<caja>> #FFF3E0
+    BackgroundColor<<sistema>> #F3E5F5
+    BackgroundColor<<paciente>> #FFFDE7
+    BackgroundColor<<traslado>> #FFCCBC
+    BorderColor #333
+    ArrowColor #666
+}
+
+skinparam note {
+    BackgroundColor #FFFFCC
+    BorderColor #999
+}
+
+title Flujo Completo de Internación con Traslados entre Áreas
+
+|Recepción|
+start
+:Paciente llega a recepción;
+
+:Buscar paciente por CI;
+
+if (¿Paciente existe?) then (No)
+    :Registrar nuevo paciente;
+else (Sí)
+    :Actualizar datos si es necesario;
+endif
+
+if (¿Tiene hospitalización activa?) then (Sí)
+    #FFCDD2:Error: Ya tiene hospitalización activa;
+    :Mostrar código existente;
+    stop
+else (No)
+endif
+
+:Crear triage (amarillo - urgencia media);
+:Seleccionar médico tratante;
+:Ingresar motivo y diagnóstico;
+
+:Crear registro de hospitalización;
+note right
+  **ID:** HOSP-{YmdHis}-{random(100,999)}
+  **Estado:** activo
+end note
+
+|#E3F2FD|Sistema de Cuentas|
+:Obtener o crear Cuenta Maestra;
+note right
+  **Regla:** UN paciente = UNA cuenta activa
+  Se reutiliza si existe pendiente/parcial
+end note
+
+:Agregar cargo de admisión;
+
+if (¿Seguro aplicable?) then (Sí)
+    :Marcar seguro_pendiente_autorizacion;
+endif
+
+|Recepción|
+:Generar comprobante de ingreso;
+
+|#F3E5F5|Gestión de Habitaciones|
+if (¿Hay habitaciones disponibles?) then (Sí)
+    :Asignar habitación y cama;
+    
+    |#E3F2FD|Sistema de Cuentas|
+    :Crear detalle de estadía;
+    
+    |#F3E5F5|Gestión de Habitaciones|
+    :Marcar cama como ocupada;
+    
+    |#E8F5E9|Médico Tratante|
+    :Inicia atención médica;
+else (No)
+    |Recepción|
+    :Paciente en lista de espera;
+endif
+
+|#E8F5E9|Médico Tratante|
+repeat
+    :Registrar evolución;
+    
+    if (¿Agregar medicamentos?) then (Sí)
+        :Seleccionar medicamentos del almacén;
+        |#E3F2FD|Sistema de Cuentas|
+        :Agregar cargo a cuenta maestra;
+        |#E8F5E9|Médico Tratante|
+    endif
+    
+    if (¿Agregar equipos médicos?) then (Sí)
+        :Definir equipo/procedimiento y precio;
+        |#E3F2FD|Sistema de Cuentas|
+        :Agregar cargo a cuenta maestra;
+        |#E8F5E9|Médico Tratante|
+    endif
+    
+    :Guardar historial en equipos_medicos (JSON);
+    
+    |#FFCCBC|**DECISIÓN: Traslado a otra área?**|
+    
+    if (¿Requiere UTI?) then (Sí)
+        |#E8F5E9|Médico Tratante|
+        :Solicitar derivación a UTI;
+        
+        |#FFCCBC|Traslado a UTI|
+        |InternacionStaffController|
+        :Verificar cama UTI disponible;
+        
+        if (¿Cama UTI disponible?) then (Sí)
+            :Generar Nro. Ingreso UTI: UTI-{Ymd}-{secuencia};
+            :Crear UtiAdmission;
+            note right
+              **Vinculación:**
+              - hospitalization_id = HOSP.id
+              - tipo_ingreso = 'derivacion_interna'
+            end note
+            
+            :Asignar cama UTI (ocupada);
+            
+            |#E8F5E9|Médico Tratante|
+            :Actualizar hospitalización:
+            estado = 'trasladado';
+            
+            |#FFCCBC|Traslado a UTI|
+            :Agregar observación:
+            "Trasladado a UTI: {fecha_hora}";
+            
+            |#E8F5F9|Personal UTI|
+            :Recibe paciente en UTI;
+            :Inicia atención intensiva;
+            
+            |#FFCCBC|**FIN TRASLADO A UTI**|
+            stop
+        else (No)
+            |#E8F5E9|Médico Tratante|
+            #FFCDD2:Error: No hay camas UTI disponibles;
+        endif
+        
+    elseif (¿Requiere Cirugía?) then (Sí)
+        |#E8F5E9|Médico Tratante|
+        :Solicitar derivación a Quirófano;
+        
+        |#FFCCBC|Traslado a Quirófano|
+        |InternacionStaffController|
+        :Verificar quirófano disponible;
+        
+        if (¿Quirofano disponible?) then (Sí)
+            :Generar Nro. Cirugía: CIR-{Ymd}-{id};
+            
+            |#E3F2FD|Sistema de Cuentas|
+            :Crear registro en Emergencies;
+            note right
+              **Vinculación:**
+              - status = 'cirugia'
+              - ubicacion_actual = 'cirugia'
+              - nro_cirugia = CIR-xxx
+              - flujo_historial:
+                [desde:'internacion', hasta:'cirugia']
+            end note
+            
+            |#E8F5E9|Médico Tratante|
+            :Actualizar hospitalización:
+            estado = 'trasladado';
+            
+            |#FFCCBC|Traslado a Quirófano|
+            :Agregar observación:
+            "Trasladado a Quirófano: {fecha_hora}";
+            
+            |#FFE0B2|Cirujano|
+            :Recibe paciente en quirófano;
+            :Realiza procedimiento quirúrgico;
+            
+            |#FFCCBC|**FIN TRASLADO A CIRUGÍA**|
+            stop
+        else (No)
+            |#E8F5E9|Médico Tratante|
+            #FFCDD2:Error: No hay quirófanos disponibles;
+        endif
+    endif
+    
+    |#E8F5E9|Médico Tratante|
+backward: Continuar tratamiento;
+repeat while (¿Dar de alta?) is (No)
+-> Sí;
+
+|Recepción|
+:Solicitar alta médica;
+
+|#F3E5F5|Gestión de Habitaciones|
+:Calcular días de estancia;
+:Calcular costo total de estadía;
+:Actualizar detalle de cuenta;
+:Liberar cama;
+:Marcar fecha_alta en hospitalización;
+
+|#FFF3E0|Caja|
+:Paciente se presenta a pagar;
+
+repeat
+    :Abrir caja (si no está abierta);
+    :Buscar cuenta del paciente;
+    
+    |#E3F2FD|Sistema de Cuentas|
+    :Aplicar seguro automáticamente;
+    
+    |#FFF3E0|Caja|
+    :Mostrar resumen de cuenta;
+    :Seleccionar método de pago;
+    
+    |#E3F2FD|Sistema de Cuentas|
+    :Registrar pago;
+    :Recalcular totales;
+    
+    if (¿Saldo pendiente <= 0?) then (Sí)
+        :Marcar cuenta como pagada;
+    else (No)
+        :Marcar cuenta como parcial;
+    endif
+    
+    |#FFF3E0|Caja|
+    :Generar comprobante de pago;
+    
+    if (¿Seguro cubre todo? OR ¿Pago total?) then (Sí)
+        break
+    endif
+    
+backward: Siguiente pago;
+repeat while (¿Más pagos?)
+
+|Recepción|
+:Entregar comprobante final;
+:Paciente sale de la clínica;
+
+|#F3E5F5|Sistema|
+:Cierre de episodio;
+
+stop
+
+' ============================================
+' = TRASLADOS DESDE UTI (FLUJO PARALELO)    =
+' ============================================
+
+|#E8F5F9|Personal UTI|
+start
+:Atención en UTI;
+
+repeat
+    :Registrar signos vitales;
+    :Registrar evolución médica;
+    :Administrar medicamentos;
+    :Validar día UTI;
+    
+    |#FFCCBC|**DECISIÓN: Traslado desde UTI?**|
+    
+    if (¿Estable para Hospitalización?) then (Sí)
+        |#E8F5F9|Personal UTI|
+        :Solicitar traslado a Hospitalización;
+        
+        |#FFCCBC|UTI → Hospitalización|
+        |UtiOperativoController|
+        :Liberar cama UTI;
+        
+        :Marcar UtiAdmission:
+        estado = 'trasladado';
+        
+        note right
+          **Posibles destinos:**
+          - hospitalizacion
+          - quirofano
+        end note
+        
+        |#E8F5E9|Médico Tratante|
+        :Recibe paciente en hospitalización;
+        
+        |#FFCCBC|**FIN TRASLADO UTI→HOSP**|
+        stop
+        
+    elseif (¿Requiere Cirugía?) then (Sí)
+        |#E8F5F9|Personal UTI|
+        :Solicitar traslado a Quirófano;
+        
+        |#FFCCBC|UTI → Quirófano|
+        :Liberar cama UTI;
+        :Marcar estado = 'trasladado';
+        
+        |#FFE0B2|Cirujano|
+        :Recibe paciente en quirófano;
+        
+        |#FFCCBC|**FIN TRASLADO UTI→CIR**|
+        stop
+        
+    elseif (¿Alta médica?) then (Sí)
+        |#E8F5F9|Personal UTI|
+        :Solicitar alta clínica;
+        
+        |#FFCCBC|Alta desde UTI|
+        if (¿Día validado?) then (Sí)
+            :Liberar cama UTI;
+            :Marcar estado = 'alta_clinica';
+            
+            |#FFF3E0|Caja|
+            :Procesar cobro UTI;
+            
+            |#FFCCBC|**FIN ALTA UTI**|
+            stop
+        else (No)
+            #FFCDD2:Error: Validar día antes de alta;
+        endif
+    endif
+    
+    |#E8F5F9|Personal UTI|
+backward: Continuar atención UTI;
+repeat while (Continuar tratamiento)
+
+stop
+
+' ============================================
+' = TRASLADOS DESDE EMERGENCIA (FLUJO PARALELO)
+' ============================================
+
+|#FFE0B2|Personal Emergencia|
+start
+:Paciente ingresa a Emergencia;
+:Evaluación inicial;
+:Registrar signos vitales;
+:Determinar nivel de gravedad;
+
+if (¿Necesita internación?) then (Sí)
+    |#FFCCBC|Emergencia → Hospitalización|
+    |EmergencyStaffController|
+    
+    :Validar recursos (cama disponible);
+    
+    if (¿Cama disponible?) then (Sí)
+        :Generar Nro. Hospitalización:
+        HOSP-{Ymd}-{id};
+        
+        :Crear Hospitalizacion;
+        note right
+          **Vinculación:**
+          - nro_emergencia = EMG.id
+          - estado = 'activo'
+        end note
+        
+        |#E3F2FD|Sistema de Cuentas|
+        :Vincular a cuenta maestra
+        (reutiliza cuenta de emergencia);
+        
+        |#FFE0B2|Personal Emergencia|
+        :Actualizar Emergency:
+        - status = 'hospitalizacion'
+        - ubicacion_actual = 'hospitalizacion'
+        - nro_hospitalizacion = HOSP-xxx;
+        
+        :Registrar movimiento en flujo_historial;
+        
+        |#E8F5E9|Médico Tratante|
+        :Recibe paciente en hospitalización;
+        
+        |#FFCCBC|**FIN TRASLADO EMG→HOSP**|
+        stop
+    else (No)
+        #FFCDD2:Error: No hay camas disponibles;
+    endif
+    
+elseif (¿Necesita cirugía?) then (Sí)
+    |#FFCCBC|Emergencia → Cirugía|
+    |EmergencyStaffController|
+    
+    :Validar recursos (quirófano);
+    
+    if (¿Quirofano disponible?) then (Sí)
+        :Generar Nro. Cirugía: CIR-{Ymd}-{id};
+        
+        |#FFE0B2|Personal Emergencia|
+        :Actualizar Emergency:
+        - status = 'cirugia'
+        - ubicacion_actual = 'cirugia'
+        - nro_cirugia = CIR-xxx;
+        
+        :Registrar movimiento en flujo_historial;
+        
+        |#FFE0B2|Cirujano|
+        :Recibe paciente en quirófano;
+        
+        |#FFCCBC|**FIN TRASLADO EMG→CIR**|
+        stop
+    else (No)
+        #FFCDD2:Error: No hay quirófanos disponibles;
+    endif
+endif
+
+|#FFE0B2|Personal Emergencia|
+:Dado de alta / Estabilizado;
+stop
+
+@enduml

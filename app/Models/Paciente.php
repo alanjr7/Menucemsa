@@ -22,7 +22,6 @@ class Paciente extends Model
         'lugar_expedicion',
         'nacionalidad',
         'estado_civil',
-        'direccion_residencia',
         'direccion',
         'telefono',
         'correo',

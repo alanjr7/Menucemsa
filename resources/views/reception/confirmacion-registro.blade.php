@@ -83,7 +83,7 @@
                                 </div>
                                 <div class="flex justify-between md:col-span-2 border-b border-gray-200 pb-1">
                                     <span class="text-sm text-gray-600">Dirección:</span>
-                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->direccion_residencia ?? ($caja->consulta->paciente->direccion ?? 'No registrada') }}</span>
+                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->direccion ?? 'No registrada' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -142,7 +142,7 @@
                                 </div>
                                 <div class="flex justify-between md:col-span-2 border-b border-purple-200 pb-1">
                                     <span class="text-sm text-gray-600">Dirección:</span>
-                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->garante->direccion_residencia ?? ($caja->consulta->paciente->garante->direccion ?? 'No registrada') }}</span>
+                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->garante->direccion ?? 'No registrada' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -349,7 +349,7 @@
             <div class="f-row">
                 <div class="f-field w-100">
                     <span class="f-label">Dirección</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion_residencia ?? $caja->consulta->paciente->direccion ?? '') }}</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion ?? '') }}</span>
                 </div>
             </div>
 
@@ -370,7 +370,7 @@
             <div class="f-row">
                 <div class="f-field w-100">
                     <span class="f-label">Dirección</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion_residencia ?? '') }}</span>
+                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion ?? '') }}</span>
                 </div>
             </div>
 
