@@ -1,0 +1,290 @@
+@startuml Flujo_Internacion_Secuencia_Con_Traslados
+
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam handwritten false
+
+skinparam participant {
+    BackgroundColor<<actor>> #FFE0B2
+    BackgroundColor<<controller>> #E3F2FD
+    BackgroundColor<<service>> #E8F5E9
+    BackgroundColor<<model>> #F3E5F5
+    BackgroundColor<<traslado>> #FFCCBC
+}
+
+title Secuencia - Flujo de Internación con Traslados entre Áreas
+
+actor "Paciente" as PAC
+actor "Recepcionista" as REC
+actor "Médico" as MED
+actor "Cajero" as CAJ
+
+participant "HospitalizacionController\n(Reception)" as HOSPC <<controller>>
+participant "CuentaCobroService" as CCS <<service>>
+participant "AsignacionCamaService" as ACS <<service>>
+participant "Hospitalizacion\n(Model)" as HOSPM <<model>>
+participant "CuentaCobro\n(Model)" as CCM <<model>>
+participant "CajaOperativaController" as CAC <<controller>>
+participant "AplicarSeguroService" as ASS <<service>>
+
+' =====================================================
+' NUEVOS PARTICIPANTES PARA TRASLADOS
+' =====================================================
+
+participant "InternacionStaffController\n(Traslados)" as ISC <<traslado>>
+participant "EmergencyStaffController\n(Derivaciones)" as ESC <<traslado>>
+participant "UtiOperativoController\n(Traslados UTI)" as UOC <<traslado>>
+participant "UtiAdmission\n(Model)" as UTIM <<model>>
+participant "Emergency\n(Model)" as EMGM <<model>>
+participant "UtiBed\n(Model)" as UTIB <<model>>
+
+== FASE 1: Ingreso y Registro ==
+
+PAC -> REC : Llega a recepción
+REC -> REC : Buscar paciente por CI
+
+alt Paciente no existe
+    REC -> HOSPCM : crearOActualizarPaciente()
+else Paciente existe
+    REC -> HOSPCM : Actualizar datos
+end
+
+REC -> HOSPCM : registrarHospitalizacion()
+HOSPCM -> HOSPCM : Verificar hospitalización activa
+HOSPCM -> HOSPCM : Crear triage amarillo
+HOSPCM -> HOSPCM : Generar ID: HOSP-{timestamp}
+
+== FASE 2: Creación de Cuenta Maestra ==
+
+HOSPCM -> CCS : obtenerOCrearCuentaMaestra(ci, 'internacion', seguro_id)
+
+alt Cuenta post-pago activa existe
+    CCS -> CCM : Buscar cuenta pendiente/parcial
+    CCM --> CCS : Cuenta existente
+else No existe cuenta activa
+    CCS -> CCM : Crear nueva cuenta
+    CCM --> CCS : Cuenta creada
+end
+
+CCS --> HOSPCM : Cuenta maestra
+
+HOSPCM -> CCS : agregarCargoConDeduplicacion()
+CCS -> CCM : Agregar detalle: Admisión Internación
+
+HOSPCM -> REC : Hospitalización registrada
+REC -> PAC : Entregar comprobante
+
+== FASE 3: Asignación de Habitación ==
+
+REC -> ACS : asignar(habitacion, cama_id, hospitalizacion_id)
+ACS -> HOSPM : Obtener hospitalización
+ACS -> CCM : obtenerOCrearCuenta()
+
+alt Cama disponible
+    ACS -> HOSPM : Actualizar habitacion_id, cama_id
+    ACS -> CCM : Crear detalle de estadía
+    ACS -> ACS : Marcar cama ocupada
+    ACS --> REC : Asignación exitosa
+else Cama no disponible
+    ACS --> REC : Error: Cama ocupada
+end
+
+== FASE 4: Atención Médica ==
+
+PAC -> MED : Recibe atención diaria
+
+loop Evoluciones médicas
+    MED -> HOSPM : guardarEvolucion()
+    
+    alt Agregar medicamentos
+        HOSPM -> HOSPM : Validar stock
+        HOSPM -> HOSPM : Descontar del almacén
+        HOSPM -> CCS : Agregar cargo medicamento
+        CCS -> CCM : Crear detalle cuenta
+    end
+    
+    alt Agregar equipos médicos
+        MED -> HOSPM : Definir equipo/precio
+        HOSPM -> CCS : Agregar cargo equipo_medico
+        CCS -> CCM : Crear detalle cuenta
+    end
+end
+
+' =====================================================
+' FASE 5: TRASLADOS/DERIVACIONES
+' =====================================================
+
+== FASE 5A: Traslado Internación → UTI ==
+
+MED -> MED : Evalúa necesidad UTI
+MED -> ISC : POST /api/internacion/{id}/derivar-uti
+
+ISC -> UTIB : Verificar cama UTI disponible
+UTIB --> ISC : Disponibilidad
+
+alt Cama UTI disponible
+    ISC -> ISC : Generar Nro: UTI-{Ymd}-{secuencia}
+    ISC -> UTIM : Crear UtiAdmission
+    note right
+      hospitalization_id = HOSP.id
+      tipo_ingreso = 'derivacion_interna'
+    end note
+    
+    ISC -> UTIB : Marcar cama ocupada
+    ISC -> HOSPM : Actualizar estado = 'trasladado'
+    ISC --> MED : Derivación exitosa
+    
+    note over MED, UTIM
+      **Paciente ahora está en UTI**
+      La hospitalización original queda
+      con estado 'trasladado'
+    end note
+else No hay camas UTI
+    ISC --> MED : Error: Sin camas UTI
+end
+
+== FASE 5B: Traslado Internación → Quirófano ==
+
+MED -> MED : Evalúa necesidad cirugía
+MED -> ISC : POST /api/internacion/{id}/derivar-quirofano
+
+ISC -> ISC : Verificar quirófano disponible
+
+alt Quirofano disponible
+    ISC -> ISC : Generar Nro: CIR-{Ymd}-{id}
+    ISC -> EMGM : Crear registro Emergency
+    note right
+      status = 'cirugia'
+      ubicacion_actual = 'cirugia'
+      flujo_historial:
+        [desde:'internacion', hasta:'cirugia']
+    end note
+    
+    ISC -> HOSPM : Actualizar estado = 'trasladado'
+    ISC --> MED : Derivación exitosa
+else No hay quirófanos
+    ISC --> MED : Error: Sin quirófanos
+end
+
+== FASE 5C: Derivación Emergencia → Hospitalización ==
+
+note over PAC, ESC
+  **Flujo alternativo:**
+  Paciente ingresa por Emergencia
+end note
+
+PAC -> ESC : Ingresa a Emergencia
+ESC -> ESC : evaluarPaciente()
+
+alt Necesita hospitalización
+    ESC -> ESC : validarRecursos('hospitalizacion')
+    
+    alt Hay camas disponibles
+        ESC -> ESC : generarNroHospitalizacion()
+        ESC -> HOSPM : Crear Hospitalizacion
+        note right
+          nro_emergencia = EMG.id
+          vinculación con emergencia
+        end note
+        
+        ESC -> CCS : obtenerOCrearCuentaMaestra()
+        note right
+          Reutiliza cuenta de emergencia
+        end note
+        
+        ESC -> EMGM : Actualizar status='hospitalizacion'
+        ESC -> EMGM : registrarMovimiento()
+        
+        note over MED, HOSPM
+          **Paciente ahora en Hospitalización**
+          Cuenta unificada entre emergencia e internación
+        end note
+    end
+end
+
+== FASE 5D: Traslado UTI → Hospitalización ==
+
+note over PAC, UOC
+  **Flujo desde UTI:**
+  Paciente estable, regresa a hospitalización
+end note
+
+UOC -> UOC : POST /api/uti/{id}/trasladar
+UOC -> UTIB : Liberar cama UTI
+UOC -> UTIM : Actualizar estado='trasladado'
+
+UOC -> HOSPM : Crear nueva hospitalización
+or
+UOC -> HOSPM : Retomar hospitalización previa
+
+note over MED, HOSPM
+  **Paciente regresa a hospitalización**
+  Puede ser nueva o continuación
+end note
+
+== FASE 5E: Alta desde UTI ==
+
+UOC -> UOC : POST /api/uti/{id}/alta-clinica
+
+alt Día validado
+    UOC -> UTIB : Liberar cama UTI
+    UOC -> UTIM : Actualizar estado='alta_clinica'
+    
+    UOC -> CAC : Cobro UTI
+    CAC -> CCM : Procesar pagos UTI
+else Día no validado
+    UOC --> UOC : Error: Validar día primero
+end
+
+== FASE 6: Alta Médica (Hospitalización) ==
+
+MED -> REC : Solicitar alta del paciente
+REC -> HOSPC : darAlta(hospitalizacion_id)
+HOSPC -> HOSPM : Actualizar fecha_alta, motivo_alta
+
+HOSPC -> ACS : liberar(cama)
+ACS -> HOSPM : Calcular días estancia
+ACS -> CCM : Actualizar detalle estadía
+
+ACS -> HOSPM : Guardar total_estancia
+ACS -> ACS : Liberar cama (disponible)
+ACS -> REC : Cama liberada
+
+== FASE 7: Cobro en Caja ==
+
+PAC -> CAJ : Se presenta a pagar
+CAJ -> CAC : Abrir caja (si es necesario)
+
+loop Pagos hasta completar
+    CAJ -> CAC : getDetalleCuenta(cuenta_id)
+    CAC -> CCM : Cargar cuenta con detalles
+    CCM --> CAC : Datos de cuenta
+    
+    CAC -> ASS : aplicarSiCorresponde(cuenta)
+    
+    alt Seguro aplica
+        ASS -> CCM : Aplicar cobertura
+        CCM -> CCM : seguro_estado = autorizado
+    end
+    
+    CAC --> CAJ : Mostrar resumen
+    CAJ -> CAJ : Seleccionar método de pago
+    CAJ -> CAC : procesarCobro(monto, metodo)
+    
+    CAC -> CCM : registrarPago()
+    CCM -> CCM : total_pagado += monto
+    CCM -> CCM : recalcularTotales()
+    
+    alt Saldo <= 0
+        CCM -> CCM : estado = pagado
+    else
+        CCM -> CCM : estado = parcial
+    end
+    
+    CAC -> CAJ : Comprobante generado
+end
+
+CAJ -> PAC : Entregar factura/comprobante
+PAC -> REC : Sale de la clínica
+
+@enduml

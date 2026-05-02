@@ -1,0 +1,133 @@
+@startuml Flujo_Internacion_Estados
+
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam handwritten false
+
+skinparam state {
+    BackgroundColor<<pendiente>> #FFEBEE
+    BackgroundColor<<proceso>> #E3F2FD
+    BackgroundColor<<completado>> #E8F5E9
+    BackgroundColor<<rechazado>> #FFF3E0
+    BorderColor #333
+}
+
+title Estados del Flujo de Internación
+
+state "Paciente" as PACIENTE {
+    [*] --> SinCuenta
+    SinCuenta --> CuentaActiva : Ingresa a clínica
+    
+    state CuentaActiva {
+        state "Pendiente" as PENDIENTE <<pendiente>>
+        state "Parcial" as PARCIAL <<proceso>>
+        state "Pagado" as PAGADO <<completado>>
+        
+        [*] --> PENDIENTE : Crear cuenta
+        
+        PENDIENTE --> PARCIAL : Registrar pago parcial
+        PENDIENTE --> PAGADO : Pago completo / Seguro cubre todo
+        
+        PARCIAL --> PAGADO : Pago complementario
+        PARCIAL --> [*] : Cancelación
+        
+        PAGADO --> [*] : Cerrar cuenta
+    }
+    
+    CuentaActiva --> SinCuenta : Cuenta cerrada
+}
+
+state "Hospitalización" as HOSPITALIZACION {
+    [*] --> Registrada
+    
+    state Registrada <<proceso>>
+    state "Con Habitación" as CON_HAB <<proceso>>
+    state "En Atención" as EN_ATENCION <<proceso>>
+    state "Alta Médica" as ALTA_MEDICA <<completado>>
+    state "Cerrada" as CERRADA <<completado>>
+    
+    Registrada --> CON_HAB : Asignar habitación
+    Registrada --> CON_HAB : En lista de espera
+    
+    CON_HAB --> EN_ATENCION : Inicia atención médica
+    
+    EN_ATENCION --> EN_ATENCION : Nueva evolución
+    EN_ATENCION --> EN_ATENCION : Agregar medicamentos
+    EN_ATENCION --> EN_ATENCION : Agregar equipos médicos
+    EN_ATENCION --> ALTA_MEDICA : Dar de alta
+    
+    ALTA_MEDICA --> CERRADA : Liberar cama
+    CERRADA --> [*]
+}
+
+state "Cama" as CAMA {
+    [*] --> Disponible
+    
+    state Disponible <<completado>>
+    state Ocupada <<proceso>>
+    state Mantenimiento <<rechazado>>
+    
+    Disponible --> Ocupada : Asignar paciente
+    Ocupada --> Disponible : Liberar
+    Disponible --> Mantenimiento : En mantenimiento
+    Mantenimiento --> Disponible : Finalizar mantenimiento
+}
+
+state "Seguro" as SEGURO {
+    state "Sin Seguro" as SIN_SEGURO
+    state "Pendiente Autorización" as PENDIENTE_AUT <<pendiente>>
+    state Autorizado <<completado>>
+    state Rechazado <<rechazado>>
+    
+    [*] --> SIN_SEGURO : Particular / No tiene
+    [*] --> PENDIENTE_AUT : Seguro aplicable
+    
+    PENDIENTE_AUT --> Autorizado : Aprobado por aseguradora
+    PENDIENTE_AUT --> Rechazado : Rechazado / No cubre
+    
+    Autorizado --> [*] : Aplicado en cuenta
+    Rechazado --> [*] : Pago por paciente
+    
+    SIN_SEGURO --> [*]
+}
+
+' Transiciones entre estados principales
+SinCuenta --> Registrada : Registrar hospitalización
+PENDIENTE --> EN_ATENCION : Iniciar atención
+PAGADO --> CERRADA : Finalizar proceso
+
+note right of HOSPITALIZACION
+  **Condiciones de transición:**
+  
+  Registrada → Con Habitación:
+  - habitacion_id != null
+  - cama_id != null
+  
+  En Atención → Alta Médica:
+  - fecha_alta != null
+  
+  Alta Médica → Cerrada:
+  - total_estancia calculado
+  - cama liberada
+end note
+
+note right of PACIENTE
+  **Regla de Cuenta Maestra:**
+  
+  UN paciente = UNA cuenta activa
+  
+  - Se reutiliza si existe
+    pendiente o parcial
+  - Se crea nueva si no hay
+    cuenta activa
+end note
+
+note bottom of SEGURO
+  **Tipos de Cobertura:**
+  
+  1. Porcentaje: Cubre X%
+  2. Tope Monto: Cubre hasta máximo
+  3. Solo Consulta: No aplica internación
+end note
+
+@enduml

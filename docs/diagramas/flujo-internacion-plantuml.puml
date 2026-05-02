@@ -1,0 +1,326 @@
+@startuml Flujo_Internacion_Completo
+
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam handwritten false
+
+skinparam activity {
+    BackgroundColor<<recepcion>> #E3F2FD
+    BackgroundColor<<medico>> #E8F5E9
+    BackgroundColor<<caja>> #FFF3E0
+    BackgroundColor<<sistema>> #F3E5F5
+    BackgroundColor<<paciente>> #FFFDE7
+    BorderColor #333
+    ArrowColor #666
+}
+
+skinparam note {
+    BackgroundColor #FFFFCC
+    BorderColor #999
+}
+
+title Flujo Completo de Internación - Sistema Hospitalario
+
+|Recepción|
+start
+:Paciente llega a recepción;
+note right
+  **Actor:** Recepcionista
+  **Módulo:** Hospitalización
+end note
+
+:Buscar paciente por CI;
+note right
+  **Validación:** CI mínimo 3 dígitos
+  **Memoria:** Cambio reciente de 8→3 caracteres
+end note
+
+if (¿Paciente existe?) then (No)
+    :Registrar nuevo paciente;
+    note right
+        **Datos requeridos:**
+        - Nombres y apellidos
+        - Sexo
+        - Seguro (default: Particular)
+    end note
+else (Sí)
+    :Actualizar datos si es necesario;
+endif
+
+if (¿Tiene hospitalización activa?) then (Sí)
+    #FFCDD2:Error: Ya tiene hospitalización activa;
+    :Mostrar código existente;
+    stop
+else (No)
+endif
+
+:Crear triage (amarillo - urgencia media);
+note right
+  **ID:** TRIAGE-AMARILLO-{YmdHis}-{random}
+  **Prioridad:** Media
+end note
+
+:Seleccionar médico tratante;
+:Ingresar motivo y diagnóstico;
+:Registrar contacto de emergencia;
+
+:Crear registro de hospitalización;
+note right
+  **ID:** HOSP-{YmdHis}-{random(100,999)}
+  **Estado:** activo
+  **Fecha:** now()
+end note
+
+|#E3F2FD|Sistema de Cuentas|
+:Obtener o crear Cuenta Maestra;
+note right
+  **Regla:** UN paciente = UNA cuenta activa
+  **Estados:** pendiente, parcial, pagado
+  **Tipo:** es_post_pago = true
+end note
+
+if (¿Existe cuenta pendiente/parcial?) then (Sí)
+    :Reutilizar cuenta existente;
+    note right
+      Se agregan nuevos cargos
+      a la cuenta existente
+    end note
+else (No)
+    :Crear nueva cuenta maestra;
+    note right
+      **ID:** CC-{YmdHis}-{random}
+      **Episodio:** último + 1
+      **Seguro:** pendiente_autorizacion
+    end note
+endif
+
+:Agregar cargo de admisión;
+note right
+  **Tipo:** servicio
+  **Descripción:** Admisión de Internación
+  **Precio:** Desde IngresoPrecio o Tarifa HOSP-ADM
+  **Default:** Bs. 150.00
+end note
+
+if (¿Seguro aplicable?) then (Sí)
+    :Marcar seguro_pendiente_autorizacion;
+    note right
+      Aplicable si:
+      - Estado: activo
+      - Tipo: porcentaje|tope_monto
+      - No es "particular"
+    end note
+else (No)
+endif
+
+|Recepción|
+:Generar comprobante de ingreso;
+:Imprimir/entregar comprobante;
+
+|#F3E5F5|Gestión de Habitaciones|
+if (¿Hay habitaciones disponibles?) then (Sí)
+    :Asignar habitación y cama;
+    
+    |#E3F2FD|Sistema de Cuentas|
+    :Crear detalle de estadía;
+    note right
+      **Tipo:** estadia
+      **Descripción:** Estancia Internación
+      **Cantidad:** 1 (inicial)
+      **Precio/día:** según cama
+    end note
+    
+    |#F3E5F5|Gestión de Habitaciones|
+    :Marcar cama como ocupada;
+    :Actualizar estado de habitación;
+    
+    |#E8F5E9|Médico Tratante|
+    :Inicia atención médica;
+else (No)
+    |Recepción|
+    :Paciente en lista de espera;
+    :Habitación: "Por asignar";
+endif
+
+|#E8F5E9|Médico Tratante|
+:Evaluación médica diaria;
+
+repeat
+    :Registrar evolución;
+    
+    if (¿Agregar medicamentos?) then (Sí)
+        :Seleccionar medicamentos del almacén;
+        note right
+          Descuenta automáticamente
+          del inventario
+        end note
+        
+        |#E3F2FD|Sistema de Cuentas|
+        :Agregar cargo a cuenta maestra;
+        note right
+          **Tipo:** medicamento
+          **Origen:** AlmacenMedicamento
+          **Stock:** Se descuenta cantidad
+        end note
+    else (No)
+    endif
+    
+    if (¿Agregar equipos médicos?) then (Sí)
+        |#E8F5E9|Médico Tratante|
+        :Definir nombre del equipo/procedimiento;
+        :Establecer precio unitario;
+        :Definir cantidad;
+        
+        |#E3F2FD|Sistema de Cuentas|
+        :Agregar cargo a cuenta maestra;
+        note right
+          **Tipo:** equipo_medico
+          **Sin inventario:** Solo cargo
+          **Precio:** Definido por médico
+        end note
+    else (No)
+    endif
+    
+    |#E8F5E9|Médico Tratante|
+    :Actualizar diagnóstico y tratamiento;
+    
+    |#E3F2FD|Sistema de Cuentas|
+    :Guardar historial en equipos_medicos (JSON);
+    note right
+      Almacena:
+      - Fecha de evolución
+      - Diagnóstico
+      - Tratamiento
+      - Medicamentos aplicados
+      - Equipos utilizados
+      - Usuario que registró
+    end note
+    
+    |#E8F5E9|Médico Tratante|
+backward: Continuar tratamiento;
+repeat while (¿Dar de alta?) is (No) 
+-> Sí;
+
+|Recepción|
+:Solicitar alta médica;
+:Confirmar motivo de alta;
+
+|#F3E5F5|Gestión de Habitaciones|
+:Calcular días de estancia;
+note right
+  **Fórmula:** max(1, diffInDays + 1)
+  **Mínimo:** 1 día (cobrar día de ingreso)
+end note
+
+:Calcular costo total de estadía;
+:Actualizar detalle de cuenta;
+note right
+  Actualiza cantidad y subtotal
+  del item de estadía
+end note
+
+:Registrar total_estancia;
+:Liberar cama;
+:Actualizar estado de habitación;
+:Marcar fecha_alta en hospitalización;
+
+|#FFF3E0|Caja|
+:Paciente se presenta a pagar;
+
+repeat
+    :Abrir caja (si no está abierta);
+    note right
+      **Requisito:** CajaSession abierta
+      **Usuario:** Cajero autorizado
+    end note
+    
+    :Buscar cuenta del paciente;
+    
+    |#E3F2FD|Sistema de Cuentas|
+    :Aplicar seguro automáticamente;
+    note right
+      **Condiciones:**
+      - seguro_estado = null
+      - Seguro activo
+      - Tipo: porcentaje|tope_monto
+      
+      **Cálculo:**
+      - Porcentaje: % de cobertura
+      - Tope_monto: min(total, tope)
+    end note
+    
+    |#FFF3E0|Caja|
+    :Mostrar resumen de cuenta;
+    note right
+      - Total calculado
+      - Monto cubierto por seguro
+      - Monto a pagar por paciente
+      - Pagos previos
+      - Saldo pendiente
+    end note
+    
+    :Seleccionar método de pago;
+    note right
+      **Opciones:**
+      - efectivo
+      - transferencia
+      - tarjeta
+      - qr
+    end note
+    
+    if (¿Monto válido?) then (No)
+        #FFCDD2:Error: Monto excede saldo pendiente;
+        stop
+    endif
+    
+    |#E3F2FD|Sistema de Cuentas|
+    :Registrar pago;
+    note right
+      **Tabla:** PagoCuenta
+      **Relación:** cuenta->pagos()
+    end note
+    
+    :Recalcular totales;
+    
+    if (¿Saldo pendiente <= 0?) then (Sí)
+        :Marcar cuenta como pagada;
+        note right
+          Estado: pagado
+          Número de factura generado
+        end note
+    else (No)
+        :Marcar cuenta como parcial;
+    endif
+    
+    |#FFF3E0|Caja|
+    :Generar comprobante de pago;
+    
+    if (¿Seguro cubre todo?) then (Sí)
+        :Cobro completado sin pago del paciente;
+        break
+    else (No)
+        if (¿Pago total completado?) then (Sí)
+            break
+        else (No)
+            :Continuar con pago parcial;
+        endif
+    endif
+    
+backward: Siguiente pago;
+repeat while (¿Más pagos?)
+
+|Recepción|
+:Entregar comprobante final;
+:Paciente sale de la clínica;
+
+|#F3E5F5|Sistema|
+:Cierre de episodio;
+note right
+  La cuenta queda en estado pagado
+  El paciente puede tener nuevos
+  episodios en el futuro
+end note
+
+stop
+
+@enduml

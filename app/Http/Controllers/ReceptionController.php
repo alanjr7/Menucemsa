@@ -145,15 +145,13 @@ class ReceptionController extends Controller
             $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
             $paciente = Paciente::create([
                 'ci' => $ci,
-                'nombre_completo' => $nombreCompleto,
                 'nombre' => $nombreCompleto,
                 'sexo' => $request->sexo,
                 'fecha_nacimiento' => $request->fecha_nacimiento,
                 'lugar_expedicion' => $request->lugar_expedicion ?? null,
                 'nacionalidad' => $request->nacionalidad ?? 'Boliviana',
                 'estado_civil' => $request->estado_civil ?? null,
-                'direccion_residencia' => $request->direccion_residencia ?? null,
-                'direccion' => $request->direccion ?? $request->direccion_residencia ?? 'Sin especificar',
+                'direccion' => $request->direccion ?? null,
                 'telefono' => $request->telefono ?? null,
                 'correo' => $request->correo ?? null,
                 'profesion' => $request->profesion ?? null,
@@ -180,7 +178,7 @@ class ReceptionController extends Controller
             $paciente->update([
                 'telefono' => $request->telefono ?? $paciente->telefono,
                 'correo' => $request->correo ?? $paciente->correo,
-                'direccion_residencia' => $request->direccion_residencia ?? $paciente->direccion_residencia,
+                'direccion' => $request->direccion ?? $paciente->direccion,
                 'profesion' => $request->profesion ?? $paciente->profesion,
                 'empresa_trabajo' => $request->empresa_trabajo ?? $paciente->empresa_trabajo,
                 'id_garante_referencia' => $request->id_garante_referencia ?? $paciente->id_garante_referencia,
@@ -1080,7 +1078,7 @@ class ReceptionController extends Controller
                     'nombre' => $garante->nombre,
                     'telefono' => $garante->telefono,
                     'correo' => $garante->correo,
-                    'direccion' => $garante->direccion_residencia
+                    'direccion' => $garante->direccion
                 ],
                 'message' => 'Garante encontrado'
             ]);
@@ -1108,7 +1106,7 @@ class ReceptionController extends Controller
                 'correo' => 'nullable|email|max:100',
                 'profesion' => 'nullable|string|max:150',
                 'empresa_trabajo' => 'nullable|string|max:150',
-                'direccion_residencia' => 'nullable|string',
+                'direccion' => 'nullable|string',
             ]);
 
             $nombreCompleto = $request->nombres . ' ' . $request->apellidos;
@@ -1117,7 +1115,6 @@ class ReceptionController extends Controller
                 'ci' => $request->ci,
                 'lugar_expedicion' => $request->lugar_expedicion,
                 'nombre' => $nombreCompleto,
-                'nombre_completo' => $nombreCompleto,
                 'sexo' => $request->sexo,
                 'fecha_nacimiento' => $request->fecha_nacimiento,
                 'nacionalidad' => $request->nacionalidad,
@@ -1126,7 +1123,7 @@ class ReceptionController extends Controller
                 'correo' => $request->correo,
                 'profesion' => $request->profesion,
                 'empresa_trabajo' => $request->empresa_trabajo,
-                'direccion_residencia' => $request->direccion_residencia,
+                'direccion' => $request->direccion,
             ]);
 
             return response()->json([
