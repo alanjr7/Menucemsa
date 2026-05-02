@@ -370,18 +370,6 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Descripción de la Emergencia *</label>
                             <textarea name="descripcion" rows="3" placeholder="Describa detalladamente los síntomas y la situación de emergencia" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all" required></textarea>
                         </div>
-
-                        <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <div>
-                                    <p class="text-sm font-medium text-blue-800">Información importante</p>
-                                    <p class="text-sm text-blue-600 mt-1">Los signos vitales, alergias y medicamentos serán registrados por el personal de emergencia durante la evaluación médica inicial.</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
