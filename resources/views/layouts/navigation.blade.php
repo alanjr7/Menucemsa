@@ -59,7 +59,7 @@
 
                     <!-- Si el menú NO tiene submenús (Es un enlace directo) -->
                     @if($menu->children->isEmpty())
-                        <a href="{{ $menu->route && Route::has($menu->route) ? route($menu->route) : '#' }}"
+                        <a href="{{ filter_var($menu->route, FILTER_VALIDATE_URL) ? $menu->route : (Route::has($menu->route) ? route($menu->route) : '#') }}"
                             class="flex items-center py-2.5 rounded-lg transition-all duration-200 group {{ $isActive ? $colorClass['bg'] . ' text-white shadow-md ' . $colorClass['shadow'] : 'text-slate-700 hover:bg-slate-100 hover:text-[#2563EB]' }}"
                             :class="sidebarOpen ? 'px-3 justify-start' : 'px-0 justify-center'">
 
@@ -99,7 +99,7 @@
                                 @foreach($menu->children as $child)
                                     @if($child->canBeSeenBy(auth()->user()))
                                         @php $isChildActive = request()->routeIs($child->route); @endphp
-                                        <a href="{{ $child->route && Route::has($child->route) ? route($child->route) : '#' }}"
+                                        <a href="{{ filter_var($child->route, FILTER_VALIDATE_URL) ? $child->route : (Route::has($child->route) ? route($child->route) : '#') }}"
                                             class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ $isChildActive ? 'text-white ' . $colorClass['bg'] . ' font-bold' : 'text-slate-600 hover:text-[#2563EB] hover:bg-slate-50' }}">
                                             {{ $child->name }}
                                         </a>
