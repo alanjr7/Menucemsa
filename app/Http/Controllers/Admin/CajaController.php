@@ -225,14 +225,22 @@ class CajaController extends Controller
                 'tipo_servicio' => 'required|in:consulta,emergencia'
             ]);
 
+            // Buscar paciente para generar código basado en sus datos
+            $paciente = \App\Models\Paciente::find($request->paciente_ci);
+            if ($paciente) {
+                \App\Models\Caja::$patientContext = $paciente;
+            }
+
             // Crear movimiento en caja central con solo las columnas existentes
             $movimiento = Caja::create([
                 'fecha' => now(),
                 'total_dia' => $request->monto,
                 'tipo' => $request->concepto . ' - ' . $request->metodo_pago,
                 'nro_factura' => $this->generarNumeroFactura(),
-                'id_farmacia' => null, // No aplica para caja central
+                'id_farmacia' => null,
             ]);
+
+            \App\Models\Caja::$patientContext = null;
 
             // Procesar según tipo de servicio
             if ($request->tipo_servicio === 'emergencia') {

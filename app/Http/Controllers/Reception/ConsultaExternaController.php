@@ -174,7 +174,9 @@ class ConsultaExternaController extends Controller
     {
         $costoConsulta = $this->obtenerPrecioConsultaExterna();
 
-        return Caja::create([
+        Caja::$patientContext = $paciente;
+
+        $caja = Caja::create([
             'fecha' => now(),
             'total_dia' => $costoConsulta,
             'tipo' => 'CONSULTA_EXTERNA',
@@ -182,6 +184,10 @@ class ConsultaExternaController extends Controller
             'farmacia_id' => null,
             'monto_pagado' => $costoConsulta,
         ]);
+
+        Caja::$patientContext = null;
+
+        return $caja;
     }
 
     private function crearConsulta($request, $paciente, $caja)

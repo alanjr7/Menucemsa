@@ -192,11 +192,12 @@ class ReceptionController extends Controller
 
     private function crearRegistroCajaPendiente($request, $paciente)
     {
-        // Obtener precio del servicio desde la base de datos
         $servicio = \App\Models\Servicio::getServicioPorTipo('CONSULTA_EXTERNA');
-        $costoConsulta = $servicio ? $servicio->precio : 50.00; // Fallback a 50.00 si no encuentra
-        
-        return Caja::create([
+        $costoConsulta = $servicio ? $servicio->precio : 50.00;
+
+        Caja::$patientContext = $paciente;
+
+        $caja = Caja::create([
             'fecha' => now(),
             'total_dia' => $costoConsulta,
             'tipo' => 'CONSULTA_EXTERNA',
@@ -204,6 +205,10 @@ class ReceptionController extends Controller
             'caja_diaria_id' => null,
             'monto_pagado' => $costoConsulta,
         ]);
+
+        Caja::$patientContext = null;
+
+        return $caja;
     }
 
     private function crearConsulta($request, $paciente, $caja)

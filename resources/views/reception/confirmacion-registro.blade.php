@@ -282,7 +282,7 @@
             <div class="logo-area">
                 <div style="font-family: Arial, sans-serif;">
                     <h1 style="font-size: 16pt; font-style: italic; font-weight: normal; margin: 0; color: #444;">Clínica Médica</h1>
-                    <h2 style="font-size: 20pt; font-weight: bold; margin: -5pt 0 0 0; letter-spacing: 1px;">SIRANI</h2>
+                    <h2 style="font-size: 20pt; font-weight: bold; margin: -5pt 0 0 0; letter-spacing: 1px;">CEMSA</h2>
                     <div style="border-bottom: 2px solid #000; width: 100%; margin-top: 2px;"></div>
                 </div>
             </div>
@@ -295,7 +295,7 @@
                     <p><strong>ESTIMADO PACIENTE:</strong></p>
                     <p>SI DESEA GUARDAR SUS OBJETOS DE VALOR (JOYAS, DINERO, CELULAR U OTROS). UD.</p>
                     <p>PUEDE HACERLO EN LA ADMINISTRACIÓN</p>
-                    <p><strong>LA CLINICA MEDICA SIRANI LTDA. NO SE RESPONSABILIZARÁ EN CASO DE PÉRDIDAS.</strong></p>
+                    <p><strong>LA CLINICA MEDICA CEMSA LTDA. NO SE RESPONSABILIZARÁ EN CASO DE PÉRDIDAS.</strong></p>
                 </div>
             </div>
         </div>
@@ -517,7 +517,7 @@
                     <div class="stamp-text">
                         Ruth Mery Silva Guzman<br>
                         <strong>RECEPCIÓN</strong><br>
-                        Clinica Medica Sirani Ltda.
+                        Clinica Medica CEMSA Ltda.
                     </div>
                 </div>
             </div>
@@ -571,7 +571,7 @@
                     <div class="stamp-text" style="opacity: 0.8;">
                         Ruth Mery Silva Guzman<br>
                         <strong>RECEPCIÓN</strong><br>
-                        Clinica Medica Sirani Ltda.
+                        Clinica Medica CEMSA Ltda.
                     </div>
                 </div>
             </div>
@@ -589,7 +589,7 @@ function imprimir() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Imprimir Registro Sirani</title>
+            <title>Imprimir Registro CEMSA</title>
             <style>
                 /* Estilos base y de reseteo para impresión */
                 @page {

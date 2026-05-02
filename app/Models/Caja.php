@@ -14,6 +14,8 @@ class Caja extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    public static $patientContext = null;
+
     protected $fillable = [
         'id',
         'fecha',
@@ -89,12 +91,61 @@ class Caja extends Model
 
         static::creating(function ($caja) {
             if (empty($caja->id)) {
-                $caja->id = 'CAJA-' . date('YmdHis') . '-' . str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+                if (self::$patientContext) {
+                    $caja->id = self::generarCodigoPaciente(self::$patientContext);
+                } else {
+                    $caja->id = 'CAJA-' . date('YmdHis') . '-' . str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+                }
             }
             if (empty($caja->fecha)) {
                 $caja->fecha = now();
             }
         });
+    }
+
+    public static function generarCodigoPaciente($paciente)
+    {
+        $fechaNac = \Carbon\Carbon::parse($paciente->fecha_nacimiento);
+        $yy = $fechaNac->format('y');
+
+        $mes = (int) $fechaNac->format('m');
+        if ($paciente->sexo === 'F') {
+            $mes += 50;
+        }
+        $mm = str_pad($mes, 2, '0', STR_PAD_LEFT);
+
+        $dd = $fechaNac->format('d');
+
+        $nombreCompleto = strtoupper(trim($paciente->nombre));
+        $partes = explode(' ', $nombreCompleto);
+
+        $inicialNombre = substr(end($partes), 0, 1);
+
+        if (count($partes) >= 3) {
+            $inicialPaterno = substr($partes[count($partes) - 2], 0, 1);
+            $inicialMaterno = substr($partes[count($partes) - 3], 0, 1);
+        } elseif (count($partes) === 2) {
+            $inicialPaterno = substr($partes[0], 0, 1);
+            $inicialMaterno = 'X';
+        } else {
+            $inicialPaterno = substr($partes[0], 0, 1);
+            $inicialMaterno = 'X';
+            if (strlen($nombreCompleto) > 1) {
+                $inicialMaterno = substr($nombreCompleto, 1, 1);
+            }
+        }
+
+        $codigoBase = 'REG-' . $yy . '-' . $mm . $dd . '-' . $inicialPaterno . $inicialMaterno . $inicialNombre;
+
+        $codigo = $codigoBase;
+        $i = 1;
+
+        while (self::where('id', $codigo)->exists()) {
+            $codigo = $codigoBase . '-' . $i;
+            $i++;
+        }
+
+        return $codigo;
     }
 
     private function generarNumeroFactura()
