@@ -49,6 +49,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Medical\UtiOperativoController;
 use App\Http\Controllers\UtiMedicamentosController;
 use App\Http\Controllers\Admin\UtiAdminController;
+use App\Http\Controllers\MenuController;
 use App\Http\Controllers\Reception\UtiRecepcionController;
 
 
@@ -59,6 +60,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+     Route::resource('menus', MenuController::class);
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
