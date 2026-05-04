@@ -4,7 +4,9 @@
       "Bash(php artisan *)",
       "Bash(xargs grep *)",
       "Bash(php -r \"require 'vendor/autoload.php'; echo 'PHP OK';\")",
-      "Bash(php -l app/Http/Controllers/EmergencyStaffController.php)"
+      "Bash(php -l app/Http/Controllers/EmergencyStaffController.php)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(xargs ls *)"
     ]
   }
 }

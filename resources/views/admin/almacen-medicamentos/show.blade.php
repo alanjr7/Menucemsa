@@ -1,293 +1,90 @@
 @extends('layouts.app')
 
-@section('title', 'Detalles del Medicamento/Insumo')
+@section('title', $catalogo->nombre)
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">Detalles del Medicamento/Insumo</h1>
+<div class="min-h-screen bg-gray-50 p-6">
+    <div class="mb-8 flex items-center justify-between">
         <div>
-            <a href="{{ route('admin.almacen-medicamentos.edit', $almacenMedicamento) }}" class="btn btn-warning me-2">
-                <i class="fas fa-edit"></i> Editar
-            </a>
-            <button type="button" class="btn btn-primary me-2" onclick="actualizarStock()">
-                <i class="fas fa-boxes"></i> Actualizar Stock
-            </button>
-            <a href="{{ route('admin.almacen-medicamentos.index') }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+            <h1 class="text-3xl font-bold text-gray-900">{{ $catalogo->nombre }}</h1>
+            <div class="flex items-center gap-3 mt-2">
+                <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $catalogo->tipo == 'medicamento' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' }}">
+                    {{ $catalogo->tipo_label }}
+                </span>
+                <span class="text-sm text-gray-500">{{ $catalogo->unidad_medida }}</span>
+                @if(!$catalogo->activo)
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Inactivo</span>
+                @endif
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <a href="{{ route('admin.almacen-medicamentos.edit', $catalogo) }}"
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">Editar</a>
+            <a href="{{ route('admin.almacen-medicamentos.index') }}"
+               class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Volver</a>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Información General</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>Nombre:</strong></td>
-                                    <td>{{ $almacenMedicamento->nombre }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Tipo:</strong></td>
-                                    <td>
-                                        <span class="badge bg-{{ $almacenMedicamento->tipo == 'medicamento' ? 'info' : 'secondary' }}">
-                                            {{ $almacenMedicamento->tipo_label }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Área:</strong></td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ $almacenMedicamento->area_label }}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Unidad de Medida:</strong></td>
-                                    <td>{{ ucfirst($almacenMedicamento->unidad_medida) }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Cantidad Actual:</strong></td>
-                                    <td>
-                                        @if($almacenMedicamento->cantidad == 0)
-                                            <span class="badge bg-danger">0</span>
-                                        @elseif($almacenMedicamento->estaBajoStock())
-                                            <span class="badge bg-warning">{{ $almacenMedicamento->cantidad }}</span>
-                                        @else
-                                            <span class="badge bg-success">{{ $almacenMedicamento->cantidad }}</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Stock Mínimo:</strong></td>
-                                    <td>{{ $almacenMedicamento->stock_minimo }}</td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>Precio Unitario:</strong></td>
-                                    <td>
-                                        @if($almacenMedicamento->precio)
-                                            Bs {{ number_format($almacenMedicamento->precio, 2) }}
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Número de Lote:</strong></td>
-                                    <td>{{ $almacenMedicamento->lote ?? '-' }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Fecha de Vencimiento:</strong></td>
-                                    <td>
-                                        @if($almacenMedicamento->fecha_vencimiento)
-                                            {{ $almacenMedicamento->fecha_vencimiento->format('d/m/Y') }}
-                                            @if($almacenMedicamento->dias_para_vencer !== null)
-                                                @if($almacenMedicamento->dias_para_vencer < 0)
-                                                    <br><span class="badge bg-danger">Vencido</span>
-                                                @elseif($almacenMedicamento->dias_para_vencer <= 30)
-                                                    <br><span class="badge bg-warning">{{ $almacenMedicamento->dias_para_vencer }} días</span>
-                                                @else
-                                                    <br><span class="badge bg-success">Vigente</span>
-                                                @endif
-                                            @endif
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Estado Stock:</strong></td>
-                                    <td>
-                                        <span class="badge bg-{{ $almacenMedicamento->estado_stock == 'normal' ? 'success' : ($almacenMedicamento->estado_stock == 'bajo' ? 'warning' : 'danger') }}">
-                                            {{ ucfirst($almacenMedicamento->estado_stock) }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Estado Vencimiento:</strong></td>
-                                    <td>
-                                        @if($almacenMedicamento->fecha_vencimiento)
-                                            @if($almacenMedicamento->estaVencido())
-                                                <span class="badge bg-danger">Vencido</span>
-                                            @elseif($almacenMedicamento->estaPorVencer())
-                                                <span class="badge bg-warning">Por vencer</span>
-                                            @else
-                                                <span class="badge bg-success">Vigente</span>
-                                            @endif
-                                        @else
-                                            <span class="badge bg-secondary">Sin fecha</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
+    @if($catalogo->descripcion)
+    <div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm text-gray-700">
+        {{ $catalogo->descripcion }}
+    </div>
+    @endif
 
-                    @if($almacenMedicamento->descripcion || $almacenMedicamento->observaciones)
-                        <hr>
-                        <div class="row">
-                            @if($almacenMedicamento->descripcion)
-                                <div class="col-md-6">
-                                    <h6>Descripción:</h6>
-                                    <p>{{ $almacenMedicamento->descripcion }}</p>
-                                </div>
-                            @endif
-                            @if($almacenMedicamento->observaciones)
-                                <div class="col-md-6">
-                                    <h6>Observaciones:</h6>
-                                    <p>{{ $almacenMedicamento->observaciones }}</p>
-                                </div>
-                            @endif
+    <!-- Lotes y stock -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-900">Lotes y Stock</h3>
+        </div>
+        @forelse($catalogo->lotes as $lote)
+        <div class="p-6 border-b border-gray-100 last:border-0">
+            <div class="flex items-start justify-between mb-3">
+                <div>
+                    <span class="text-sm font-semibold text-gray-900">Lote: {{ $lote->codigo_lote ?? 'Sin código' }}</span>
+                    @if($lote->fecha_vencimiento)
+                        <span class="ml-3 text-xs px-2 py-0.5 rounded-full
+                            {{ $lote->estado_vencimiento == 'vencido' ? 'bg-red-100 text-red-800' :
+                               ($lote->estado_vencimiento == 'por_vencer' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800') }}">
+                            Vence {{ $lote->fecha_vencimiento->format('d/m/Y') }}
+                        </span>
+                    @endif
+                </div>
+                <div class="text-right text-xs text-gray-500">
+                    @if($lote->precio_venta)
+                        <div>Precio venta: <span class="font-semibold text-gray-900">Bs {{ number_format($lote->precio_venta, 2) }}</span></div>
+                    @endif
+                    @if($lote->precio_compra)
+                        <div>Costo: Bs {{ number_format($lote->precio_compra, 2) }}
+                            @if($lote->porcentaje_ganancia) ({{ $lote->porcentaje_ganancia }}%) @endif
                         </div>
                     @endif
-
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p class="small text-muted mb-1">
-                                <strong>Creado:</strong> {{ $almacenMedicamento->created_at->format('d/m/Y H:i:s') }}
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="small text-muted mb-0">
-                                <strong>Actualizado:</strong> {{ $almacenMedicamento->updated_at->format('d/m/Y H:i:s') }}
-                            </p>
-                        </div>
-                    </div>
                 </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                @foreach($lote->stocks as $stock)
+                <div class="rounded-lg p-3 border
+                    {{ $stock->estado_stock == 'agotado' ? 'border-red-200 bg-red-50' :
+                       ($stock->estado_stock == 'bajo' ? 'border-yellow-200 bg-yellow-50' : 'border-gray-200 bg-gray-50') }}">
+                    <p class="text-xs font-medium text-gray-600">{{ $stock->ubicacion_label }}</p>
+                    <p class="text-lg font-bold {{ $stock->estado_stock == 'agotado' ? 'text-red-700' : ($stock->estado_stock == 'bajo' ? 'text-yellow-700' : 'text-gray-900') }}">
+                        {{ $stock->cantidad_actual }}
+                    </p>
+                    <p class="text-xs text-gray-500">mín. {{ $stock->stock_minimo }}</p>
+                </div>
+                @endforeach
             </div>
         </div>
+        @empty
+        <div class="p-8 text-center text-gray-500">No hay lotes registrados para este ítem.</div>
+        @endforelse
+    </div>
 
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Alertas y Estado</h6>
-                </div>
-                <div class="card-body">
-                    @if($almacenMedicamento->estaVencido())
-                        <div class="alert alert-danger d-flex align-items-center" role="alert">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <div>
-                                <strong>¡MEDICAMENTO VENCIDO!</strong><br>
-                                <small>Este medicamento ha vencido y no debería usarse</small>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($almacenMedicamento->estaPorVencer())
-                        <div class="alert alert-warning d-flex align-items-center" role="alert">
-                            <i class="fas fa-clock me-2"></i>
-                            <div>
-                                <strong>Por vencer en {{ $almacenMedicamento->dias_para_vencer }} días</strong><br>
-                                <small>Considere usar o reemplazar pronto</small>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($almacenMedicamento->estaBajoStock())
-                        <div class="alert alert-warning d-flex align-items-center" role="alert">
-                            <i class="fas fa-boxes me-2"></i>
-                            <div>
-                                <strong>Stock bajo</strong><br>
-                                <small>Actual: {{ $almacenMedicamento->cantidad }}, Mínimo: {{ $almacenMedicamento->stock_minimo }}</small>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if($almacenMedicamento->cantidad == 0)
-                        <div class="alert alert-danger d-flex align-items-center" role="alert">
-                            <i class="fas fa-times-circle me-2"></i>
-                            <div>
-                                <strong>¡AGOTADO!</strong><br>
-                                <small>No hay unidades disponibles</small>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if(!$almacenMedicamento->estaVencido() && !$almacenMedicamento->estaPorVencer() && !$almacenMedicamento->estaBajoStock() && $almacenMedicamento->cantidad > 0)
-                        <div class="alert alert-success d-flex align-items-center" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <div>
-                                <strong>Todo en orden</strong><br>
-                                <small>Stock adecuado y vigente</small>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h6 class="mb-0">Acciones Rápidas</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-primary" onclick="actualizarStock()">
-                            <i class="fas fa-boxes"></i> Actualizar Stock
-                        </button>
-                        <a href="{{ route('admin.almacen-medicamentos.edit', $almacenMedicamento) }}" class="btn btn-warning">
-                            <i class="fas fa-edit"></i> Editar Información
-                        </a>
-                        @if($almacenMedicamento->area)
-                            <a href="{{ route('admin.almacen-medicamentos.por-area', $almacenMedicamento->area) }}" class="btn btn-outline-info">
-                                <i class="fas fa-filter"></i> Ver otros de {{ $almacenMedicamento->area_label }}
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Historial -->
+    <div class="text-center">
+        <a href="{{ route('admin.almacen-medicamentos.historial-item', $catalogo) }}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 text-sm">
+            Ver historial de dispensaciones
+        </a>
     </div>
 </div>
-
-<!-- Modal para actualizar stock -->
-<div class="modal fade" id="modalActualizarStock" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Actualizar Stock</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ route('admin.almacen-medicamentos.actualizar-stock', $almacenMedicamento) }}">
-                @csrf
-                <div class="modal-body">
-                    <p><strong>Item:</strong> {{ $almacenMedicamento->nombre }}</p>
-                    <p><strong>Stock actual:</strong> {{ $almacenMedicamento->cantidad }}</p>
-                    
-                    <div class="mb-3">
-                        <label for="cantidad" class="form-label">Nueva Cantidad</label>
-                        <input type="number" name="cantidad" class="form-control" min="0" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="motivo" class="form-label">Motivo del cambio</label>
-                        <textarea name="motivo" class="form-control" rows="3" required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Actualizar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endsection
-
-@section('scripts')
-<script>
-function actualizarStock() {
-    var modal = new bootstrap.Modal(document.getElementById('modalActualizarStock'));
-    modal.show();
-}
-</script>
 @endsection

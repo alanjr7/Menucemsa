@@ -13,7 +13,7 @@ class HospMedicamentoAdministrado extends Model
 
     protected $fillable = [
         'hospitalizacion_id',
-        'medicamento_id',
+        'catalogo_id',
         'administered_by',
         'fecha',
         'hora',
@@ -37,9 +37,9 @@ class HospMedicamentoAdministrado extends Model
         return $this->belongsTo(Hospitalizacion::class, 'hospitalizacion_id');
     }
 
-    public function medicamento()
+    public function catalogo()
     {
-        return $this->belongsTo(AlmacenMedicamento::class, 'medicamento_id');
+        return $this->belongsTo(AlmacenCatalogo::class, 'catalogo_id');
     }
 
     public function administeredBy()

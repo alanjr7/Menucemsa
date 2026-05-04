@@ -1,33 +1,41 @@
 @extends('layouts.app')
+@section('title', 'Reporte Bajo Stock')
 @section('content')
 <div class="p-6">
-    <h1 class="text-2xl font-bold text-gray-800 mb-6">Medicamentos con Bajo Stock</h1>
+    <div class="mb-6 flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-800">Stocks por Debajo del Mínimo</h1>
+        <a href="{{ route('admin.almacen-medicamentos.index') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Volver</a>
+    </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <table class="w-full text-sm">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medicamento/Insumo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lote</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock Actual</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock Mínimo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mínimo</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-                @forelse($medicamentos as $med)
+                @forelse($stocks as $stock)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 font-medium text-gray-900">{{ $med->nombre }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $med->area_label }}</td>
-                    <td class="px-4 py-3 font-bold text-red-600">{{ $med->cantidad }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $med->stock_minimo }}</td>
+                    <td class="px-4 py-3 font-medium text-gray-900">{{ $stock->lote->catalogo->nombre ?? 'N/A' }}</td>
+                    <td class="px-4 py-3 text-gray-600 font-mono text-xs">{{ $stock->lote->codigo_lote ?? '-' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $stock->ubicacion_label }}</td>
+                    <td class="px-4 py-3 font-bold {{ $stock->cantidad_actual <= 0 ? 'text-red-600' : 'text-yellow-600' }}">
+                        {{ $stock->cantidad_actual }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ $stock->stock_minimo }}</td>
                     <td class="px-4 py-3">
-                        <span class="px-2 py-1 text-xs rounded-full {{ $med->cantidad == 0 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800' }}">
-                            {{ $med->cantidad == 0 ? 'Agotado' : 'Bajo Stock' }}
+                        <span class="px-2 py-1 text-xs rounded-full {{ $stock->cantidad_actual <= 0 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800' }}">
+                            {{ $stock->cantidad_actual <= 0 ? 'Agotado' : 'Bajo Stock' }}
                         </span>
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No hay medicamentos con bajo stock</td></tr>
+                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay stocks por debajo del mínimo</td></tr>
                 @endforelse
             </tbody>
         </table>
