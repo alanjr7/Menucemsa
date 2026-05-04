@@ -26,6 +26,8 @@ use Illuminate\View\View;
 
 class ReceptionController extends Controller
 {
+    use \App\Traits\AuditLoggable;
+
     public function index()
     {
         return view('reception.reception');
@@ -104,6 +106,13 @@ class ReceptionController extends Controller
             $consulta = $this->crearConsulta($request, $paciente, $caja);
 
             DB::commit();
+
+            // Registrar en bitácora
+            $this->logActivity(
+                'registrar_consulta',
+                'Recepción registró consulta externa para: ' . $paciente->nombre . ' (CI: ' . $paciente->ci . ')',
+                $consulta
+            );
 
             // Notificar a caja sobre nuevo pago pendiente
             NotificationService::notifyRole('caja', 'pago', 'Pago Pendiente', "Paciente {$paciente->nombre} - Consulta externa por cobrar", route('caja.operativa.index'), ['caja_id' => $caja->id]);
@@ -254,7 +263,7 @@ class ReceptionController extends Controller
                 'color' => 'green',
                 'descripcion' => 'Consulta Externa - No Urgente',
                 'prioridad' => 'baja',
-                'id_iduauuorio' => $currentUser->id
+                'user_id' => $currentUser->id
             ]
         );
         
@@ -339,7 +348,15 @@ class ReceptionController extends Controller
                 $caja->consulta->estado_pago = true;
                 $caja->consulta->save();
             }
-            
+
+            // Registrar en bitácora
+            $pacienteNombre = $caja->consulta && $caja->consulta->paciente ? $caja->consulta->paciente->nombre : 'Paciente';
+            $this->logActivity(
+                'procesar_pago',
+                'Recepción procesó pago de consulta para: ' . $pacienteNombre . ' - Factura #' . $caja->nro_factura,
+                $caja
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Pago procesado exitosamente',
@@ -644,6 +661,13 @@ class ReceptionController extends Controller
 
             DB::commit();
 
+            // Registrar en bitácora
+            $this->logActivity(
+                'crear_cita',
+                'Recepción creó cita para: ' . ($cita->paciente ? $cita->paciente->nombre : 'Paciente') . ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora,
+                $cita
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cita creada exitosamente',
@@ -675,6 +699,13 @@ class ReceptionController extends Controller
             }
 
             $cita->confirmar(Auth::id());
+
+            // Registrar en bitácora
+            $this->logActivity(
+                'confirmar_cita',
+                'Recepción confirmó cita #' . $cita->id . ' para: ' . ($cita->paciente ? $cita->paciente->nombre : 'Paciente'),
+                $cita
+            );
 
             return response()->json([
                 'success' => true,
@@ -733,6 +764,13 @@ class ReceptionController extends Controller
 
             $cita->cancelar($request->motivo ?? 'Cancelado por recepción');
 
+            // Registrar en bitácora
+            $this->logActivity(
+                'cancelar_cita',
+                'Recepción canceló cita #' . $cita->id . ' para: ' . ($cita->paciente ? $cita->paciente->nombre : 'Paciente') . ' - Motivo: ' . ($request->motivo ?? 'No especificado'),
+                $cita
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cita cancelada exitosamente',
@@ -753,8 +791,12 @@ class ReceptionController extends Controller
 
     public function getPendientesLlamada()
     {
-        $citas = Cita::pendientesLlamada()
-            ->with(['paciente', 'medico' => function ($query) {
+        // Mostrar todas las citas futuras (no canceladas) para gestión de llamadas
+        $citas = Cita::where('fecha', '>=', Carbon::today())
+            ->where('estado', '!=', 'cancelado')
+            ->with(['paciente' => function ($query) {
+                $query->select('ci', 'nombre', 'telefono', 'fecha_nacimiento');
+            }, 'medico' => function ($query) {
                 $query->with('user');
             }, 'especialidad'])
             ->orderBy('fecha')
@@ -762,15 +804,15 @@ class ReceptionController extends Controller
             ->get();
 
         // Agrupar por tipo
-        $recordatorios = $citas->where('fecha', Carbon::today());
-        $confirmaciones = $citas->where('fecha', '>', Carbon::today());
-        $seguimientos = []; // Podríamos agregar post-alta aquí
+        $hoy = $citas->where('fecha', Carbon::today())->values();
+        $manana = $citas->where('fecha', Carbon::tomorrow())->values();
+        $futuras = $citas->where('fecha', '>', Carbon::tomorrow())->values();
 
         return response()->json([
             'success' => true,
-            'recordatorios' => $recordatorios,
-            'confirmaciones' => $confirmaciones,
-            'seguimientos' => $seguimientos,
+            'hoy' => $hoy,
+            'manana' => $manana,
+            'futuras' => $futuras,
             'total' => $citas->count()
         ]);
     }
@@ -1020,6 +1062,168 @@ class ReceptionController extends Controller
         ));
     }
 
+    // MÉTODOS ADICIONALES PARA GESTIÓN COMPLETA DE CITAS
+
+    public function eliminarCita(Request $request, $id)
+    {
+        try {
+            $cita = Cita::findOrFail($id);
+
+            if ($cita->estado === 'atendido') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar una cita ya atendida'
+                ], 422);
+            }
+
+            $cita->delete(); // Soft delete
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cita eliminada exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la cita: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function restaurarCita($id)
+    {
+        try {
+            $cita = Cita::withTrashed()->findOrFail($id);
+            $cita->restore();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cita restaurada exitosamente',
+                'cita' => $cita->load(['paciente', 'medico.user', 'especialidad'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al restaurar la cita: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getCitasEliminadas()
+    {
+        try {
+            $citas = Cita::onlyTrashed()
+                ->with(['paciente', 'medico.user', 'especialidad'])
+                ->orderBy('deleted_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'citas' => $citas
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener citas eliminadas: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function marcarAsistida(Request $request, $id)
+    {
+        try {
+            $cita = Cita::findOrFail($id);
+
+            if ($cita->estado === 'cancelado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede marcar asistida una cita cancelada'
+                ], 422);
+            }
+
+            if ($cita->estado === 'atendido') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta cita ya fue marcada como atendida'
+                ], 422);
+            }
+
+            $cita->completarAtencion();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cita marcada como atendida exitosamente',
+                'cita' => $cita->load(['paciente', 'medico.user', 'especialidad'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al marcar asistencia: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getAgendaSemanal(Request $request)
+    {
+        try {
+            $fechaInicio = $request->get('fecha_inicio', Carbon::today()->startOfWeek()->toDateString());
+            $fechaFin = $request->get('fecha_fin', Carbon::today()->endOfWeek()->toDateString());
+
+            $citas = Cita::whereBetween('fecha', [$fechaInicio, $fechaFin])
+                ->where('estado', '!=', 'cancelado')
+                ->with(['paciente', 'medico.user', 'especialidad'])
+                ->orderBy('fecha')
+                ->orderBy('hora')
+                ->get();
+
+            // Agrupar por día
+            $citasPorDia = $citas->groupBy(function($cita) {
+                return Carbon::parse($cita->fecha)->format('Y-m-d');
+            });
+
+            return response()->json([
+                'success' => true,
+                'citas_por_dia' => $citasPorDia,
+                'citas' => $citas,
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener agenda semanal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getCitasPorPaciente($ci)
+    {
+        try {
+            $citas = Cita::where('ci_paciente', $ci)
+                ->with(['medico.user', 'especialidad'])
+                ->orderBy('fecha', 'desc')
+                ->orderBy('hora', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'citas' => $citas,
+                'total' => $citas->count()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener citas del paciente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function buscarGarante(Request $request)
     {
         $ci = $request->get('ci');
@@ -1140,6 +1344,75 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al registrar garante: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Registra un paciente completo para crear cita
+     * Incluye registro_codigo y triage_id automáticos
+     */
+    public function registrarPacienteParaCita(Request $request)
+    {
+        try {
+            $request->validate([
+                'ci' => 'required|string|max:20|unique:pacientes,ci',
+                'nombres' => 'required|string|max:150',
+                'apellidos' => 'required|string|max:150',
+                'sexo' => 'required|in:M,F',
+                'fecha_nacimiento' => 'required|date',
+                'lugar_expedicion' => 'nullable|string|max:2',
+                'nacionalidad' => 'nullable|string|max:100',
+                'estado_civil' => 'nullable|string|max:50',
+                'telefono' => 'nullable|string|max:20',
+                'correo' => 'nullable|email|max:100',
+                'direccion' => 'nullable|string',
+                'profesion' => 'nullable|string|max:150',
+                'empresa_trabajo' => 'nullable|string|max:150',
+            ]);
+
+            DB::beginTransaction();
+
+            // Crear registro y triage automáticos para el paciente
+            $registroCodigo = $this->obtenerOCrearRegistro();
+            $triageId = $this->obenerOCrearTriage();
+
+            $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
+
+            $paciente = Paciente::create([
+                'ci' => $request->ci,
+                'nombre' => $nombreCompleto,
+                'sexo' => $request->sexo,
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'lugar_expedicion' => $request->lugar_expedicion,
+                'nacionalidad' => $request->nacionalidad ?? 'Boliviana',
+                'estado_civil' => $request->estado_civil,
+                'telefono' => $request->telefono,
+                'correo' => $request->correo,
+                'direccion' => $request->direccion,
+                'profesion' => $request->profesion,
+                'empresa_trabajo' => $request->empresa_trabajo,
+                'registro_codigo' => $registroCodigo,
+                'triage_id' => $triageId,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'paciente' => [
+                    'ci' => $paciente->ci,
+                    'nombre' => $paciente->nombre,
+                    'telefono' => $paciente->telefono,
+                ],
+                'message' => 'Paciente registrado exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar paciente: ' . $e->getMessage()
             ], 500);
         }
     }

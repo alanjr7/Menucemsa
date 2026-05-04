@@ -34,12 +34,34 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Acción</label>
                     <select name="action" class="w-full rounded-lg border-gray-300 text-sm">
                         <option value="">Todas</option>
-                        <option value="login" {{ request('action') == 'login' ? 'selected' : '' }}>Inicio de sesión</option>
-                        <option value="logout" {{ request('action') == 'logout' ? 'selected' : '' }}>Cierre de sesión</option>
-                        <option value="create" {{ request('action') == 'create' ? 'selected' : '' }}>Creación</option>
-                        <option value="update" {{ request('action') == 'update' ? 'selected' : '' }}>Actualización</option>
-                        <option value="delete" {{ request('action') == 'delete' ? 'selected' : '' }}>Eliminación</option>
-                        <option value="access" {{ request('action') == 'access' ? 'selected' : '' }}>Acceso</option>
+                        <optgroup label="Autenticación">
+                            <option value="login" {{ request('action') == 'login' ? 'selected' : '' }}>Inicio de sesión</option>
+                            <option value="logout" {{ request('action') == 'logout' ? 'selected' : '' }}>Cierre de sesión</option>
+                        </optgroup>
+                        <optgroup label="CRUD General">
+                            <option value="create" {{ request('action') == 'create' ? 'selected' : '' }}>Creación</option>
+                            <option value="update" {{ request('action') == 'update' ? 'selected' : '' }}>Actualización</option>
+                            <option value="delete" {{ request('action') == 'delete' ? 'selected' : '' }}>Eliminación</option>
+                        </optgroup>
+                        <optgroup label="Recepción">
+                            <option value="registrar_consulta" {{ request('action') == 'registrar_consulta' ? 'selected' : '' }}>Registrar Consulta</option>
+                            <option value="procesar_pago" {{ request('action') == 'procesar_pago' ? 'selected' : '' }}>Procesar Pago</option>
+                            <option value="crear_cita" {{ request('action') == 'crear_cita' ? 'selected' : '' }}>Crear Cita</option>
+                            <option value="confirmar_cita" {{ request('action') == 'confirmar_cita' ? 'selected' : '' }}>Confirmar Cita</option>
+                            <option value="cancelar_cita" {{ request('action') == 'cancelar_cita' ? 'selected' : '' }}>Cancelar Cita</option>
+                        </optgroup>
+                        <optgroup label="Quirófano">
+                            <option value="programar_cirugia" {{ request('action') == 'programar_cirugia' ? 'selected' : '' }}>Programar Cirugía</option>
+                            <option value="iniciar_cirugia" {{ request('action') == 'iniciar_cirugia' ? 'selected' : '' }}>Iniciar Cirugía</option>
+                            <option value="finalizar_cirugia" {{ request('action') == 'finalizar_cirugia' ? 'selected' : '' }}>Finalizar Cirugía</option>
+                            <option value="cancelar_cirugia" {{ request('action') == 'cancelar_cirugia' ? 'selected' : '' }}>Cancelar Cirugía</option>
+                        </optgroup>
+                        <optgroup label="Caja">
+                            <option value="abrir_caja" {{ request('action') == 'abrir_caja' ? 'selected' : '' }}>Abrir Caja</option>
+                            <option value="cerrar_caja" {{ request('action') == 'cerrar_caja' ? 'selected' : '' }}>Cerrar Caja</option>
+                            <option value="procesar_cobro_total" {{ request('action') == 'procesar_cobro_total' ? 'selected' : '' }}>Cobro Total</option>
+                            <option value="procesar_cobro_parcial" {{ request('action') == 'procesar_cobro_parcial' ? 'selected' : '' }}>Cobro Parcial</option>
+                        </optgroup>
                     </select>
                 </div>
                 
@@ -69,6 +91,23 @@
         <!-- Lista de logs -->
         <div class="p-6">
             <div class="space-y-3">
+                @php
+                if (!function_exists('formatLogValue')) {
+                    function formatLogValue($value) {
+                        if (is_array($value)) {
+                            $json = json_encode($value);
+                            return strlen($json) > 50 ? substr($json, 0, 50) . '...' : $json;
+                        }
+                        if (is_bool($value)) {
+                            return $value ? 'true' : 'false';
+                        }
+                        if (is_null($value)) {
+                            return 'null';
+                        }
+                        return $value;
+                    }
+                }
+                @endphp
                 @forelse($logs as $log)
                     <div class="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                         <!-- Icono de acción -->
@@ -106,6 +145,61 @@
                                     <span class="inline-flex items-center justify-center w-8 h-8 bg-red-100 text-red-600 rounded-full">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </span>
+                                    @break
+                                @case('registrar_consulta')
+                                @case('crear_cita')
+                                @case('programar_cirugia')
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                    </span>
+                                    @break
+                                @case('procesar_pago')
+                                @case('procesar_cobro_total')
+                                @case('procesar_cobro_parcial')
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                        </svg>
+                                    </span>
+                                    @break
+                                @case('abrir_caja')
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </span>
+                                    @break
+                                @case('cerrar_caja')
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-600 rounded-full">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </span>
+                                    @break
+                                @case('iniciar_cirugia')
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </span>
+                                    @break
+                                @case('finalizar_cirugia')
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-teal-100 text-teal-600 rounded-full">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </span>
+                                    @break
+                                @case('cancelar_cirugia')
+                                @case('cancelar_cita')
+                                    <span class="inline-flex items-center justify-center w-8 h-8 bg-rose-100 text-rose-600 rounded-full">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     </span>
                                     @break
@@ -149,21 +243,6 @@
                                                 <div class="space-y-2">
                                                     @if($log->old_values)
                                                         @php
-                                                            if (!function_exists('formatLogValue')) {
-                                                                function formatLogValue($value) {
-                                                                if (is_array($value)) {
-                                                                    $json = json_encode($value);
-                                                                    return strlen($json) > 50 ? substr($json, 0, 50) . '...' : $json;
-                                                                }
-                                                                if (is_bool($value)) {
-                                                                    return $value ? 'true' : 'false';
-                                                                }
-                                                                if (is_null($value)) {
-                                                                    return 'null';
-                                                                }
-                                                                return $value;
-                                                                }
-                                                            }
                                                             $relevantOld = [];
                                                             foreach($log->old_values as $key => $value) {
                                                                 if (!in_array($key, ['id', 'created_at', 'updated_at', 'email_verified_at', 'remember_token'])) {

@@ -632,7 +632,7 @@ class CuentaCobroService
      */
     public static function obtenerCuentaPostPagoActiva(string $pacienteCi): ?CuentaCobro
     {
-        return CuentaCobro::where('paciente_ci', $pacienteCi)
+        return CuentaCobro::where('paciente_ci', (string) $pacienteCi)
             ->whereIn('estado', ['pendiente', 'parcial'])
             ->where('es_post_pago', true)
             ->orderBy('created_at', 'desc')
@@ -644,11 +644,11 @@ class CuentaCobroService
      * Usado durante el flujo de emergencia para ir acumulando cargos
      */
     public static function obtenerOCrearCuentaEmergencia(
-        int $pacienteCi,
+        string $pacienteCi,
         string $emergencyId
     ): CuentaCobro {
         // Buscar cuenta existente no pagada (Master Account)
-        $cuenta = self::obtenerCuentaPostPagoActiva((string)$pacienteCi);
+        $cuenta = self::obtenerCuentaPostPagoActiva($pacienteCi);
 
         if ($cuenta) {
             // Si ya tiene una cuenta abierta, la reutilizamos para la emergencia
@@ -664,7 +664,7 @@ class CuentaCobroService
      * Verificar si un paciente puede recibir atención médica
      * Según las reglas: debe estar pagado (excepto emergencias)
      */
-    public static function puedeRecibirAtencion(int $pacienteCi, string $tipoAtencion): bool
+    public static function puedeRecibirAtencion(string $pacienteCi, string $tipoAtencion): bool
     {
         // Las emergencias siempre pueden recibir atención (post-pago)
         if ($tipoAtencion === 'emergencia') {
@@ -672,7 +672,7 @@ class CuentaCobroService
         }
 
         // Para otros tipos, verificar que tenga cuenta pagada
-        $cuentaPagada = CuentaCobro::where('paciente_ci', $pacienteCi)
+        $cuentaPagada = CuentaCobro::where('paciente_ci', (string) $pacienteCi)
             ->where('tipo_atencion', $tipoAtencion)
             ->where('estado', 'pagado')
             ->whereDate('created_at', today())

@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\DB;
 
 class QuirofanoController extends Controller
 {
+    use \App\Traits\AuditLoggable;
+
     public function index(): View
     {
         $quirofanos = Quirofano::all();
@@ -358,6 +360,16 @@ class QuirofanoController extends Controller
                 // Notificar a cirujano y administración sobre cirugía programada
                 $paciente = Paciente::find($cita->ci_paciente);
                 $cirujano = Medico::find($cita->ci_cirujano);
+
+                // Registrar en bitácora
+                $this->logActivity(
+                    'programar_cirugia',
+                    'Cirugía programada - Paciente: ' . ($paciente ? $paciente->nombre : 'N/A') .
+                    ' - Cirujano: ' . ($cirujano && $cirujano->user ? $cirujano->user->name : 'N/A') .
+                    ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora_inicio_estimada,
+                    $cita
+                );
+
                 NotificationService::notify($cirujano->user_id, 'cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Fecha: {$cita->fecha} {$cita->hora_inicio_estimada}", route('quirofano.index'), ['cita_id' => $cita->id]);
                 NotificationService::notifyAdmins('cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Cirujano: {$cirujano->user->name}", route('quirofano.index'));
 
@@ -724,6 +736,14 @@ class QuirofanoController extends Controller
 
         $cita->iniciarCirugia();
 
+        // Registrar en bitácora
+        $this->logActivity(
+            'iniciar_cirugia',
+            'Cirugía iniciada - Paciente: ' . ($cita->paciente ? $cita->paciente->nombre : 'N/A') .
+            ' - Tipo: ' . $cita->tipo_cirugia,
+            $cita
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Cirugía iniciada exitosamente.',
@@ -768,6 +788,15 @@ class QuirofanoController extends Controller
             }
 
             DB::commit();
+
+            // Registrar en bitácora
+            $this->logActivity(
+                'finalizar_cirugia',
+                'Cirugía finalizada - Paciente: ' . ($cita->paciente ? $cita->paciente->nombre : 'N/A') .
+                ' - Tipo: ' . $cita->tipo_cirugia .
+                ' - Duración: ' . ($cita->duracion_real_minutos ? $cita->duracion_real_minutos . ' min' : 'N/A'),
+                $cita
+            );
 
             return response()->json([
                 'success' => true,
@@ -845,6 +874,14 @@ class QuirofanoController extends Controller
         $cita->estado = 'cancelada';
         $cita->motivo_cancelacion = $request->motivo_cancelacion;
         $cita->save();
+
+        // Registrar en bitácora
+        $this->logActivity(
+            'cancelar_cirugia',
+            'Cirugía cancelada - Paciente: ' . ($cita->paciente ? $cita->paciente->nombre : 'N/A') .
+            ' - Motivo: ' . $request->motivo_cancelacion,
+            $cita
+        );
 
         return response()->json([
             'success' => true,

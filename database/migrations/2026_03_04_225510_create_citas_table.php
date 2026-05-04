@@ -29,6 +29,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_registro_id')->nullable();
             $table->unsignedBigInteger('user_confirmacion_id')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             // Índices
             $table->index(['fecha', 'hora']);

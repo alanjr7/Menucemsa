@@ -29,6 +29,8 @@ use Illuminate\Support\Facades\Auth;
 
 class CajaOperativaController extends Controller
 {
+    use \App\Traits\AuditLoggable;
+
     protected $cuentaCobroService;
 
     public function __construct(CuentaCobroService $cuentaCobroService)
@@ -141,6 +143,13 @@ class CajaOperativaController extends Controller
                 'movable_id' => $caja->id,
             ]);
 
+            // Registrar en bitácora
+            $this->logActivity(
+                'abrir_caja',
+                'Caja abierta - Monto inicial: Bs. ' . number_format($request->monto_inicial, 2),
+                $caja
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Caja abierta correctamente',
@@ -199,6 +208,14 @@ class CajaOperativaController extends Controller
             ]);
 
             DB::commit();
+
+            // Registrar en bitácora
+            $this->logActivity(
+                'cerrar_caja',
+                'Caja cerrada - Monto final: Bs. ' . number_format($request->monto_final, 2) .
+                ' - Diferencia: Bs. ' . number_format($diferencia, 2),
+                $caja
+            );
 
             return response()->json([
                 'success' => true,
@@ -569,6 +586,17 @@ class CajaOperativaController extends Controller
             }
 
             DB::commit();
+
+            // Registrar en bitácora
+            $tipoPago = $cuenta->estado === 'pagado' ? 'total' : 'parcial';
+            $this->logActivity(
+                'procesar_cobro_' . $tipoPago,
+                'Cobro ' . $tipoPago . ' procesado - Paciente: ' . $nombrePaciente .
+                ' - Monto: Bs. ' . number_format($montoPagar, 2) .
+                ' - Método: ' . $request->metodo_pago .
+                ' - Cuenta: ' . $cuenta->id,
+                $cuenta
+            );
 
             // Notificar cuando el pago está completo
             if ($cuenta->estado === 'pagado') {

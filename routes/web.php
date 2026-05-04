@@ -206,7 +206,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         
         // Ruta para comprobante de hospitalización
         Route::get('/hospitalizacion/{id}/comprobante', [ReceptionHospitalizacionController::class, 'comprobante'])->name('reception.hospitalizacion.comprobante');
-        
+
+        // Rutas para formulario unificado de ingreso general
+        Route::get('/reception/ingreso-general', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'index'])->name('reception.ingreso-general');
+        Route::get('/reception/ingreso-general/buscar-paciente', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarPaciente'])->name('reception.ingreso-general.buscar-paciente');
+        Route::get('/reception/ingreso-general/buscar-garante', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarGarante'])->name('reception.ingreso-general.buscar-garante');
+        Route::post('/reception/ingreso-general/procesar', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'procesarIngreso'])->name('reception.ingreso-general.procesar');
+
         // Rutas API para gestión de citas
         Route::get('/reception/agenda', function() {
             return view('reception.agenda');
@@ -216,7 +222,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/api/cita/{id}/confirmar', [ReceptionController::class, 'confirmarCita'])->name('reception.confirmar-cita');
         Route::post('/api/cita/{id}/registrar-llegada', [ReceptionController::class, 'registrarLlegadaPaciente'])->name('reception.registrar-llegada');
         Route::post('/api/cita/{id}/cancelar', [ReceptionController::class, 'cancelarCita'])->name('reception.cancelar-cita');
-        
+        Route::delete('/api/cita/{id}', [ReceptionController::class, 'eliminarCita'])->name('reception.eliminar-cita');
+        Route::post('/api/cita/{id}/restaurar', [ReceptionController::class, 'restaurarCita'])->name('reception.restaurar-cita');
+        Route::get('/api/citas-eliminadas', [ReceptionController::class, 'getCitasEliminadas'])->name('reception.citas-eliminadas');
+        Route::post('/api/cita/{id}/asistida', [ReceptionController::class, 'marcarAsistida'])->name('reception.marcar-asistida');
+        Route::get('/api/agenda-semanal', [ReceptionController::class, 'getAgendaSemanal'])->name('reception.agenda-semanal');
+        Route::get('/api/citas/paciente/{ci}', [ReceptionController::class, 'getCitasPorPaciente'])->name('reception.citas-paciente');
+
         // Rutas API para gestión de llamadas
         Route::get('/api/llamadas-pendientes', [ReceptionController::class, 'getPendientesLlamada'])->name('reception.llamadas-pendientes');
         Route::post('/api/cita/{id}/registrar-llamada', [ReceptionController::class, 'registrarLlamadaCita'])->name('reception.registrar-llamada');
@@ -230,6 +242,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/buscar-garante', [ReceptionController::class, 'buscarGarante'])->name('reception.buscar-garante');
         Route::post('/api/buscar-garante-exacto', [ReceptionController::class, 'buscarGaranteExacto'])->name('reception.buscar-garante-exacto');
         Route::post('/api/registrar-garante', [ReceptionController::class, 'registrarGarante'])->name('reception.registrar-garante');
+        Route::post('/api/registrar-paciente-cita', [ReceptionController::class, 'registrarPacienteParaCita'])->name('reception.registrar-paciente-cita');
 
         // Rutas para completar datos de paciente temporal
         Route::get('/reception/completar-datos-paciente/{emergencyId}', [EmergencyIngresoController::class, 'mostrarFormularioCompletarDatos'])->name('reception.completar-datos-paciente');

@@ -16,13 +16,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'user.status' => \App\Http\Middleware\CheckUserStatus::class,
             'force.http' => \App\Http\Middleware\ForceHttp::class,
             'ip.access' => \App\Http\Middleware\CheckIpAccess::class,
+            'audit' => \App\Http\Middleware\AuditMiddleware::class,
         ]);
-        
+
         // Aplicar el middleware de estado a todas las rutas web
         $middleware->web(\App\Http\Middleware\CheckUserStatus::class);
-        
+
         // Forzar HTTP en desarrollo
         $middleware->web(\App\Http\Middleware\ForceHttp::class);
+
+        // Middleware de auditoría de actividades
+        $middleware->web(\App\Http\Middleware\AuditMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
