@@ -98,13 +98,18 @@ class IngresoGeneralController extends Controller
         try {
             DB::beginTransaction();
 
-            $paciente = $this->crearOActualizarPaciente($request);
+            $usarTempId = $request->boolean('usar_temp_id');
 
-            $resultado = match($tipoIngreso) {
-                'consulta_externa' => $this->procesarConsultaExterna($request, $paciente),
-                'emergencia' => $this->procesarEmergencia($request, $paciente),
-                'internacion' => $this->procesarInternacion($request, $paciente),
-            };
+            if ($tipoIngreso === 'emergencia' && $usarTempId) {
+                $resultado = $this->procesarEmergenciaTemporal($request);
+            } else {
+                $paciente = $this->crearOActualizarPaciente($request);
+                $resultado = match($tipoIngreso) {
+                    'consulta_externa' => $this->procesarConsultaExterna($request, $paciente),
+                    'emergencia'       => $this->procesarEmergencia($request, $paciente),
+                    'internacion'      => $this->procesarInternacion($request, $paciente),
+                };
+            }
 
             DB::commit();
 
@@ -249,46 +254,87 @@ class IngresoGeneralController extends Controller
         ];
     }
 
+    private function procesarEmergenciaTemporal(Request $request): array
+    {
+        $tempId = $request->input('temp_id');
+        if (empty($tempId)) {
+            $tempId = 'TEMP-' . now()->format('Ymd') . '-' . random_int(100, 999);
+        }
+
+        $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
+        $triage = $this->crearTriage('rojo', 'Emergencia - Ingreso General (Temp)', 'alta');
+
+        $emergencia = Emergency::create([
+            'patient_id'         => $tempId,
+            'user_id'            => Auth::id(),
+            'code'               => $nroEmergencia,
+            'status'             => 'recibido',
+            'tipo_ingreso'       => 'general',
+            'symptoms'           => $request->input('descripcion') ?? 'Ingreso por emergencia',
+            'initial_assessment' => $request->input('tipo_emergencia') ?? 'Emergencia general',
+            'is_temp_id'         => true,
+            'temp_id'            => $tempId,
+            'ubicacion_actual'   => 'emergencia',
+        ]);
+
+        CuentaCobroService::crearCuentaEmergencia(
+            $tempId,
+            (string) $emergencia->id,
+            [],
+            true,
+            $request->filled('seguro_id') ? (int) $request->input('seguro_id') : null
+        );
+
+        NotificationService::notifyRole('emergencia', 'emergencia', 'Nueva Emergencia (ID Temporal)', "Paciente temporal {$tempId} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
+        NotificationService::notifyRole('enfermera-emergencia', 'emergencia', 'Nueva Emergencia (ID Temporal)', "Paciente temporal {$tempId} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
+
+        return [
+            'success'        => true,
+            'message'        => 'Emergencia registrada con ID temporal.',
+            'tipo'           => 'emergencia',
+            'emergency_code' => $nroEmergencia,
+            'temp_id'        => $tempId,
+            'redirect_url'   => route('reception.emergencia.comprobante', ['id' => $emergencia->id]),
+        ];
+    }
+
     private function procesarEmergencia(Request $request, Paciente $paciente): array
     {
         $triage = $this->crearTriage('rojo', 'Emergencia - Ingreso General', 'alta');
         $paciente->update(['triage_id' => $triage->id]);
 
         $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-        $usarTempId = $request->boolean('usar_temp_id');
 
         $emergencia = Emergency::create([
-            'patient_id' => $paciente->ci,
-            'user_id' => Auth::id(),
-            'code' => $nroEmergencia,
-            'status' => 'recibido',
-            'tipo_ingreso' => 'general',
-            'symptoms' => $request->descripcion ?? 'Ingreso por emergencia',
+            'patient_id'         => $paciente->ci,
+            'user_id'            => Auth::id(),
+            'code'               => $nroEmergencia,
+            'status'             => 'recibido',
+            'tipo_ingreso'       => 'general',
+            'symptoms'           => $request->descripcion ?? 'Ingreso por emergencia',
             'initial_assessment' => $request->tipo_emergencia ?? 'Emergencia general',
-            'is_temp_id' => $usarTempId,
-            'temp_id' => $usarTempId ? $paciente->ci : null,
-            'ubicacion_actual' => 'emergencia',
+            'is_temp_id'         => false,
+            'temp_id'            => null,
+            'ubicacion_actual'   => 'emergencia',
         ]);
 
-        $pacienteCi = $usarTempId ? $paciente->ci : (int) $paciente->ci;
-
         $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
-            (string) $pacienteCi,
-            $emergencia->id,
+            (string) $paciente->ci,
+            (string) $emergencia->id,
             [],
             true,
-            $request->seguro_id
+            $request->filled('seguro_id') ? (int) $request->input('seguro_id') : null
         );
 
         NotificationService::notifyRole('emergencia', 'emergencia', 'Nueva Emergencia', "Paciente {$paciente->nombre} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
         NotificationService::notifyRole('enfermera-emergencia', 'emergencia', 'Nueva Emergencia', "Paciente {$paciente->nombre} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
 
         return [
-            'success' => true,
-            'message' => 'Emergencia registrada exitosamente.',
-            'tipo' => 'emergencia',
+            'success'        => true,
+            'message'        => 'Emergencia registrada exitosamente.',
+            'tipo'           => 'emergencia',
             'emergency_code' => $nroEmergencia,
-            'redirect_url' => route('reception.emergencia.comprobante', ['id' => $emergencia->id])
+            'redirect_url'   => route('reception.emergencia.comprobante', ['id' => $emergencia->id])
         ];
     }
 
