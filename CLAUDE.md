@@ -87,3 +87,4 @@ Located in `app/Console/Commands/`. Useful for data maintenance:
 - `CerrarHospitalizacionesDuplicadas` — closes duplicate hospitalization records
 - `ConsolidarCuentasDuplicadas` / `ConsolidarCuentasPaciente` — merges duplicate billing accounts
 - `UnificarEspecialidadesCommand` — merges duplicate specialty entries
+

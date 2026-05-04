@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Models\AlmacenMedicamento;
+use App\Models\DispensacionAlmacen;
 use App\Services\CuentaCobroService;
 use App\Services\ActivityLogService;
 
@@ -481,6 +482,24 @@ class EmergencyStaffController extends Controller
                         $cantidadAnterior = $medicamento->cantidad;
                         $medicamento->cantidad -= $med['cantidad'];
                         $medicamento->save();
+
+                        // Registrar dispensación al paciente en historial de almacén
+                        $pacienteCiReal = (!$emergency->is_temp_id && $emergency->patient_id)
+                            ? (int) $emergency->patient_id
+                            : null;
+
+                        DispensacionAlmacen::create([
+                            'almacen_medicamento_id' => $medicamento->id,
+                            'cantidad'               => $med['cantidad'],
+                            'area_destino'           => 'emergencia',
+                            'dispensado_por'         => auth()->id(),
+                            'recibido_por'           => $emergency->paciente?->nombre ?? 'Paciente Temporal',
+                            'paciente_ci'            => $pacienteCiReal,
+                            'entregado_por'          => auth()->id(),
+                            'fecha_dispensacion'     => now(),
+                            'fecha_entrega_paciente' => now(),
+                            'observaciones'          => 'Aplicado en evaluación de emergencia #' . $emergency->id,
+                        ]);
 
                         // Registrar uso
                         $medicamentosAplicados[] = [

@@ -528,10 +528,18 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/almacen-medicamentos/area/{area}', [AlmacenMedicamentosController::class, 'porArea'])->name('almacen-medicamentos.por-area');
     });
 
+    // Detalle y registro de paciente en dispensación — accesible por admin y personal de área
+    Route::middleware(['role:admin|administrador|emergencia|enfermera-emergencia|cirujano|internacion|enfermera-internacion|uti|doctor|farmacia|dirmedico'])
+        ->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/almacen-medicamentos/historial/dispensaciones/{dispensacion}', [AlmacenMedicamentosController::class, 'detalleDispensacion'])->name('almacen-medicamentos.detalle-dispensacion');
+        Route::post('/almacen-medicamentos/historial/dispensaciones/{dispensacion}/registrar-paciente', [AlmacenMedicamentosController::class, 'registrarPaciente'])->name('almacen-medicamentos.registrar-paciente');
+    });
+
     // API routes accesibles por recepción y emergencia (fuera del middleware de emergencia)
     Route::middleware(['auth'])->prefix('api')->group(function () {
         Route::get('/emergencias-temporales', [EmergencyStaffController::class, 'apiEmergenciasTemporales']);
         Route::post('/completar-datos-paciente-temporal', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal']);
+        Route::get('/buscar-paciente', [AlmacenMedicamentosController::class, 'buscarPacienteApi']);
     });
 
     // Rutas para personal de emergencias - EMERGENCIA, ENFERMERA-EMERGENCIA, ADMIN, DIR MEDICO Y ADMINISTRADOR

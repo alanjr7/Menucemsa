@@ -18,12 +18,17 @@ class DispensacionAlmacen extends Model
         'dispensado_por',
         'recibido_por',
         'observaciones',
-        'fecha_dispensacion'
+        'fecha_dispensacion',
+        'paciente_ci',
+        'entregado_por',
+        'fecha_entrega_paciente',
     ];
 
     protected $casts = [
         'cantidad' => 'integer',
+        'paciente_ci' => 'integer',
         'fecha_dispensacion' => 'datetime',
+        'fecha_entrega_paciente' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -36,6 +41,16 @@ class DispensacionAlmacen extends Model
     public function dispensadoPor()
     {
         return $this->belongsTo(User::class, 'dispensado_por');
+    }
+
+    public function paciente()
+    {
+        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
+    }
+
+    public function entregadoPor()
+    {
+        return $this->belongsTo(User::class, 'entregado_por');
     }
 
     public function scopePorArea($query, $area)

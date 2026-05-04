@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AlmacenMedicamento;
 use App\Models\DispensacionAlmacen;
+use App\Models\Paciente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -398,6 +399,30 @@ class AlmacenMedicamentosController extends Controller
         return view('admin.almacen-medicamentos.historial-dispensaciones', compact('dispensaciones', 'stats', 'areas'));
     }
 
+    public function detalleDispensacion(DispensacionAlmacen $dispensacion)
+    {
+        $dispensacion->load(['medicamento', 'dispensadoPor', 'paciente', 'entregadoPor']);
+
+        return view('admin.almacen-medicamentos.detalle-dispensacion', compact('dispensacion'));
+    }
+
+    public function registrarPaciente(Request $request, DispensacionAlmacen $dispensacion)
+    {
+        $request->validate([
+            'paciente_ci' => 'required|integer|exists:pacientes,ci',
+        ]);
+
+        $dispensacion->update([
+            'paciente_ci'            => $request->paciente_ci,
+            'entregado_por'          => Auth::id(),
+            'fecha_entrega_paciente' => now(),
+        ]);
+
+        return redirect()
+            ->route('admin.almacen-medicamentos.detalle-dispensacion', $dispensacion->id)
+            ->with('success', 'Paciente registrado correctamente.');
+    }
+
     public function historialItem(AlmacenMedicamento $almacenMedicamento)
     {
         $dispensaciones = $almacenMedicamento->dispensaciones()
@@ -532,5 +557,24 @@ class AlmacenMedicamentosController extends Controller
                 ->with('error', 'Error en la transferencia: ' . $e->getMessage())
                 ->withInput();
         }
+    }
+
+    public function buscarPacienteApi(Request $request)
+    {
+        $ci = $request->input('ci');
+
+        if (!$ci || !is_numeric($ci)) {
+            return response()->json(['error' => 'C.I. inválido'], 422);
+        }
+
+        $paciente = Paciente::where('ci', (int) $ci)
+            ->select('ci', 'nombre', 'sexo', 'fecha_nacimiento', 'telefono')
+            ->first();
+
+        if (!$paciente) {
+            return response()->json(['error' => 'Paciente no encontrado'], 404);
+        }
+
+        return response()->json($paciente);
     }
 }

@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(php artisan *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(php -r \"require 'vendor/autoload.php'; echo 'PHP OK';\")",
+      "Bash(php -l app/Http/Controllers/EmergencyStaffController.php)"
     ]
   }
 }
