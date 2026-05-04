@@ -249,8 +249,8 @@ class AlmacenMedicamentoSeeder extends Seeder
 
     private array $unidades = ['unidades', 'ml', 'mg', 'gr', 'cm', 'cajas', 'frascos', 'sobres', 'ampollas', 'tabletas', 'capsulas', 'viales', 'bolsas', 'tubos'];
 
-    private array $areas = ['emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato'];
-
+   // private array $areas = ['emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato', 'internacion', 'central'];
+private array $areas = ['central'];
     public function run(): void
     {
         $totalPorArea = 500;

@@ -15,6 +15,9 @@ class AlmacenMedicamento extends Model
         'descripcion',
         'area',
         'precio',
+        'precio_compra',
+        'porcentaje_ganancia',
+        'precio_venta',
         'fecha_vencimiento',
         'lote',
         'cantidad',
@@ -27,6 +30,9 @@ class AlmacenMedicamento extends Model
 
     protected $casts = [
         'precio' => 'decimal:2',
+        'precio_compra' => 'decimal:2',
+        'porcentaje_ganancia' => 'decimal:2',
+        'precio_venta' => 'decimal:2',
         'fecha_vencimiento' => 'date',
         'cantidad' => 'integer',
         'stock_minimo' => 'integer',
@@ -70,6 +76,11 @@ class AlmacenMedicamento extends Model
         return $query->where('cantidad', '<=', \DB::raw('stock_minimo'));
     }
 
+    public function scopeCentral($query)
+    {
+        return $query->where('area', 'central');
+    }
+
     // Accessors
     public function getAreaLabelAttribute()
     {
@@ -79,9 +90,11 @@ class AlmacenMedicamento extends Model
             'hospitalizacion' => 'Hospitalización',
             'uti' => 'UTI',
             'usi' => 'USI',
-            'neonato' => 'Neonato'
+            'neonato' => 'Neonato',
+            'internacion' => 'Internación',
+            'central' => 'Almacén Central'
         ];
-        
+
         return $areas[$this->area] ?? $this->area;
     }
 
@@ -138,8 +151,13 @@ class AlmacenMedicamento extends Model
 
     public function estaPorVencer($dias = 30)
     {
-        return $this->fecha_vencimiento && 
+        return $this->fecha_vencimiento &&
                $this->fecha_vencimiento <= Carbon::now()->addDays($dias) &&
                $this->fecha_vencimiento >= Carbon::now();
+    }
+
+    public function dispensaciones()
+    {
+        return $this->hasMany(DispensacionAlmacen::class, 'almacen_medicamento_id');
     }
 }

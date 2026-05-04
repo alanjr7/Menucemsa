@@ -17,18 +17,27 @@
                 <h1 class="text-3xl font-bold text-gray-900">Almacén de Medicamentos e Insumos</h1>
                 <p class="text-gray-600 mt-1">Gestiona el inventario de medicamentos para emergencia, cirugía, hospitalización y más</p>
             </div>
-            <a href="{{ route('admin.almacen-medicamentos.create') }}" 
-               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Agregar Medicamento/Insumo
-            </a>
+            <div class="flex gap-3">
+                <a href="{{ route('admin.almacen-medicamentos.transferir.form') }}"
+                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    Agregar a Área
+                </a>
+                <a href="{{ route('admin.almacen-medicamentos.create') }}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Agregar Medicamento/Insumo
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- Tarjetas de Estadísticas -->
-    <div class="grid grid-cols-1 md:2 lg:6 gap-4 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div class="flex items-center justify-between">
                 <div>
@@ -38,6 +47,23 @@
                 <div class="p-3 bg-blue-100 rounded-full">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Almacén Central</p>
+                    <p class="text-2xl font-bold text-indigo-600">{{ $stats['total_central'] }}</p>
+                    @if($stats['por_dispensar'] > 0)
+                        <p class="text-xs text-red-600">{{ $stats['por_dispensar'] }} por debajo del mínimo</p>
+                    @endif
+                </div>
+                <div class="p-3 bg-indigo-100 rounded-full">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                 </div>
             </div>
@@ -115,20 +141,27 @@
     </div>
 
     <!-- Reportes Rápidos -->
-    <div class="flex gap-4 mb-6">
-        <a href="{{ route('admin.almacen-medicamentos.reporte.bajo-stock') }}" 
+    <div class="flex flex-wrap gap-4 mb-6">
+        <a href="{{ route('admin.almacen-medicamentos.reporte.bajo-stock') }}"
            class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
             </svg>
             Reporte Bajo Stock
         </a>
-        <a href="{{ route('admin.almacen-medicamentos.reporte.vencimiento') }}" 
+        <a href="{{ route('admin.almacen-medicamentos.reporte.vencimiento') }}"
            class="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             Reporte Vencimiento
+        </a>
+        <a href="{{ route('admin.almacen-medicamentos.historial') }}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-800 rounded-lg hover:bg-indigo-200 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Historial de Dispensaciones
         </a>
     </div>
 
@@ -142,7 +175,9 @@
                     <select name="area" x-model="area" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todas las áreas</option>
                         @foreach($areas as $area)
-                            <option value="{{ $area }}">{{ ucfirst($area) }}</option>
+                            <option value="{{ $area }}" {{ request('area') == $area ? 'selected' : '' }}>
+                                {{ $area == 'central' ? 'Almacén Central' : ucfirst($area) }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -289,14 +324,29 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex items-center space-x-2">
-                                    <a href="{{ route('admin.almacen-medicamentos.edit', $item) }}" 
+                                    <a href="{{ route('admin.almacen-medicamentos.edit', $item) }}"
                                        class="text-indigo-600 hover:text-indigo-900" title="Editar">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
                                     </a>
-                                    <button type="button" 
-                                            onclick="actualizarStock({{ $item->id }}, '{{ $item->nombre }}', {{ $item->cantidad }})" 
+                                    @if($item->area === 'central')
+                                        <button type="button"
+                                                onclick="dispensarItem({{ $item->id }}, '{{ $item->nombre }}', {{ $item->cantidad }}, '{{ $item->unidad_medida }}', {{ $item->stock_minimo }})"
+                                                class="text-blue-600 hover:text-blue-900" title="Dispensar">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                            </svg>
+                                        </button>
+                                    @endif
+                                    <a href="{{ route('admin.almacen-medicamentos.historial-item', $item) }}"
+                                       class="text-purple-600 hover:text-purple-900" title="Ver Historial">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </a>
+                                    <button type="button"
+                                            onclick="actualizarStock({{ $item->id }}, '{{ $item->nombre }}', {{ $item->cantidad }})"
                                             class="text-yellow-600 hover:text-yellow-900" title="Actualizar Stock">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -305,8 +355,8 @@
                                     <form action="{{ route('admin.almacen-medicamentos.destroy', $item) }}" method="POST" class="inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" 
-                                                onclick="return confirm('¿Está seguro de desactivar este item?')" 
+                                        <button type="submit"
+                                                onclick="return confirm('¿Está seguro de desactivar este item?')"
                                                 class="text-red-600 hover:text-red-900" title="Desactivar">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -341,6 +391,95 @@
                 de <span class="font-medium">{{ $almacenMedicamentos->total() }}</span> resultados
             </div>
             {{ $almacenMedicamentos->links() }}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para dispensar ítem -->
+<div x-data="{ openDispensar: false, itemId: null, itemName: '', stockActual: 0, unidadMedida: '', stockMinimo: 0 }"
+     x-show="openDispensar"
+     x-cloak
+     class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity" x-show="openDispensar" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+             x-show="openDispensar"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+            <form method="POST" :action="`/admin/almacen-medicamentos/${itemId}/dispensar`">
+                @csrf
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Dispensar Ítem</h3>
+                        <div class="space-y-2 text-sm">
+                            <p><strong>Item:</strong> <span x-text="itemName"></span></p>
+                            <p><strong>Stock disponible:</strong> <span x-text="stockActual"></span> <span x-text="unidadMedida"></span></p>
+                            <p><strong>Stock mínimo:</strong> <span x-text="stockMinimo"></span> <span x-text="unidadMedida"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad a dispensar <span class="text-gray-500">(<span x-text="unidadMedida"></span>)</span></label>
+                            <input type="number" name="cantidad" min="1" :max="stockActual" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            <p class="text-xs text-gray-500 mt-1">Máximo: <span x-text="stockActual"></span></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Área Destino <span class="text-red-500">*</span></label>
+                            <select name="area_destino" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Seleccione un área</option>
+                                <option value="emergencia">Emergencia</option>
+                                <option value="cirugia">Cirugía</option>
+                                <option value="hospitalizacion">Hospitalización</option>
+                                <option value="uti">UTI</option>
+                                <option value="usi">USI</option>
+                                <option value="neonato">Neonato</option>
+                                <option value="internacion">Internación</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Recibido por (nombre)</label>
+                            <input type="text" name="recibido_por" maxlength="150" placeholder="Nombre de quien recibe físicamente"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                            <textarea name="observaciones" rows="2" maxlength="1000" placeholder="Notas adicionales..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+
+                        <div x-show="stockActual - 1 <= stockMinimo" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <p class="text-sm text-yellow-800">
+                                    <strong>Atención:</strong> El stock resultante quedará por debajo del mínimo.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Dispensar
+                    </button>
+                    <button type="button" @click="openDispensar = false" class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -404,12 +543,24 @@
 @section('scripts')
 <script>
 function actualizarStock(itemId, itemName, stockActual) {
-    const modal = document.querySelector('[x-data*="open"]');
+    const modal = document.querySelector('[x-data*="open"]:not([x-data*="openDispensar"])');
     if (modal && modal.__x) {
         modal.__x.$data.open = true;
         modal.__x.$data.itemId = itemId;
         modal.__x.$data.itemName = itemName;
         modal.__x.$data.stockActual = stockActual;
+    }
+}
+
+function dispensarItem(itemId, itemName, stockActual, unidadMedida, stockMinimo) {
+    const modal = document.querySelector('[x-data*="openDispensar"]');
+    if (modal && modal.__x) {
+        modal.__x.$data.openDispensar = true;
+        modal.__x.$data.itemId = itemId;
+        modal.__x.$data.itemName = itemName;
+        modal.__x.$data.stockActual = stockActual;
+        modal.__x.$data.unidadMedida = unidadMedida;
+        modal.__x.$data.stockMinimo = stockMinimo;
     }
 }
 </script>

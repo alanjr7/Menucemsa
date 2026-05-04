@@ -508,11 +508,21 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/almacen-medicamentos', [AlmacenMedicamentosController::class, 'index'])->name('almacen-medicamentos.index');
         Route::get('/almacen-medicamentos/create', [AlmacenMedicamentosController::class, 'create'])->name('almacen-medicamentos.create');
         Route::post('/almacen-medicamentos', [AlmacenMedicamentosController::class, 'store'])->name('almacen-medicamentos.store');
+
+        // Rutas de transferencia masiva (ANTES de las rutas con wildcard {id})
+        Route::get('/almacen-medicamentos/transferir', [AlmacenMedicamentosController::class, 'transferirForm'])->name('almacen-medicamentos.transferir.form');
+        Route::post('/almacen-medicamentos/transferir', [AlmacenMedicamentosController::class, 'procesarTransferencia'])->name('almacen-medicamentos.transferir.procesar');
+
+        // Rutas de historial de dispensaciones (ANTES de las rutas con wildcard {id})
+        Route::get('/almacen-medicamentos/historial/dispensaciones', [AlmacenMedicamentosController::class, 'historialDispensaciones'])->name('almacen-medicamentos.historial');
+
         Route::get('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'show'])->name('almacen-medicamentos.show');
         Route::get('/almacen-medicamentos/{almacenMedicamento}/edit', [AlmacenMedicamentosController::class, 'edit'])->name('almacen-medicamentos.edit');
         Route::put('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'update'])->name('almacen-medicamentos.update');
         Route::delete('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'destroy'])->name('almacen-medicamentos.destroy');
         Route::post('/almacen-medicamentos/{almacenMedicamento}/actualizar-stock', [AlmacenMedicamentosController::class, 'actualizarStock'])->name('almacen-medicamentos.actualizar-stock');
+        Route::post('/almacen-medicamentos/{almacenMedicamento}/dispensar', [AlmacenMedicamentosController::class, 'dispensar'])->name('almacen-medicamentos.dispensar');
+        Route::get('/almacen-medicamentos/{almacenMedicamento}/historial', [AlmacenMedicamentosController::class, 'historialItem'])->name('almacen-medicamentos.historial-item');
         Route::get('/almacen-medicamentos/reporte/bajo-stock', [AlmacenMedicamentosController::class, 'reporteBajoStock'])->name('almacen-medicamentos.reporte.bajo-stock');
         Route::get('/almacen-medicamentos/reporte/vencimiento', [AlmacenMedicamentosController::class, 'reporteVencimiento'])->name('almacen-medicamentos.reporte.vencimiento');
         Route::get('/almacen-medicamentos/area/{area}', [AlmacenMedicamentosController::class, 'porArea'])->name('almacen-medicamentos.por-area');

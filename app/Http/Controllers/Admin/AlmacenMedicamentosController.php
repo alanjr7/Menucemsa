@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AlmacenMedicamento;
+use App\Models\DispensacionAlmacen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
@@ -65,16 +67,18 @@ class AlmacenMedicamentosController extends Controller
             'agotados' => AlmacenMedicamento::activos()->where('cantidad', 0)->count(),
             'vencidos' => AlmacenMedicamento::activos()->vencidos()->count(),
             'por_vencer' => AlmacenMedicamento::activos()->porVencer()->count(),
+            'total_central' => AlmacenMedicamento::activos()->central()->count(),
+            'por_dispensar' => AlmacenMedicamento::activos()->central()->bajoStock()->count(),
         ];
 
-        $areas = ['emergencia', 'cirugia', 'internacion', 'uti', 'usi', 'neonato'];
+        $areas = ['emergencia', 'cirugia', 'internacion', 'uti', 'usi', 'neonato', 'central'];
 
         return view('admin.almacen-medicamentos.index', compact('almacenMedicamentos', 'stats', 'areas'));
     }
 
     public function create()
     {
-        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'internacion' => 'Internación', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato'];
+        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'internacion' => 'Internación', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato', 'central' => 'Almacén Central'];
         $tipos = ['medicamento' => 'Medicamento', 'insumo' => 'Insumo'];
         $unidades = ['unidades', 'ml', 'mg', 'gr', 'cm', 'cajas', 'frascos', 'sobres'];
 
@@ -86,8 +90,11 @@ class AlmacenMedicamentosController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'area' => 'required|in:emergencia,cirugia,internacion,uti,usi,neonato',
+            'area' => 'required|in:emergencia,cirugia,internacion,uti,usi,neonato,central',
             'precio' => 'nullable|numeric|min:0',
+            'precio_compra' => 'nullable|numeric|min:0',
+            'porcentaje_ganancia' => 'nullable|numeric|min:0|max:999',
+            'precio_venta' => 'nullable|numeric|min:0',
             'fecha_vencimiento' => 'nullable|date|after:today',
             'lote' => 'nullable|string|max:100',
             'cantidad' => 'required|numeric|min:0',
@@ -97,7 +104,22 @@ class AlmacenMedicamentosController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
-        $medicamento = AlmacenMedicamento::create($request->all());
+        $medicamento = AlmacenMedicamento::create([
+            'nombre' => $request->nombre,
+            'descripcion' => $request->descripcion,
+            'area' => $request->area,
+            'precio' => $request->precio,
+            'precio_compra' => $request->precio_compra,
+            'porcentaje_ganancia' => $request->porcentaje_ganancia,
+            'precio_venta' => $request->precio_venta,
+            'fecha_vencimiento' => $request->fecha_vencimiento,
+            'lote' => $request->lote,
+            'cantidad' => $request->cantidad,
+            'stock_minimo' => $request->stock_minimo,
+            'unidad_medida' => $request->unidad_medida,
+            'tipo' => $request->tipo,
+            'observaciones' => $request->observaciones,
+        ]);
 
         // Registrar actividad en log
         Log::info('Usuario ' . Auth::user()->name . ' creó nuevo medicamento/insumo en almacén: ' . $medicamento->nombre, [
@@ -118,7 +140,7 @@ class AlmacenMedicamentosController extends Controller
 
     public function edit(AlmacenMedicamento $almacenMedicamento)
     {
-        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'internacion' => 'Internación', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato'];
+        $areas = ['emergencia' => 'Emergencia', 'cirugia' => 'Cirugía', 'internacion' => 'Internación', 'uti' => 'UTI', 'usi' => 'USI', 'neonato' => 'Neonato', 'central' => 'Almacén Central'];
         $tipos = ['medicamento' => 'Medicamento', 'insumo' => 'Insumo'];
         $unidades = ['unidades', 'ml', 'mg', 'gr', 'cm', 'cajas', 'frascos', 'sobres'];
 
@@ -130,8 +152,11 @@ class AlmacenMedicamentosController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'area' => 'required|in:emergencia,cirugia,internacion,uti,usi,neonato',
+            'area' => 'required|in:emergencia,cirugia,internacion,uti,usi,neonato,central',
             'precio' => 'nullable|numeric|min:0',
+            'precio_compra' => 'nullable|numeric|min:0',
+            'porcentaje_ganancia' => 'nullable|numeric|min:0|max:999',
+            'precio_venta' => 'nullable|numeric|min:0',
             'fecha_vencimiento' => 'nullable|date',
             'lote' => 'nullable|string|max:100',
             'cantidad' => 'required|numeric|min:0',
@@ -142,7 +167,8 @@ class AlmacenMedicamentosController extends Controller
         ]);
 
         $almacenMedicamento->update($request->only([
-            'nombre', 'descripcion', 'area', 'precio', 'fecha_vencimiento',
+            'nombre', 'descripcion', 'area', 'precio', 'precio_compra',
+            'porcentaje_ganancia', 'precio_venta', 'fecha_vencimiento',
             'lote', 'cantidad', 'stock_minimo', 'unidad_medida', 'tipo', 'observaciones',
         ]));
 
@@ -241,5 +267,270 @@ class AlmacenMedicamentosController extends Controller
         ];
 
         return view('admin.almacen-medicamentos.por-area', compact('medicamentos', 'area', 'stats'));
+    }
+
+    public function dispensar(Request $request, AlmacenMedicamento $almacenMedicamento)
+    {
+        if ($almacenMedicamento->area !== 'central') {
+            abort(403, 'Solo se pueden dispensar ítems del almacén central.');
+        }
+
+        $request->validate([
+            'cantidad' => 'required|integer|min:1|max:' . $almacenMedicamento->cantidad,
+            'area_destino' => 'required|in:emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
+            'recibido_por' => 'nullable|string|max:150',
+            'observaciones' => 'nullable|string|max:1000',
+        ]);
+
+        if ($request->cantidad > $almacenMedicamento->cantidad) {
+            return redirect()->back()
+                ->with('error', 'La cantidad solicitada excede el stock disponible (' . $almacenMedicamento->cantidad . ' ' . $almacenMedicamento->unidad_medida . ').');
+        }
+
+        DB::transaction(function () use ($request, $almacenMedicamento) {
+            // 1. Descontar del central
+            $almacenMedicamento->decrement('cantidad', $request->cantidad);
+
+            // 2. Incrementar (o crear) en área destino
+            $destino = AlmacenMedicamento::where('nombre', $almacenMedicamento->nombre)
+                ->where('area', $request->area_destino)
+                ->first();
+
+            if ($destino) {
+                $destino->increment('cantidad', $request->cantidad);
+            } else {
+                AlmacenMedicamento::create([
+                    'nombre'             => $almacenMedicamento->nombre,
+                    'descripcion'        => $almacenMedicamento->descripcion,
+                    'area'               => $request->area_destino,
+                    'precio'             => $almacenMedicamento->precio,
+                    'precio_compra'      => $almacenMedicamento->precio_compra,
+                    'porcentaje_ganancia'=> $almacenMedicamento->porcentaje_ganancia,
+                    'precio_venta'       => $almacenMedicamento->precio_venta,
+                    'fecha_vencimiento'  => $almacenMedicamento->fecha_vencimiento,
+                    'lote'               => $almacenMedicamento->lote,
+                    'cantidad'           => $request->cantidad,
+                    'stock_minimo'       => $almacenMedicamento->stock_minimo,
+                    'unidad_medida'      => $almacenMedicamento->unidad_medida,
+                    'tipo'               => $almacenMedicamento->tipo,
+                    'observaciones'      => 'Transferido desde almacén central.',
+                ]);
+            }
+
+            // 3. Registrar dispensación
+            DispensacionAlmacen::create([
+                'almacen_medicamento_id' => $almacenMedicamento->id,
+                'cantidad' => $request->cantidad,
+                'area_destino' => $request->area_destino,
+                'dispensado_por' => Auth::id(),
+                'recibido_por' => $request->recibido_por,
+                'observaciones' => $request->observaciones,
+                'fecha_dispensacion' => now(),
+            ]);
+
+            Log::info('Usuario ' . Auth::user()->name . ' dispensó ' . $request->cantidad . ' ' . $almacenMedicamento->unidad_medida . ' de ' . $almacenMedicamento->nombre . ' al área ' . $request->area_destino, [
+                'user_id' => Auth::id(),
+                'medicamento_id' => $almacenMedicamento->id,
+                'cantidad' => $request->cantidad,
+                'area_destino' => $request->area_destino,
+                'action' => 'dispensar',
+                'module' => 'almacen_medicamentos'
+            ]);
+        });
+
+        $mensaje = 'Dispensación registrada correctamente.';
+        if ($almacenMedicamento->cantidad - $request->cantidad <= $almacenMedicamento->stock_minimo) {
+            $mensaje .= ' Atención: el stock quedó por debajo del mínimo.';
+        }
+
+        return redirect()->back()->with('success', $mensaje);
+    }
+
+    public function historialDispensaciones(Request $request)
+    {
+        $query = DispensacionAlmacen::with(['medicamento', 'dispensadoPor']);
+
+        if ($request->filled('area_destino')) {
+            $query->porArea($request->area_destino);
+        }
+
+        if ($request->filled('fecha_desde')) {
+            $query->where('fecha_dispensacion', '>=', $request->fecha_desde . ' 00:00:00');
+        }
+
+        if ($request->filled('fecha_hasta')) {
+            $query->where('fecha_dispensacion', '<=', $request->fecha_hasta . ' 23:59:59');
+        }
+
+        if ($request->filled('buscar')) {
+            $query->whereHas('medicamento', function ($q) use ($request) {
+                $q->where('nombre', 'like', '%' . $request->buscar . '%')
+                  ->orWhere('descripcion', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        $dispensaciones = $query->recientes()->paginate(20);
+
+        $stats = [
+            'total' => DispensacionAlmacen::count(),
+            'ultimos_30_dias' => DispensacionAlmacen::ultimosDias(30)->count(),
+            'por_area' => [
+                'emergencia' => DispensacionAlmacen::porArea('emergencia')->count(),
+                'cirugia' => DispensacionAlmacen::porArea('cirugia')->count(),
+                'hospitalizacion' => DispensacionAlmacen::porArea('hospitalizacion')->count(),
+                'uti' => DispensacionAlmacen::porArea('uti')->count(),
+                'usi' => DispensacionAlmacen::porArea('usi')->count(),
+                'neonato' => DispensacionAlmacen::porArea('neonato')->count(),
+                'internacion' => DispensacionAlmacen::porArea('internacion')->count(),
+            ],
+        ];
+
+        $areas = [
+            'emergencia' => 'Emergencia',
+            'cirugia' => 'Cirugía',
+            'hospitalizacion' => 'Hospitalización',
+            'uti' => 'UTI',
+            'usi' => 'USI',
+            'neonato' => 'Neonato',
+            'internacion' => 'Internación'
+        ];
+
+        return view('admin.almacen-medicamentos.historial-dispensaciones', compact('dispensaciones', 'stats', 'areas'));
+    }
+
+    public function historialItem(AlmacenMedicamento $almacenMedicamento)
+    {
+        $dispensaciones = $almacenMedicamento->dispensaciones()
+            ->with('dispensadoPor')
+            ->recientes()
+            ->paginate(15);
+
+        return view('admin.almacen-medicamentos.historial-item', compact('almacenMedicamento', 'dispensaciones'));
+    }
+
+    public function transferirForm()
+    {
+        $medicamentos = AlmacenMedicamento::activos()
+            ->central()
+            ->where('cantidad', '>', 0)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('admin.almacen-medicamentos.transferir', compact('medicamentos'));
+    }
+
+    public function procesarTransferencia(Request $request)
+    {
+        // Validar que items sea un JSON string válido y decodificarlo
+        $request->validate([
+            'area_destino' => 'required|in:emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
+            'recibido_por' => 'nullable|string|max:150',
+            'items' => 'required|string', // Llega como JSON string desde Alpine.js
+        ]);
+
+        $items = json_decode($request->items, true);
+
+        // Validar que el JSON decodificado sea un array válido
+        if (!is_array($items) || count($items) === 0) {
+            return redirect()->back()
+                ->with('error', 'Debe seleccionar al menos un medicamento para transferir.')
+                ->withInput();
+        }
+
+        // Validar estructura de cada item
+        foreach ($items as $index => $item) {
+            if (!isset($item['id']) || !isset($item['cantidad'])) {
+                return redirect()->back()
+                    ->with('error', 'Datos de medicamentos inválidos. Verifique la selección.')
+                    ->withInput();
+            }
+
+            if (!is_numeric($item['id']) || $item['id'] <= 0) {
+                return redirect()->back()
+                    ->with('error', 'ID de medicamento inválido en item #' . ($index + 1))
+                    ->withInput();
+            }
+
+            if (!is_numeric($item['cantidad']) || $item['cantidad'] < 1) {
+                return redirect()->back()
+                    ->with('error', 'La cantidad debe ser al menos 1 en item #' . ($index + 1))
+                    ->withInput();
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($items, $request) {
+                foreach ($items as $item) {
+                    $central = AlmacenMedicamento::where('id', $item['id'])
+                        ->where('area', 'central')
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$central) {
+                        throw new \Exception("Medicamento no encontrado en almacén central");
+                    }
+
+                    if ($item['cantidad'] > $central->cantidad) {
+                        throw new \Exception("Stock insuficiente para {$central->nombre}. Disponible: {$central->cantidad}");
+                    }
+
+                    // Descontar del central
+                    $central->decrement('cantidad', $item['cantidad']);
+
+                    // Buscar o crear en área destino
+                    $destino = AlmacenMedicamento::where('nombre', $central->nombre)
+                        ->where('area', $request->area_destino)
+                        ->first();
+
+                    if ($destino) {
+                        $destino->increment('cantidad', $item['cantidad']);
+                    } else {
+                        AlmacenMedicamento::create([
+                            'nombre' => $central->nombre,
+                            'descripcion' => $central->descripcion,
+                            'area' => $request->area_destino,
+                            'precio' => $central->precio,
+                            'precio_compra' => $central->precio_compra,
+                            'porcentaje_ganancia' => $central->porcentaje_ganancia,
+                            'precio_venta' => $central->precio_venta,
+                            'fecha_vencimiento' => $central->fecha_vencimiento,
+                            'lote' => $central->lote,
+                            'cantidad' => $item['cantidad'],
+                            'stock_minimo' => $central->stock_minimo,
+                            'unidad_medida' => $central->unidad_medida,
+                            'tipo' => $central->tipo,
+                            'observaciones' => 'Transferido desde almacén central.',
+                        ]);
+                    }
+
+                    // Registrar dispensación
+                    DispensacionAlmacen::create([
+                        'almacen_medicamento_id' => $central->id,
+                        'cantidad' => $item['cantidad'],
+                        'area_destino' => $request->area_destino,
+                        'dispensado_por' => Auth::id(),
+                        'recibido_por' => $request->recibido_por,
+                        'fecha_dispensacion' => now(),
+                    ]);
+
+                    Log::info('Transferencia masiva: ' . $central->nombre . ' x' . $item['cantidad'] . ' a ' . $request->area_destino, [
+                        'user_id' => Auth::id(),
+                        'medicamento_id' => $central->id,
+                        'cantidad' => $item['cantidad'],
+                        'area_destino' => $request->area_destino,
+                        'action' => 'transferencia_masiva',
+                        'module' => 'almacen_medicamentos'
+                    ]);
+                }
+            });
+
+            return redirect()->route('admin.almacen-medicamentos.historial')
+                ->with('success', 'Transferencia completada correctamente. Se transfirieron ' . count($items) . ' medicamentos a ' . ucfirst($request->area_destino) . '.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error en la transferencia: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 }

@@ -30,7 +30,16 @@
                 </div>
                 
                 <div class="p-6">
-                    <form method="POST" action="{{ route('admin.almacen-medicamentos.store') }}" class="space-y-6">
+                    <form method="POST" action="{{ route('admin.almacen-medicamentos.store') }}" class="space-y-6"
+                          x-data="{
+                              precioCompra: {{ old('precio_compra', '0') }},
+                              porcentaje: {{ old('porcentaje_ganancia', '0') }},
+                              get precioVenta() {
+                                  const p = parseFloat(this.precioCompra) || 0;
+                                  const g = parseFloat(this.porcentaje) || 0;
+                                  return (p * (1 + g / 100)).toFixed(2);
+                              }
+                          }">
                         @csrf
                         
                         <!-- Información Básica -->
@@ -87,19 +96,17 @@
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label for="area" class="block text-sm font-medium text-gray-700 mb-1">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
                                         Área de Uso <span class="text-red-500">*</span>
                                     </label>
-                                    <select name="area" id="area" 
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                            required>
-                                        <option value="">Seleccionar área</option>
-                                        @foreach($areas as $value => $label)
-                                            <option value="{{ $value }}" {{ old('area') == $value ? 'selected' : '' }}>
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <input type="hidden" name="area" value="central">
+                                    <div class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-blue-50 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                        </svg>
+                                        <span class="text-blue-900 font-medium">Almacén Central</span>
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Todos los medicamentos se crean en el almacén central</p>
                                     @error('area')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
@@ -129,48 +136,91 @@
                         <!-- Inventario y Stock -->
                         <div class="space-y-4">
                             <h4 class="text-md font-medium text-gray-900 pb-2 border-b border-gray-200">Inventario y Stock</h4>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">
                                         Cantidad Actual <span class="text-red-500">*</span>
                                     </label>
-                                    <input type="number" name="cantidad" id="cantidad" 
-                                           value="{{ old('cantidad', 0) }}" 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                                    <input type="number" name="cantidad" id="cantidad"
+                                           value="{{ old('cantidad', 0) }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                            min="0" step="0.01" required>
                                     <p class="mt-1 text-xs text-gray-500">Puede usar decimales (ej: 3.5, 10.25)</p>
                                     @error('cantidad')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
-                                
+
                                 <div>
                                     <label for="stock_minimo" class="block text-sm font-medium text-gray-700 mb-1">
                                         Stock Mínimo <span class="text-red-500">*</span>
                                     </label>
-                                    <input type="number" name="stock_minimo" id="stock_minimo" 
-                                           value="{{ old('stock_minimo', 5) }}" 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                                    <input type="number" name="stock_minimo" id="stock_minimo"
+                                           value="{{ old('stock_minimo', 5) }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                            min="0" step="0.01" required>
                                     <p class="mt-1 text-xs text-gray-500">Alerta cuando el stock llegue a este nivel</p>
                                     @error('stock_minimo')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
-                                
+                            </div>
+                        </div>
+
+                        <!-- Precio de Compra y Venta -->
+                        <div class="space-y-4">
+                            <h4 class="text-md font-medium text-gray-900 pb-2 border-b border-gray-200">Precio de Compra y Venta</h4>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label for="precio" class="block text-sm font-medium text-gray-700 mb-1">Precio Unitario</label>
-                                    <input type="number" name="precio" id="precio" 
-                                           value="{{ old('precio', '0.00') }}" 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                                    <label for="precio_compra" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Precio de Compra (Bs)
+                                    </label>
+                                    <input type="number" name="precio_compra" id="precio_compra"
+                                           x-model="precioCompra"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                            min="0" step="0.01" placeholder="0.00">
-                                    <p class="mt-1 text-xs text-gray-500">Opcional, para control de costos (ej: 0.40)</p>
-                                    @error('precio')
+                                    <p class="mt-1 text-xs text-gray-500">Costo de adquisición</p>
+                                    @error('precio_compra')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="porcentaje_ganancia" class="block text-sm font-medium text-gray-700 mb-1">
+                                        % Ganancia
+                                    </label>
+                                    <input type="number" name="porcentaje_ganancia" id="porcentaje_ganancia"
+                                           x-model="porcentaje"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           min="0" max="999" step="0.01" placeholder="0">
+                                    <p class="mt-1 text-xs text-gray-500">Porcentaje de margen</p>
+                                    @error('porcentaje_ganancia')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="precio_venta" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Precio de Venta (Bs)
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" id="precio_venta_display"
+                                               x-text="precioVenta + ' Bs'"
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-semibold"
+                                               readonly>
+                                        <input type="hidden" name="precio_venta" :value="precioVenta">
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Calculado automáticamente</p>
+                                    @error('precio_venta')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
+
+                            <!-- Precio genérico (legacy) - oculto pero preservado para compatibilidad -->
+                            <input type="hidden" name="precio" :value="precioVenta">
                         </div>
 
                         <!-- Control de Calidad -->
