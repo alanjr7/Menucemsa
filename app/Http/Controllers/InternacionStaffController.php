@@ -10,7 +10,8 @@ use App\Models\UtiBed;
 use App\Models\Cama;
 use App\Models\CuentaCobro;
 use App\Models\CuentaCobroDetalle;
-use App\Models\AlmacenMedicamento;
+use App\Models\AlmacenCatalogo;
+use App\Models\AlmacenStock;
 use App\Models\HospMedicamentoAdministrado;
 use App\Models\HospCatering;
 use App\Models\HospDrenaje;
@@ -409,16 +410,21 @@ class InternacionStaffController extends Controller
      */
     public function apiMedicamentosDisponibles(): JsonResponse
     {
-        $medicamentos = AlmacenMedicamento::porArea('internacion')
-            ->where('cantidad', '>', 0)
-            ->activos()
-            ->orderBy('nombre')
-            ->get(['id', 'nombre', 'tipo', 'unidad_medida', 'precio', 'cantidad']);
+        $stocks = AlmacenStock::porUbicacion('internacion')
+            ->where('cantidad_actual', '>', 0)
+            ->whereHas('lote.catalogo', fn($q) => $q->activos())
+            ->with('lote.catalogo')
+            ->get()
+            ->map(fn($s) => [
+                'id'           => $s->id,
+                'nombre'       => $s->lote->catalogo->nombre,
+                'tipo'         => $s->lote->catalogo->tipo,
+                'unidad_medida' => $s->lote->catalogo->unidad_medida,
+                'precio'       => $s->lote->precio_venta,
+                'cantidad'     => $s->cantidad_actual,
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'medicamentos' => $medicamentos
-        ]);
+        return response()->json(['success' => true, 'medicamentos' => $stocks]);
     }
 
     /**
@@ -428,17 +434,22 @@ class InternacionStaffController extends Controller
     {
         $query = $request->get('q', '');
 
-        $medicamentos = AlmacenMedicamento::porArea('internacion')
-            ->where('cantidad', '>', 0)
-            ->activos()
-            ->where('nombre', 'like', '%' . $query . '%')
+        $stocks = AlmacenStock::porUbicacion('internacion')
+            ->where('cantidad_actual', '>', 0)
+            ->whereHas('lote.catalogo', fn($q) => $q->activos()->where('nombre', 'like', '%' . $query . '%'))
+            ->with('lote.catalogo')
             ->limit(10)
-            ->get(['id', 'nombre', 'tipo', 'unidad_medida', 'precio', 'cantidad']);
+            ->get()
+            ->map(fn($s) => [
+                'id'           => $s->id,
+                'nombre'       => $s->lote->catalogo->nombre,
+                'tipo'         => $s->lote->catalogo->tipo,
+                'unidad_medida' => $s->lote->catalogo->unidad_medida,
+                'precio'       => $s->lote->precio_venta,
+                'cantidad'     => $s->cantidad_actual,
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'medicamentos' => $medicamentos
-        ]);
+        return response()->json(['success' => true, 'medicamentos' => $stocks]);
     }
 
     /**
@@ -482,61 +493,50 @@ class InternacionStaffController extends Controller
             DB::beginTransaction();
 
             $hospitalizacion = Hospitalizacion::with('paciente')->findOrFail($id);
-            $medicamento = AlmacenMedicamento::findOrFail($request->medicamento_id);
+            $stock = AlmacenStock::with('lote.catalogo')->findOrFail($request->medicamento_id);
 
             $validated = $request->validate([
-                'medicamento_id' => 'required|exists:almacen_medicamentos,id',
+                'medicamento_id' => 'required|exists:almacen_stocks,id',
                 'cantidad' => 'required|numeric|min:0.01',
                 'unidad' => 'required|string|max:20',
                 'via_administracion' => 'nullable|string|max:50',
                 'observaciones' => 'nullable|string',
             ]);
 
-            // Verificar stock suficiente
-            if ($medicamento->cantidad < $validated['cantidad']) {
+            if ($stock->cantidad_actual < $validated['cantidad']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Stock insuficiente. Disponible: ' . $medicamento->cantidad . ' ' . $medicamento->unidad_medida
+                    'message' => 'Stock insuficiente. Disponible: ' . $stock->cantidad_actual
                 ], 422);
             }
 
-            // Descontar del inventario
-            $medicamento->decrement('cantidad', $validated['cantidad']);
+            $stock->decrement('cantidad_actual', $validated['cantidad']);
 
-            // Obtener CI del paciente (manejar pacientes temporales de emergencia)
             $ciPaciente = $hospitalizacion->ci_paciente;
             if (!$ciPaciente && $hospitalizacion->nro_emergencia) {
                 $emergencia = Emergency::where('code', $hospitalizacion->nro_emergencia)
-                    ->orWhere('id', $hospitalizacion->nro_emergencia)
-                    ->first();
-                if ($emergencia) {
-                    $ciPaciente = $emergencia->patient_id;
-                }
+                    ->orWhere('id', $hospitalizacion->nro_emergencia)->first();
+                if ($emergencia) $ciPaciente = $emergencia->patient_id;
             }
 
-            // Calcular precio y generar cargo
             $cuentaCobroDetalleId = null;
             $cargoGenerado = false;
-            $precio = $medicamento->precio ?? 0;
+            $precio = $stock->lote->precio_venta ?? 0;
             $subtotal = $precio * $validated['cantidad'];
+            $catalogo = $stock->lote->catalogo;
 
             if ($subtotal > 0 && $ciPaciente) {
                 $cuentaCobroDetalleId = $this->generarCargo(
-                    $hospitalizacion,
-                    $ciPaciente,
-                    'Medicamento: ' . $medicamento->nombre,
-                    $subtotal,
-            1,
-                    'medicamento',
-                    $medicamento->id
+                    $hospitalizacion, $ciPaciente,
+                    'Medicamento: ' . $catalogo->nombre,
+                    $subtotal, 1, 'medicamento', $catalogo->id
                 );
                 $cargoGenerado = true;
             }
 
-            // Crear registro
             $registro = HospMedicamentoAdministrado::create([
                 'hospitalizacion_id' => $id,
-                'medicamento_id' => $validated['medicamento_id'],
+                'catalogo_id' => $catalogo->id,
                 'administered_by' => Auth::id(),
                 'fecha' => now(),
                 'hora' => now(),

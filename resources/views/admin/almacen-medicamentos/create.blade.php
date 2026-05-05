@@ -131,16 +131,7 @@
 
             <!-- Sidebar -->
             <div class="space-y-4">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                    <p class="font-semibold mb-2">Estructura del almacén normalizado</p>
-                    <ul class="space-y-1 text-xs">
-                        <li>✓ El ítem se agrega al <strong>catálogo central</strong></li>
-                        <li>✓ El lote registra el número, vencimiento y precios</li>
-                        <li>✓ El stock inicial se asigna en <strong>Almacén Central</strong></li>
-                        <li>✓ Puede haber múltiples lotes por ítem</li>
-                        <li>✓ El stock se distribuye por lote y por área</li>
-                    </ul>
-                </div>
+                
                 <button type="submit"
                         class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
                     Guardar en Almacén

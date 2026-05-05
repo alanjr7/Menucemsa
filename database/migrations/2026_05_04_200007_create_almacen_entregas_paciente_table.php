@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('almacen_entregas_paciente', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('paciente_ci');
+            $table->integer('paciente_ci');
             $table->foreign('paciente_ci')->references('ci')->on('pacientes')->restrictOnDelete();
             $table->foreignId('entregado_por')->constrained('users')->restrictOnDelete();
             $table->text('observaciones')->nullable();

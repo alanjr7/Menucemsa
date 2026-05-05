@@ -86,6 +86,19 @@
                     <option value="agotado" {{ request('estado_stock') == 'agotado' ? 'selected' : '' }}>Agotado</option>
                 </select>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Área</label>
+                <select name="area" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">Central (default)</option>
+                    <option value="emergencia" {{ request('area') == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
+                    <option value="cirugia" {{ request('area') == 'cirugia' ? 'selected' : '' }}>Cirugía</option>
+                    <option value="hospitalizacion" {{ request('area') == 'hospitalizacion' ? 'selected' : '' }}>Hospitalización</option>
+                    <option value="uti" {{ request('area') == 'uti' ? 'selected' : '' }}>UTI</option>
+                    <option value="usi" {{ request('area') == 'usi' ? 'selected' : '' }}>USI</option>
+                    <option value="neonato" {{ request('area') == 'neonato' ? 'selected' : '' }}>Neonato</option>
+                    <option value="internacion" {{ request('area') == 'internacion' ? 'selected' : '' }}>Internación</option>
+                </select>
+            </div>
             <div class="flex-1 min-w-48">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                 <input type="text" name="buscar" value="{{ request('buscar') }}"
@@ -104,6 +117,10 @@
          x-data="{
             dispensarModal: false,
             stockModal: false,
+            modalPacientes: false,
+            pacientesLoading: false,
+            pacientesData: [],
+            pacientesMed: '',
             item: {},
             lotes: [],
             loteSeleccionado: null,
@@ -121,6 +138,17 @@
                 this.loteSeleccionado = null;
                 this.stockModal = true;
             },
+            abrirPacientes(catalogoId, nombre) {
+                this.modalPacientes = true;
+                this.pacientesLoading = true;
+                this.pacientesMed = nombre;
+                this.pacientesData = [];
+
+                const area = '{{ request('area') }}';
+                axios.get(`/admin/almacen-medicamentos/${catalogoId}/pacientes-area?area=${area}`)
+                    .then(r => { this.pacientesData = r.data; })
+                    .finally(() => { this.pacientesLoading = false; });
+            },
             onLoteChange(loteId) {
                 const lote = this.lotes.find(l => l.id == loteId);
                 this.stockDisponible = lote ? lote.stock_central : 0;
@@ -136,19 +164,42 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lotes</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock Central</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">P. Compra</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">P. Venta</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ganancia</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($catalogo as $item)
                     @php
-                        $stockCentral = $item->lotes->flatMap->stocks->where('ubicacion', 'central')->sum('cantidad_actual');
-                        $stockMin = $item->lotes->flatMap->stocks->where('ubicacion', 'central')->min('stock_minimo') ?? 0;
-                        $estadoStock = $stockCentral <= 0 ? 'agotado' : ($stockCentral <= $stockMin ? 'bajo' : 'normal');
+                        $ubicacionActual = $area ?? 'central';
+                        $stockEnUbicacion = $item->lotes->flatMap->stocks->where('ubicacion', $ubicacionActual)->sum('cantidad_actual');
+                        $stockMin = $item->lotes->flatMap->stocks->where('ubicacion', $ubicacionActual)->min('stock_minimo') ?? 0;
+                        $estadoStock = $stockEnUbicacion <= 0 ? 'agotado' : ($stockEnUbicacion <= $stockMin ? 'bajo' : 'normal');
+
+                        // Lote con más stock en la ubicación actual para mostrar precios
+                        $loteRef = $item->lotes
+                            ->flatMap(fn($l) => $l->stocks->where('ubicacion', $ubicacionActual)->map(fn($s) => ['lote' => $l, 'stock' => $s]))
+                            ->sortByDesc(fn($x) => $x['stock']->cantidad_actual)
+                            ->first();
+
+                        $precioCompra = $loteRef['lote']->precio_compra ?? null;
+                        $precioVenta = $loteRef['lote']->precio_venta ?? null;
+                        $ganancia = $loteRef['lote']->porcentaje_ganancia ?? null;
+
+                        // Fecha de vencimiento más próxima (solo lotes vigentes)
+                        $fechaVencimiento = $item->lotes
+                            ->filter(fn($l) => $l->fecha_vencimiento && $l->fecha_vencimiento->isFuture())
+                            ->sortBy('fecha_vencimiento')
+                            ->first()?->fecha_vencimiento;
+
                         $lotesParaJs = $item->lotes->map(fn($l) => [
                             'id' => $l->id,
                             'codigo' => $l->codigo_lote ?? 'Sin código',
@@ -168,6 +219,9 @@
                                 {{ $item->tipo_label }}
                             </span>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ $area ? ucfirst($area) : 'Central' }}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $item->unidad_medida }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             {{ $item->lotes->count() }} lote(s)
@@ -176,9 +230,9 @@
                             @if($estadoStock === 'agotado')
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">0 {{ $item->unidad_medida }}</span>
                             @elseif($estadoStock === 'bajo')
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ $stockCentral }} {{ $item->unidad_medida }}</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ $stockEnUbicacion }} {{ $item->unidad_medida }}</span>
                             @else
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $stockCentral }} {{ $item->unidad_medida }}</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $stockEnUbicacion }} {{ $item->unidad_medida }}</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -188,6 +242,24 @@
                                 <span class="text-xs text-yellow-600 font-medium">Bajo stock</span>
                             @else
                                 <span class="text-xs text-green-600 font-medium">Normal</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $precioCompra !== null ? 'Bs. ' . number_format($precioCompra, 2) : '—' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $precioVenta !== null ? 'Bs. ' . number_format($precioVenta, 2) : '—' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $ganancia !== null ? $ganancia . '%' : '—' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            @if($fechaVencimiento)
+                                <span class="{{ $fechaVencimiento->diffInDays(now()) <= 30 ? 'text-amber-600 font-medium' : 'text-gray-600' }}">
+                                    {{ $fechaVencimiento->format('d/m/Y') }}
+                                </span>
+                            @else
+                                <span class="text-gray-400">—</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -205,13 +277,20 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </a>
-                                @if($stockCentral > 0)
+                                @if($stockEnUbicacion > 0)
                                 <button type="button"
                                         @click="openDispensar({{ $item->id }}, '{{ addslashes($item->nombre) }}', '{{ $item->unidad_medida }}', '{{ addslashes($lotesParaJs) }}')"
                                         class="text-blue-600 hover:text-blue-900" title="Dispensar a área">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                                     </svg>
+                                </button>
+                                @endif
+                                @if($area && $stockEnUbicacion > 0)
+                                <button type="button"
+                                        @click="abrirPacientes({{ $item->id }}, '{{ addslashes($item->nombre) }}')"
+                                        class="text-purple-600 hover:text-purple-900 text-xs font-medium" title="Ver pacientes">
+                                    Pacientes
                                 </button>
                                 @endif
                                 <a href="{{ route('admin.almacen-medicamentos.historial-item', $item) }}"
@@ -235,7 +314,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        <td colspan="12" class="px-6 py-12 text-center text-gray-500">
                             No se encontraron medicamentos/insumos.
                         </td>
                     </tr>
@@ -307,6 +386,66 @@
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Dispensar</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Modal Pacientes -->
+        <div x-show="modalPacientes" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-gray-500 opacity-75" @click="modalPacientes = false"></div>
+            <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg">
+                <div class="p-6">
+                    <div class="flex justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900" x-text="'Pacientes — ' + pacientesMed"></h3>
+                        <button @click="modalPacientes = false" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-gray-500 mb-4">
+                        Área: <span class="font-medium capitalize">{{ request('area') }}</span>
+                    </p>
+
+                    <div x-show="pacientesLoading" class="text-center py-6 text-gray-500 text-sm">
+                        <svg class="animate-spin h-5 w-5 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Cargando...
+                    </div>
+
+                    <div x-show="!pacientesLoading">
+                        <template x-if="pacientesData.length === 0">
+                            <p class="text-sm text-gray-500 text-center py-6">
+                                Ningún paciente ha recibido este medicamento desde esta área.
+                            </p>
+                        </template>
+
+                        <template x-if="pacientesData.length > 0">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Paciente</th>
+                                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">CI</th>
+                                            <th class="px-4 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        <template x-for="p in pacientesData" :key="p.ci">
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-4 py-3 font-medium text-gray-900" x-text="p.nombre"></td>
+                                                <td class="px-4 py-3 text-gray-600" x-text="p.ci"></td>
+                                                <td class="px-4 py-3 text-right font-semibold text-indigo-700" x-text="p.total_cantidad"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

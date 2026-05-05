@@ -11,7 +11,15 @@ class AlmacenEntregaPaciente extends Model
     protected $table = 'almacen_entregas_paciente';
 
     protected $fillable = [
-        'paciente_ci', 'entregado_por', 'observaciones', 'fecha_entrega',
+        'paciente_ci',
+        'entregado_por',
+        'origen',
+        'referencia_id',
+        'catalogo_id',
+        'cantidad',
+        'dispensacion_detalle_id',
+        'observaciones',
+        'fecha_entrega',
     ];
 
     protected $casts = [
@@ -27,6 +35,11 @@ class AlmacenEntregaPaciente extends Model
     public function entregadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'entregado_por');
+    }
+
+    public function catalogo(): BelongsTo
+    {
+        return $this->belongsTo(AlmacenCatalogo::class, 'catalogo_id');
     }
 
     public function detalles(): HasMany

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('hosp_medicamentos_administrados', function (Blueprint $table) {
             $table->id();
             $table->string('hospitalizacion_id', 30);
-            $table->unsignedBigInteger('medicamento_id');
+            $table->unsignedBigInteger('catalogo_id');
             $table->unsignedBigInteger('administered_by');
             $table->date('fecha');
             $table->time('hora');
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('hospitalizacion_id')->references('id')->on('hospitalizaciones')->onDelete('cascade');
-            $table->foreign('medicamento_id')->references('id')->on('almacen_medicamentos');
+            $table->foreign('catalogo_id')->references('id')->on('almacen_catalogo');
             $table->foreign('administered_by')->references('id')->on('users');
             $table->foreign('cuenta_cobro_detalle_id')->references('id')->on('cuenta_cobro_detalles')->onDelete('set null');
         });

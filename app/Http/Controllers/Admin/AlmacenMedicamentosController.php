@@ -26,8 +26,13 @@ class AlmacenMedicamentosController extends Controller
 
     public function index(Request $request)
     {
+        $area = $request->filled('area') ? $request->area : null;
+        $ubicacion = $area ?? 'central';
+
         $query = AlmacenCatalogo::query()->with([
-            'lotes.stocks' => fn ($q) => $q->where('ubicacion', 'central'),
+            'lotes' => fn ($q) => $q->with([
+                'stocks' => fn ($sq) => $sq->where('ubicacion', $ubicacion),
+            ]),
         ]);
 
         if ($request->filled('tipo')) {
@@ -38,6 +43,13 @@ class AlmacenMedicamentosController extends Controller
             $query->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', '%' . $request->buscar . '%')
                   ->orWhere('descripcion', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        if ($area) {
+            $query->whereHas('lotes.stocks', function ($q) use ($area) {
+                $q->where('ubicacion', $area)
+                  ->where('cantidad_actual', '>', 0);
             });
         }
 
@@ -54,7 +66,7 @@ class AlmacenMedicamentosController extends Controller
 
         $stats = $this->calcularStats();
 
-        return view('admin.almacen-medicamentos.index', compact('catalogo', 'stats'));
+        return view('admin.almacen-medicamentos.index', compact('catalogo', 'stats', 'area'));
     }
 
     public function create()
@@ -127,7 +139,15 @@ class AlmacenMedicamentosController extends Controller
     {
         $almacenMedicamento->load(['lotes.stocks']);
 
-        return view('admin.almacen-medicamentos.show', ['catalogo' => $almacenMedicamento]);
+        $entregas = AlmacenEntregaPaciente::with(['paciente', 'entregadoPor'])
+            ->where('catalogo_id', $almacenMedicamento->id)
+            ->orderByDesc('fecha_entrega')
+            ->paginate(50);
+
+        return view('admin.almacen-medicamentos.show', [
+            'catalogo' => $almacenMedicamento,
+            'entregas' => $entregas,
+        ]);
     }
 
     public function edit(AlmacenCatalogo $almacenMedicamento)
@@ -263,6 +283,26 @@ class AlmacenMedicamentosController extends Controller
         ];
 
         return view('admin.almacen-medicamentos.por-area', compact('stocks', 'area', 'stats'));
+    }
+
+    public function pacientesPorArea(Request $request, AlmacenCatalogo $catalogo)
+    {
+        $area = $request->get('area');
+
+        $datos = DB::table('almacen_entrega_detalles as aed')
+            ->join('almacen_entregas_paciente as aep', 'aed.entrega_id', '=', 'aep.id')
+            ->join('almacen_dispensacion_detalles as addet', 'aed.dispensacion_detalle_id', '=', 'addet.id')
+            ->join('almacen_dispensaciones as ad', 'addet.dispensacion_id', '=', 'ad.id')
+            ->join('almacen_lotes as al', 'addet.lote_id', '=', 'al.id')
+            ->join('pacientes as p', 'aep.paciente_ci', '=', 'p.ci')
+            ->where('al.catalogo_id', $catalogo->id)
+            ->where('ad.ubicacion_destino', $area)
+            ->selectRaw('p.ci, p.nombre, SUM(aed.cantidad) as total_cantidad')
+            ->groupBy('p.ci', 'p.nombre')
+            ->orderByDesc('total_cantidad')
+            ->get();
+
+        return response()->json($datos);
     }
 
     public function dispensar(Request $request, AlmacenCatalogo $almacenMedicamento)

@@ -6,7 +6,14 @@
       "Bash(php -r \"require 'vendor/autoload.php'; echo 'PHP OK';\")",
       "Bash(php -l app/Http/Controllers/EmergencyStaffController.php)",
       "Bash(xargs -I {} basename {})",
-      "Bash(xargs ls *)"
+      "Bash(xargs ls *)",
+      "Bash(curl -s http://127.0.0.1:8000/admin/almacen-medicamentos)",
+      "Bash(php -l app/Http/Controllers/Admin/AlmacenMedicamentosController.php app/Models/AlmacenCatalogo.php)",
+      "Bash(timeout 10 php artisan serve --host=127.0.0.1 --port=8001)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8001/)",
+      "Bash(curl -s http://127.0.0.1:8001/admin/almacen-medicamentos)",
+      "Bash(pkill -f \"php artisan serve\")",
+      "Read(//tmp/**)"
     ]
   }
 }

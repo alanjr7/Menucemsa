@@ -24,8 +24,8 @@ return new class extends Migration
             $table->timestamp('fecha_dispensacion')->useCurrent();
             $table->timestamps();
 
-            $table->index(['ubicacion_destino', 'fecha_dispensacion']);
-            $table->index(['dispensado_por', 'fecha_dispensacion']);
+            $table->index(['ubicacion_destino', 'fecha_dispensacion'], 'idx_dest_fecha');
+            $table->index(['dispensado_por', 'fecha_dispensacion'], 'idx_dispensado_fecha');
         });
     }
 

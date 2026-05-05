@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_engram_engram__mem_session_summary",
+      "mcp__plugin_engram_engram__mem_search",
+      "mcp__plugin_engram_engram__mem_context",
+      "Bash(cp -r c:/Menucemsa/resources/views/emergency-staff/medicamentos/* c:/Menucemsa/resources/views/quirofano/medicamentos/)",
+      "Bash(cp -r c:/Menucemsa/resources/views/emergency-staff/medicamentos/* c:/Menucemsa/resources/views/uti/medicamentos/)",
+      "Bash(cp -r c:/Menucemsa/resources/views/emergency-staff/medicamentos/* c:/Menucemsa/resources/views/internacion-staff/medicamentos/)",
+      "mcp__plugin_engram_engram__mem_save",
+      "mcp__plugin_engram_engram__mem_judge"
+    ],
+    "additionalDirectories": [
+      "c:\\Menucemsa\\database\\migrations"
+    ]
+  }
+}

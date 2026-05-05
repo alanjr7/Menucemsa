@@ -397,7 +397,7 @@ class CajaOperativaController extends Controller
                             $origen = 'Internación';
                         } elseif ($detalle->origen_type === \App\Models\CitaQuirurgica::class) {
                             $origen = 'Cirugía';
-                        } elseif ($detalle->origen_type === \App\Models\AlmacenMedicamento::class) {
+                        } elseif ($detalle->origen_type === \App\Models\AlmacenCatalogo::class) {
                             // Si viene de farmacia y no tiene otro origen asignado, asume el tipo de la cuenta principal
                             $origen = ucfirst($cuenta->tipo_atencion);
                         }

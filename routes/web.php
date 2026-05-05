@@ -523,6 +523,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/almacen-medicamentos/{almacenMedicamento}/actualizar-stock', [AlmacenMedicamentosController::class, 'actualizarStock'])->name('almacen-medicamentos.actualizar-stock');
         Route::post('/almacen-medicamentos/{almacenMedicamento}/dispensar', [AlmacenMedicamentosController::class, 'dispensar'])->name('almacen-medicamentos.dispensar');
         Route::get('/almacen-medicamentos/{almacenMedicamento}/historial', [AlmacenMedicamentosController::class, 'historialItem'])->name('almacen-medicamentos.historial-item');
+        Route::get('/almacen-medicamentos/{almacenMedicamento}/pacientes-area', [AlmacenMedicamentosController::class, 'pacientesPorArea'])->name('almacen-medicamentos.pacientes-area');
         Route::get('/almacen-medicamentos/reporte/bajo-stock', [AlmacenMedicamentosController::class, 'reporteBajoStock'])->name('almacen-medicamentos.reporte.bajo-stock');
         Route::get('/almacen-medicamentos/reporte/vencimiento', [AlmacenMedicamentosController::class, 'reporteVencimiento'])->name('almacen-medicamentos.reporte.vencimiento');
         Route::get('/almacen-medicamentos/area/{area}', [AlmacenMedicamentosController::class, 'porArea'])->name('almacen-medicamentos.por-area');

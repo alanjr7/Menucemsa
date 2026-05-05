@@ -8,7 +8,8 @@ use App\Models\Paciente;
 use App\Models\Medico;
 use App\Models\Quirofano;
 use App\Models\Caja;
-use App\Models\AlmacenMedicamento;
+use App\Models\AlmacenCatalogo;
+use App\Models\AlmacenStock;
 use App\Models\Registro;
 use App\Models\Seguro;
 use App\Services\NotificationService;
@@ -1104,14 +1105,20 @@ class QuirofanoController extends Controller
 
             \Log::info('Buscando medicamentos de cirugia...');
 
-            $query = AlmacenMedicamento::porArea('cirugia')
-                ->activos()
-                ->where('cantidad', '>', 0)
-                ->orderBy('nombre');
-
-            \Log::info('Query SQL: ' . $query->toSql());
-
-            $medicamentos = $query->get(['id', 'nombre', 'tipo', 'cantidad', 'unidad_medida', 'precio']);
+            $medicamentos = AlmacenStock::porUbicacion('cirugia')
+                ->where('cantidad_actual', '>', 0)
+                ->whereHas('lote.catalogo', fn($q) => $q->activos())
+                ->with('lote.catalogo')
+                ->orderBy('lote.catalogo.nombre')
+                ->get(['id', 'cantidad_actual', 'stock_minimo', 'lote_id', 'ubicacion'])
+                ->map(fn($s) => (object)[
+                    'id' => $s->id,
+                    'nombre' => $s->lote->catalogo->nombre,
+                    'tipo' => $s->lote->catalogo->tipo,
+                    'cantidad' => $s->cantidad_actual,
+                    'unidad_medida' => $s->lote->catalogo->unidad_medida,
+                    'precio' => $s->lote->precio_venta,
+                ]);
 
             \Log::info('Medicamentos encontrados: ' . $medicamentos->count());
 
@@ -1184,35 +1191,25 @@ class QuirofanoController extends Controller
 
             // Validar input
             $validated = $request->validate([
-                'almacen_medicamento_id' => 'required|exists:almacen_medicamentos,id',
+                'almacen_medicamento_id' => 'required|exists:almacen_stocks,id',
                 'cantidad' => 'required|integer|min:1'
             ]);
 
-            $medicamento = AlmacenMedicamento::findOrFail($validated['almacen_medicamento_id']);
+            $stock = AlmacenStock::with('lote.catalogo')->findOrFail($validated['almacen_medicamento_id']);
 
-            // Verificar que el medicamento sea de cirugía
-            if ($medicamento->area !== 'cirugia') {
+            if ($stock->cantidad_actual < $validated['cantidad']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El medicamento no pertenece al inventario de quirófano'
-                ], 422);
-            }
-
-            // Verificar stock suficiente
-            if ($medicamento->cantidad < $validated['cantidad']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Stock insuficiente. Disponible: ' . $medicamento->cantidad . ' ' . $medicamento->unidad_medida
+                    'message' => 'Stock insuficiente. Disponible: ' . $stock->cantidad_actual
                 ], 422);
             }
 
             DB::beginTransaction();
 
             try {
-                // Descontar stock
-                $cantidadAnterior = $medicamento->cantidad;
-                $medicamento->cantidad -= $validated['cantidad'];
-                $medicamento->save();
+                $cantidadAnterior = $stock->cantidad_actual;
+                $stock->decrement('cantidad_actual', $validated['cantidad']);
+                $medicamento = $stock->lote->catalogo;
 
                 // Buscar cuenta de cobro existente - método más flexible
                 $refType = 'App\Models\CitaQuirurgica';
@@ -1262,10 +1259,9 @@ class QuirofanoController extends Controller
                     $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
                 }
 
-                $precioUnitario = $medicamento->precio ?? 0;
+                $precioUnitario = $stock->lote->precio_venta ?? 0;
                 $subtotal = $precioUnitario * $validated['cantidad'];
 
-                // Crear detalle en cuenta de cobro
                 $detalle = $cuentaCobro->detalles()->create([
                     'tipo_item' => 'medicamento',
                     'descripcion' => $medicamento->nombre . ' (' . $medicamento->tipo . ')',
@@ -1276,11 +1272,9 @@ class QuirofanoController extends Controller
                     'origen_id' => $cita->id,
                 ]);
 
-                // Actualizar total de cuenta de cobro
                 $cuentaCobro->total_calculado = $cuentaCobro->detalles()->sum('subtotal');
                 $cuentaCobro->save();
 
-                // Registrar en ActivityLog para historial
                 \App\Models\ActivityLog::create([
                     'user_id' => auth()->id(),
                     'action' => 'medicamento_cirugia_agregado',
@@ -1288,13 +1282,13 @@ class QuirofanoController extends Controller
                     'model_id' => $cita->id,
                     'description' => 'Medicamento agregado a cirugía: ' . $medicamento->nombre,
                     'new_values' => json_encode([
-                        'almacen_medicamento_id' => $medicamento->id,
+                        'almacen_stock_id' => $stock->id,
                         'nombre' => $medicamento->nombre,
                         'cantidad' => $validated['cantidad'],
                         'precio_unitario' => $precioUnitario,
                         'subtotal' => $subtotal,
                         'stock_anterior' => $cantidadAnterior,
-                        'stock_nuevo' => $medicamento->cantidad,
+                        'stock_nuevo' => $stock->cantidad_actual,
                         'cuenta_cobro_id' => $cuentaCobro->id,
                         'detalle_id' => $detalle->id
                     ]),

@@ -88,3 +88,22 @@ Located in `app/Console/Commands/`. Useful for data maintenance:
 - `ConsolidarCuentasDuplicadas` / `ConsolidarCuentasPaciente` — merges duplicate billing accounts
 - `UnificarEspecialidadesCommand` — merges duplicate specialty entries
 
+## Reglas de Respuesta
+
+- Ir directo al punto
+- No usar saludos ni frases sociales
+- No usar emojis
+- No usar texto de relleno
+- No repetir información
+- No explicar lo evidente
+- Asumir conocimiento técnico
+- Responder solo lo necesario
+- No comentar código obvio
+- Máximo 1–2 comentarios por bloque (solo si es crítico)
+- No describir lo que el código ya muestra claramente
+- No agregar contexto innecesario
+- No justificar decisiones triviales
+- Priorizar precisión sobre extensión
+
+## regla 
+no crees tablas para añadir atributos, añade o edita directamente el atributo de la tabla, estamos en debug aun.

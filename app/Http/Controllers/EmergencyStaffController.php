@@ -13,10 +13,11 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use App\Models\AlmacenMedicamento;
-use App\Models\DispensacionAlmacen;
+use App\Models\AlmacenCatalogo;
+use App\Models\AlmacenStock;
 use App\Services\CuentaCobroService;
 use App\Services\ActivityLogService;
+use App\Services\AlmacenEntregaService;
 
 class EmergencyStaffController extends Controller
 {
@@ -400,11 +401,10 @@ class EmergencyStaffController extends Controller
      */
     public function evaluacion(Emergency $emergency): View
     {
-        // Cargar todos los medicamentos disponibles del área de emergencia
-        $medicamentos = AlmacenMedicamento::activos()
-            ->porArea('emergencia')
-            ->where('cantidad', '>', 0)
-            ->orderBy('nombre')
+        $medicamentos = AlmacenStock::porUbicacion('emergencia')
+            ->where('cantidad_actual', '>', 0)
+            ->whereHas('lote.catalogo', fn($q) => $q->activos())
+            ->with('lote.catalogo')
             ->get();
 
         // Decodificar signos vitales actuales si existen
@@ -434,7 +434,7 @@ class EmergencyStaffController extends Controller
             'motivo_consulta' => 'nullable|string',
             'observaciones' => 'nullable|string',
             'medicamentos' => 'nullable|array',
-            'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_medicamentos,id',
+            'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_stocks,id',
             'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
             'equipos_medicos' => 'nullable|array',
             'equipos_medicos.*.nombre' => 'required_with:equipos_medicos|string|max:255',
@@ -469,60 +469,56 @@ class EmergencyStaffController extends Controller
             $emergency->registrarMovimiento('emergencia', 'emergencia',
                 'Inicio de evaluación médica. Gravedad: ' . strtoupper($validated['nivel_gravedad']));
 
-            // 3. Procesar medicamentos seleccionados
+            // 3. Obtener CI del paciente para registros
+            $pacienteCi = $emergency->is_temp_id
+                ? (int) $emergency->id
+                : (int) $emergency->patient_id;
+
+            // 4. Procesar medicamentos seleccionados
             $medicamentosAplicados = [];
             $totalMedicamentos = 0;
 
             if (!empty($validated['medicamentos'])) {
                 foreach ($validated['medicamentos'] as $med) {
-                    $medicamento = AlmacenMedicamento::find($med['id']);
+                    $stock = AlmacenStock::with('lote.catalogo')->find($med['id']);
 
-                    if ($medicamento && $medicamento->cantidad >= $med['cantidad']) {
-                        // Descontar del inventario
-                        $cantidadAnterior = $medicamento->cantidad;
-                        $medicamento->cantidad -= $med['cantidad'];
-                        $medicamento->save();
+                    if ($stock && $stock->cantidad_actual >= $med['cantidad']) {
+                        $cantidadAnterior = $stock->cantidad_actual;
+                        $stock->decrement('cantidad_actual', $med['cantidad']);
 
-                        // Registrar dispensación al paciente en historial de almacén
-                        $pacienteCiReal = (!$emergency->is_temp_id && $emergency->patient_id)
-                            ? (int) $emergency->patient_id
-                            : null;
+                        $catalogo = $stock->lote->catalogo;
+                        $precio = $stock->lote->precio_venta ?? 0;
 
-                        DispensacionAlmacen::create([
-                            'almacen_medicamento_id' => $medicamento->id,
-                            'cantidad'               => $med['cantidad'],
-                            'area_destino'           => 'emergencia',
-                            'dispensado_por'         => auth()->id(),
-                            'recibido_por'           => $emergency->paciente?->nombre ?? 'Paciente Temporal',
-                            'paciente_ci'            => $pacienteCiReal,
-                            'entregado_por'          => auth()->id(),
-                            'fecha_dispensacion'     => now(),
-                            'fecha_entrega_paciente' => now(),
-                            'observaciones'          => 'Aplicado en evaluación de emergencia #' . $emergency->id,
-                        ]);
-
-                        // Registrar uso
                         $medicamentosAplicados[] = [
-                            'id' => $medicamento->id,
-                            'nombre' => $medicamento->nombre,
+                            'id' => $catalogo->id,
+                            'nombre' => $catalogo->nombre,
                             'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $medicamento->precio ?? 0,
-                            'subtotal' => ($medicamento->precio ?? 0) * $med['cantidad'],
-                            'unidad_medida' => $medicamento->unidad_medida,
+                            'precio_unitario' => $precio,
+                            'subtotal' => $precio * $med['cantidad'],
+                            'unidad_medida' => $catalogo->unidad_medida,
                         ];
 
-                        $totalMedicamentos += ($medicamento->precio ?? 0) * $med['cantidad'];
+                        $totalMedicamentos += $precio * $med['cantidad'];
 
-                        // Log del consumo
                         \Log::info('Medicamento aplicado en emergencia', [
-                            'emergency_id' => $emergency->id,
-                            'medicamento_id' => $medicamento->id,
-                            'medicamento_nombre' => $medicamento->nombre,
-                            'cantidad' => $med['cantidad'],
-                            'stock_anterior' => $cantidadAnterior,
-                            'stock_nuevo' => $medicamento->cantidad,
-                            'usuario_id' => auth()->id(),
+                            'emergency_id'       => $emergency->id,
+                            'catalogo_id'        => $catalogo->id,
+                            'medicamento_nombre' => $catalogo->nombre,
+                            'cantidad'           => $med['cantidad'],
+                            'stock_anterior'     => $cantidadAnterior,
+                            'stock_nuevo'        => $stock->cantidad_actual,
+                            'usuario_id'         => auth()->id(),
                         ]);
+
+                        // Registrar entrega al paciente
+                        AlmacenEntregaService::registrarEntrega(
+                            $pacienteCi,
+                            $catalogo->id,
+                            $med['cantidad'],
+                            'emergencia',
+                            $emergency->id,
+                            'Aplicado en evaluación de emergencia'
+                        );
                     }
                 }
             }
@@ -553,10 +549,6 @@ class EmergencyStaffController extends Controller
             }
 
             // 5. Obtener o crear cuenta maestra del paciente
-            $pacienteCi = $emergency->is_temp_id
-                ? (int) $emergency->id
-                : (int) $emergency->patient_id;
-
             $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
                 $pacienteCi,
                 'emergencia'
@@ -573,7 +565,7 @@ class EmergencyStaffController extends Controller
                             $med['precio_unitario'],
                             $med['cantidad'],
                             'emergencia',
-                            AlmacenMedicamento::class,
+                            AlmacenCatalogo::class,
                             $med['id']
                         );
                     }
@@ -661,32 +653,33 @@ class EmergencyStaffController extends Controller
      */
     public function apiMedicamentosDisponibles(Request $request): JsonResponse
     {
-        $query = AlmacenMedicamento::activos()
-            ->porArea('emergencia')
-            ->where('cantidad', '>', 0);
+        $query = AlmacenStock::porUbicacion('emergencia')
+            ->where('cantidad_actual', '>', 0)
+            ->whereHas('lote.catalogo', fn($q) => $q->activos())
+            ->with('lote.catalogo');
 
-        // Buscar si se proporciona parámetro
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
-            $query->where(function($q) use ($buscar) {
+            $query->whereHas('lote.catalogo', function($q) use ($buscar) {
                 $q->where('nombre', 'like', '%' . $buscar . '%')
                   ->orWhere('descripcion', 'like', '%' . $buscar . '%');
             });
         }
 
-        $medicamentos = $query->orderBy('nombre')->limit(20)->get()
-            ->map(function($med) {
+        $medicamentos = $query->limit(20)->get()
+            ->map(function($stock) {
+                $c = $stock->lote->catalogo;
                 return [
-                    'id' => $med->id,
-                    'nombre' => $med->nombre,
-                    'descripcion' => $med->descripcion,
-                    'tipo' => $med->tipo,
-                    'tipo_label' => $med->tipo_label,
-                    'cantidad_disponible' => $med->cantidad,
-                    'unidad_medida' => $med->unidad_medida,
-                    'precio' => $med->precio,
-                    'stock_minimo' => $med->stock_minimo,
-                    'esta_bajo_stock' => $med->estaBajoStock(),
+                    'id'                 => $stock->id,
+                    'nombre'             => $c->nombre,
+                    'descripcion'        => $c->descripcion,
+                    'tipo'               => $c->tipo,
+                    'tipo_label'         => ucfirst($c->tipo),
+                    'cantidad_disponible' => $stock->cantidad_actual,
+                    'unidad_medida'      => $c->unidad_medida,
+                    'precio'             => $stock->lote->precio_venta,
+                    'stock_minimo'       => $stock->stock_minimo,
+                    'esta_bajo_stock'    => $stock->cantidad_actual <= $stock->stock_minimo,
                 ];
             });
 

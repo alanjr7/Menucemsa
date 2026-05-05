@@ -21,8 +21,10 @@ use App\Models\Paciente;
 use App\Models\Medicamentos;
 use App\Models\Insumos;
 use App\Models\Medico;
-use App\Models\AlmacenMedicamento;
+use App\Models\AlmacenCatalogo;
+use App\Models\AlmacenStock;
 use App\Services\CuentaCobroService;
+use App\Services\AlmacenEntregaService;
 
 class UtiOperativoController extends Controller
 {
@@ -428,20 +430,22 @@ class UtiOperativoController extends Controller
             $medicamentoInfo = Medicamentos::where('codigo', $validated['codigo_medicamento'])->first();
 
             // Verificar y descontar stock en almacen
-            $medicamentoAlmacen = AlmacenMedicamento::where('nombre', $medicamentoInfo->descripcion)
-                ->where('area', 'uti')
-                ->where('activo', true)
+            $stock = AlmacenStock::where('ubicacion', 'uti')
+                ->whereHas('lote.catalogo', fn($q) => $q->where('nombre', $medicamentoInfo->descripcion)->activos())
+                ->with('lote.catalogo')
                 ->first();
 
-            if ($medicamentoAlmacen && $medicamentoAlmacen->cantidad < $validated['dosis']) {
+            if ($stock && $stock->cantidad_actual < $validated['dosis']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Stock insuficiente. Disponible: ' . $medicamentoAlmacen->cantidad . ' ' . $medicamentoAlmacen->unidad_medida,
+                    'message' => 'Stock insuficiente. Disponible: ' . $stock->cantidad_actual,
                 ], 422);
             }
 
-            if ($medicamentoAlmacen) {
-                $medicamentoAlmacen->decrement('cantidad', $validated['dosis']);
+            $catalogo = null;
+            if ($stock) {
+                $stock->decrement('cantidad_actual', $validated['dosis']);
+                $catalogo = $stock->lote->catalogo;
             }
 
             $validated['uti_admission_id'] = $admissionId;
@@ -449,6 +453,18 @@ class UtiOperativoController extends Controller
 
             $medication = UtiMedication::create($validated);
             $this->generarCargoMedicamento($medication);
+
+            // Registrar entrega al paciente
+            if ($catalogo) {
+                AlmacenEntregaService::registrarEntrega(
+                    $admission->ci_paciente,
+                    $catalogo->id,
+                    $validated['dosis'],
+                    'uti',
+                    $admission->id,
+                    'Aplicado en UTI - Dosis: ' . $validated['dosis'] . ' ' . $validated['unidad']
+                );
+            }
 
             DB::commit();
 

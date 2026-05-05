@@ -15,7 +15,7 @@ use App\Models\Emergency;
 use App\Models\UtiAdmission;
 use App\Models\Hospitalizacion;
 use App\Models\UtiBed;
-use App\Models\AlmacenMedicamento;
+use App\Models\AlmacenLote;
 use App\Models\ActivityLog;
 use App\Models\InventarioFarmacia;
 
@@ -170,9 +170,10 @@ class AdminDashboardController extends Controller
 
         // Medicamentos por vencer (próximos 30 días)
         $fechaLimite = now()->addDays(30)->toDateString();
-        $porVencer = AlmacenMedicamento::whereNotNull('fecha_vencimiento')
+        $porVencer = AlmacenLote::whereNotNull('fecha_vencimiento')
             ->whereDate('fecha_vencimiento', '<=', $fechaLimite)
             ->whereDate('fecha_vencimiento', '>=', now()->toDateString())
+            ->whereHas('catalogo', fn ($q) => $q->where('activo', true))
             ->count();
 
         if ($porVencer > 0) {

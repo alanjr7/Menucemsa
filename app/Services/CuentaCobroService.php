@@ -537,22 +537,13 @@ class CuentaCobroService
             $cuenta = CuentaCobro::findOrFail($cuentaCobroId);
 
             foreach ($medicamentos as $med) {
-                // Descontar stock
-                $item = \App\Models\AlmacenMedicamento::find($med['medicamento_id']);
-                if ($item) {
-                    if ($item->cantidad < $med['cantidad']) {
-                        throw new \Exception("Stock insuficiente para: {$item->nombre}");
-                    }
-                    $item->decrement('cantidad', $med['cantidad']);
-                }
-
                 $cuenta->detalles()->create([
                     'tipo_item' => 'medicamento',
                     'descripcion' => $med['descripcion'],
                     'cantidad' => $med['cantidad'],
                     'precio_unitario' => $med['precio_unitario'],
                     'subtotal' => $med['cantidad'] * $med['precio_unitario'],
-                    'origen_type' => \App\Models\AlmacenMedicamento::class,
+                    'origen_type' => \App\Models\AlmacenCatalogo::class,
                     'origen_id' => $med['medicamento_id'],
                 ]);
             }

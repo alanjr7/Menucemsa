@@ -65,4 +65,34 @@ class AlmacenStock extends Model
             default           => ucfirst($this->ubicacion),
         };
     }
+
+    public function estaBajoStock(): bool
+    {
+        return $this->cantidad_actual <= $this->stock_minimo;
+    }
+
+    public function getNombreAttribute(): string
+    {
+        return $this->lote?->catalogo?->nombre ?? 'Sin nombre';
+    }
+
+    public function getDescripcionAttribute(): string
+    {
+        return $this->lote?->catalogo?->descripcion ?? '';
+    }
+
+    public function getTipoLabelAttribute(): string
+    {
+        return $this->lote?->catalogo?->tipo_label ?? 'Medicamento';
+    }
+
+    public function getUnidadMedidaAttribute(): string
+    {
+        return $this->lote?->catalogo?->unidad_medida ?? 'unidades';
+    }
+
+    public function getPrecioAttribute(): float
+    {
+        return $this->lote?->precio_venta ?? 0;
+    }
 }
