@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             AlmacenMedicamentoSeeder::class,
             IpAccessSeeder::class,
+            MedicamentosOncologicosAntiinfecciososSeeder::class,
+            MedicamentosGeneralesSeeder::class,
         ]);
     }
 }

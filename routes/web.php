@@ -212,6 +212,10 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/reception/ingreso-general/buscar-paciente', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarPaciente'])->name('reception.ingreso-general.buscar-paciente');
         Route::get('/reception/ingreso-general/buscar-garante', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarGarante'])->name('reception.ingreso-general.buscar-garante');
         Route::post('/reception/ingreso-general/procesar', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'procesarIngreso'])->name('reception.ingreso-general.procesar');
+        Route::get('/reception/ingreso-general/especialidades', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarEspecialidades'])->name('reception.ingreso-general.especialidades');
+        Route::post('/reception/ingreso-general/especialidades', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearEspecialidad'])->name('reception.ingreso-general.crear-especialidad');
+        Route::get('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarMedicos'])->name('reception.ingreso-general.medicos');
+        Route::post('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearMedico'])->name('reception.ingreso-general.crear-medico');
 
         // Rutas API para gestión de citas
         Route::get('/reception/agenda', function() {

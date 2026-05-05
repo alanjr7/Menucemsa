@@ -14,6 +14,7 @@ use App\Models\Seguro;
 use App\Models\Medico;
 use App\Models\Especialidad;
 use App\Models\Caja;
+use App\Models\User;
 use App\Services\CuentaCobroService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,131 @@ class IngresoGeneralController extends Controller
             ->get();
 
         return view('reception.ingreso-general', compact('seguros'));
+    }
+
+    public function buscarEspecialidades(Request $request)
+    {
+        $q = $request->get('q', '');
+
+        if (strlen($q) < 1) {
+            return response()->json(['especialidades' => []]);
+        }
+
+        $especialidades = Especialidad::where('estado', 'activo')
+            ->where('nombre', 'LIKE', "%{$q}%")
+            ->orderBy('nombre')
+            ->get();
+
+        return response()->json(['especialidades' => $especialidades]);
+    }
+
+    public function crearEspecialidad(Request $request)
+    {
+        try {
+            $request->validate(['nombre' => 'required|string|max:100']);
+
+            $especialidad = Especialidad::create([
+                'nombre' => $request->nombre,
+                'descripcion' => 'Creada desde ingreso general',
+                'estado' => 'activo',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Especialidad creada exitosamente',
+                'especialidad' => $especialidad
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function buscarMedicos(Request $request)
+    {
+        $q = $request->get('q', '');
+        $especialidad = $request->get('especialidad');
+
+        if (strlen($q) < 1) {
+            return response()->json(['medicos' => []]);
+        }
+
+        $query = Medico::with(['user', 'especialidad'])
+            ->where('estado', 'activo');
+
+        if ($especialidad) {
+            $query->where('codigo_especialidad', $especialidad);
+        }
+
+        $medicos = $query->get()
+            ->filter(function ($medico) use ($q) {
+                $nombre = $medico->user?->name ?? '';
+                return stripos($nombre, $q) !== false || stripos((string)$medico->ci, $q) !== false;
+            })
+            ->values();
+
+        $medicosFormateados = $medicos->map(function ($medico) {
+            return [
+                'ci' => $medico->ci,
+                'nombre' => $medico->user?->name ?? "Médico {$medico->ci}",
+                'especialidad' => $medico->especialidad?->nombre ?? 'Sin especialidad',
+            ];
+        })->toArray();
+
+        return response()->json(['medicos' => $medicosFormateados]);
+    }
+
+    public function crearMedico(Request $request)
+    {
+        try {
+            $request->validate([
+                'nombre' => 'required|string|max:255',
+                'codigo_especialidad' => 'required|exists:especialidades,codigo',
+            ]);
+
+            // Generar CI temporal si es una creación rápida
+            $ciTemporal = 'MED-' . now()->format('YmdHis');
+
+            \DB::beginTransaction();
+
+            // Crear usuario para el médico
+            $user = User::create([
+                'name' => $request->nombre,
+                'email' => 'medico.' . str_slug($request->nombre) . '.' . time() . '@hospital.local',
+                'password' => \Hash::make('temporal123456'),
+                'role' => 'doctor',
+                'is_active' => true,
+            ]);
+
+            // Crear registro de médico con CI temporal
+            $medico = Medico::create([
+                'user_id' => $user->id,
+                'ci' => $ciTemporal,
+                'codigo_especialidad' => $request->codigo_especialidad,
+                'estado' => 'activo',
+                'telefono' => null,
+            ]);
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Médico creado exitosamente con ID temporal',
+                'medico' => [
+                    'ci' => $medico->ci,
+                    'nombre' => $user->name,
+                    'especialidad' => $medico->especialidad?->nombre,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
     public function buscarPaciente(Request $request)
@@ -206,9 +332,9 @@ class IngresoGeneralController extends Controller
 
         Caja::$patientContext = null;
 
-        // Para consulta externa, el médico se asigna después en el departamento de consulta
-        $medicoId = $request->medico_tratante ? $this->obtenerMedicoId($request->medico_tratante) : null;
-        $especialidadCodigo = $this->obtenerEspecialidadPorDefecto();
+        // Obtener médico y especialidad seleccionados
+        $medicoId = $request->medico_ci ? (int)$request->medico_ci : null;
+        $especialidadCodigo = $request->especialidad_codigo ?: $this->obtenerEspecialidadPorDefecto();
 
         $consulta = Consulta::create([
             'codigo' => 'CONS-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT),
@@ -358,12 +484,14 @@ class IngresoGeneralController extends Controller
 
         $idHospitalizacion = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
 
+        $medicoId = $request->medico_ci ? (int)$request->medico_ci : null;
+
         $hospitalizacion = Hospitalizacion::create([
             'id' => $idHospitalizacion,
             'ci_paciente' => $paciente->ci,
             'motivo' => $request->motivo ?? 'Por determinar',
             'diagnostico_ingreso' => $request->diagnostico ?? 'Por determinar',
-            'ci_medico_tratante' => $request->medico_tratante ?? null,
+            'ci_medico_tratante' => $medicoId,
             'id_triage' => $triage->id,
             'fecha_ingreso' => now(),
             'estado' => 'activo',

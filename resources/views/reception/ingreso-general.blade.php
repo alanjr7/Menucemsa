@@ -235,10 +235,10 @@
 
             </div>
 
-            <!-- PASO 3: GARANTE (Obligatorio para internación, opcional para emergencia) -->
+            <!-- PASO 3a: GARANTE (Obligatorio para internación, opcional para emergencia) -->
             <div id="seccion_garante" class="mb-8 hidden">
                 <div class="flex items-center mb-4">
-                    <div class="w-8 h-8 bg-amber-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3">3</div>
+                    <div class="w-8 h-8 bg-amber-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3" id="numero_garante">3</div>
                     <h2 class="text-lg font-bold text-gray-800">
                         Datos del Garante
                         <span id="garante_obligatorio" class="text-sm font-normal text-red-600 ml-2">(Obligatorio para internación)</span>
@@ -374,10 +374,58 @@
                 </div>
             </div>
 
+            <!-- PASO 3b: MÉDICO Y ESPECIALIDAD -->
+            <div id="seccion_medico_especialidad" class="mb-8 hidden">
+                <div class="flex items-center mb-4">
+                    <div class="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3">3</div>
+                    <h2 class="text-lg font-bold text-gray-800">Médico y Especialidad</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Especialidad -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Especialidad</label>
+                        <div class="flex gap-2">
+                            <div class="flex-1 relative">
+                                <input type="text" id="especialidad_input" name="especialidad_nombre" placeholder="Buscar o crear especialidad"
+                                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+                                       onkeyup="buscarEspecialidades()">
+                                <input type="hidden" id="especialidad_codigo" name="especialidad_codigo">
+                                <div id="especialidades_lista" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto z-10"></div>
+                            </div>
+                            <button type="button" onclick="crearEspecialidad()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors text-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Médico -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Médico Tratante</label>
+                        <div class="flex gap-2">
+                            <div class="flex-1 relative">
+                                <input type="text" id="medico_input" name="medico_nombre" placeholder="Buscar o crear médico"
+                                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+                                       onkeyup="buscarMedicos()">
+                                <input type="hidden" id="medico_ci" name="medico_ci">
+                                <div id="medicos_lista" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto z-10"></div>
+                            </div>
+                            <button type="button" onclick="crearMedico()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors text-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- PASO 4: SEGURO -->
             <div class="mb-8">
                 <div class="flex items-center mb-4">
-                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3" id="numero_seguro">3</div>
+                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3" id="numero_seguro">4</div>
                     <h2 class="text-lg font-bold text-gray-800">Seguro / Cobertura</h2>
                 </div>
 
@@ -544,26 +592,34 @@ function seleccionarTipoIngreso(tipo) {
     // Ocultar todos los campos específicos
     document.getElementById('seccion_garante').classList.add('hidden');
     document.getElementById('temp_id_container').classList.add('hidden');
+    document.getElementById('seccion_medico_especialidad').classList.add('hidden');
 
-    // Actualizar número del paso de seguro
-    document.getElementById('numero_seguro').textContent = '3';
+    // Reset de números de pasos
+    document.getElementById('numero_seguro').textContent = '4';
+    if (document.getElementById('numero_garante')) {
+        document.getElementById('numero_garante').textContent = '3';
+    }
 
     // Mostrar campos según tipo
     switch(tipo) {
         case 'consulta_externa':
-            // No hay campos adicionales
+            // Mostrar médico y especialidad
+            document.getElementById('seccion_medico_especialidad').classList.remove('hidden');
             break;
 
         case 'emergencia':
-            // Solo ID temporal opcional
+            // ID temporal opcional y médico
             document.getElementById('temp_id_container').classList.remove('hidden');
+            document.getElementById('seccion_medico_especialidad').classList.remove('hidden');
             break;
 
         case 'internacion':
-            // Solo garante obligatorio
+            // Garante, médico y especialidad
             document.getElementById('seccion_garante').classList.remove('hidden');
+            document.getElementById('seccion_medico_especialidad').classList.remove('hidden');
+            document.getElementById('numero_garante').textContent = '3';
+            document.getElementById('numero_seguro').textContent = '5';
             document.getElementById('garante_obligatorio').classList.remove('hidden');
-            document.getElementById('numero_seguro').textContent = '4';
             break;
     }
 }
@@ -668,6 +724,180 @@ function mostrarInfoSeguro() {
         infoDiv.classList.add('hidden');
     }
 }
+
+// Buscar especialidades
+async function buscarEspecialidades() {
+    const valor = document.getElementById('especialidad_input').value.trim();
+    const lista = document.getElementById('especialidades_lista');
+
+    if (valor.length < 1) {
+        lista.classList.add('hidden');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/reception/ingreso-general/especialidades?q=${encodeURIComponent(valor)}`);
+        const data = await response.json();
+
+        lista.innerHTML = '';
+
+        if (data.especialidades && data.especialidades.length > 0) {
+            data.especialidades.forEach(esp => {
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0';
+                div.textContent = `${esp.nombre} (${esp.codigo})`;
+                div.onclick = () => seleccionarEspecialidad(esp.codigo, esp.nombre);
+                lista.appendChild(div);
+            });
+        } else {
+            const div = document.createElement('div');
+            div.className = 'px-4 py-2 text-gray-500 text-sm';
+            div.textContent = 'No encontrado. Use el botón + para crear.';
+            lista.appendChild(div);
+        }
+
+        lista.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+function seleccionarEspecialidad(codigo, nombre) {
+    document.getElementById('especialidad_codigo').value = codigo;
+    document.getElementById('especialidad_input').value = nombre;
+    document.getElementById('especialidades_lista').classList.add('hidden');
+}
+
+// Buscar médicos
+async function buscarMedicos() {
+    const valor = document.getElementById('medico_input').value.trim();
+    const lista = document.getElementById('medicos_lista');
+    const especialidadCodigo = document.getElementById('especialidad_codigo').value;
+
+    if (valor.length < 1) {
+        lista.classList.add('hidden');
+        return;
+    }
+
+    try {
+        const url = `/reception/ingreso-general/medicos?q=${encodeURIComponent(valor)}` +
+                    (especialidadCodigo ? `&especialidad=${especialidadCodigo}` : '');
+        const response = await fetch(url);
+        const data = await response.json();
+
+        lista.innerHTML = '';
+
+        if (data.medicos && data.medicos.length > 0) {
+            data.medicos.forEach(medico => {
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0';
+                div.textContent = `${medico.nombre} - ${medico.especialidad || 'Sin especialidad'} (CI: ${medico.ci})`;
+                div.onclick = () => seleccionarMedico(medico.ci, medico.nombre);
+                lista.appendChild(div);
+            });
+        } else {
+            const div = document.createElement('div');
+            div.className = 'px-4 py-2 text-gray-500 text-sm';
+            div.textContent = 'No encontrado. Use el botón + para crear.';
+            lista.appendChild(div);
+        }
+
+        lista.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+function seleccionarMedico(ci, nombre) {
+    document.getElementById('medico_ci').value = ci;
+    document.getElementById('medico_input').value = nombre;
+    document.getElementById('medicos_lista').classList.add('hidden');
+}
+
+// Crear especialidad
+async function crearEspecialidad() {
+    const nombre = document.getElementById('especialidad_input').value.trim();
+
+    if (!nombre) {
+        alert('Ingrese un nombre para la especialidad');
+        return;
+    }
+
+    try {
+        const response = await fetch('/reception/ingreso-general/especialidades', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ nombre })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            seleccionarEspecialidad(data.especialidad.codigo, data.especialidad.nombre);
+            alert('Especialidad creada correctamente');
+        } else {
+            alert(data.message || 'Error al crear especialidad');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al crear especialidad');
+    }
+}
+
+// Crear médico
+async function crearMedico() {
+    const nombre = document.getElementById('medico_input').value.trim();
+    const especialidadCodigo = document.getElementById('especialidad_codigo').value;
+
+    if (!nombre) {
+        alert('Ingrese un nombre para el médico');
+        return;
+    }
+
+    if (!especialidadCodigo) {
+        alert('Debe seleccionar una especialidad primero');
+        return;
+    }
+
+    try {
+        const response = await fetch('/reception/ingreso-general/medicos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                nombre,
+                codigo_especialidad: especialidadCodigo
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            seleccionarMedico(data.medico.ci, data.medico.nombre);
+            alert('Médico creado correctamente. Puede agregar CI y teléfono después en admin/doctors');
+        } else {
+            alert(data.message || 'Error al crear médico');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al crear médico');
+    }
+}
+
+// Cerrar listas al hacer click fuera
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('#especialidad_input') && !event.target.closest('#especialidades_lista')) {
+        document.getElementById('especialidades_lista').classList.add('hidden');
+    }
+    if (!event.target.closest('#medico_input') && !event.target.closest('#medicos_lista')) {
+        document.getElementById('medicos_lista').classList.add('hidden');
+    }
+});
 
 // Procesar ingreso
 async function procesarIngreso(event) {

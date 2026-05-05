@@ -116,9 +116,9 @@
                                    x-text="`Stock central: ${lote.stock} ${lote.unidad}`"></p>
                             </div>
                             <button type="button" @click="agregar(lote)"
-                                    :disabled="lote.stock === 0 || seleccionados.find(s => s.lote_id === lote.lote_id)"
+                                    :disabled="Number(lote.stock) === 0 || seleccionados.find(s => s.lote_id === lote.lote_id)"
                                     class="ml-2 p-2 rounded-lg transition-colors flex-shrink-0"
-                                    :class="(lote.stock === 0 || seleccionados.find(s => s.lote_id === lote.lote_id)) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-100 text-green-600 hover:bg-green-200'">
+                                    :class="(Number(lote.stock) === 0 || seleccionados.find(s => s.lote_id === lote.lote_id)) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-100 text-green-600 hover:bg-green-200'">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                 </svg>
