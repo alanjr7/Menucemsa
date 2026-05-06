@@ -23,6 +23,7 @@ class IngresoPrecio extends Model
 
     const TIPOS_INGRESO = [
         'consulta_externa' => 'Consulta Externa',
+        'enfermeria' => 'Enfermería',
         'emergencia' => 'Emergencia',
         'internacion' => 'Internación',
     ];

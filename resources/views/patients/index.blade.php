@@ -114,11 +114,11 @@
             <div class="px-6 py-4 border-b border-gray-100 bg-white flex justify-between items-center">
                 <h3 class="text-gray-800 font-bold text-sm">Pacientes Registrados ({{ $pacientes->total() }})</h3>
                 <div class="flex gap-2">
-                    <button onclick="window.print()" class="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Imprimir">
+                    <!-- <button onclick="window.print()" class="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Imprimir">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                         </svg>
-                    </button>
+                    </button> -->
                 </div>
             </div>
 
@@ -129,11 +129,9 @@
                         <tr>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Código</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre Completo</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Documento</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Teléfono</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Carnet</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Seguro</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Registrado por</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Ingreso</th>
                             <th scope="col" class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
@@ -146,7 +144,8 @@
                                             {{ $paciente->emergency_code }}
                                         </span>
                                     @else
-                                        {{ $paciente->registro_codigo }}
+                                        @php $cajaId = $paciente->consultas->first()?->caja?->id @endphp
+                                        {{ $cajaId ?? $paciente->registro_codigo }}
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -160,7 +159,6 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ $paciente->ci }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $paciente->telefono ?? '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     @if(isset($paciente->is_temporal) && $paciente->is_temporal)
                                         <span class="text-xs text-red-500">Emergencia - {{ $paciente->tipo_ingreso }}</span>
@@ -169,30 +167,40 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @php
-                                        $estado = 'Activo';
-                                        $estadoColor = 'green';
-                                        if (isset($paciente->is_temporal) && $paciente->is_temporal) {
-                                            $estado = 'Emergencia';
-                                            $estadoColor = 'red';
-                                        } elseif (!isset($paciente->is_temporal) && $paciente->hospitalizaciones()->where('estado', 'Activo')->exists()) {
-                                            $estado = 'Hospitalizado';
-                                            $estadoColor = 'yellow';
-                                        } elseif (!isset($paciente->is_temporal) && $paciente->emergencies()->where('status', '!=', 'alta')->exists()) {
-                                            $estado = 'Emergencia';
-                                            $estadoColor = 'red';
-                                        }
-                                    @endphp
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ $estadoColor }}-100 text-{{ $estadoColor }}-800 border border-{{ $estadoColor }}-200">
-                                        <span class="w-1.5 h-1.5 bg-{{ $estadoColor }}-500 rounded-full mr-1.5 {{ $estado === 'Emergencia' ? 'animate-pulse' : '' }}"></span>
-                                        {{ $estado }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     @if(isset($paciente->is_temporal) && $paciente->is_temporal)
-                                        <span class="text-xs text-gray-400">Emergencia</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                            <span class="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5 animate-pulse"></span>
+                                            Emergencia
+                                        </span>
                                     @else
-                                        {{ $paciente->registro->user->name ?? 'Sistema' }}
+                                        @php
+                                            $tipoIngreso = $paciente->tipo_ingreso ?? 'otro';
+                                            $ingresoColor = 'gray';
+                                            $ingresoLabel = 'Otro';
+                                            
+                                            switch($tipoIngreso) {
+                                                case 'enfermeria':
+                                                    $ingresoColor = 'purple';
+                                                    $ingresoLabel = 'Enfermería';
+                                                    break;
+                                                case 'consulta_externa':
+                                                    $ingresoColor = 'green';
+                                                    $ingresoLabel = 'Consulta';
+                                                    break;
+                                                case 'emergencia':
+                                                    $ingresoColor = 'red';
+                                                    $ingresoLabel = 'Emergencia';
+                                                    break;
+                                                case 'internacion':
+                                                    $ingresoColor = 'yellow';
+                                                    $ingresoLabel = 'Internación';
+                                                    break;
+                                            }
+                                        @endphp
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ $ingresoColor }}-100 text-{{ $ingresoColor }}-800 border border-{{ $ingresoColor }}-200">
+                                            <span class="w-1.5 h-1.5 bg-{{ $ingresoColor }}-500 rounded-full mr-1.5 {{ $ingresoColor === 'red' ? 'animate-pulse' : '' }}"></span>
+                                            {{ $ingresoLabel }}
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -218,7 +226,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                     <div class="flex flex-col items-center">
                                         <svg class="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>

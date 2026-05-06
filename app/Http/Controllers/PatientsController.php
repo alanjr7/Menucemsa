@@ -14,7 +14,20 @@ class PatientsController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Paciente::with(['seguro', 'triage', 'registro.user'])
+        $query = Paciente::with([
+                'seguro',
+                'triage',
+                'registro.user',
+                'consultas' => function($q) {
+                    $q->with('caja')->orderBy('created_at', 'desc')->limit(1);
+                },
+                'hospitalizaciones' => function($q) {
+                    $q->orderBy('created_at', 'desc')->limit(1);
+                },
+                'emergencies' => function($q) {
+                    $q->orderBy('created_at', 'desc')->limit(1);
+                }
+            ])
             ->whereHas('registro'); // Solo pacientes con registro
 
         // Búsqueda
@@ -98,6 +111,16 @@ class PatientsController extends Controller
             );
         }
 
+        // Agregar información de tipo de ingreso a cada paciente
+        $pacientes->getCollection()->transform(function($paciente) {
+            if (!($paciente instanceof Paciente)) {
+                $paciente->tipo_ingreso = $paciente->tipo_ingreso ?? 'emergencia';
+                return $paciente;
+            }
+            $paciente->tipo_ingreso = $this->determinarTipoIngreso($paciente);
+            return $paciente;
+        });
+
         // Estadísticas
         $stats = [
             'total' => Paciente::whereHas('registro')->count() + $pacientesTemporales->count(),
@@ -113,6 +136,42 @@ class PatientsController extends Controller
         ];
 
         return view('patients.index', compact('pacientes', 'stats'));
+    }
+
+    private function determinarTipoIngreso(Paciente $paciente): string
+    {
+        $consulta = $paciente->consultas->first();
+        $emergencia = $paciente->emergencies->first();
+        $hospitalizacion = $paciente->hospitalizaciones->first();
+
+        $fechaMasReciente = null;
+        $tipoIngreso = 'otro';
+
+        if ($consulta) {
+            $fechaConsulta = $consulta->created_at ?? $consulta->fecha;
+            if ($fechaMasReciente === null || $fechaConsulta > $fechaMasReciente) {
+                $fechaMasReciente = $fechaConsulta;
+                $tipoIngreso = $consulta->tipo === 'enfermeria' ? 'enfermeria' : 'consulta_externa';
+            }
+        }
+
+        if ($emergencia) {
+            $fechaEmergencia = $emergencia->created_at;
+            if ($fechaMasReciente === null || $fechaEmergencia > $fechaMasReciente) {
+                $fechaMasReciente = $fechaEmergencia;
+                $tipoIngreso = 'emergencia';
+            }
+        }
+
+        if ($hospitalizacion) {
+            $fechaHospitalizacion = $hospitalizacion->created_at ?? $hospitalizacion->fecha_ingreso;
+            if ($fechaMasReciente === null || $fechaHospitalizacion > $fechaMasReciente) {
+                $fechaMasReciente = $fechaHospitalizacion;
+                $tipoIngreso = 'internacion';
+            }
+        }
+
+        return $tipoIngreso;
     }
 
     public function show($ci): View

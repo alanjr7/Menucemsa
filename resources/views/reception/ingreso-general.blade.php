@@ -32,7 +32,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">C.I. Paciente *</label>
                     <div class="flex gap-3">
                         <input type="text" id="paciente_ci" name="ci" placeholder="Número de CI del paciente"
-                               class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                               class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off" >
                         <button type="button" onclick="buscarPaciente()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-xl transition-colors text-sm">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -81,8 +81,13 @@
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellidos *</label>
-                            <input type="text" name="apellidos" id="apellidos" required
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno *</label>
+                            <input type="text" name="apellido_paterno" id="apellido_paterno" required
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno *</label>
+                            <input type="text" name="apellido_materno" id="apellido_materno" required
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
                         </div>
                         <div>
@@ -180,7 +185,7 @@
                     <h2 class="text-lg font-bold text-gray-800">Tipo de Ingreso *</h2>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <!-- Consulta Externa -->
                     <label class="relative flex flex-col p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-green-400 transition-all has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
                         <input type="radio" name="tipo_ingreso" value="consulta_externa" class="sr-only peer" onchange="seleccionarTipoIngreso('consulta_externa')">
@@ -196,6 +201,23 @@
                             </div>
                         </div>
                         <div class="absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-green-500 peer-checked:bg-green-500"></div>
+                    </label>
+
+                    <!-- Enfermería -->
+                    <label class="relative flex flex-col p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-purple-400 transition-all has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
+                        <input type="radio" name="tipo_ingreso" value="enfermeria" class="sr-only peer" onchange="seleccionarTipoIngreso('enfermeria')">
+                        <div class="flex items-center mb-3">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="font-bold text-gray-800">Enfermería</span>
+                                <p class="text-xs text-gray-500">Atención de enfermería</p>
+                            </div>
+                        </div>
+                        <div class="absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:border-purple-500 peer-checked:bg-purple-500"></div>
                     </label>
 
                     <!-- Emergencia -->
@@ -282,8 +304,13 @@
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellidos *</label>
-                            <input type="text" name="garante_apellidos" id="garante_apellidos"
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno *</label>
+                            <input type="text" name="garante_apellido_paterno" id="garante_apellido_paterno"
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno *</label>
+                            <input type="text" name="garante_apellido_materno" id="garante_apellido_materno"
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all">
                         </div>
                         <div>
@@ -384,38 +411,40 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Especialidad -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Especialidad</label>
-                        <div class="flex gap-2">
-                            <div class="flex-1 relative">
-                                <input type="text" id="especialidad_input" name="especialidad_nombre" placeholder="Buscar o crear especialidad"
-                                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
-                                       onkeyup="buscarEspecialidades()">
-                                <input type="hidden" id="especialidad_codigo" name="especialidad_codigo">
-                                <div id="especialidades_lista" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto z-10"></div>
-                            </div>
-                            <button type="button" onclick="crearEspecialidad()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors text-sm">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                            </button>
-                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Especialidad *</label>
+                        <select id="especialidad_codigo" name="especialidad_codigo" onchange="cargarMedicosPorEspecialidad(this.value)"
+                                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
+                            <option value="">Seleccione...</option>
+                            @foreach($especialidades as $esp)
+                                <option value="{{ $esp->codigo }}">{{ $esp->nombre }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <!-- Médico -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Médico Tratante</label>
                         <div class="flex gap-2">
-                            <div class="flex-1 relative">
-                                <input type="text" id="medico_input" name="medico_nombre" placeholder="Buscar o crear médico"
-                                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
-                                       onkeyup="buscarMedicos()">
-                                <input type="hidden" id="medico_ci" name="medico_ci">
-                                <div id="medicos_lista" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto z-10"></div>
-                            </div>
-                            <button type="button" onclick="crearMedico()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors text-sm">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
+                            <select id="medico_ci" name="medico_ci" disabled
+                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
+                                <option value="">Seleccione especialidad primero</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario para crear médico (inicialmente oculto) -->
+                <div id="form_crear_medico" class="hidden mt-4 bg-purple-50 rounded-xl p-4 border border-purple-100">
+                    <h4 class="font-semibold text-purple-800 mb-3">Crear Nuevo Médico</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="md:col-span-2">
+                            <input type="text" id="nuevo_medico_nombre" placeholder="Nombre completo del médico"
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
+                        </div>
+                        <div>
+                            <button type="button" onclick="guardarMedicoNuevo()"
+                                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors text-sm">
+                                Guardar Médico
                             </button>
                         </div>
                     </div>
@@ -504,10 +533,13 @@ async function buscarPaciente() {
             document.getElementById('paciente_nombre_encontrado').textContent = data.paciente.nombre;
             document.getElementById('paciente_ci_encontrado').textContent = data.paciente.ci;
 
-            // Llenar campos
-            const nombreParts = data.paciente.nombre ? data.paciente.nombre.split(' ') : ['', ''];
-            document.getElementById('nombres').value = nombreParts[0] || '';
-            document.getElementById('apellidos').value = nombreParts.slice(1).join(' ') || '';
+            // Llenar campos - parsear nombre completo en partes
+            // Estructura: Nombres + Apellido Paterno + Apellido Materno
+            const nombreParts = data.paciente.nombre ? data.paciente.nombre.split(' ') : ['', '', ''];
+            const nombresPartes = nombreParts.slice(0, nombreParts.length - 2).join(' ');
+            document.getElementById('nombres').value = nombresPartes || '';
+            document.getElementById('apellido_paterno').value = nombreParts[nombreParts.length - 2] || '';
+            document.getElementById('apellido_materno').value = nombreParts[nombreParts.length - 1] || '';
             document.getElementById('sexo').value = data.paciente.sexo || '';
             document.getElementById('fecha_nacimiento').value = data.paciente.fecha_nacimiento || '';
             document.getElementById('lugar_expedicion').value = data.paciente.lugar_expedicion || '';
@@ -574,11 +606,13 @@ function toggleTempId() {
         datosContainer.classList.remove('hidden');
 
         const nombresField = document.getElementById('nombres');
-        const apellidosField = document.getElementById('apellidos');
+        const apellidoPaternoField = document.getElementById('apellido_paterno');
+        const apellidoMaternoField = document.getElementById('apellido_materno');
         const sexoField = document.getElementById('sexo');
 
         if (nombresField) nombresField.setAttribute('required', '');
-        if (apellidosField) apellidosField.setAttribute('required', '');
+        if (apellidoPaternoField) apellidoPaternoField.setAttribute('required', '');
+        if (apellidoMaternoField) apellidoMaternoField.setAttribute('required', '');
         if (sexoField) sexoField.setAttribute('required', '');
 
         document.getElementById('paciente_ci').focus();
@@ -626,7 +660,7 @@ function seleccionarTipoIngreso(tipo) {
 
 // Funciones auxiliares para manejo de campos del paciente
 function setCamposPacienteReadOnly(readonly) {
-    const campos = ['nombres', 'apellidos', 'fecha_nacimiento', 'lugar_expedicion', 'nacionalidad', 'estado_civil', 'telefono', 'correo', 'profesion', 'empresa_trabajo', 'direccion'];
+    const campos = ['nombres', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'lugar_expedicion', 'nacionalidad', 'estado_civil', 'telefono', 'correo', 'profesion', 'empresa_trabajo', 'direccion'];
     campos.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.readOnly = readonly;
@@ -636,7 +670,7 @@ function setCamposPacienteReadOnly(readonly) {
 }
 
 function limpiarCamposPaciente() {
-    const campos = ['nombres', 'apellidos', 'sexo', 'fecha_nacimiento', 'lugar_expedicion', 'nacionalidad', 'estado_civil', 'telefono', 'correo', 'profesion', 'empresa_trabajo', 'direccion'];
+    const campos = ['nombres', 'apellido_paterno', 'apellido_materno', 'sexo', 'fecha_nacimiento', 'lugar_expedicion', 'nacionalidad', 'estado_civil', 'telefono', 'correo', 'profesion', 'empresa_trabajo', 'direccion'];
     campos.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -644,7 +678,7 @@ function limpiarCamposPaciente() {
 }
 
 function setCamposGaranteReadOnly(readonly) {
-    const campos = ['garante_nombres', 'garante_apellidos', 'garante_fecha_nacimiento', 'garante_lugar_expedicion', 'garante_nacionalidad', 'garante_estado_civil', 'garante_telefono', 'garante_correo', 'garante_profesion', 'garante_empresa_trabajo', 'garante_direccion'];
+    const campos = ['garante_nombres', 'garante_apellido_paterno', 'garante_apellido_materno', 'garante_fecha_nacimiento', 'garante_lugar_expedicion', 'garante_nacionalidad', 'garante_estado_civil', 'garante_telefono', 'garante_correo', 'garante_profesion', 'garante_empresa_trabajo', 'garante_direccion'];
     campos.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.readOnly = readonly;
@@ -654,7 +688,7 @@ function setCamposGaranteReadOnly(readonly) {
 }
 
 function limpiarCamposGarante() {
-    const campos = ['garante_nombres', 'garante_apellidos', 'garante_sexo', 'garante_fecha_nacimiento', 'garante_lugar_expedicion', 'garante_nacionalidad', 'garante_estado_civil', 'garante_telefono', 'garante_correo', 'garante_profesion', 'garante_empresa_trabajo', 'garante_direccion'];
+    const campos = ['garante_nombres', 'garante_apellido_paterno', 'garante_apellido_materno', 'garante_sexo', 'garante_fecha_nacimiento', 'garante_lugar_expedicion', 'garante_nacionalidad', 'garante_estado_civil', 'garante_telefono', 'garante_correo', 'garante_profesion', 'garante_empresa_trabajo', 'garante_direccion'];
     campos.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -678,10 +712,13 @@ async function buscarGarante() {
             document.getElementById('garante_info').classList.remove('hidden');
             document.getElementById('garante_nombre_encontrado').textContent = data.garante.nombre;
 
-            // Llenar campos
-            const nombreParts = data.garante.nombre ? data.garante.nombre.split(' ') : ['', ''];
-            document.getElementById('garante_nombres').value = nombreParts[0] || '';
-            document.getElementById('garante_apellidos').value = nombreParts.slice(1).join(' ') || '';
+            // Llenar campos - parsear nombre completo en partes
+            // Estructura: Nombres + Apellido Paterno + Apellido Materno
+            const nombreParts = data.garante.nombre ? data.garante.nombre.split(' ') : ['', '', ''];
+            const nombresPartes = nombreParts.slice(0, nombreParts.length - 2).join(' ');
+            document.getElementById('garante_nombres').value = nombresPartes || '';
+            document.getElementById('garante_apellido_paterno').value = nombreParts[nombreParts.length - 2] || '';
+            document.getElementById('garante_apellido_materno').value = nombreParts[nombreParts.length - 1] || '';
             document.getElementById('garante_sexo').value = data.garante.sexo || '';
             document.getElementById('garante_fecha_nacimiento').value = data.garante.fecha_nacimiento || '';
             document.getElementById('garante_lugar_expedicion').value = data.garante.lugar_expedicion || '';
@@ -725,131 +762,89 @@ function mostrarInfoSeguro() {
     }
 }
 
-// Buscar especialidades
-async function buscarEspecialidades() {
-    const valor = document.getElementById('especialidad_input').value.trim();
-    const lista = document.getElementById('especialidades_lista');
+// Cargar médicos según especialidad seleccionada
+async function cargarMedicosPorEspecialidad(especialidadCodigo) {
+    const medicoSelect = document.getElementById('medico_ci');
+    const formCrearMedico = document.getElementById('form_crear_medico');
 
-    if (valor.length < 1) {
-        lista.classList.add('hidden');
+    // Limpiar y deshabilitar select de médicos
+    medicoSelect.innerHTML = '<option value="">Cargando médicos...</option>';
+    medicoSelect.disabled = true;
+    medicoSelect.classList.add('bg-gray-50');
+
+    // Ocultar form de crear médico
+    formCrearMedico.classList.add('hidden');
+
+    if (!especialidadCodigo) {
+        medicoSelect.innerHTML = '<option value="">Seleccione especialidad primero</option>';
         return;
     }
 
     try {
-        const response = await fetch(`/reception/ingreso-general/especialidades?q=${encodeURIComponent(valor)}`);
+        const response = await fetch(`/reception/ingreso-general/medicos-por-especialidad/${encodeURIComponent(especialidadCodigo)}`);
         const data = await response.json();
 
-        lista.innerHTML = '';
-
-        if (data.especialidades && data.especialidades.length > 0) {
-            data.especialidades.forEach(esp => {
-                const div = document.createElement('div');
-                div.className = 'px-4 py-2 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0';
-                div.textContent = `${esp.nombre} (${esp.codigo})`;
-                div.onclick = () => seleccionarEspecialidad(esp.codigo, esp.nombre);
-                lista.appendChild(div);
-            });
-        } else {
-            const div = document.createElement('div');
-            div.className = 'px-4 py-2 text-gray-500 text-sm';
-            div.textContent = 'No encontrado. Use el botón + para crear.';
-            lista.appendChild(div);
-        }
-
-        lista.classList.remove('hidden');
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-function seleccionarEspecialidad(codigo, nombre) {
-    document.getElementById('especialidad_codigo').value = codigo;
-    document.getElementById('especialidad_input').value = nombre;
-    document.getElementById('especialidades_lista').classList.add('hidden');
-}
-
-// Buscar médicos
-async function buscarMedicos() {
-    const valor = document.getElementById('medico_input').value.trim();
-    const lista = document.getElementById('medicos_lista');
-    const especialidadCodigo = document.getElementById('especialidad_codigo').value;
-
-    if (valor.length < 1) {
-        lista.classList.add('hidden');
-        return;
-    }
-
-    try {
-        const url = `/reception/ingreso-general/medicos?q=${encodeURIComponent(valor)}` +
-                    (especialidadCodigo ? `&especialidad=${especialidadCodigo}` : '');
-        const response = await fetch(url);
-        const data = await response.json();
-
-        lista.innerHTML = '';
+        medicoSelect.innerHTML = '';
 
         if (data.medicos && data.medicos.length > 0) {
+            // Opción por defecto
+            const optionDefault = document.createElement('option');
+            optionDefault.value = '';
+            optionDefault.textContent = 'Seleccione médico...';
+            medicoSelect.appendChild(optionDefault);
+
+            // Médicos de la especialidad
             data.medicos.forEach(medico => {
-                const div = document.createElement('div');
-                div.className = 'px-4 py-2 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0';
-                div.textContent = `${medico.nombre} - ${medico.especialidad || 'Sin especialidad'} (CI: ${medico.ci})`;
-                div.onclick = () => seleccionarMedico(medico.ci, medico.nombre);
-                lista.appendChild(div);
+                const option = document.createElement('option');
+                option.value = medico.ci;
+                option.textContent = medico.nombre;
+                medicoSelect.appendChild(option);
             });
+
+            // Opción para crear nuevo médico
+            const optionCrear = document.createElement('option');
+            optionCrear.value = 'CREAR_NUEVO';
+            optionCrear.textContent = '+ Crear nuevo médico';
+            medicoSelect.appendChild(optionCrear);
         } else {
-            const div = document.createElement('div');
-            div.className = 'px-4 py-2 text-gray-500 text-sm';
-            div.textContent = 'No encontrado. Use el botón + para crear.';
-            lista.appendChild(div);
+            // No hay médicos en esta especialidad
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No hay médicos en esta especialidad';
+            medicoSelect.appendChild(option);
+
+            // Opción para crear médico
+            const optionCrear = document.createElement('option');
+            optionCrear.value = 'CREAR_NUEVO';
+            optionCrear.textContent = '+ Crear nuevo médico';
+            medicoSelect.appendChild(optionCrear);
         }
 
-        lista.classList.remove('hidden');
+        // Habilitar select
+        medicoSelect.disabled = false;
+        medicoSelect.classList.remove('bg-gray-50');
+        medicoSelect.classList.add('bg-white');
+
+        // Agregar event listener para detectar selección de "crear nuevo"
+        medicoSelect.onchange = function() {
+            if (this.value === 'CREAR_NUEVO') {
+                formCrearMedico.classList.remove('hidden');
+                document.getElementById('nuevo_medico_nombre').focus();
+                this.value = ''; // Resetear selección
+            } else {
+                formCrearMedico.classList.add('hidden');
+            }
+        };
+
     } catch (error) {
         console.error('Error:', error);
+        medicoSelect.innerHTML = '<option value="">Error al cargar médicos</option>';
     }
 }
 
-function seleccionarMedico(ci, nombre) {
-    document.getElementById('medico_ci').value = ci;
-    document.getElementById('medico_input').value = nombre;
-    document.getElementById('medicos_lista').classList.add('hidden');
-}
-
-// Crear especialidad
-async function crearEspecialidad() {
-    const nombre = document.getElementById('especialidad_input').value.trim();
-
-    if (!nombre) {
-        alert('Ingrese un nombre para la especialidad');
-        return;
-    }
-
-    try {
-        const response = await fetch('/reception/ingreso-general/especialidades', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({ nombre })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            seleccionarEspecialidad(data.especialidad.codigo, data.especialidad.nombre);
-            alert('Especialidad creada correctamente');
-        } else {
-            alert(data.message || 'Error al crear especialidad');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error al crear especialidad');
-    }
-}
-
-// Crear médico
-async function crearMedico() {
-    const nombre = document.getElementById('medico_input').value.trim();
+// Guardar nuevo médico
+async function guardarMedicoNuevo() {
+    const nombre = document.getElementById('nuevo_medico_nombre').value.trim();
     const especialidadCodigo = document.getElementById('especialidad_codigo').value;
 
     if (!nombre) {
@@ -878,8 +873,18 @@ async function crearMedico() {
         const data = await response.json();
 
         if (data.success) {
-            seleccionarMedico(data.medico.ci, data.medico.nombre);
-            alert('Médico creado correctamente. Puede agregar CI y teléfono después en admin/doctors');
+            // Recargar médicos de la especialidad
+            await cargarMedicosPorEspecialidad(especialidadCodigo);
+
+            // Seleccionar el médico recién creado
+            const medicoSelect = document.getElementById('medico_ci');
+            medicoSelect.value = data.medico.ci;
+
+            // Ocultar form de crear
+            document.getElementById('form_crear_medico').classList.add('hidden');
+            document.getElementById('nuevo_medico_nombre').value = '';
+
+            alert('Médico creado correctamente');
         } else {
             alert(data.message || 'Error al crear médico');
         }
@@ -888,16 +893,6 @@ async function crearMedico() {
         alert('Error al crear médico');
     }
 }
-
-// Cerrar listas al hacer click fuera
-document.addEventListener('click', function(event) {
-    if (!event.target.closest('#especialidad_input') && !event.target.closest('#especialidades_lista')) {
-        document.getElementById('especialidades_lista').classList.add('hidden');
-    }
-    if (!event.target.closest('#medico_input') && !event.target.closest('#medicos_lista')) {
-        document.getElementById('medicos_lista').classList.add('hidden');
-    }
-});
 
 // Procesar ingreso
 async function procesarIngreso(event) {
@@ -914,8 +909,8 @@ async function procesarIngreso(event) {
     }
 
     // Solo validar datos del paciente si NO se usa ID temporal
-    if (!usarTempId && (!document.getElementById('nombres').value || !document.getElementById('apellidos').value || !document.getElementById('sexo').value)) {
-        alert('Complete los datos del paciente (nombres, apellidos, sexo)');
+    if (!usarTempId && (!document.getElementById('nombres').value || !document.getElementById('apellido_paterno').value || !document.getElementById('apellido_materno').value || !document.getElementById('sexo').value)) {
+        alert('Complete los datos del paciente (nombres, apellido paterno, apellido materno, sexo)');
         return;
     }
 
@@ -926,7 +921,7 @@ async function procesarIngreso(event) {
 
     // Validaciones específicas
     if (tipoIngresoSeleccionado === 'internacion') {
-        if (!document.getElementById('garante_ci').value || !document.getElementById('garante_nombres').value || !document.getElementById('garante_apellidos').value) {
+        if (!document.getElementById('garante_ci').value || !document.getElementById('garante_nombres').value || !document.getElementById('garante_apellido_paterno').value || !document.getElementById('garante_apellido_materno').value) {
             alert('La internación requiere garante obligatorio. Complete los datos del garante.');
             return;
         }

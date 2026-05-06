@@ -13,7 +13,12 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8001/)",
       "Bash(curl -s http://127.0.0.1:8001/admin/almacen-medicamentos)",
       "Bash(pkill -f \"php artisan serve\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(curl -s http://localhost:8000/reception/ingreso-general)",
+      "Bash(grep -n '$request->ci\\\\|$request->medico\\\\|$request->especialidad' /c/Menucemsa/app/Http/Controllers/Reception/ConsultaExternaController.php)",
+      "Bash(grep -rn 'where.*$request\\\\|whereRaw.*$' /c/Menucemsa/app/Http/Controllers/Reception/)",
+      "Bash(grep -r \"reception\\\\\\\\.ingreso-general\\\\|reception\\\\\\\\.consulta-externa\\\\|reception\\\\\\\\.emergencia\\\\|reception\\\\\\\\.hospitalizacion\" /c/Menucemsa/resources/views/reception --include=\"*.blade.php\")",
+      "Bash(grep -r \"reception\\\\\\\\.ingreso-general\\\\|reception\\\\\\\\.consulta-externa\\\\|reception\\\\\\\\.emergencia\\\\|reception\\\\\\\\.hospitalizacion\" /c/Menucemsa/app/Http/Controllers --include=\"*.php\")"
     ]
   }
 }

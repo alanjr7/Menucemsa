@@ -173,6 +173,9 @@ class MenuSeeder extends Seeder
            // ['name' => 'Farmacias', 'route' => 'farmacias.index', 'roles' => 'admin,administrador', 'order' => 11],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 13],
 
+            // Inventario local
+            ['name' => 'Almacén Inventario', 'route' => 'admin.almacen-inventario.index', 'roles' => 'admin,administrador', 'order' => 11],
+
             // Gestión Operativa y Financiera
             ['name' => 'Gestionar Consulta Externa', 'route' => 'admin.consulta-externa-gestion', 'roles' => 'admin,administrador', 'order' => 20],
            // ['name' => 'Facturación', 'route' => 'admin.facturacion.index', 'roles' => 'admin,administrador', 'order' => 21],

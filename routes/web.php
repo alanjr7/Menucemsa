@@ -6,12 +6,9 @@ use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\QuirofanoController;
 use App\Http\Controllers\QuirofanoMedicamentosController;
 use App\Http\Controllers\QuirofanoManagementController;
-use App\Http\Controllers\Reception\ConsultaExternaController;
-use App\Http\Controllers\Reception\EmergenciaController;
 use App\Http\Controllers\Reception\EmergencyIngresoController;
 use App\Http\Controllers\Medical\EmergencyController;
 use App\Http\Controllers\Medical\UtiController;
-use App\Http\Controllers\Medical\QuirofanoController as MedicalQuirofanoController;
 use App\Http\Controllers\Medical\HospitalizacionController as MedicalHospitalizacionController;
 use App\Http\Controllers\Reception\HospitalizacionController as ReceptionHospitalizacionController;
 use App\Http\Controllers\InternacionStaffController;
@@ -44,13 +41,13 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\EmergencyStaffController;
 use App\Http\Controllers\EmergencyMedicamentosController;
 use App\Http\Controllers\Admin\AlmacenMedicamentosController;
+use App\Http\Controllers\Admin\AlmacenInventarioController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Medical\UtiOperativoController;
 use App\Http\Controllers\UtiMedicamentosController;
 use App\Http\Controllers\Admin\UtiAdminController;
 use App\Http\Controllers\MenuController;
-use App\Http\Controllers\Reception\UtiRecepcionController;
 
 
 
@@ -179,33 +176,15 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/reception/pacientes/{ci}', [\App\Http\Controllers\ReceptionController::class, 'pacientesHistorial'])->name('reception.pacientes.historial');
         Route::get('/reception/pacientes/{ci}/print', [\App\Http\Controllers\ReceptionController::class, 'pacientesHistorialPrint'])->name('reception.pacientes.historial.print');
 
-        // Rutas para las nuevas páginas separadas
-        Route::get('/reception/consulta-externa', [ConsultaExternaController::class, 'index'])->name('reception.consulta-externa');
-        Route::get('/reception/emergencia', [EmergenciaController::class, 'index'])->name('reception.emergencia');
-        Route::get('/reception/hospitalizacion', [ReceptionHospitalizacionController::class, 'index'])->name('reception.hospitalizacion');
-        
-        // Rutas API para consulta externa
-        Route::post('/api/buscar-paciente', [ConsultaExternaController::class, 'buscarPaciente'])->name('reception.buscar-paciente');
-        Route::post('/api/registrar-consulta-externa', [ConsultaExternaController::class, 'registrarConsultaExterna'])->name('reception.registrar-consulta');
-        Route::post('/api/triage-general', [ConsultaExternaController::class, 'procesarTriageGeneral'])->name('reception.triage-general');
         Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
-        
-        // Rutas API para emergencia - Nuevo flujo
-        Route::post('/api/emergency-ingreso', [EmergencyIngresoController::class, 'registrarIngreso'])->name('reception.emergency-ingreso');
-        Route::get('/api/emergency-activas', [EmergencyIngresoController::class, 'getEmergenciasActivas'])->name('reception.emergency-activas');
+
+        // Comprobantes (usados por IngresoGeneralController tras procesar ingreso)
         Route::get('/emergencia/{id}/comprobante', [EmergencyIngresoController::class, 'comprobante'])->name('reception.emergencia.comprobante');
-        Route::post('/api/registrar-emergencia', [EmergenciaController::class, 'registrarEmergencia'])->name('reception.registrar-emergencia');
-        Route::get('/api/emergencias-activas', [EmergenciaController::class, 'getEmergenciasActivas'])->name('reception.emergencias-activas');
-        Route::put('/api/emergencia/{nroEmergencia}/estado', [EmergenciaController::class, 'actualizarEstadoEmergencia'])->name('reception.actualizar-emergencia');
-        
-        // Rutas API para hospitalización
-        Route::post('/api/registrar-hospitalizacion', [ReceptionHospitalizacionController::class, 'registrarHospitalizacion'])->name('reception.registrar-hospitalizacion');
-        Route::get('/api/hospitalizaciones-activas', [ReceptionHospitalizacionController::class, 'getHospitalizacionesActivas'])->name('reception.hospitalizaciones-activas');
+        Route::get('/hospitalizacion/{id}/comprobante', [ReceptionHospitalizacionController::class, 'comprobante'])->name('reception.hospitalizacion.comprobante');
+
+        // Alta y actualización de hospitalización (operaciones post-ingreso)
         Route::post('/api/hospitalizacion/{id}/alta', [ReceptionHospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
         Route::put('/api/hospitalizacion/{id}/actualizar', [ReceptionHospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
-        
-        // Ruta para comprobante de hospitalización
-        Route::get('/hospitalizacion/{id}/comprobante', [ReceptionHospitalizacionController::class, 'comprobante'])->name('reception.hospitalizacion.comprobante');
 
         // Rutas para formulario unificado de ingreso general
         Route::get('/reception/ingreso-general', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'index'])->name('reception.ingreso-general');
@@ -216,6 +195,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/reception/ingreso-general/especialidades', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearEspecialidad'])->name('reception.ingreso-general.crear-especialidad');
         Route::get('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarMedicos'])->name('reception.ingreso-general.medicos');
         Route::post('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearMedico'])->name('reception.ingreso-general.crear-medico');
+        Route::get('/reception/ingreso-general/especialidades-lista', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'getEspecialidadesLista'])->name('reception.ingreso-general.especialidades-lista');
+        Route::get('/reception/ingreso-general/medicos-por-especialidad/{codigo}', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'getMedicosPorEspecialidad'])->name('reception.ingreso-general.medicos-por-especialidad');
 
         // Rutas API para gestión de citas
         Route::get('/reception/agenda', function() {
@@ -531,6 +512,9 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/almacen-medicamentos/reporte/bajo-stock', [AlmacenMedicamentosController::class, 'reporteBajoStock'])->name('almacen-medicamentos.reporte.bajo-stock');
         Route::get('/almacen-medicamentos/reporte/vencimiento', [AlmacenMedicamentosController::class, 'reporteVencimiento'])->name('almacen-medicamentos.reporte.vencimiento');
         Route::get('/almacen-medicamentos/area/{area}', [AlmacenMedicamentosController::class, 'porArea'])->name('almacen-medicamentos.por-area');
+
+        // Almacén Inventario (activos locales, sin llaves foráneas)
+        Route::resource('almacen-inventario', AlmacenInventarioController::class);
     });
 
     // Detalle y registro de paciente en dispensación — accesible por admin y personal de área
@@ -820,16 +804,5 @@ Route::middleware(['auth', 'role:admin|administrador'])->prefix('uti-admin')->na
     Route::post('/api/preautorizacion/{admissionId}', [UtiAdminController::class, 'actualizarPreautorizacion']);
 });
 
-// UTI Recepción - Admin, reception, dirmedico
-Route::middleware(['auth', 'role:admin|reception|dirmedico'])->prefix('reception/uti')->name('reception.uti.')->group(function () {
-    Route::get('/ingreso', [UtiRecepcionController::class, 'index'])->name('ingreso');
-    
-    // API routes
-    Route::post('/api/buscar-paciente', [UtiRecepcionController::class, 'buscarPaciente']);
-    Route::post('/api/registrar-ingreso', [UtiRecepcionController::class, 'registrarIngreso']);
-    Route::get('/api/camas-disponibles', [UtiRecepcionController::class, 'getCamasDisponibles']);
-    Route::get('/api/emergencias-pendientes', [UtiRecepcionController::class, 'getEmergenciasPendientes']);
-    Route::get('/api/seguros', [UtiRecepcionController::class, 'getSeguros']);
-});
 
 require __DIR__.'/auth.php';

@@ -26,6 +26,7 @@ class Consulta extends Model
         'estado_pago',
         'caja_id',
         'estado',
+        'tipo',
     ];
 
     protected $casts = [
