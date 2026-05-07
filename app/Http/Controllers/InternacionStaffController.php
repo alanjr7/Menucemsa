@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Hospitalizacion;
 use App\Models\Paciente;
-use App\Models\UtiAdmission;
-use App\Models\UtiBed;
 use App\Models\Cama;
 use App\Models\CuentaCobro;
 use App\Models\CuentaCobroDetalle;
@@ -162,96 +160,6 @@ class InternacionStaffController extends Controller
             'message' => 'Estado actualizado correctamente',
             'status' => $hospitalizacion->estado,
         ]);
-    }
-
-    /**
-     * API: Derivar a UTI
-     */
-    public function derivarAUti(Request $request, $id): JsonResponse
-    {
-        try {
-            DB::beginTransaction();
-
-            $hospitalizacion = Hospitalizacion::with('paciente')->findOrFail($id);
-
-            // Verificar si ya está en UTI
-            $utiActivo = UtiAdmission::where('patient_id', $hospitalizacion->ci_paciente)
-                ->whereIn('estado', ['activo', 'alta_clinica'])
-                ->first();
-
-            if ($utiActivo) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El paciente ya tiene un ingreso activo en UTI',
-                ], 422);
-            }
-
-            // Buscar cama disponible
-            $cama = UtiBed::where('status', 'disponible')
-                ->where('activa', true)
-                ->first();
-
-            if (!$cama) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No hay camas disponibles en UTI',
-                ], 422);
-            }
-
-            // Generar número de ingreso UTI
-            $prefijo = 'UTI';
-            $anio = date('Y');
-            $mes = date('m');
-            $ultimo = UtiAdmission::whereYear('fecha_ingreso', date('Y'))
-                ->whereMonth('fecha_ingreso', date('m'))
-                ->count();
-            $secuencia = str_pad($ultimo + 1, 4, '0', STR_PAD_LEFT);
-            $nroIngreso = "{$prefijo}-{$anio}{$mes}-{$secuencia}";
-
-            // Crear ingreso UTI
-            $admission = UtiAdmission::create([
-                'patient_id' => $hospitalizacion->ci_paciente,
-                'bed_id' => $cama->id,
-                'nro_ingreso' => $nroIngreso,
-                'hospitalization_id' => $hospitalizacion->id,
-                'estado_clinico' => 'estable',
-                'diagnostico_principal' => $hospitalizacion->diagnostico,
-                'tipo_ingreso' => 'derivacion_interna',
-                'tipo_pago' => 'particular',
-                'fecha_ingreso' => now(),
-                'estado' => 'activo',
-                'medico_responsable_ci' => $hospitalizacion->ci_medico,
-            ]);
-
-            // Actualizar cama a ocupada
-            $cama->update(['status' => 'ocupada']);
-
-            // Actualizar hospitalización
-            $hospitalizacion->update([
-                'estado' => 'trasladado',
-                'observaciones' => ($hospitalizacion->observaciones ? $hospitalizacion->observaciones . "\n" : '') .
-                    'Trasladado a UTI: ' . now()->format('d/m/Y H:i'),
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Paciente derivado a UTI correctamente',
-                'admission' => [
-                    'id' => $admission->id,
-                    'nro_ingreso' => $admission->nro_ingreso,
-                    'cama' => $cama->bed_number,
-                ],
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al derivar a UTI: ' . $e->getMessage(),
-            ], 500);
-        }
     }
 
     /**

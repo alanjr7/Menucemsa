@@ -8,7 +8,6 @@ use App\Models\Consulta;
 use App\Models\Emergency;
 use App\Models\Hospitalizacion;
 use App\Models\CitaQuirurgica;
-use App\Models\UtiAdmission;
 use App\Models\PagoCuenta;
 use App\Models\CuentaCobro;
 use App\Models\AlmacenLote;
@@ -33,7 +32,6 @@ class KpiController extends Controller
             'hospitalizados'          => Hospitalizacion::where('estado', 'activo')->count(),
             'cirugias_hoy'            => CitaQuirurgica::whereDate('fecha', $hoy)->count(),
             'cirugias_mes'            => CitaQuirurgica::whereDate('fecha', '>=', $mesActual)->count(),
-            'pacientes_uti'           => UtiAdmission::where('estado', 'activo')->count(),
             'ingresos_hoy'            => PagoCuenta::whereDate('created_at', $hoy)->sum('monto'),
             'ingresos_mes'            => PagoCuenta::whereDate('created_at', '>=', $mesActual)->sum('monto'),
             'ingresos_mes_anterior'   => PagoCuenta::whereBetween('created_at', [$mesAnterior, $finMesAnterior])->sum('monto'),

@@ -12,9 +12,7 @@ use App\Models\Consulta;
 use App\Models\CitaQuirurgica;
 use App\Models\CuentaCobro;
 use App\Models\Emergency;
-use App\Models\UtiAdmission;
 use App\Models\Hospitalizacion;
-use App\Models\UtiBed;
 use App\Models\AlmacenLote;
 use App\Models\ActivityLog;
 use App\Models\InventarioFarmacia;
@@ -92,13 +90,7 @@ class AdminDashboardController extends Controller
 
         // Estadísticas adicionales
         $emergenciasActivas = Emergency::whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])->count();
-        $pacientesUTI = UtiAdmission::where('estado', 'activo')->count();
         $pacientesHospitalizados = Hospitalizacion::where('estado', 'activo')->count();
-        
-        // Ocupación UTI
-        $totalCamasUTI = UtiBed::where('activa', true)->count();
-        $camasOcupadasUTI = UtiBed::where('status', 'ocupada')->where('activa', true)->count();
-        $ocupacionUTI = $totalCamasUTI > 0 ? round(($camasOcupadasUTI / $totalCamasUTI) * 100, 1) : 0;
 
         return [
             'pacientes' => [
@@ -123,11 +115,7 @@ class AdminDashboardController extends Controller
             ],
             'hospitalizacion' => [
                 'emergencias_activas' => $emergenciasActivas,
-                'pacientes_uti' => $pacientesUTI,
                 'pacientes_hospitalizados' => $pacientesHospitalizados,
-                'ocupacion_uti' => $ocupacionUTI,
-                'camas_uti_total' => $totalCamasUTI,
-                'camas_uti_ocupadas' => $camasOcupadasUTI,
             ],
         ];
     }
@@ -215,25 +203,6 @@ class AdminDashboardController extends Controller
                 'titulo' => 'Emergencias con demora',
                 'mensaje' => "{$emergenciasDemora} pacientes en espera mas de 30 minutos",
                 'icono' => 'ambulance',
-            ];
-        }
-
-        // Pacientes en UTI sin registro clínico hoy
-        $hoy = now()->toDateString();
-        $admisionesUTI = UtiAdmission::where('estado', 'activo')->pluck('id');
-        $conRegistroHoy = DB::table('uti_daily_records')
-            ->where('fecha', $hoy)
-            ->whereIn('uti_admission_id', $admisionesUTI)
-            ->pluck('uti_admission_id');
-        $sinRegistroHoy = $admisionesUTI->diff($conRegistroHoy)->count();
-
-        if ($sinRegistroHoy > 0) {
-            $alertas[] = [
-                'tipo' => 'uti_sin_registro',
-                'nivel' => 'warning',
-                'titulo' => 'UTI: Sin registro clínico',
-                'mensaje' => "{$sinRegistroHoy} pacientes sin registro del día",
-                'icono' => 'heart-pulse',
             ];
         }
 

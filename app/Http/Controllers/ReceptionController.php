@@ -20,7 +20,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\Emergency;
-use App\Models\UtiAdmission;
 use App\Models\Cirugia;
 use Illuminate\View\View;
 
@@ -978,7 +977,7 @@ class ReceptionController extends Controller
                 $q->with(['medico.user', 'especialidad', 'caja'])
                   ->orderBy('fecha', 'desc');
             },
-            'emergencies' => function($q) {
+            'emergencias' => function($q) {
                 $q->with(['user'])
                   ->orderBy('created_at', 'desc');
             },
@@ -987,11 +986,6 @@ class ReceptionController extends Controller
                   ->orderBy('fecha_ingreso', 'desc');
             }
         ])->findOrFail($ci);
-
-        $utiHistorial = UtiAdmission::where('patient_id', $ci)
-            ->with(['bed', 'medicamentos', 'costos'])
-            ->orderBy('fecha_ingreso', 'desc')
-            ->get();
 
         $cirugiasHistorial = Cirugia::whereHas('emergencia', function($q) use ($ci) {
                 $q->where('patient_id', $ci);
@@ -1002,7 +996,6 @@ class ReceptionController extends Controller
 
         return view('reception.pacientes.historial', compact(
             'paciente',
-            'utiHistorial',
             'cirugiasHistorial'
         ));
     }
@@ -1020,7 +1013,7 @@ class ReceptionController extends Controller
                 $q->with(['medico.user', 'especialidad', 'caja'])
                   ->orderBy('fecha', 'desc');
             },
-            'emergencies' => function($q) {
+            'emergencias' => function($q) {
                 $q->with(['user'])
                   ->orderBy('created_at', 'desc');
             },
@@ -1029,11 +1022,6 @@ class ReceptionController extends Controller
                   ->orderBy('fecha_ingreso', 'desc');
             }
         ])->findOrFail($ci);
-
-        $utiHistorial = UtiAdmission::where('patient_id', $ci)
-            ->with(['bed'])
-            ->orderBy('fecha_ingreso', 'desc')
-            ->get();
 
         $cirugiasHistorial = Cirugia::whereHas('emergencia', function($q) use ($ci) {
                 $q->where('patient_id', $ci);
@@ -1046,7 +1034,6 @@ class ReceptionController extends Controller
 
         return view('reception.pacientes.historial-print', compact(
             'paciente',
-            'utiHistorial',
             'cirugiasHistorial',
             'fechaImpresion'
         ));

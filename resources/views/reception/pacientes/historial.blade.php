@@ -138,9 +138,6 @@
                     <button @click="activeTab = 'hospitalizaciones'" :class="activeTab === 'hospitalizaciones' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
                         Hospitalizaciones ({{ $paciente->hospitalizaciones->count() }})
                     </button>
-                    <button @click="activeTab = 'uti'" :class="activeTab === 'uti' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
-                        UTI ({{ $utiHistorial->count() }})
-                    </button>
                     <button @click="activeTab = 'cirugias'" :class="activeTab === 'cirugias' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
                         Cirugías ({{ $cirugiasHistorial->count() }})
                     </button>
@@ -281,51 +278,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                             </svg>
                             <p class="mt-2 text-sm text-gray-500">No hay hospitalizaciones registradas</p>
-                        </div>
-                    @endif
-                </div>
-
-                <div x-show="activeTab === 'uti'" x-cloak>
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Historial de UTI</h3>
-                    @if($utiHistorial->count() > 0)
-                        <div class="space-y-4">
-                            @foreach($utiHistorial as $uti)
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <span class="text-sm font-medium text-gray-900">Nro. Ingreso: {{ $uti->nro_ingreso }}</span>
-                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $uti->estado === 'activo' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800' }}">
-                                                {{ ucfirst($uti->estado) }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <span class="text-gray-500">Fecha Ingreso:</span>
-                                            <span class="text-gray-900 ml-1">{{ $uti->fecha_ingreso?->format('d/m/Y H:i') ?? '-' }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-500">Fecha Alta:</span>
-                                            <span class="text-gray-900 ml-1">{{ $uti->fecha_alta?->format('d/m/Y H:i') ?? 'Sin alta' }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-500">Cama:</span>
-                                            <span class="text-gray-900 ml-1">{{ $uti->bed->bed_number ?? '-' }}</span>
-                                        </div>
-                                        <div class="md:col-span-3">
-                                            <span class="text-gray-500">Diagnóstico Principal:</span>
-                                            <span class="text-gray-900 ml-1">{{ $uti->diagnostico_principal ?? 'No registrado' }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="text-center py-8">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                            </svg>
-                            <p class="mt-2 text-sm text-gray-500">No hay registros de UTI</p>
                         </div>
                     @endif
                 </div>

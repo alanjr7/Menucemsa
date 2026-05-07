@@ -210,34 +210,6 @@
         </div>
         @endif
 
-        @if($utiHistorial->count() > 0)
-        <div class="page-break"></div>
-        <div class="mb-6">
-            <h3 class="text-base font-bold text-gray-800 mb-3 bg-cyan-50 p-2 rounded flex items-center">
-                <span class="w-6 h-6 bg-cyan-600 text-white rounded-full flex items-center justify-center text-xs mr-2">4</span>
-                UNIDAD DE TERAPIA INTENSIVA (UTI)
-            </h3>
-            @foreach($utiHistorial as $uti)
-            <div class="border border-gray-300 rounded mb-3 p-3">
-                <div class="flex justify-between items-start mb-2 pb-2 border-b border-gray-200">
-                    <div>
-                        <span class="font-medium">Nro. Ingreso: {{ $uti->nro_ingreso }}</span>
-                        <span class="ml-2 px-2 py-0.5 rounded text-xs {{ $uti->estado === 'activo' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800' }}">
-                            {{ ucfirst($uti->estado) }}
-                        </span>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-2 text-sm">
-                    <div><span class="text-gray-600">Fecha Ingreso:</span> <span>{{ $uti->fecha_ingreso?->format('d/m/Y H:i') ?? '-' }}</span></div>
-                    <div><span class="text-gray-600">Fecha Alta:</span> <span>{{ $uti->fecha_alta?->format('d/m/Y H:i') ?? 'Sin alta' }}</span></div>
-                    <div><span class="text-gray-600">Cama:</span> <span>{{ $uti->bed->bed_number ?? '-' }}</span></div>
-                    <div class="col-span-3"><span class="text-gray-600">Diagnóstico Principal:</span> <span>{{ $uti->diagnostico_principal ?? 'No registrado' }}</span></div>
-                </div>
-            </div>
-            @endforeach
-        </div>
-        @endif
-
         @if($cirugiasHistorial->count() > 0)
         <div class="page-break"></div>
         <div class="mb-6">

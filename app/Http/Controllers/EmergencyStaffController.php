@@ -6,8 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Emergency;
 use App\Models\Paciente;
 use App\Models\Quirofano;
-use App\Models\UtiAdmission;
-use App\Models\UtiBed;
 use App\Models\Hospitalizacion;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -287,17 +285,6 @@ class EmergencyStaffController extends Controller
                     return [
                         'disponible' => false,
                         'mensaje' => 'No hay quirófanos disponibles en este momento.'
-                    ];
-                }
-                return ['disponible' => true];
-
-            case 'uti':
-                // Verificar camas UTI disponibles (tabla uti_beds)
-                $camasUti = DB::table('uti_beds')->where('status', 'disponible')->where('activa', true)->count();
-                if ($camasUti === 0) {
-                    return [
-                        'disponible' => false,
-                        'mensaje' => 'No hay camas disponibles en UTI.'
                     ];
                 }
                 return ['disponible' => true];

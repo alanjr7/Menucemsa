@@ -40,7 +40,7 @@
                         ['r' => 'admision.index', 'l' => 'Admisión'],
                         ['r' => 'consulta.index', 'l' => 'Consulta Externa'],
                         ['r' => 'emergencias.index', 'l' => 'Emergencias'],
-                        ['r' => 'uti.operativa.index', 'l' => 'UTI'],
+                        ['r' => 'patients.index', 'l' => 'UTI'],
                         ['r' => 'quirofano.index', 'l' => 'Quirófano'],
                     ]
                 ],

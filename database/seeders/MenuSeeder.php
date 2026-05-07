@@ -84,6 +84,22 @@ class MenuSeeder extends Seeder
             ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'enfermera-internacion', 'order' => 2],
         ]);
 
+        // 3.7 Panel UTI - Terapia Intensiva (Con Submenús)
+        $panelUti = Menu::create([
+            'name' => 'UTI - Terapia Intensiva',
+            'active_pattern' => 'emergency-staff.*,uti.*',
+            'icon_path' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+            'color' => 'cyan',
+            'roles' => 'uti',
+            'order' => 28,
+        ]);
+
+        $panelUti->children()->createMany([
+            ['name' => 'Panel', 'route' => 'uti.dashboard', 'roles' => 'uti', 'order' => 1],
+            ['name' => 'Camillas', 'route' => 'emergency-staff.camillas.index', 'roles' => 'uti', 'order' => 2],
+            ['name' => 'Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'uti', 'order' => 3],
+        ]);
+
         // 4. Emergencias (Operativo - rol emergencia)
         $emergencias = Menu::create([
             'name' => 'Emergencias',
@@ -132,7 +148,6 @@ class MenuSeeder extends Seeder
 
         $pacientes->children()->createMany([
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => null, 'order' => 1],
-            ['name' => 'UTI - Administración', 'route' => 'uti.admin.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 2],
             ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 3],
             ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 4],
           //  ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 5],
@@ -200,21 +215,6 @@ class MenuSeeder extends Seeder
             ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia,admin,administrador', 'order' => 3],
             ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin,administrador', 'order' => 4],
             ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin,administrador', 'order' => 5],
-        ]);
-
-        // 9. UTI - Terapia Intensiva
-        $uti = Menu::create([
-            'name' => 'UTI - Terapia Intensiva',
-            'active_pattern' => 'uti*',
-            'icon_path' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
-            'color' => 'cyan',
-            'roles' => 'uti',
-            'order' => 80,
-        ]);
-        $uti->children()->createMany([
-            ['name' => 'Panel de Pacientes', 'route' => 'uti.operativa.index', 'order' => 1],
-            ['name' => 'Camillas', 'route' => 'emergency-staff.camillas.index', 'order' => 2],
-            ['name' => 'Ver Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'order' => 3],
         ]);
 
         // 10. Quirófano (Cirujano)
