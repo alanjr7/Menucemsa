@@ -99,7 +99,7 @@
                                     if (diff < 8) return 0;
                                     return Math.max(1, Math.ceil(diff / 24));
                                 },
-                                get costo() { return (this.dias * this.precioDia).toFixed(2); }
+                                <!-- get costo() { return (this.dias * this.precioDia).toFixed(2); } -->
                             }">
                             {{-- Nombre --}}
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -197,7 +197,7 @@
                                                         class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100">
                                                         <option value="">Seleccionar cama...</option>
                                                         <template x-for="cama in camas" :key="cama.id">
-                                                            <option :value="cama.id" x-text="`Cama ${cama.nro}${cama.tipo ? ' (' + cama.tipo + ')' : ''} — Bs. ${cama.precio}/día`"></option>
+                                                            <option :value="cama.id" x-text="`Cama ${cama.nro}${cama.tipo ? ' (' + cama.tipo + ')' : ''}`"></option>
                                                         </template>
                                                     </select>
                                                 </div>
@@ -214,16 +214,26 @@
                                                 <div x-show="dias > 0" class="rounded-lg bg-indigo-50 border border-indigo-100 px-4 py-3 text-sm">
                                                     <div class="flex justify-between text-indigo-800">
                                                         <span>Días: <strong x-text="dias"></strong></span>
-                                                        <span>Costo estimado: <strong>Bs. <span x-text="costo"></span></strong></span>
+                                                        <!-- <span>Costo estimado: <strong>Bs. <span x-text="costo"></span></strong></span>-->
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div class="mt-6 flex gap-3 justify-end">
+                                            <div x-show="fecha_inicio && fecha_fin && new Date(fecha_fin) <= new Date(fecha_inicio)"
+                                                class="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
+                                                La fecha de fin debe ser posterior a la fecha de inicio.
+                                            </div>
+
+                                            <div class="mt-4 flex gap-3 justify-end">
                                                 <button type="button" @click="open = false"
                                                     class="px-4 py-2 border rounded-lg text-sm text-gray-600">Cancelar</button>
                                                 <button type="submit"
-                                                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">Guardar</button>
+                                                    :disabled="fecha_inicio && fecha_fin && new Date(fecha_fin) <= new Date(fecha_inicio)"
+                                                    :class="(fecha_inicio && fecha_fin && new Date(fecha_fin) <= new Date(fecha_inicio))
+                                                        ? 'px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm cursor-not-allowed'
+                                                        : 'px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700'">
+                                                    Guardar
+                                                </button>
                                             </div>
                                         </form>
                                     </div>

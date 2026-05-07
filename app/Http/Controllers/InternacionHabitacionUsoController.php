@@ -127,7 +127,12 @@ class InternacionHabitacionUsoController extends Controller
             'estadia',
             $descripcion,
             $precio,
-            $dias
+            $dias,
+            null,
+            null,
+            null,
+            'internacion',
+            auth()->id()
         );
 
         return redirect()->route('internacion-staff.habitaciones.registro-uso')

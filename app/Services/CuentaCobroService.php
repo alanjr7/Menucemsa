@@ -495,9 +495,11 @@ class CuentaCobroService
         float $cantidad = 1,
         ?int $tarifaId = null,
         ?string $origenType = null,
-        ?string $origenId = null
+        ?string $origenId = null,
+        ?string $areaOrigen = null,
+        ?int $userId = null
     ): CuentaCobroDetalle {
-        return DB::transaction(function () use ($cuentaCobroId, $tipoItem, $descripcion, $precioUnitario, $cantidad, $tarifaId, $origenType, $origenId) {
+        return DB::transaction(function () use ($cuentaCobroId, $tipoItem, $descripcion, $precioUnitario, $cantidad, $tarifaId, $origenType, $origenId, $areaOrigen, $userId) {
             $cuenta = CuentaCobro::findOrFail($cuentaCobroId);
 
             // No permitir agregar cargos si ya está pagada completamente
@@ -516,6 +518,8 @@ class CuentaCobroService
                 'subtotal' => $subtotal,
                 'origen_type' => $origenType,
                 'origen_id' => $origenId,
+                'area_origen' => $areaOrigen,
+                'user_id' => $userId ?? auth()->id(),
             ]);
 
             // Recalcular totales

@@ -24,6 +24,7 @@ class CuentaCobroDetalle extends Model
         'origen_id',
         'observaciones',
         'area_origen',
+        'user_id',
     ];
 
     protected $casts = [
@@ -36,6 +37,11 @@ class CuentaCobroDetalle extends Model
     public function cuentaCobro(): BelongsTo
     {
         return $this->belongsTo(CuentaCobro::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function tarifa(): BelongsTo

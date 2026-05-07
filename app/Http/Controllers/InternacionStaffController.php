@@ -37,42 +37,28 @@ class InternacionStaffController extends Controller
             ? Carbon::parse($request->fecha)->toDateString()
             : today()->toDateString();
 
-        $habitacionesAsignadas = Hospitalizacion::with(['paciente', 'medico.user'])
-            ->whereDate('fecha_ingreso', $fecha)
-            ->whereNotNull('habitacion_id')
-            ->orderBy('fecha_ingreso')
-            ->get();
-
-        $evaluaciones = HospMedicamentoAdministrado::with(['hospitalizacion.paciente', 'administeredBy'])
-            ->whereDate('fecha', $fecha)
-            ->get()
-            ->groupBy('hospitalizacion_id')
-            ->map(fn($items) => $items->first());
-
-        $medicamentos = HospMedicamentoAdministrado::with(['hospitalizacion.paciente', 'catalogo', 'administeredBy'])
-            ->whereDate('fecha', $fecha)
-            ->orderBy('hora')
-            ->get();
-
-        $procedimientos = CuentaCobroDetalle::with(['cuentaCobro.paciente'])
-            ->where('tipo_item', 'procedimiento')
-            ->where('area_origen', 'internacion')
+        // Fuente 1: evaluaciones de internación (medicamentos, insumos, procedimientos)
+        $evaluaciones = \App\Models\Evaluacion::with(['paciente', 'user', 'items'])
+            ->where('area', 'internacion')
             ->whereDate('created_at', $fecha)
+            ->orderBy('created_at')
             ->get();
 
-        $insumos = CuentaCobroDetalle::with(['cuentaCobro.paciente'])
-            ->whereIn('tipo_item', ['material', 'equipo_medico', 'estadia'])
-            ->where('area_origen', 'internacion')
+        $medicamentos    = $evaluaciones->flatMap(fn($ev) => $ev->items->where('tipo', 'medicamento')->map(fn($it) => (object)['paciente' => $ev->paciente, 'user' => $ev->user, 'item' => $it, 'hora' => $ev->created_at]));
+        $insumos         = $evaluaciones->flatMap(fn($ev) => $ev->items->where('tipo', 'insumo')->map(fn($it) => (object)['paciente' => $ev->paciente, 'user' => $ev->user, 'item' => $it, 'hora' => $ev->created_at]));
+        $procedimientos  = $evaluaciones->flatMap(fn($ev) => $ev->items->where('tipo', 'procedimiento')->map(fn($it) => (object)['paciente' => $ev->paciente, 'user' => $ev->user, 'item' => $it, 'hora' => $ev->created_at]));
+
+        // Fuente 2: habitaciones registradas (registro-uso)
+        $habitacionesRegistradas = CuentaCobroDetalle::with(['cuentaCobro.paciente', 'user'])
+            ->where('tipo_item', 'estadia')
             ->whereDate('created_at', $fecha)
+            ->orderBy('created_at')
             ->get();
 
         return view('internacion-staff.dashboard', compact(
             'fecha',
-            'habitacionesAsignadas',
             'evaluaciones',
-            'medicamentos',
-            'procedimientos',
-            'insumos'
+            'habitacionesRegistradas'
         ));
     }
 
