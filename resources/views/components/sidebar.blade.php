@@ -61,6 +61,7 @@
                         ['r' => 'admin.consulta-externa-gestion', 'l' => 'Gestionar Consulta Externa'],
                         ['r' => 'tarifarios', 'l' => 'Tarifarios'],
                         ['r' => 'admin.especialidades.index', 'l' => 'Especialidades'],
+                        ['r' => 'admin.camillas.index', 'l' => 'Camillas'],
                         ['r' => 'seguros', 'l' => 'Seguros'],
                         ['r' => 'cuentas-por-cobrar', 'l' => 'Cuentas por Cobrar'],
                     ]
@@ -71,8 +72,8 @@
                     'active' => request()->is('emergency-staff*'),
                     'links' => [
                         ['r' => 'emergency-staff.dashboard', 'l' => 'Panel de Emergencias'],
-                        ['r' => 'emergency-staff.pending', 'l' => 'Emergencias Pendientes'],
                         ['r' => 'emergency-staff.create', 'l' => 'Nueva Emergencia'],
+                        ['r' => 'emergency-staff.camillas.index', 'l' => 'Camillas'],
                     ]
                 ],
                 @endif

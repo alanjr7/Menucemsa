@@ -89,7 +89,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Área</label>
                 <select name="area" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option value="">Central (default)</option>
+                    <option value="">Central</option>
                     <option value="emergencia" {{ request('area') == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
                     <option value="cirugia" {{ request('area') == 'cirugia' ? 'selected' : '' }}>Cirugía</option>
                     <option value="hospitalizacion" {{ request('area') == 'hospitalizacion' ? 'selected' : '' }}>Hospitalización</option>
@@ -97,6 +97,7 @@
                     <option value="usi" {{ request('area') == 'usi' ? 'selected' : '' }}>USI</option>
                     <option value="neonato" {{ request('area') == 'neonato' ? 'selected' : '' }}>Neonato</option>
                     <option value="internacion" {{ request('area') == 'internacion' ? 'selected' : '' }}>Internación</option>
+                    <option value="todos" {{ request('area') == 'todos' ? 'selected' : '' }}>Todos las áreas</option>
                 </select>
             </div>
             <div class="flex-1 min-w-48">
@@ -179,33 +180,45 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($catalogo as $item)
                     @php
-                        $ubicacionActual = $area ?? 'central';
-                        $stockEnUbicacion = $item->lotes->flatMap->stocks->where('ubicacion', $ubicacionActual)->sum('cantidad_actual');
-                        $stockMin = $item->lotes->flatMap->stocks->where('ubicacion', $ubicacionActual)->min('stock_minimo') ?? 0;
-                        $estadoStock = $stockEnUbicacion <= 0 ? 'agotado' : ($stockEnUbicacion <= $stockMin ? 'bajo' : 'normal');
-
-                        // Lote con más stock en la ubicación actual para mostrar precios
-                        $loteRef = $item->lotes
-                            ->flatMap(fn($l) => $l->stocks->where('ubicacion', $ubicacionActual)->map(fn($s) => ['lote' => $l, 'stock' => $s]))
-                            ->sortByDesc(fn($x) => $x['stock']->cantidad_actual)
-                            ->first();
-
-                        $precioCompra = $loteRef['lote']->precio_compra ?? null;
-                        $precioVenta = $loteRef['lote']->precio_venta ?? null;
-                        $ganancia = $loteRef['lote']->porcentaje_ganancia ?? null;
-
-                        // Fecha de vencimiento más próxima (solo lotes vigentes)
-                        $fechaVencimiento = $item->lotes
-                            ->filter(fn($l) => $l->fecha_vencimiento && $l->fecha_vencimiento->isFuture())
-                            ->sortBy('fecha_vencimiento')
-                            ->first()?->fecha_vencimiento;
-
+                        $todosStocks = $item->lotes->flatMap->stocks;
                         $lotesParaJs = $item->lotes->map(fn($l) => [
                             'id' => $l->id,
                             'codigo' => $l->codigo_lote ?? 'Sin código',
                             'vencimiento' => $l->fecha_vencimiento?->format('d/m/Y') ?? 'Sin fecha',
                             'stock_central' => $l->stocks->where('ubicacion', 'central')->sum('cantidad_actual'),
                         ])->filter(fn($l) => $l['stock_central'] > 0)->values()->toJson();
+
+                        $fechaVencimiento = $item->lotes
+                            ->filter(fn($l) => $l->fecha_vencimiento && $l->fecha_vencimiento->isFuture())
+                            ->sortBy('fecha_vencimiento')
+                            ->first()?->fecha_vencimiento;
+
+                        if ($mostrarTodos) {
+                            $filas = $todosStocks->groupBy('ubicacion')->map(fn($stocks, $ub) => [
+                                'ubicacion' => $ub,
+                                'stock' => $stocks->sum('cantidad_actual'),
+                                'stock_minimo' => $stocks->min('stock_minimo') ?? 0,
+                            ])->values();
+                            if ($filas->isEmpty()) {
+                                $filas = collect([['ubicacion' => null, 'stock' => 0, 'stock_minimo' => 0]]);
+                            }
+                        } else {
+                            $ubicacionActual = $area ?? 'central';
+                            $stocksFiltrados = $todosStocks->where('ubicacion', $ubicacionActual);
+                            $filas = collect([['ubicacion' => $ubicacionActual, 'stock' => $stocksFiltrados->sum('cantidad_actual'), 'stock_minimo' => $stocksFiltrados->min('stock_minimo') ?? 0]]);
+                        }
+
+                        // Precio de referencia (lote con más stock central)
+                        $loteRef = $item->lotes->sortByDesc(fn($l) => $l->stocks->where('ubicacion', 'central')->sum('cantidad_actual'))->first();
+                        $precioCompra = $loteRef?->precio_compra;
+                        $precioVenta = $loteRef?->precio_venta;
+                        $ganancia = $loteRef?->porcentaje_ganancia;
+                    @endphp
+                    @foreach($filas as $fila)
+                    @php
+                        $stockFila = $fila['stock'];
+                        $stockMinFila = $fila['stock_minimo'];
+                        $estadoStock = $stockFila <= 0 ? 'agotado' : ($stockFila <= $stockMinFila ? 'bajo' : 'normal');
                     @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4">
@@ -220,7 +233,7 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ $area ? ucfirst($area) : 'Central' }}
+                            {{ $fila['ubicacion'] ? ucfirst($fila['ubicacion']) : '—' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $item->unidad_medida }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -230,9 +243,9 @@
                             @if($estadoStock === 'agotado')
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">0 {{ $item->unidad_medida }}</span>
                             @elseif($estadoStock === 'bajo')
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ $stockEnUbicacion }} {{ $item->unidad_medida }}</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ $stockFila }} {{ $item->unidad_medida }}</span>
                             @else
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $stockEnUbicacion }} {{ $item->unidad_medida }}</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $stockFila }} {{ $item->unidad_medida }}</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -277,7 +290,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </a>
-                                @if($stockEnUbicacion > 0)
+                                @if($stockFila > 0)
                                 <button type="button"
                                         @click="openDispensar({{ $item->id }}, '{{ addslashes($item->nombre) }}', '{{ $item->unidad_medida }}', '{{ addslashes($lotesParaJs) }}')"
                                         class="text-blue-600 hover:text-blue-900" title="Dispensar a área">
@@ -286,7 +299,7 @@
                                     </svg>
                                 </button>
                                 @endif
-                                @if($area && $stockEnUbicacion > 0)
+                                @if($area && !$mostrarTodos && $stockFila > 0)
                                 <button type="button"
                                         @click="abrirPacientes({{ $item->id }}, '{{ addslashes($item->nombre) }}')"
                                         class="text-purple-600 hover:text-purple-900 text-xs font-medium" title="Ver pacientes">
@@ -312,6 +325,7 @@
                             </div>
                         </td>
                     </tr>
+                    @endforeach
                     @empty
                     <tr>
                         <td colspan="12" class="px-6 py-12 text-center text-gray-500">

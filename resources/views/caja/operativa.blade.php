@@ -653,9 +653,8 @@
                         document.getElementById('razonSocialFactura').value = data.cuenta.razon_social;
                     }
                     
-                    // Pre-llenar monto con saldo pendiente o copago del seguro
-                    const montoSugerido = data.cuenta.seguro ? data.cuenta.seguro.monto_paciente : data.cuenta.saldo_pendiente;
-                    const montoSugeridoFloat = parseFloat(String(montoSugerido).replace(',', '.')) || 0;
+                    // Siempre usar el saldo_pendiente consolidado como monto sugerido
+                    const montoSugeridoFloat = parseFloat(String(data.cuenta.saldo_pendiente).replace(',', '.')) || 0;
                     document.getElementById('montoPago').value = montoSugeridoFloat.toFixed(2);
                     document.getElementById('montoPago').max = montoSugeridoFloat.toFixed(2);
                     
@@ -693,6 +692,7 @@
 
             const formData = {
                 cuenta_cobro_id: cuentaActual.id,
+                cuenta_ids: cuentaActual.cuenta_ids || [cuentaActual.id],
                 monto: montoParsed,
                 metodo_pago: document.getElementById('metodoPago').value,
                 referencia: document.getElementById('referenciaPago').value,
@@ -816,8 +816,7 @@
         // Actualizar monto al marcar pago total
         document.getElementById('esPagoTotal').addEventListener('change', function() {
             if (this.checked && cuentaActual) {
-                const montoSugerido = cuentaActual.seguro ? cuentaActual.seguro.monto_paciente : cuentaActual.saldo_pendiente;
-                document.getElementById('montoPago').value = montoSugerido;
+                document.getElementById('montoPago').value = parseFloat(String(cuentaActual.saldo_pendiente).replace(',', '.')).toFixed(2);
             }
         });
     </script>

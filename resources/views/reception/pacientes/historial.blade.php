@@ -43,7 +43,7 @@
                 if ($paciente->hospitalizaciones()->where('estado', 'Activo')->exists()) {
                     $estado = 'Hospitalizado';
                     $estadoColor = 'yellow';
-                } elseif ($paciente->emergencies()->where('status', '!=', 'alta')->exists()) {
+                } elseif ($paciente->emergencias()->where('status', '!=', 'alta')->exists()) {
                     $estado = 'En Emergencia';
                     $estadoColor = 'red';
                 }
@@ -109,7 +109,7 @@
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Emergencias:</dt>
-                        <dd class="text-sm font-medium text-red-600">{{ $paciente->emergencies->count() }}</dd>
+                        <dd class="text-sm font-medium text-red-600">{{ $paciente->emergencias->count() }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Hospitalizaciones:</dt>
@@ -133,7 +133,7 @@
                         Consultas Externas ({{ $paciente->consultas->count() }})
                     </button>
                     <button @click="activeTab = 'emergencias'" :class="activeTab === 'emergencias' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
-                        Emergencias ({{ $paciente->emergencies->count() }})
+                        Emergencias ({{ $paciente->emergencias->count() }})
                     </button>
                     <button @click="activeTab = 'hospitalizaciones'" :class="activeTab === 'hospitalizaciones' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
                         Hospitalizaciones ({{ $paciente->hospitalizaciones->count() }})
@@ -196,9 +196,9 @@
 
                 <div x-show="activeTab === 'emergencias'" x-cloak>
                     <h3 class="text-lg font-bold text-gray-800 mb-4">Historial de Emergencias</h3>
-                    @if($paciente->emergencies->count() > 0)
+                    @if($paciente->emergencias->count() > 0)
                         <div class="space-y-4">
-                            @foreach($paciente->emergencies as $emergencia)
+                            @foreach($paciente->emergencias as $emergencia)
                                 <div class="border border-gray-200 rounded-lg p-4">
                                     <div class="flex justify-between items-start mb-2">
                                         <div>

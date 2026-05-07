@@ -24,7 +24,7 @@ class PatientsController extends Controller
                 'hospitalizaciones' => function($q) {
                     $q->orderBy('created_at', 'desc')->limit(1);
                 },
-                'emergencies' => function($q) {
+                'emergencias' => function($q) {
                     $q->orderBy('created_at', 'desc')->limit(1);
                 }
             ])
@@ -50,7 +50,7 @@ class PatientsController extends Controller
                     $q->where('estado', 'Activo');
                 });
             } elseif ($estado === 'emergencia') {
-                $query->whereHas('emergencies', function($q) {
+                $query->whereHas('emergencias', function($q) {
                     $q->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
                 });
             }
@@ -127,7 +127,7 @@ class PatientsController extends Controller
             'hospitalizados' => Paciente::whereHas('hospitalizaciones', function($q) {
                 $q->where('estado', 'Activo');
             })->count(),
-            'emergencias' => Paciente::whereHas('emergencies', function($q) {
+            'emergencias' => Paciente::whereHas('emergencias', function($q) {
                 $q->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
             })->count() + $pacientesTemporales->count(),
             'pagados' => Paciente::whereHas('consultas.caja', function($q) {
@@ -141,7 +141,7 @@ class PatientsController extends Controller
     private function determinarTipoIngreso(Paciente $paciente): string
     {
         $consulta = $paciente->consultas->first();
-        $emergencia = $paciente->emergencies->first();
+        $emergencia = $paciente->emergencias->first();
         $hospitalizacion = $paciente->hospitalizaciones->first();
 
         $fechaMasReciente = null;
@@ -184,7 +184,7 @@ class PatientsController extends Controller
                 $q->with(['medico.user', 'especialidad', 'caja'])
                   ->orderBy('fecha', 'desc');
             },
-            'emergencies' => function($q) {
+            'emergencias' => function($q) {
                 $q->with(['user'])
                   ->orderBy('created_at', 'desc');
             },

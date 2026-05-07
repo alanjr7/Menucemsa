@@ -48,75 +48,138 @@
                 <form id="formCompletarDatos" action="{{ route('reception.completar-datos-paciente.store') }}" method="POST">
                     @csrf
                     <input type="hidden" name="emergency_id" value="{{ $emergency->id }}">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- CI -->
+
+                    {{-- IDENTIFICACIÓN --}}
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Identificación</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Cédula de Identidad (CI) <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" name="ci" id="ci" placeholder="Número de CI del paciente" 
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all" 
+                            <input type="text" name="ci" id="ci" placeholder="Número de CI"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                 required>
-                            <p class="text-xs text-gray-500 mt-1">Este será el identificador único del paciente en el sistema</p>
+                            <p class="text-xs text-gray-500 mt-1">Identificador único del paciente</p>
                             @error('ci')
                                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
-                        
-                        <!-- Nombres -->
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Nombres <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" name="nombres" id="nombres" placeholder="Nombres del paciente" 
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all" 
+                            <input type="text" name="nombres" id="nombres" placeholder="Nombres"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                 required>
                         </div>
-                        
-                        <!-- Apellidos -->
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Apellidos <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" name="apellidos" id="apellidos" placeholder="Apellidos del paciente" 
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all" 
+                            <input type="text" name="apellidos" id="apellidos" placeholder="Apellidos"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                 required>
                         </div>
-                        
-                        <!-- Sexo -->
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Sexo <span class="text-red-500">*</span>
                             </label>
-                            <select name="sexo" id="sexo" 
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all" 
+                            <select name="sexo" id="sexo"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                 required>
                                 <option value="">Seleccione...</option>
                                 <option value="Masculino">Masculino</option>
                                 <option value="Femenino">Femenino</option>
                             </select>
                         </div>
-                        
-                        <!-- Teléfono -->
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento</label>
+                            <input type="date" name="fecha_nacimiento" id="fecha_nacimiento"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Lugar de Expedición del CI</label>
+                            <select name="lugar_expedicion"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                                <option value="">Seleccione departamento...</option>
+                                @foreach(['LP'=>'La Paz','CB'=>'Cochabamba','SC'=>'Santa Cruz','OR'=>'Oruro','PT'=>'Potosí','CH'=>'Chuquisaca','TJ'=>'Tarija','BE'=>'Beni','PD'=>'Pando'] as $cod => $dep)
+                                    <option value="{{ $cod }}">{{ $dep }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidad</label>
+                            <input type="text" name="nacionalidad" placeholder="Ej: Boliviana"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Estado Civil</label>
+                            <select name="estado_civil"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                                <option value="">Seleccione...</option>
+                                <option value="Soltero">Soltero/a</option>
+                                <option value="Casado">Casado/a</option>
+                                <option value="Divorciado">Divorciado/a</option>
+                                <option value="Viudo">Viudo/a</option>
+                                <option value="Union libre">Unión libre</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- CONTACTO --}}
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Contacto</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                            <input type="tel" name="telefono" id="telefono" placeholder="Ej: 0414-1234567" 
+                            <input type="tel" name="telefono" id="telefono" placeholder="Ej: 72312345"
                                 class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
                         </div>
-                        
-                        <!-- Correo -->
-                        <div class="md:col-span-2">
+
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
-                            <input type="email" name="correo" id="correo" placeholder="correo@ejemplo.com" 
+                            <input type="email" name="correo" id="correo" placeholder="correo@ejemplo.com"
                                 class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
                         </div>
-                        
-                        <!-- Dirección -->
+
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
-                            <textarea name="direccion" id="direccion" rows="3" placeholder="Dirección completa del paciente" 
+                            <textarea name="direccion" id="direccion" rows="2" placeholder="Dirección completa"
                                 class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"></textarea>
+                        </div>
+                    </div>
+
+                    {{-- LABORAL Y SEGURO --}}
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Laboral y Seguro</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Profesión / Ocupación</label>
+                            <input type="text" name="profesion" placeholder="Ej: Docente, Comerciante"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Empresa / Lugar de Trabajo</label>
+                            <input type="text" name="empresa_trabajo" placeholder="Nombre de la empresa"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Seguro Médico</label>
+                            <select name="seguro_id"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                                @foreach($seguros as $seguro)
+                                    <option value="{{ $seguro->id }}" {{ $seguro->tipo === 'particular' ? 'selected' : '' }}>
+                                        {{ $seguro->nombre_empresa }} ({{ $seguro->tipo }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
@@ -174,9 +237,9 @@
         const nombres = formData.get('nombres');
         const apellidos = formData.get('apellidos');
         const sexo = formData.get('sexo');
-        
+
         if (!ci || !nombres || !apellidos || !sexo) {
-            alert('Por favor complete todos los campos obligatorios: CI, Nombres, Apellidos y Sexo');
+            alert('Complete los campos obligatorios: CI, Nombres, Apellidos y Sexo');
             return;
         }
         

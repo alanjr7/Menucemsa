@@ -384,18 +384,6 @@ class EmergencyStaffController extends Controller
         return view('emergency-staff.edit', compact('emergency'));
     }
 
-    public function pending(): View
-    {
-        $emergencies = Emergency::with('paciente')
-            ->where('status', 'recibido')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $criticas = $emergencies->filter(fn($e) => $e->created_at->diffInMinutes(now()) < 30);
-
-        return view('emergency-staff.pending', compact('emergencies', 'criticas'));
-    }
-
     /**
      * Mostrar formulario de evaluación de emergencia
      */

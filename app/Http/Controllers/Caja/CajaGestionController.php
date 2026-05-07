@@ -66,8 +66,8 @@ class CajaGestionController extends Controller
                     'usuario' => $caja->user->name ?? 'N/A',
                     'fecha_apertura' => $caja->fecha_apertura->format('d/m/Y H:i'),
                     'monto_inicial' => $caja->monto_inicial,
-                    'total_ingresos' => $caja->ingresos()->sum('monto'),
-                    'total_egresos' => $caja->egresos()->sum('monto'),
+                    'total_ingresos' => $caja->movimientos()->where('tipo', 'ingreso')->where('concepto', 'like', 'Cobro%')->sum('monto'),
+                    'total_egresos' => $caja->movimientos()->where('tipo', 'egreso')->where('concepto', '!=', 'Cierre de caja')->sum('monto'),
                     'duracion' => $caja->duracion,
                 ];
             });
@@ -309,9 +309,9 @@ class CajaGestionController extends Controller
             $cajas = $query->orderBy('fecha_apertura', 'desc')
                 ->paginate(20)
                 ->through(function ($caja) {
-                    $totalIngresos = $caja->ingresos()->sum('monto');
-                    $totalEgresos = $caja->egresos()->sum('monto');
-                    $totalEsperado = $caja->monto_inicial + $totalIngresos - $totalEgresos;
+                    $totalIngresos = $caja->movimientos()->where('tipo', 'ingreso')->where('concepto', 'like', 'Cobro%')->sum('monto');
+                    $totalEgresos = $caja->movimientos()->where('tipo', 'egreso')->where('concepto', '!=', 'Cierre de caja')->sum('monto');
+                    $totalEsperado = (float) $caja->monto_inicial + (float) $totalIngresos - (float) $totalEgresos;
                     $diferencia = $caja->monto_final !== null 
                         ? $caja->monto_final - $totalEsperado 
                         : null;
@@ -322,13 +322,15 @@ class CajaGestionController extends Controller
                             'id' => $caja->user_id,
                             'nombre' => $caja->user->name ?? 'N/A',
                         ],
+                        'estado' => $caja->estado,
                         'fecha_apertura' => $caja->fecha_apertura ? $caja->fecha_apertura->format('d/m/Y H:i') : 'N/A',
+                        'fecha_cierre' => $caja->fecha_cierre ? $caja->fecha_cierre->format('d/m/Y H:i') : null,
                         'monto_inicial' => $caja->monto_inicial,
                         'monto_final' => $caja->monto_final,
                         'total_ingresos' => $totalIngresos,
                         'total_egresos' => $totalEgresos,
-                        'total_esperado' => $totalEsperado,
-                        'diferencia' => $diferencia,
+                        'total_esperado' => round($totalEsperado, 2),
+                        'diferencia' => $diferencia !== null ? round((float) $diferencia, 2) : null,
                         'transacciones_count' => $caja->movimientos()->count(),
                         'observaciones' => $caja->observaciones,
                     ];
@@ -375,18 +377,10 @@ class CajaGestionController extends Controller
                 'qr' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->qr()->sum('monto'),
             ];
 
-            // Debug: obtener pagos individuales para verificar
-            $pagosHoy = PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])
-                ->get(['id', 'monto', 'metodo_pago', 'cuenta_cobro_id', 'created_at']);
-            \Log::info('Fecha inicio: ' . $fechaInicio . ' | Fin: ' . $fechaFin);
-            \Log::info('Total pagos encontrados: ' . $pagosHoy->count());
-            \Log::info('Pagos del día: ' . $pagosHoy->toJson());
-            \Log::info('Sumas por método: E=' . $porMetodoPago['efectivo'] . ' Q=' . $porMetodoPago['qr']);
-
             // Desglose por tipo de atención
             $porTipoAtencion = CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                 ->where('estado', 'pagado')
-                ->selectRaw('tipo_atencion, COUNT(*) as cantidad, SUM(total_calculado) as total')
+                ->selectRaw('tipo_atencion, COUNT(*) as cantidad, SUM(total_pagado) as total')
                 ->groupBy('tipo_atencion')
                 ->get()
                 ->map(function ($item) {
@@ -407,7 +401,7 @@ class CajaGestionController extends Controller
                     'monto' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                         ->where('es_emergencia', false)
                         ->where('estado', 'pagado')
-                        ->sum('total_calculado'),
+                        ->sum('total_pagado'),
                 ],
                 'emergencia' => [
                     'cantidad' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
@@ -417,7 +411,7 @@ class CajaGestionController extends Controller
                     'monto' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                         ->where('es_emergencia', true)
                         ->where('estado', 'pagado')
-                        ->sum('total_calculado'),
+                        ->sum('total_pagado'),
                     'post_pago' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                         ->where('es_emergencia', true)
                         ->where('es_post_pago', true)
@@ -507,7 +501,7 @@ class CajaGestionController extends Controller
                         'tipo_label' => ucfirst($mov->tipo),
                         'concepto' => $mov->concepto,
                         'monto' => $mov->monto,
-                        'monto_formateado' => ($mov->tipo === 'egreso' ? '-' : '+') . ' S/ ' . number_format($mov->monto, 2),
+                        'monto_formateado' => ($mov->tipo === 'egreso' ? '-' : '+') . ' Bs ' . number_format($mov->monto, 2),
                         'metodo_pago' => $mov->metodo_pago,
                         'referencia' => $mov->referencia,
                         'caja_session_id' => $mov->caja_session_id,
@@ -659,22 +653,11 @@ class CajaGestionController extends Controller
                 'eliminado_en'           => now(),
             ]);
 
-            $nuevoTotal = max(0, (float) $cuenta->total_calculado - (float) $detalle->subtotal);
-            $estadoNuevo = $cuenta->estado;
-            if ($nuevoTotal <= 0) {
-                $estadoNuevo = 'pendiente';
-            } elseif ($cuenta->total_pagado > 0 && $nuevoTotal <= $cuenta->total_pagado) {
-                $estadoNuevo = 'pagado';
-            } elseif ($cuenta->total_pagado > 0 && $nuevoTotal > $cuenta->total_pagado) {
-                $estadoNuevo = 'parcial';
-            }
-
-            $cuenta->update([
-                'total_calculado' => $nuevoTotal,
-                'estado'          => $estadoNuevo,
-            ]);
-
             $detalle->delete();
+
+            // Recalcular desde la BD para que seguro y totales queden consistentes
+            $cuenta->load('detalles');
+            $cuenta->recalcularTotales();
 
             \Log::info('Detalle de cuenta eliminado', [
                 'detalle_id'   => $detalleId,
@@ -763,10 +746,10 @@ class CajaGestionController extends Controller
         try {
             $cuenta = CuentaCobro::findOrFail($id);
 
-            if ($cuenta->estado === 'pagado' && $cuenta->total_pagado > 0) {
+            if ($cuenta->total_pagado > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede anular una cuenta ya pagada. Use devolución parcial.'
+                    'message' => 'No se puede anular una cuenta con pagos registrados (pagado: Bs ' . number_format($cuenta->total_pagado, 2) . '). Procese una devolución primero.'
                 ], 422);
             }
 

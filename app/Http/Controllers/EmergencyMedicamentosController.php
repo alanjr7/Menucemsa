@@ -22,12 +22,16 @@ class EmergencyMedicamentosController extends Controller
 
     public function index(Request $request)
     {
+        $ubicacion = $this->ubicacion;
+
         $query = AlmacenCatalogo::activos()
-            ->with(['lotes' => function($q) {
-                $q->vigentes()->with('stocks');
+            ->with(['lotes' => function($q) use ($ubicacion) {
+                $q->with(['stocks' => function($sq) use ($ubicacion) {
+                    $sq->where('ubicacion', $ubicacion);
+                }]);
             }])
-            ->whereHas('stocks', function($q) {
-                $q->where('ubicacion', $this->ubicacion);
+            ->whereHas('lotes.stocks', function($q) use ($ubicacion) {
+                $q->where('ubicacion', $ubicacion);
             });
 
         // Filtros
@@ -45,14 +49,10 @@ class EmergencyMedicamentosController extends Controller
         $medicamentos = $query->orderBy('nombre')->paginate(10);
 
         $stats = [
-            'total' => AlmacenCatalogo::activos()->count(),
-            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->count(),
-            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->count(),
-            'bajo_stock' => AlmacenStock::where('ubicacion', $this->ubicacion)->bajoStock()->count(),
-            'agotados' => AlmacenStock::where('ubicacion', $this->ubicacion)->agotado()->count(),
-            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', function($q) {
-                $q->where('ubicacion', $this->ubicacion);
-            })->count(),
+            'total' => AlmacenCatalogo::activos()->whereHas('lotes.stocks', fn($q) => $q->where('ubicacion', $ubicacion))->count(),
+            'bajo_stock' => AlmacenStock::where('ubicacion', $ubicacion)->bajoStock()->count(),
+            'agotados' => AlmacenStock::where('ubicacion', $ubicacion)->agotado()->count(),
+            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', fn($q) => $q->where('ubicacion', $ubicacion))->count(),
         ];
 
         return view('emergency-staff.medicamentos.index', compact('medicamentos', 'stats'));

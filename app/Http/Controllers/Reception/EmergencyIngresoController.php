@@ -310,7 +310,8 @@ class EmergencyIngresoController extends Controller
                 ->with('error', 'Esta emergencia ya tiene datos completos del paciente');
         }
         
-        return view('reception.completar-datos-paciente', compact('emergency'));
+        $seguros = \App\Models\Seguro::orderBy('tipo')->orderBy('nombre_empresa')->get();
+        return view('reception.completar-datos-paciente', compact('emergency', 'seguros'));
     }
 
     /**
@@ -325,9 +326,16 @@ class EmergencyIngresoController extends Controller
                 'nombres' => 'required|string|max:80',
                 'apellidos' => 'required|string|max:80',
                 'sexo' => 'required|string|in:Masculino,Femenino',
+                'fecha_nacimiento' => 'nullable|date',
+                'lugar_expedicion' => 'nullable|string|max:10',
+                'nacionalidad' => 'nullable|string|max:50',
+                'estado_civil' => 'nullable|string|max:20',
                 'telefono' => 'nullable|string',
                 'correo' => 'nullable|email',
                 'direccion' => 'nullable|string',
+                'profesion' => 'nullable|string|max:100',
+                'empresa_trabajo' => 'nullable|string|max:100',
+                'seguro_id' => 'nullable|integer|exists:seguros,id',
             ]);
 
             DB::beginTransaction();
@@ -346,19 +354,23 @@ class EmergencyIngresoController extends Controller
                 'user_id' => Auth::id()
             ]);
 
-            $seguroCodigo = $this->obtenerOCrearSeguro('particular');
-
-            // Mapear sexo a formato corto para BD (M/F)
+            $seguroId = $validated['seguro_id'] ?? $this->obtenerOCrearSeguro('particular');
             $sexoCodigo = $validated['sexo'] === 'Masculino' ? 'M' : 'F';
 
             $paciente = Paciente::create([
                 'ci' => $validated['ci'],
                 'nombre' => trim($validated['nombres'] . ' ' . $validated['apellidos']),
                 'sexo' => $sexoCodigo,
+                'fecha_nacimiento' => $validated['fecha_nacimiento'] ?? null,
+                'lugar_expedicion' => $validated['lugar_expedicion'] ?? null,
+                'nacionalidad' => $validated['nacionalidad'] ?? null,
+                'estado_civil' => $validated['estado_civil'] ?? null,
                 'direccion' => $validated['direccion'] ?? 'Sin especificar',
                 'telefono' => $validated['telefono'] ? (int)$validated['telefono'] : 0,
                 'correo' => $validated['correo'] ?? 'sin@email.com',
-                'seguro_id' => $seguroCodigo,
+                'profesion' => $validated['profesion'] ?? null,
+                'empresa_trabajo' => $validated['empresa_trabajo'] ?? null,
+                'seguro_id' => $seguroId,
                 'registro_codigo' => $registroCodigo,
                 'triage_id' => $this->obenerOCrearTriage(),
             ]);

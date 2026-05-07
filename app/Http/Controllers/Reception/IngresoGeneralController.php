@@ -399,27 +399,23 @@ class IngresoGeneralController extends Controller
             'tipo' => 'consulta_externa',
         ]);
 
-        $tieneSeguro = !empty($request->seguro_id);
-        $cuenta = \App\Models\CuentaCobro::create([
-            'paciente_ci' => $paciente->ci,
-            'tipo_atencion' => 'consulta',
-            'referencia_id' => $consulta->codigo,
-            'referencia_type' => Consulta::class,
-            'total_calculado' => $costoConsulta,
-            'total_pagado' => 0,
-            'estado' => 'pendiente',
-            'seguro_estado' => $tieneSeguro ? 'pendiente_autorizacion' : null,
-            'seguro_id' => $tieneSeguro ? $request->seguro_id : null,
-        ]);
+        $seguroId = $request->filled('seguro_id') ? (int) $request->seguro_id : null;
+        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
+            (string) $paciente->ci,
+            'consulta_externa',
+            $seguroId
+        );
 
-        \App\Models\CuentaCobroDetalle::create([
-            'cuenta_cobro_id' => $cuenta->id,
-            'tipo_item' => 'servicio',
-            'descripcion' => 'Consulta Externa - ' . $consulta->codigo,
-            'cantidad' => 1,
-            'precio_unitario' => $costoConsulta,
-            'subtotal' => $costoConsulta,
-        ]);
+        CuentaCobroService::agregarCargoConDeduplicacion(
+            $cuenta->id,
+            'servicio',
+            'Consulta Externa - ' . $consulta->codigo,
+            $costoConsulta,
+            1,
+            'consulta_externa',
+            Consulta::class,
+            $consulta->codigo
+        );
 
         return [
             'success' => true,
@@ -724,27 +720,23 @@ class IngresoGeneralController extends Controller
             'tipo' => 'enfermeria',
         ]);
 
-        $tieneSeguro = !empty($request->seguro_id);
-        $cuenta = \App\Models\CuentaCobro::create([
-            'paciente_ci' => $paciente->ci,
-            'tipo_atencion' => 'enfermeria',
-            'referencia_id' => $consulta->codigo,
-            'referencia_type' => Consulta::class,
-            'total_calculado' => $costoEnfermeria,
-            'total_pagado' => 0,
-            'estado' => 'pendiente',
-            'seguro_estado' => $tieneSeguro ? 'pendiente_autorizacion' : null,
-            'seguro_id' => $tieneSeguro ? $request->seguro_id : null,
-        ]);
+        $seguroId = $request->filled('seguro_id') ? (int) $request->seguro_id : null;
+        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
+            (string) $paciente->ci,
+            'enfermeria',
+            $seguroId
+        );
 
-        \App\Models\CuentaCobroDetalle::create([
-            'cuenta_cobro_id' => $cuenta->id,
-            'tipo_item' => 'servicio',
-            'descripcion' => 'Enfermería - ' . $consulta->codigo,
-            'cantidad' => 1,
-            'precio_unitario' => $costoEnfermeria,
-            'subtotal' => $costoEnfermeria,
-        ]);
+        CuentaCobroService::agregarCargoConDeduplicacion(
+            $cuenta->id,
+            'servicio',
+            'Enfermería - ' . $consulta->codigo,
+            $costoEnfermeria,
+            1,
+            'enfermeria',
+            Consulta::class,
+            $consulta->codigo
+        );
 
         return [
             'success' => true,

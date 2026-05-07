@@ -73,7 +73,7 @@ class Paciente extends Model
                     ->orderBy('fecha', 'desc');
     }
 
-    public function emergencies()
+    public function emergencias()
     {
         return $this->hasMany(Emergency::class, 'patient_id', 'ci');
     }

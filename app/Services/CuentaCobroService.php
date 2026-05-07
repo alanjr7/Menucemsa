@@ -35,10 +35,9 @@ class CuentaCobroService
         ?int $seguroId = null
     ): CuentaCobro {
         return DB::transaction(function () use ($pacienteCi, $areaOrigen, $seguroId) {
-            // Buscar cuenta activa existente (pendiente o pago parcial)
+            // Buscar cuenta activa existente (pendiente o pago parcial), cualquier tipo
             $cuenta = CuentaCobro::where('paciente_ci', (string)$pacienteCi)
                 ->whereIn('estado', ['pendiente', 'parcial'])
-                ->where('es_post_pago', true)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
@@ -619,13 +618,12 @@ class CuentaCobroService
     }
 
     /**
-     * Obtener cuenta activa post-pago (Emergencia o Internación) del paciente
+     * Obtener cualquier cuenta activa pendiente del paciente (sin importar pre/post pago)
      */
     public static function obtenerCuentaPostPagoActiva(string $pacienteCi): ?CuentaCobro
     {
         return CuentaCobro::where('paciente_ci', (string) $pacienteCi)
             ->whereIn('estado', ['pendiente', 'parcial'])
-            ->where('es_post_pago', true)
             ->orderBy('created_at', 'desc')
             ->first();
     }

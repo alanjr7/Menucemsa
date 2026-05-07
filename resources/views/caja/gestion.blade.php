@@ -413,11 +413,6 @@
                 if (data.success) {
                     renderizarTransacciones(data.transacciones.data);
                     renderizarPaginacion('paginacionTransacciones', data.transacciones, 'cargarTransacciones');
-                    
-                    // Actualizar estadísticas
-                    if (page === 1) {
-                        actualizarEstadisticasDesdeTransacciones(data.transacciones.data);
-                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -789,43 +784,6 @@
             document.getElementById(containerId).innerHTML = html;
         }
 
-        // Actualizar estadísticas desde transacciones cargadas
-        function actualizarEstadisticasDesdeTransacciones(transacciones) {
-            // Calcular totales
-            let totalHoy = 0;
-            let totalTrans = transacciones.length;
-            let pendientes = transacciones.filter(t => t.estado === 'pendiente').length;
-            let emergencias = transacciones.filter(t => t.tipo_flujo === 'emergencia').length;
-            
-            const metodos = { efectivo: 0, transferencia: 0, tarjeta: 0, qr: 0 };
-            
-            transacciones.forEach(t => {
-                if (t.estado === 'pagado') {
-                    totalHoy += parseFloat(t.monto);
-                }
-                // metodos_pago es un array de strings
-                const metodosArray = t.metodos_pago || [];
-                metodosArray.forEach(m => {
-                    const metodo = m.toLowerCase();
-                    if (metodos.hasOwnProperty(metodo)) {
-                        metodos[metodo] += parseFloat(t.total_pagado) / metodosArray.length;
-                    }
-                });
-            });
-
-            document.getElementById('statTotalHoy').textContent = 'Bs ' + totalHoy.toFixed(2);
-            document.getElementById('statTransacciones').textContent = totalTrans;
-            document.getElementById('statPendientes').textContent = pendientes;
-            document.getElementById('statEmergencias').textContent = emergencias;
-
-            // Renderizar métodos de pago
-            document.getElementById('metodosPagoContainer').innerHTML = Object.entries(metodos).map(([k, v]) => `
-                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                    <span class="text-sm text-gray-600 capitalize">${k}:</span>
-                    <span class="font-medium">Bs ${v.toFixed(2)}</span>
-                </div>
-            `).join('');
-        }
     </script>
 @endpush
 @endsection

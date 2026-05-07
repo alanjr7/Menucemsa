@@ -21,7 +21,7 @@ use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
 use App\Http\Controllers\Admin\DoctorController;
-
+use App\Http\Controllers\PatientsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\TarifarioController;
 use App\Http\Controllers\Gerencial\ReportesController;
@@ -162,12 +162,16 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         });
     });
 
-    // Rutas para recepción y pacientes (acceso para admin, reception, dirmedico y administrador)
+    // Rutas para recepción (acceso para admin, reception, dirmedico y administrador)
     Route::middleware(['auth', 'role:admin|reception|dirmedico|administrador'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
         Route::get('/admision', function() {
             return redirect()->route('patients.index');
         })->name('admision.index');
+    });
+
+    // Rutas para pacientes (acceso para todos los roles)
+    Route::middleware(['auth'])->group(function () {
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
         Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
 
@@ -400,6 +404,9 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::put('especialidades/{especialidad}', [EspecialidadController::class, 'update'])->name('especialidades.update');
         Route::delete('especialidades/{especialidad}', [EspecialidadController::class, 'destroy'])->name('especialidades.destroy');
 
+        // Procedimientos clínicos
+        Route::resource('procedimientos', \App\Http\Controllers\Admin\ProcedimientosController::class);
+
         // Rutas para gestión de doctores
         Route::get('doctors', [DoctorController::class, 'index'])->name('doctors.index');
         Route::get('doctors/create', [DoctorController::class, 'create'])->name('doctors.create');
@@ -410,6 +417,9 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Rutas API para doctores
         Route::get('api/medicos-por-especialidad', [DoctorController::class, 'getMedicosByEspecialidad'])->name('doctors.by-especialidad');
+
+        // Camillas (UTI y Emergencia)
+        Route::resource('camillas', \App\Http\Controllers\Admin\CamillaController::class);
     });
 
     // Rutas de farmacia (admin, farmacia y administrador)
@@ -536,12 +546,14 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
-        Route::get('/pending', [EmergencyStaffController::class, 'pending'])->name('pending');
-
         // API routes (antes que las rutas con parámetros)
         Route::get('/api/emergencias', [EmergencyStaffController::class, 'apiEmergencias'])->name('api.emergencias');
         Route::get('/api/estadisticas', [EmergencyStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
         Route::get('/api/medicamentos-disponibles', [EmergencyStaffController::class, 'apiMedicamentosDisponibles'])->name('api.medicamentos');
+
+        // Camillas de emergencia
+        Route::get('/camillas', [\App\Http\Controllers\EmergencyStaff\CamillaUsoController::class, 'index'])->name('camillas.index');
+        Route::post('/camillas', [\App\Http\Controllers\EmergencyStaff\CamillaUsoController::class, 'store'])->name('camillas.store');
 
         // Rutas para gestión de medicamentos de emergencia (admin, emergencia y administrador)
         Route::middleware(['role:admin|emergencia|administrador'])->group(function () {
@@ -804,5 +816,23 @@ Route::middleware(['auth', 'role:admin|administrador'])->prefix('uti-admin')->na
     Route::post('/api/preautorizacion/{admissionId}', [UtiAdminController::class, 'actualizarPreautorizacion']);
 });
 
+
+// Rutas de evaluación clínica de pacientes
+Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|admin|administrador|dirmedico|reception'])->group(function () {
+    Route::get('/evaluacion/{ci}/historial', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'historial'])->name('evaluacion.historial');
+    Route::get('/evaluacion/{ci}/print/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'print'])->name('evaluacion.print');
+});
+
+Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano'])->group(function () {
+    Route::get('/evaluacion/emergencia/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.emergencia');
+    Route::get('/evaluacion/uti/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.uti');
+    Route::get('/evaluacion/internacion/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.internacion');
+    Route::post('/evaluacion/{ci}/store', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'store'])->name('evaluacion.store');
+
+    // AJAX endpoints
+    Route::get('/api/evaluacion/medicamentos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarMedicamentos']);
+    Route::get('/api/evaluacion/insumos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarInsumos']);
+    Route::get('/api/evaluacion/procedimientos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarProcedimientos']);
+});
 
 require __DIR__.'/auth.php';

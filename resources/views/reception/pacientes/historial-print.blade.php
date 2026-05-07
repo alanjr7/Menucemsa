@@ -96,7 +96,7 @@
                 </div>
                 <div class="bg-gray-50 p-3 rounded border">
                     <p class="text-gray-600">Emergencias</p>
-                    <p class="text-xl font-bold text-red-600">{{ $paciente->emergencies->count() }}</p>
+                    <p class="text-xl font-bold text-red-600">{{ $paciente->emergencias->count() }}</p>
                 </div>
                 <div class="bg-gray-50 p-3 rounded border">
                     <p class="text-gray-600">Hospitalizaciones</p>
@@ -141,14 +141,14 @@
         </div>
         @endif
 
-        @if($paciente->emergencies->count() > 0)
+        @if($paciente->emergencias->count() > 0)
         <div class="page-break"></div>
         <div class="mb-6">
             <h3 class="text-base font-bold text-gray-800 mb-3 bg-red-50 p-2 rounded flex items-center">
                 <span class="w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-xs mr-2">2</span>
                 EMERGENCIAS
             </h3>
-            @foreach($paciente->emergencies as $emergencia)
+            @foreach($paciente->emergencias as $emergencia)
             <div class="border border-gray-300 rounded mb-3 p-3">
                 <div class="flex justify-between items-start mb-2 pb-2 border-b border-gray-200">
                     <div>

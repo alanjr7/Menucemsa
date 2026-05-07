@@ -103,7 +103,7 @@ class PagoCuenta extends Model
 
     public function getMontoFormateadoAttribute(): string
     {
-        return 'S/ ' . number_format($this->monto, 2);
+        return 'Bs ' . number_format($this->monto, 2);
     }
 
     // Generar código único

@@ -37,6 +37,10 @@ class AplicarSeguroService
         $montoCubierto = (float) $calculo['monto_cubierto'];
         $montoPaciente = (float) $calculo['monto_paciente'];
 
+        if ($montoCubierto <= 0) {
+            return ['cubierto' => 0, 'paciente' => $cuenta->saldo_pendiente, 'aplicado' => false];
+        }
+
         $cuenta->update([
             'seguro_id' => $seguro->id,
             'seguro_estado' => 'autorizado',
@@ -81,6 +85,10 @@ class AplicarSeguroService
 
         $montoBase = max(0, (float) $cuenta->total_calculado - (float) $cuenta->total_pagado);
         $calculo = $seguro->calcularCobertura($montoBase);
+
+        if ((float) $calculo['monto_cubierto'] <= 0) {
+            return null;
+        }
 
         return [
             'nombre' => $seguro->nombre_empresa,

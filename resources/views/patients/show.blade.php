@@ -45,7 +45,7 @@
                 if ($paciente->hospitalizaciones()->where('estado', 'Activo')->exists()) {
                     $estado = 'Hospitalizado';
                     $estadoColor = 'yellow';
-                } elseif ($paciente->emergencies()->where('status', '!=', 'alta')->exists()) {
+                } elseif ($paciente->emergencias()->where('status', '!=', 'alta')->exists()) {
                     $estado = 'Emergencia';
                     $estadoColor = 'red';
                 }
@@ -189,7 +189,7 @@
                 <button onclick="showTab('consultas')" class="tab-btn px-6 py-3 border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
                     Consultas
                 </button>
-                <button onclick="showTab('emergencies')" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+                <button onclick="showTab('emergencias')" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
                     Emergencias
                 </button>
                 <button onclick="showTab('hospitalizaciones')" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
@@ -254,10 +254,10 @@
             @endif
         </div>
 
-        <!-- Emergencies Tab -->
-        <div id="emergencies-tab" class="tab-content p-6 hidden">
+        <!-- Emergencias Tab -->
+        <div id="emergencias-tab" class="tab-content p-6 hidden">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Historial de Emergencias</h3>
-            @if($paciente->emergencies->count() > 0)
+            @if($paciente->emergencias->count() > 0)
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -269,10 +269,10 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($paciente->emergencies as $emergencia)
+                            @foreach($paciente->emergencias as $emergencia)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $emergencia->admission_date->format('d/m/Y H:i') }}
+                                        {{ $emergencia->admission_date ? $emergencia->admission_date->format('d/m/Y H:i') : '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ $emergencia->user->name ?? '-' }}
