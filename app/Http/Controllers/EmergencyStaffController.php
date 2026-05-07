@@ -26,9 +26,25 @@ class EmergencyStaffController extends Controller
         $this->middleware('role:emergencia|enfermera-emergencia|admin|dirmedico|administrador')->except(['apiEmergenciasTemporales']);
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('emergency-staff.dashboard');
+        $fecha = $request->filled('fecha')
+            ? \Carbon\Carbon::parse($request->fecha)->toDateString()
+            : today()->toDateString();
+
+        $evaluaciones = \App\Models\Evaluacion::with(['paciente', 'user', 'items'])
+            ->where('area', 'emergencia')
+            ->whereDate('created_at', $fecha)
+            ->orderBy('created_at')
+            ->get();
+
+        $camillaRegistradas = \App\Models\CuentaCobroDetalle::with(['cuentaCobro.paciente', 'user'])
+            ->where('area_origen', 'emergencia')
+            ->whereDate('created_at', $fecha)
+            ->orderBy('created_at')
+            ->get();
+
+        return view('emergency-staff.dashboard', compact('fecha', 'evaluaciones', 'camillaRegistradas'));
     }
 
     /**
