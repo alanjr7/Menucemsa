@@ -226,6 +226,19 @@ class EvaluacionPacienteController extends Controller
         return view('evaluacion.historial', compact('paciente', 'evaluaciones', 'camillaUsos'));
     }
 
+    public function destroy(int $ci, int $evaluacionId): RedirectResponse
+    {
+        $evaluacion = Evaluacion::where('id', $evaluacionId)
+            ->where('paciente_ci', $ci)
+            ->firstOrFail();
+
+        $evaluacion->items()->delete();
+        $evaluacion->delete();
+
+        return redirect()->route('evaluacion.historial', $ci)
+            ->with('success', 'Evaluación eliminada correctamente.');
+    }
+
     public function print(int $ci, int $evaluacionId): View
     {
         $paciente = Paciente::where('ci', $ci)->firstOrFail();

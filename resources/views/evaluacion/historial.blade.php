@@ -167,6 +167,17 @@
                                 </button>
                                 <a href="{{ route('evaluacion.print', [$paciente->ci, $ev->id]) }}" target="_blank"
                                     class="px-3 py-1 bg-gray-100 rounded text-xs text-gray-700">Imprimir</a>
+                                @if(in_array(auth()->user()->role, ['admin', 'administrador']))
+                                <form method="POST" action="{{ route('evaluacion.destroy', [$paciente->ci, $ev->id]) }}"
+                                    onsubmit="return confirm('¿Eliminar esta evaluación del {{ $ev->created_at->format('d/m/Y H:i') }}? Esta acción no se puede deshacer.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                        class="px-3 py-1 bg-red-50 border border-red-200 rounded text-xs text-red-600 hover:bg-red-100">
+                                        Eliminar
+                                    </button>
+                                </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

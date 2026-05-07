@@ -384,6 +384,15 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // Dashboard principal del admin
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         
+        // Gestión de pacientes
+        Route::get('/pacientes/gestionar', [\App\Http\Controllers\PatientsController::class, 'gestionar'])->name('pacientes.gestionar');
+        
+        // Edición y gestión de pacientes
+        Route::get('/pacientes/{ci}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');
+        Route::put('/pacientes/{ci}', [\App\Http\Controllers\PatientsController::class, 'update'])->name('patients.update');
+        Route::get('/pacientes/{ci}/cuenta', [\App\Http\Controllers\PatientsController::class, 'verCuenta'])->name('cuentas.show');
+        Route::delete('/cuentas/{cuentaId}/detalles/{detalleId}', [\App\Http\Controllers\PatientsController::class, 'eliminarItemCuenta'])->name('cuentas.eliminar-item');
+        
         Route::get('especialidades', [EspecialidadController::class, 'index'])->name('especialidades.index');
         Route::get('especialidades/create', [EspecialidadController::class, 'create'])->name('especialidades.create');
         Route::post('especialidades', [EspecialidadController::class, 'store'])->name('especialidades.store');
@@ -475,6 +484,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
         Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
+        Route::post('/{user}/temporal-password', [UserManagementController::class, 'generateTemporalPassword'])->name('temporal-password');
     });
 
     // Rutas de gestión de emergencias (admin y administrador - SOLO LECTURA)
@@ -750,6 +760,7 @@ Route::middleware(['auth', 'role:uti|admin|dirmedico|administrador'])->get('/uti
 Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|admin|administrador|dirmedico|reception'])->group(function () {
     Route::get('/evaluacion/{ci}/historial', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'historial'])->name('evaluacion.historial');
     Route::get('/evaluacion/{ci}/print/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'print'])->name('evaluacion.print');
+    Route::delete('/evaluacion/{ci}/historial/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'destroy'])->name('evaluacion.destroy')->middleware('role:admin|administrador');
 });
 
 Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano'])->group(function () {

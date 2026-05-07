@@ -305,4 +305,44 @@ class UserManagementController extends Controller
             'status' => $user->is_active ? 'active' : 'inactive'
         ]);
     }
+
+    public function generateTemporalPassword(User $user)
+    {
+        // Validar permisos
+        if ($user->id === auth()->id()) {
+            return response()->json(['error' => 'No puedes generar contraseña para ti mismo.'], 403);
+        }
+
+        if ($this->esAdministrador() && $this->esAdmin($user)) {
+            return response()->json(['error' => 'No tienes permisos para modificar usuarios administradores.'], 403);
+        }
+
+        // Generar contraseña temporal
+        $temporalPassword = $this->generateRandomPassword();
+        
+        // Actualizar contraseña del usuario
+        $user->update([
+            'password' => Hash::make($temporalPassword),
+        ]);
+
+        // Log de actividad
+        Log::info('Contraseña temporal generada', [
+            'admin_id' => auth()->id(),
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'generated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'password' => $temporalPassword,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+        ]);
+    }
+
+    private function generateRandomPassword(): string
+    {
+        return substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
+    }
 }
