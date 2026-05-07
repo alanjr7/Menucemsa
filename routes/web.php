@@ -582,8 +582,6 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/historial/export', [EmergencyStaffController::class, 'exportHistorialGeneral'])->name('historial.export');
 
         // Rutas con parámetros {emergency} al FINAL
-        Route::get('/{emergency}/evaluacion', [EmergencyStaffController::class, 'evaluacion'])->name('evaluacion');
-        Route::post('/{emergency}/guardar-evaluacion', [EmergencyStaffController::class, 'guardarEvaluacion'])->name('guardar-evaluacion');
         Route::get('/{emergency}/historial', [EmergencyStaffController::class, 'historial'])->name('historial');
         Route::post('/{emergency}/update-status', [EmergencyStaffController::class, 'updateStatus'])->name('update-status');
         Route::post('/{emergency}/derivar', [EmergencyStaffController::class, 'derivar'])->name('derivar');

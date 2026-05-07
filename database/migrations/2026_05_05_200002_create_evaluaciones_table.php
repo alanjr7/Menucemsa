@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('area', 50);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('observaciones')->nullable();
+            $table->json('signos_vitales')->nullable();
             $table->timestamps();
         });
     }

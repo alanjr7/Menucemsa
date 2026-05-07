@@ -25,6 +25,91 @@
     <form @submit.prevent="guardar" class="max-w-4xl mx-auto px-8 py-8 space-y-6">
         @csrf
 
+        {{-- Signos Vitales --}}
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100">
+                <h2 class="text-lg font-semibold text-slate-800">Signos Vitales</h2>
+            </div>
+            <div class="px-6 py-5">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Presión Arterial</label>
+                        <div class="relative">
+                            <input type="text" x-model="sv.presion_arterial" placeholder="120/80"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-14">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">mmHg</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Frecuencia Cardíaca</label>
+                        <div class="relative">
+                            <input type="text" x-model="sv.frecuencia_cardiaca" placeholder="80"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-10">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">lpm</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Frecuencia Respiratoria</label>
+                        <div class="relative">
+                            <input type="text" x-model="sv.frecuencia_respiratoria" placeholder="16"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-10">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">rpm</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Temperatura</label>
+                        <div class="relative">
+                            <input type="text" x-model="sv.temperatura" placeholder="37.0"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">°C</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Saturación O₂</label>
+                        <div class="relative">
+                            <input type="text" x-model="sv.saturacion_o2" placeholder="98"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Glucosa</label>
+                        <div class="relative">
+                            <input type="text" x-model="sv.glucosa" placeholder="100"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-14">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">mg/dL</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Peso</label>
+                        <div class="relative">
+                            <input type="number" x-model.number="sv.peso" placeholder="70.5" step="0.1" min="0" max="500"
+                                @input="calcularIMC()"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">kg</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Altura</label>
+                        <div class="relative">
+                            <input type="number" x-model.number="sv.altura" placeholder="170" step="0.1" min="0" max="300"
+                                @input="calcularIMC()"
+                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">cm</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">IMC</label>
+                        <div class="relative">
+                            <input type="number" x-model="sv.imc" placeholder="24.3" step="0.01" readonly
+                                class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-base text-slate-700 bg-slate-50 focus:outline-none pr-14">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">kg/m²</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Medicamentos --}}
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100">
@@ -239,11 +324,18 @@ function evaluacion(area, storeUrl) {
         insumos: [],
         procedimientos: [],
         observaciones: '',
+        sv: { presion_arterial: '', frecuencia_cardiaca: '', frecuencia_respiratoria: '', temperatura: '', saturacion_o2: '', glucosa: '', peso: null, altura: null, imc: null },
         medQ: '', insQ: '', procQ: '',
         medResultados: [], insResultados: [], procResultados: [],
         medOpen: false, insOpen: false, procOpen: false,
         saving: false,
         error: '',
+
+        calcularIMC() {
+            const p = parseFloat(this.sv.peso) || 0;
+            const a = parseFloat(this.sv.altura) || 0;
+            this.sv.imc = (p > 0 && a > 0) ? parseFloat((p / ((a / 100) ** 2)).toFixed(2)) : null;
+        },
 
         async buscar(tipo) {
             const q = tipo === 'medicamento' ? this.medQ : tipo === 'insumo' ? this.insQ : this.procQ;
@@ -287,6 +379,7 @@ function evaluacion(area, storeUrl) {
                 const res = await axios.post(this.storeUrl, {
                     _token: document.querySelector('meta[name="csrf-token"]').content,
                     observaciones: this.observaciones,
+                    signos_vitales: this.sv,
                     items,
                 });
                 if (res.data.redirect) window.location.href = res.data.redirect;

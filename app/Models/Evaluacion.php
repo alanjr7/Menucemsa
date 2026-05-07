@@ -8,7 +8,9 @@ class Evaluacion extends Model
 {
     protected $table = 'evaluaciones';
 
-    protected $fillable = ['paciente_ci', 'area', 'user_id', 'observaciones'];
+    protected $fillable = ['paciente_ci', 'area', 'user_id', 'observaciones', 'signos_vitales'];
+
+    protected $casts = ['signos_vitales' => 'array'];
 
     public function paciente()
     {

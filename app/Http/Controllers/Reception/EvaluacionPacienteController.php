@@ -61,7 +61,16 @@ class EvaluacionPacienteController extends Controller
     public function store(Request $request, string $ci): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'observaciones'        => ['nullable', 'string'],
+            'observaciones'             => ['nullable', 'string'],
+            'signos_vitales'            => ['nullable', 'array'],
+            'signos_vitales.presion_arterial'       => ['nullable', 'string', 'max:20'],
+            'signos_vitales.frecuencia_cardiaca'    => ['nullable', 'string', 'max:20'],
+            'signos_vitales.frecuencia_respiratoria'=> ['nullable', 'string', 'max:20'],
+            'signos_vitales.temperatura'            => ['nullable', 'string', 'max:20'],
+            'signos_vitales.saturacion_o2'          => ['nullable', 'string', 'max:20'],
+            'signos_vitales.glucosa'                => ['nullable', 'string', 'max:20'],
+            'signos_vitales.peso'                   => ['nullable', 'numeric', 'min:0', 'max:500'],
+            'signos_vitales.altura'                 => ['nullable', 'numeric', 'min:0', 'max:300'],
             'items'                => ['nullable', 'array'],
             'items.*.tipo'         => ['required', 'in:medicamento,insumo,procedimiento'],
             'items.*.item_id'      => ['required', 'integer'],
@@ -82,14 +91,35 @@ class EvaluacionPacienteController extends Controller
         }
 
         DB::transaction(function () use ($request, $ci, $area, $cuentaCi, $emergencyForTemp) {
+            $signosVitales = null;
+            if ($request->filled('signos_vitales')) {
+                $sv = $request->input('signos_vitales', []);
+                $peso   = isset($sv['peso'])   && $sv['peso']   > 0 ? (float) $sv['peso']   : null;
+                $altura = isset($sv['altura']) && $sv['altura'] > 0 ? (float) $sv['altura'] : null;
+                $signosVitales = array_filter([
+                    'presion_arterial'        => $sv['presion_arterial']        ?? null,
+                    'frecuencia_cardiaca'     => $sv['frecuencia_cardiaca']     ?? null,
+                    'frecuencia_respiratoria' => $sv['frecuencia_respiratoria'] ?? null,
+                    'temperatura'             => $sv['temperatura']             ?? null,
+                    'saturacion_o2'           => $sv['saturacion_o2']           ?? null,
+                    'glucosa'                 => $sv['glucosa']                 ?? null,
+                    'peso'                    => $peso,
+                    'altura'                  => $altura,
+                    'imc'                     => ($peso && $altura) ? round($peso / (($altura / 100) ** 2), 2) : null,
+                    'fecha_registro'          => now()->toDateTimeString(),
+                ], fn($v) => $v !== null && $v !== '');
+                if (empty($signosVitales)) $signosVitales = null;
+            }
+
             // Solo guardar Evaluacion si el paciente existe en la tabla pacientes (no temporales)
             $evaluacion = null;
             if (!str_starts_with($ci, 'TEMP-')) {
                 $evaluacion = Evaluacion::create([
-                    'paciente_ci'   => $ci,
-                    'area'          => $area,
-                    'user_id'       => auth()->id(),
-                    'observaciones' => $request->observaciones,
+                    'paciente_ci'    => $ci,
+                    'area'           => $area,
+                    'user_id'        => auth()->id(),
+                    'observaciones'  => $request->observaciones,
+                    'signos_vitales' => $signosVitales,
                 ]);
             }
 

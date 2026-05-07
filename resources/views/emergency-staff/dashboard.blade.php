@@ -424,6 +424,7 @@ $hasPermission = function($permission) use ($userPermissions) {
 <script src="{{ asset('js/auto-refresh.js') }}"></script>
 <script>
     let emergencyIdActual = null;
+    let pacienteCiActual = null;
     let autoRefresh = null;
 
     // Cargar emergencias al iniciar
@@ -538,7 +539,7 @@ $hasPermission = function($permission) use ($userPermissions) {
                     </span>
                 </td>
                 <td class="px-6 py-4">
-                    <button onclick="abrirModal(${emp.id}, '${emp.paciente_nombre}')" class="text-red-600 hover:text-red-900 font-medium text-sm">
+                    <button onclick="abrirModal(${emp.id}, '${emp.paciente_nombre}', ${emp.is_temp_id ? JSON.stringify(emp.temp_id) : JSON.stringify(String(emp.paciente_id))})" class="text-red-600 hover:text-red-900 font-medium text-sm">
                         Acciones
                     </button>
                 </td>
@@ -567,8 +568,9 @@ $hasPermission = function($permission) use ($userPermissions) {
         return classes[estado] || 'bg-gray-100 text-gray-800';
     }
 
-    function abrirModal(id, nombre) {
+    function abrirModal(id, nombre, ci) {
         emergencyIdActual = id;
+        pacienteCiActual = ci;
         document.getElementById('modal-paciente-nombre').textContent = nombre;
         document.getElementById('modalAcciones').classList.remove('hidden');
     }
@@ -576,11 +578,12 @@ $hasPermission = function($permission) use ($userPermissions) {
     function cerrarModal() {
         document.getElementById('modalAcciones').classList.add('hidden');
         emergencyIdActual = null;
+        pacienteCiActual = null;
     }
 
     function iniciarEvaluacion() {
-        if (!emergencyIdActual) return;
-        window.location.href = `/emergency-staff/${emergencyIdActual}/evaluacion`;
+        if (!pacienteCiActual) return;
+        window.location.href = `/evaluacion/emergencia/${pacienteCiActual}`;
     }
 
     function verHistorial() {

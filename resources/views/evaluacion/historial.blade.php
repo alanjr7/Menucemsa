@@ -153,9 +153,9 @@
                     <th class="px-4 py-3 text-right">Acciones</th>
                 </tr>
             </thead>
-            <tbody>
-                @forelse($evaluaciones as $ev)
-                    <tr class="border-t" x-data="{ open: false }">
+            @forelse($evaluaciones as $ev)
+            <tbody x-data="{ open: false }">
+                    <tr class="border-t">
                         <td class="px-4 py-3">{{ $ev->created_at->format('d/m/Y H:i') }}</td>
                         <td class="px-4 py-3 capitalize">{{ $ev->area }}</td>
                         <td class="px-4 py-3">{{ $ev->user->name ?? '-' }}</td>
@@ -170,8 +170,77 @@
                             </div>
                         </td>
                     </tr>
-                    <tr x-show="open" class="bg-gray-50 border-t">
+                    <tr x-show="open" x-cloak class="bg-gray-50 border-t">
                         <td colspan="5" class="px-6 py-4">
+                            @if(!empty($ev->signos_vitales))
+                            @php $sv = $ev->signos_vitales; @endphp
+                            <p class="text-xs font-semibold text-gray-500 mb-2">Signos Vitales</p>
+                            <div class="grid grid-cols-3 md:grid-cols-5 gap-3 mb-4">
+                                @if(!empty($sv['presion_arterial']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Presión Arterial</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['presion_arterial'] }}</span>
+                                    <span class="text-xs text-gray-400"> mmHg</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['frecuencia_cardiaca']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Frec. Cardíaca</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['frecuencia_cardiaca'] }}</span>
+                                    <span class="text-xs text-gray-400"> lpm</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['frecuencia_respiratoria']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Frec. Respiratoria</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['frecuencia_respiratoria'] }}</span>
+                                    <span class="text-xs text-gray-400"> rpm</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['temperatura']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Temperatura</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['temperatura'] }}</span>
+                                    <span class="text-xs text-gray-400"> °C</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['saturacion_o2']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Saturación O₂</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['saturacion_o2'] }}</span>
+                                    <span class="text-xs text-gray-400"> %</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['glucosa']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Glucosa</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['glucosa'] }}</span>
+                                    <span class="text-xs text-gray-400"> mg/dL</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['peso']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Peso</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['peso'] }}</span>
+                                    <span class="text-xs text-gray-400"> kg</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['altura']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">Altura</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['altura'] }}</span>
+                                    <span class="text-xs text-gray-400"> cm</span>
+                                </div>
+                                @endif
+                                @if(!empty($sv['imc']))
+                                <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-center">
+                                    <span class="block text-xs text-gray-400">IMC</span>
+                                    <span class="font-semibold text-gray-800">{{ $sv['imc'] }}</span>
+                                    <span class="text-xs text-gray-400"> kg/m²</span>
+                                </div>
+                                @endif
+                            </div>
+                            @endif
                             @if($ev->items->where('tipo','medicamento')->count())
                                 <p class="text-xs font-semibold text-gray-500 mb-1">Medicamentos</p>
                                 <ul class="mb-3 space-y-1">
@@ -205,12 +274,14 @@
                             @endif
                         </td>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-4 py-6 text-center text-gray-500">Sin evaluaciones registradas.</td>
-                    </tr>
-                @endforelse
             </tbody>
+            @empty
+            <tbody>
+                <tr>
+                    <td colspan="5" class="px-4 py-6 text-center text-gray-500">Sin evaluaciones registradas.</td>
+                </tr>
+            </tbody>
+            @endforelse
         </table>
     </div>
 
@@ -285,7 +356,27 @@ FECHA IMP: {{ now()->format('d/m/Y H:i') }}
 EVALUACION #{{ str_pad($index + 1, 3, '0', STR_PAD_LEFT) }} | {{ $evaluacion->created_at->format('d/m/Y H:i') }}
 --------------------------------------------------------------------------------
 AREA: {{ strtoupper(str_pad($evaluacion->area, 15, ' ')) }} | MEDICO: {{ strtoupper($evaluacion->user->name ?? 'N/A') }}
-
+@if(!empty($evaluacion->signos_vitales))
+@php
+    $sv = $evaluacion->signos_vitales;
+    $svLinea1 = trim(
+        (!empty($sv['presion_arterial'])        ? '  PA: '.str_pad($sv['presion_arterial'].' mmHg', 18) : '') .
+        (!empty($sv['frecuencia_cardiaca'])     ? '  FC: '.str_pad($sv['frecuencia_cardiaca'].' lpm', 12) : '') .
+        (!empty($sv['frecuencia_respiratoria']) ? '  FR: '.$sv['frecuencia_respiratoria'].' rpm' : '')
+    );
+    $svLinea2 = trim(
+        (!empty($sv['temperatura'])   ? '  TEMP: '.str_pad($sv['temperatura'].' C', 14) : '') .
+        (!empty($sv['saturacion_o2']) ? '  SAT O2: '.str_pad($sv['saturacion_o2'].' %', 8) : '') .
+        (!empty($sv['glucosa'])       ? '  GLUCOSA: '.$sv['glucosa'].' mg/dL' : '')
+    );
+    $svLinea3 = trim(
+        (!empty($sv['peso'])   ? '  PESO: '.$sv['peso'].' kg' : '') .
+        (!empty($sv['altura']) ? '   TALLA: '.$sv['altura'].' cm' : '') .
+        (!empty($sv['imc'])    ? '   IMC: '.$sv['imc'].' kg/m2' : '')
+    );
+@endphp
+{{ $svLinea1 ? "\nSIGNOS VITALES:\n".$svLinea1 : '' }}{{ $svLinea2 ? "\n".$svLinea2 : '' }}{{ $svLinea3 ? "\n".$svLinea3 : '' }}
+@endif
 @if($meds->count())
 MEDICAMENTOS ADMINISTRADOS:
 +----------------------------------------+------+

@@ -416,14 +416,6 @@ body {
   color: var(--color-warning);
 }
 
-/* Stocks grid corporativo */
-.stocks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
 .stock-item {
   background: white;
   border: 1px solid var(--color-gray-200);
@@ -445,6 +437,31 @@ body {
   margin-bottom: 0.375rem;
   text-transform: uppercase;
   letter-spacing: 0.025em;
+}
+
+.stock-field-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--color-gray-400);
+  margin-top: 0.375rem;
+  margin-bottom: 0.125rem;
+}
+
+.stock-small-input {
+  padding: 0.375rem 0.5rem !important;
+  font-size: 0.8rem !important;
+}
+
+.stock-item-central {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-light) !important;
+}
+
+.stocks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 /* Animaciones corporativas */
@@ -736,17 +753,27 @@ body {
 
         <!-- Stocks por ubicación -->
         <div class="mt-6">
-            <h4 class="text-sm font-medium text-gray-700 mb-3">Stock Mínimo por Ubicación</h4>
+            <h4 class="text-sm font-medium text-gray-700 mb-3">Stock y Distribución por Área</h4>
             <div class="stocks-grid">
                 @foreach($ubicaciones as $key => $label)
-                <div class="stock-item">
-                    <label class="stock-label" for="stock_{{ $loop->index }}_{INDEX}">{{ $label }}</label>
-                    <input type="hidden" name="lotes[{INDEX}][stocks][{{ $loop->index }}][ubicacion]" 
-                           value="{{ $key }}">
-                    <input type="number" id="stock_{{ $loop->index }}_{INDEX}" 
-                           name="lotes[{INDEX}][stocks][{{ $loop->index }}][stock_minimo]" 
-                           min="0" value="0"
-                           class="form-input">
+                <div class="stock-item{{ $key === 'central' ? ' stock-item-central' : '' }}">
+                    <label class="stock-label">{{ $label }}</label>
+                    <input type="hidden" name="lotes[{INDEX}][stocks][{{ $loop->index }}][ubicacion]" value="{{ $key }}">
+                    @if($key === 'central')
+                    <span class="stock-field-label">Mínimo</span>
+                    <input type="number"
+                           name="lotes[{INDEX}][stocks][{{ $loop->index }}][stock_minimo]"
+                           min="0" value="0" class="form-input stock-small-input">
+                    @else
+                    <span class="stock-field-label">Distribuir</span>
+                    <input type="number"
+                           name="lotes[{INDEX}][stocks][{{ $loop->index }}][cantidad_a_agregar]"
+                           min="0" value="0" class="form-input stock-small-input">
+                    <span class="stock-field-label">Mínimo</span>
+                    <input type="number"
+                           name="lotes[{INDEX}][stocks][{{ $loop->index }}][stock_minimo]"
+                           min="0" value="0" class="form-input stock-small-input">
+                    @endif
                 </div>
                 @endforeach
             </div>
@@ -803,17 +830,45 @@ function crearLoteHtml(lote, index) {
     Object.entries(ubicaciones).forEach(([key, label], stockIndex) => {
         const stock = lote.stocks?.find(s => s.ubicacion === key);
         const stockMinimo = stock?.stock_minimo || 0;
-        
-        stocksHtml += `
-            <div class="stock-item">
-                <label class="stock-label" for="stock_${stockIndex}_${index}">${label}</label>
-                <input type="hidden" name="lotes[${index}][stocks][${stockIndex}][ubicacion]" value="${key}">
-                <input type="number" id="stock_${stockIndex}_${index}" 
-                       name="lotes[${index}][stocks][${stockIndex}][stock_minimo]" 
-                       min="0" value="${stockMinimo}"
-                       class="form-input">
-            </div>
-        `;
+
+        if (key === 'central') {
+            const cantidadActual = stock?.cantidad_actual ?? 0;
+            stocksHtml += `
+                <div class="stock-item stock-item-central">
+                    <label class="stock-label">${label}</label>
+                    <input type="hidden" name="lotes[${index}][stocks][${stockIndex}][ubicacion]" value="${key}">
+                    <span class="stock-field-label">Stock actual</span>
+                    <input type="number"
+                           name="lotes[${index}][stocks][${stockIndex}][cantidad_actual]"
+                           min="0" value="${cantidadActual}"
+                           class="form-input stock-small-input">
+                    <span class="stock-field-label">Mínimo</span>
+                    <input type="number"
+                           name="lotes[${index}][stocks][${stockIndex}][stock_minimo]"
+                           min="0" value="${stockMinimo}"
+                           class="form-input stock-small-input">
+                </div>
+            `;
+        } else {
+            const cantidadActual = stock?.cantidad_actual ?? 0;
+            stocksHtml += `
+                <div class="stock-item">
+                    <label class="stock-label">${label}</label>
+                    <input type="hidden" name="lotes[${index}][stocks][${stockIndex}][ubicacion]" value="${key}">
+                    <span class="stock-field-label" style="color:var(--color-gray-400);">Actual: ${cantidadActual}</span>
+                    <span class="stock-field-label">Distribuir</span>
+                    <input type="number"
+                           name="lotes[${index}][stocks][${stockIndex}][cantidad_a_agregar]"
+                           min="0" value="0"
+                           class="form-input stock-small-input">
+                    <span class="stock-field-label">Mínimo</span>
+                    <input type="number"
+                           name="lotes[${index}][stocks][${stockIndex}][stock_minimo]"
+                           min="0" value="${stockMinimo}"
+                           class="form-input stock-small-input">
+                </div>
+            `;
+        }
     });
 
     const vencimientoClass = lote.estado_vencimiento === 'vencido' ? 'vencido' : 
@@ -897,7 +952,7 @@ function crearLoteHtml(lote, index) {
             </div>
 
             <div class="mt-6">
-                <h4 class="text-sm font-medium text-gray-700 mb-3">Stock Mínimo por Ubicación</h4>
+                <h4 class="text-sm font-medium text-gray-700 mb-3">Stock y Distribución por Área</h4>
                 <div class="stocks-grid">
                     ${stocksHtml}
                 </div>
