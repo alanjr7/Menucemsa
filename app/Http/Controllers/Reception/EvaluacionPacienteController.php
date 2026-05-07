@@ -104,31 +104,32 @@ class EvaluacionPacienteController extends Controller
                 $cantidad = (int) $item['cantidad'];
                 $tipo     = $item['tipo'];
 
-                // Descontar del almacén si es medicamento o insumo
+                // Medicamentos e insumos requieren stock; si no hay, no se entrega ni cobra
                 if (in_array($tipo, ['medicamento', 'insumo'])) {
                     $stock = AlmacenStock::whereHas('lote', fn($q) => $q->where('catalogo_id', $item['item_id']))
                         ->where('ubicacion', $area)
                         ->where('cantidad_actual', '>=', $cantidad)
                         ->first();
 
-                    if ($stock) {
-                        $stock->decrement('cantidad_actual', $cantidad);
+                    if (!$stock) {
+                        continue;
+                    }
 
-                        // Registrar entrega; para TEMP- usamos el emergency id como referencia
-                        $pacienteCiInt = str_starts_with($ci, 'TEMP-')
-                            ? ($emergencyForTemp?->id)
-                            : (int) $ci;
+                    $stock->decrement('cantidad_actual', $cantidad);
 
-                        if ($pacienteCiInt) {
-                            AlmacenEntregaService::registrarEntrega(
-                                $pacienteCiInt,
-                                (int) $item['item_id'],
-                                $cantidad,
-                                $area,
-                                $emergencyForTemp?->id,
-                                'Aplicado en evaluación - ' . $area
-                            );
-                        }
+                    $pacienteCiInt = str_starts_with($ci, 'TEMP-')
+                        ? ($emergencyForTemp?->id)
+                        : (int) $ci;
+
+                    if ($pacienteCiInt) {
+                        AlmacenEntregaService::registrarEntrega(
+                            $pacienteCiInt,
+                            (int) $item['item_id'],
+                            $cantidad,
+                            $area,
+                            $emergencyForTemp?->id,
+                            'Aplicado en evaluación - ' . $area
+                        );
                     }
                 }
 
@@ -153,7 +154,6 @@ class EvaluacionPacienteController extends Controller
                     default       => 'procedimiento',
                 };
 
-                // origen_id: ID del EvaluacionItem si existe, sino clave compuesta única
                 $origenId = $evaluacionItem
                     ? (string) $evaluacionItem->id
                     : $cuentaCi . '-' . $item['item_id'] . '-' . now()->timestamp;

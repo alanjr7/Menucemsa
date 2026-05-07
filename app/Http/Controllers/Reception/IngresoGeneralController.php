@@ -69,9 +69,10 @@ class IngresoGeneralController extends Controller
                 'especialidad' => $especialidad
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error al crear especialidad: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Error al crear la especialidad. Intente nuevamente.',
             ], 400);
         }
     }
@@ -128,7 +129,7 @@ class IngresoGeneralController extends Controller
             $user = User::create([
                 'name' => $request->nombre,
                 'email' => 'medico.' . \Str::slug($request->nombre) . '.' . time() . '@hospital.local',
-                'password' => \Hash::make('temporal123456'),
+                'password' => \Hash::make(\Str::random(20)),
                 'role' => 'doctor',
                 'is_active' => true,
             ]);
@@ -158,9 +159,10 @@ class IngresoGeneralController extends Controller
             ]);
         } catch (\Exception $e) {
             \DB::rollBack();
+            \Log::error('Error al crear médico: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Error al crear el médico. Intente nuevamente.',
             ], 400);
         }
     }
@@ -277,9 +279,10 @@ class IngresoGeneralController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
+            \Log::error('Error al procesar ingreso: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Error al procesar el ingreso: ' . $e->getMessage()
+                'message' => 'Error al procesar el ingreso. Intente nuevamente.',
             ], 500);
         }
     }
@@ -324,7 +327,13 @@ class IngresoGeneralController extends Controller
                 'profesion' => $request->profesion ?? null,
                 'empresa_trabajo' => $request->empresa_trabajo ?? null,
                 'seguro_id' => $seguroId,
-                'registro_codigo' => $this->crearRegistro('Registro desde Ingreso General'),
+                'registro_codigo' => $this->crearRegistro('Registro desde Ingreso General', [
+                    'fecha_nacimiento' => $request->fecha_nacimiento,
+                    'sexo'             => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',
+                    'apellido_paterno' => $request->apellido_paterno,
+                    'apellido_materno' => $request->apellido_materno,
+                    'nombres'          => $request->nombres,
+                ]),
             ]);
         } else {
             $paciente->update([
@@ -369,23 +378,24 @@ class IngresoGeneralController extends Controller
         $paciente->apellido_materno = $request->apellido_materno;
 
         Caja::$patientContext = $paciente;
-
-        $caja = Caja::create([
-            'fecha' => now(),
-            'total_dia' => $costoConsulta,
-            'tipo' => 'CONSULTA_EXTERNA',
-            'nro_factura' => null,
-            'monto_pagado' => $costoConsulta,
-        ]);
-
-        Caja::$patientContext = null;
+        try {
+            $caja = Caja::create([
+                'fecha' => now(),
+                'total_dia' => $costoConsulta,
+                'tipo' => 'CONSULTA_EXTERNA',
+                'nro_factura' => null,
+                'monto_pagado' => $costoConsulta,
+            ]);
+        } finally {
+            Caja::$patientContext = null;
+        }
 
         // Obtener médico y especialidad seleccionados
         $medicoId = $request->medico_ci ? (int)$request->medico_ci : null;
         $especialidadCodigo = $request->especialidad_codigo ?: $this->obtenerEspecialidadPorDefecto();
 
         $consulta = Consulta::create([
-            'codigo' => 'CONS-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT),
+            'codigo' => 'CONS-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
             'fecha' => now()->toDateString(),
             'hora' => now()->toTimeString(),
             'motivo' => $request->motivo ?? 'Consulta general',
@@ -609,7 +619,13 @@ class IngresoGeneralController extends Controller
                     'profesion' => $request->garante_profesion ?? null,
                     'empresa_trabajo' => $request->garante_empresa_trabajo ?? null,
                     'seguro_id' => $this->obtenerSeguroParticular(),
-                    'registro_codigo' => $this->crearRegistro('Registro de Garante'),
+                    'registro_codigo' => $this->crearRegistro('Registro de Garante', [
+                        'fecha_nacimiento' => $request->garante_fecha_nacimiento,
+                        'sexo'             => in_array($request->garante_sexo, ['Femenino', 'F']) ? 'F' : 'M',
+                        'apellido_paterno' => $request->garante_apellido_paterno,
+                        'apellido_materno' => $request->garante_apellido_materno,
+                        'nombres'          => $request->garante_nombres,
+                    ]),
                 ]);
             }
         }
@@ -628,16 +644,16 @@ class IngresoGeneralController extends Controller
         ]);
     }
 
-    private function crearRegistro(string $motivo): string
+    private function crearRegistro(string $motivo, array $datosPaciente = []): string
     {
-        $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
+        $codigo = Registro::generarCodigo($datosPaciente);
 
         Registro::create([
-            'codigo' => $codigo,
-            'fecha' => now()->toDateString(),
-            'hora' => now()->toTimeString(),
-            'motivo' => $motivo,
-            'user_id' => Auth::id(),
+            'codigo'   => $codigo,
+            'fecha'    => now()->toDateString(),
+            'hora'     => now()->toTimeString(),
+            'motivo'   => $motivo,
+            'user_id'  => Auth::id(),
         ]);
 
         return $codigo;
@@ -694,19 +710,20 @@ class IngresoGeneralController extends Controller
         $paciente->apellido_materno = $request->apellido_materno;
 
         Caja::$patientContext = $paciente;
-
-        $caja = Caja::create([
-            'fecha' => now(),
-            'total_dia' => $costoEnfermeria,
-            'tipo' => 'ENFERMERIA',
-            'nro_factura' => null,
-            'monto_pagado' => $costoEnfermeria,
-        ]);
-
-        Caja::$patientContext = null;
+        try {
+            $caja = Caja::create([
+                'fecha' => now(),
+                'total_dia' => $costoEnfermeria,
+                'tipo' => 'ENFERMERIA',
+                'nro_factura' => null,
+                'monto_pagado' => $costoEnfermeria,
+            ]);
+        } finally {
+            Caja::$patientContext = null;
+        }
 
         $consulta = Consulta::create([
-            'codigo' => 'ENF-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT),
+            'codigo' => 'ENF-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
             'fecha' => now()->toDateString(),
             'hora' => now()->toTimeString(),
             'motivo' => $request->motivo ?? 'Atención de enfermería',
@@ -812,13 +829,14 @@ class IngresoGeneralController extends Controller
             return $especialidad->codigo;
         }
 
-        // Crear especialidad por defecto si no existe ninguna
-        $nuevaEspecialidad = Especialidad::create([
-            'codigo' => 'ESP-GENERAL',
-            'nombre' => 'Medicina General',
-            'descripcion' => 'Especialidad por defecto para consultas generales',
-            'estado' => 'activo',
-        ]);
+        $nuevaEspecialidad = Especialidad::firstOrCreate(
+            ['codigo' => 'ESP-GENERAL'],
+            [
+                'nombre' => 'Medicina General',
+                'descripcion' => 'Especialidad por defecto para consultas generales',
+                'estado' => 'activo',
+            ]
+        );
 
         return $nuevaEspecialidad->codigo;
     }

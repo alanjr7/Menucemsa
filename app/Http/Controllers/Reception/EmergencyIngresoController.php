@@ -128,7 +128,7 @@ class EmergencyIngresoController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Error al registrar la emergencia: ' . $e->getMessage()
+                'message' => 'Error al registrar la emergencia. Intente nuevamente.',
             ], 500);
         }
     }
@@ -166,26 +166,31 @@ class EmergencyIngresoController extends Controller
                 'sexo' => 'required|string|in:Masculino,Femenino',
             ]);
 
-            $registroCodigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-            
-            $registro = Registro::create([
-                'codigo' => $registroCodigo,
-                'fecha' => now()->toDateString(),
-                'hora' => now()->toTimeString(),
-                'motivo' => 'Registro de Emergencia',
-                'user_id' => Auth::id()
+            $sexoCodigo     = $request->sexo === 'Femenino' ? 'F' : 'M';
+            $registroCodigo = Registro::generarCodigo([
+                'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
+                'sexo'             => $sexoCodigo,
+                'nombre'           => trim($request->nombres . ' ' . $request->apellidos),
+            ]);
+
+            Registro::create([
+                'codigo'  => $registroCodigo,
+                'fecha'   => now()->toDateString(),
+                'hora'    => now()->toTimeString(),
+                'motivo'  => 'Registro de Emergencia',
+                'user_id' => Auth::id(),
             ]);
 
             $seguroCodigo = $this->obtenerOCrearSeguro('particular');
 
             $paciente = Paciente::create([
-                'ci' => $ci,
-                'nombre' => trim($request->nombres . ' ' . $request->apellidos),
-                'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
-                'direccion' => $request->direccion ?? 'Sin especificar',
-                'telefono' => $request->telefono ? (int)$request->telefono : 0,
-                'correo' => $request->correo ?? 'sin@email.com',
-                'seguro_id' => $seguroCodigo,
+                'ci'              => $ci,
+                'nombre'          => trim($request->nombres . ' ' . $request->apellidos),
+                'sexo'            => $sexoCodigo,
+                'direccion'       => $request->direccion ?? 'Sin especificar',
+                'telefono'        => $request->telefono ? (int)$request->telefono : 0,
+                'correo'          => $request->correo ?? 'sin@email.com',
+                'seguro_id'       => $seguroCodigo,
                 'registro_codigo' => $registroCodigo,
             ]);
         } else {
@@ -290,9 +295,10 @@ class EmergencyIngresoController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error al cargar emergencias activas: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar emergencias: ' . $e->getMessage()
+                'message' => 'Error al cargar emergencias activas.',
             ], 500);
         }
     }
@@ -344,18 +350,22 @@ class EmergencyIngresoController extends Controller
             $emergency = Emergency::findOrFail($validated['emergency_id']);
 
             // 2. Crear el paciente con datos completos
-            $registroCodigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-            
-            $registro = Registro::create([
-                'codigo' => $registroCodigo,
-                'fecha' => now()->toDateString(),
-                'hora' => now()->toTimeString(),
-                'motivo' => 'Registro completado desde paciente temporal de emergencia',
-                'user_id' => Auth::id()
+            $seguroId   = $validated['seguro_id'] ?? $this->obtenerOCrearSeguro('particular');
+            $sexoCodigo = $validated['sexo'] === 'Masculino' ? 'M' : 'F';
+
+            $registroCodigo = Registro::generarCodigo([
+                'fecha_nacimiento' => $validated['fecha_nacimiento'] ?? null,
+                'sexo'             => $sexoCodigo,
+                'nombre'           => trim($validated['nombres'] . ' ' . $validated['apellidos']),
             ]);
 
-            $seguroId = $validated['seguro_id'] ?? $this->obtenerOCrearSeguro('particular');
-            $sexoCodigo = $validated['sexo'] === 'Masculino' ? 'M' : 'F';
+            Registro::create([
+                'codigo'  => $registroCodigo,
+                'fecha'   => now()->toDateString(),
+                'hora'    => now()->toTimeString(),
+                'motivo'  => 'Registro completado desde paciente temporal de emergencia',
+                'user_id' => Auth::id(),
+            ]);
 
             $paciente = Paciente::create([
                 'ci' => $validated['ci'],
@@ -462,20 +472,16 @@ class EmergencyIngresoController extends Controller
         }
     }
 
-    private function obenerOCrearTriage()
+    private function obenerOCrearTriage(): string
     {
-        $currentUser = Auth::user();
-        
-        $triage = Triage::firstOrCreate(
-            ['id' => 'TRIAGE-CONSULTA'],
-            [
-                'color' => 'green',
-                'descripcion' => 'Consulta Externa - No Urgente',
-                'prioridad' => 'baja',
-                'user_id' => $currentUser->id
-            ]
-        );
-        
+        $triage = Triage::create([
+            'id'          => 'TRIAGE-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
+            'color'       => 'green',
+            'descripcion' => 'Consulta Externa - No Urgente',
+            'prioridad'   => 'baja',
+            'user_id'     => Auth::id(),
+        ]);
+
         return $triage->id;
     }
 

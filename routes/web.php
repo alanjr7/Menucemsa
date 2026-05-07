@@ -538,7 +538,6 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     // API routes accesibles por recepción y emergencia (fuera del middleware de emergencia)
     Route::middleware(['auth'])->prefix('api')->group(function () {
         Route::get('/emergencias-temporales', [EmergencyStaffController::class, 'apiEmergenciasTemporales']);
-        Route::post('/completar-datos-paciente-temporal', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal']);
         Route::get('/buscar-paciente', [AlmacenMedicamentosController::class, 'buscarPacienteApi']);
     });
 

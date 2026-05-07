@@ -170,7 +170,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Precios de Ingresos', 'route' => 'admin.ingreso-precios.index', 'roles' => 'admin,administrador', 'order' => 5],
 
             // Gestión Hospitalaria
-            ['name' => 'Almacén Central', 'route' => 'admin.almacen-medicamentos.index', 'roles' => 'admin,administrador', 'order' => 10],
+            ['name' => 'Almacén Medicamentos', 'route' => 'admin.almacen-medicamentos.index', 'roles' => 'admin,administrador', 'order' => 10],
            // ['name' => 'Farmacias', 'route' => 'farmacias.index', 'roles' => 'admin,administrador', 'order' => 11],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 13],
 
