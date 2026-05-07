@@ -48,6 +48,7 @@ use App\Http\Controllers\Medical\UtiOperativoController;
 use App\Http\Controllers\UtiMedicamentosController;
 use App\Http\Controllers\Admin\UtiAdminController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\InternacionHabitacionUsoController;
 
 
 
@@ -542,7 +543,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     });
 
     // Rutas para personal de emergencias - EMERGENCIA, ENFERMERA-EMERGENCIA, ADMIN, DIR MEDICO Y ADMINISTRADOR
-    Route::middleware(['role:emergencia|enfermera-emergencia|admin|dirmedico|administrador'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+    Route::middleware(['role:emergencia|enfermera-emergencia|admin|dirmedico|administrador|uti'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
@@ -667,6 +668,10 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
             Route::post('/medicamentos/{medicamento}/stock', [InternacionMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
         });
 
+        // Registrar uso de habitación/cama (cargo a cuenta del paciente)
+        Route::get('/habitaciones/registro-uso', [InternacionHabitacionUsoController::class, 'index'])->name('habitaciones.registro-uso');
+        Route::post('/habitaciones/registro-uso', [InternacionHabitacionUsoController::class, 'store'])->name('habitaciones.registro-uso.store');
+
         // Rutas para gestión de habitaciones de internación - Vista y CRUD
         Route::get('/habitaciones', [HabitacionGestionController::class, 'index'])->name('habitaciones.index');
         Route::get('/habitaciones/create', [HabitacionGestionController::class, 'create'])->name('habitaciones.create');
@@ -780,6 +785,9 @@ Route::middleware(['auth', 'role:admin|dirmedico|doctor|uti'])->prefix('uti-oper
     Route::post('/api/paciente/{id}/asignar-cama', [UtiOperativoController::class, 'asignarCama']);
     Route::get('/api/medicamentos', [UtiOperativoController::class, 'getMedicamentosDisponibles']);
     Route::get('/api/insumos', [UtiOperativoController::class, 'getInsumosDisponibles']);
+
+    // Ruta de solo lectura para medicamentos (todos los roles del panel operativo)
+    Route::get('/medicamentos-readonly', [UtiMedicamentosController::class, 'indexReadonly'])->name('medicamentos.readonly');
 
     // Rutas para gestión de medicamentos de UTI (solo admin y uti)
     Route::middleware(['role:admin|uti'])->group(function () {

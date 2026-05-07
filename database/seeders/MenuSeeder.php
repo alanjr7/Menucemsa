@@ -214,6 +214,7 @@ class MenuSeeder extends Seeder
         $uti->children()->createMany([
             ['name' => 'Panel de Pacientes', 'route' => 'uti.operativa.index', 'order' => 1],
             ['name' => 'Camillas', 'route' => 'emergency-staff.camillas.index', 'order' => 2],
+            ['name' => 'Ver Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'order' => 3],
         ]);
 
         // 10. Quirófano (Cirujano)
@@ -246,11 +247,10 @@ class MenuSeeder extends Seeder
 
         $internacion->children()->createMany([
             ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'internacion', 'order' => 1],
-            ['name' => 'Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'internacion', 'order' => 2],
+            ['name' => 'Registrar Habitación', 'route' => 'internacion-staff.habitaciones.registro-uso', 'roles' => 'internacion', 'order' => 2],
             ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'internacion', 'order' => 3],
             ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'internacion', 'order' => 4],
-            ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'internacion', 'order' => 5],
-        ]);
+            ]);
 
         // 11.5 Administración de Internación (Admin/Director Médico/Administrador)
         $adminInternacion = Menu::create([

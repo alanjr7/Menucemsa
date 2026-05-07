@@ -44,7 +44,7 @@ class DashboardController extends Controller
                 return redirect()->route('uti.operativa.index');
 
             case 'internacion':
-                return redirect()->route('internacion-staff.index');
+                return redirect()->route('internacion-staff.dashboard');
 
             case 'enfermera-emergencia':
                 return redirect()->route('emergency-staff.dashboard');

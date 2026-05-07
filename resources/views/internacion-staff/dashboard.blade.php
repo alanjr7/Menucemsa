@@ -89,6 +89,215 @@ $hasPermission = function($permission) use ($userPermissions) {
         </div>
     </div>
 
+    <!-- Registro de Operaciones por Fecha -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 class="text-lg font-bold text-gray-800">Registro de Operaciones</h2>
+            <form method="GET" action="{{ route('internacion-staff.dashboard') }}" class="flex items-center gap-2">
+                <label class="text-sm text-gray-500 whitespace-nowrap">Fecha:</label>
+                <input type="date" name="fecha" value="{{ $fecha }}"
+                    class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                    onchange="this.form.submit()">
+            </form>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+            <div class="bg-indigo-50 rounded-xl p-3 text-center">
+                <div class="text-2xl font-bold text-indigo-700">{{ $habitacionesAsignadas->count() }}</div>
+                <div class="text-xs text-indigo-500 mt-0.5">Hab. asignadas</div>
+            </div>
+            <div class="bg-blue-50 rounded-xl p-3 text-center">
+                <div class="text-2xl font-bold text-blue-700">{{ $evaluaciones->count() }}</div>
+                <div class="text-xs text-blue-500 mt-0.5">Evaluaciones</div>
+            </div>
+            <div class="bg-green-50 rounded-xl p-3 text-center">
+                <div class="text-2xl font-bold text-green-700">{{ $medicamentos->count() }}</div>
+                <div class="text-xs text-green-500 mt-0.5">Medicamentos</div>
+            </div>
+            <div class="bg-amber-50 rounded-xl p-3 text-center">
+                <div class="text-2xl font-bold text-amber-700">{{ $procedimientos->count() }}</div>
+                <div class="text-xs text-amber-500 mt-0.5">Procedimientos</div>
+            </div>
+            <div class="bg-purple-50 rounded-xl p-3 text-center">
+                <div class="text-2xl font-bold text-purple-700">{{ $insumos->count() }}</div>
+                <div class="text-xs text-purple-500 mt-0.5">Insumos/Estadías</div>
+            </div>
+        </div>
+
+        <div class="space-y-4" x-data="{ tab: 'habitaciones' }">
+            <!-- Tabs -->
+            <div class="flex gap-1 border-b border-gray-100 pb-0 overflow-x-auto">
+                @foreach([
+                    ['habitaciones', 'Hab. Asignadas', $habitacionesAsignadas->count(), 'indigo'],
+                    ['evaluaciones', 'Evaluaciones',   $evaluaciones->count(),         'blue'],
+                    ['medicamentos', 'Medicamentos',   $medicamentos->count(),         'green'],
+                    ['procedimientos','Procedimientos',$procedimientos->count(),        'amber'],
+                    ['insumos',      'Insumos',        $insumos->count(),              'purple'],
+                ] as [$key, $label, $count, $color])
+                <button @click="tab = '{{ $key }}'"
+                    :class="tab === '{{ $key }}'
+                        ? 'border-b-2 border-{{ $color }}-500 text-{{ $color }}-700 font-semibold'
+                        : 'text-gray-400 hover:text-gray-600'"
+                    class="px-4 py-2.5 text-sm whitespace-nowrap transition-colors -mb-px">
+                    {{ $label }}
+                    <span :class="tab === '{{ $key }}' ? 'bg-{{ $color }}-100 text-{{ $color }}-700' : 'bg-gray-100 text-gray-500'"
+                        class="ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-medium">{{ $count }}</span>
+                </button>
+                @endforeach
+            </div>
+
+            <!-- Habitaciones asignadas -->
+            <div x-show="tab === 'habitaciones'" x-cloak>
+                @if($habitacionesAsignadas->isEmpty())
+                    <p class="text-sm text-gray-400 py-6 text-center">Sin habitaciones asignadas el {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</p>
+                @else
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Paciente</th>
+                            <th class="px-4 py-2 text-left">Habitación / Cama</th>
+                            <th class="px-4 py-2 text-left">Médico</th>
+                            <th class="px-4 py-2 text-left">Hora ingreso</th>
+                            <th class="px-4 py-2 text-left">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach($habitacionesAsignadas as $h)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 font-medium text-gray-800">{{ $h->paciente?->nombre ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-600">{{ $h->habitacion_id ?? '—' }} / Cama {{ $h->cama_id ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-600">{{ $h->medico?->user?->name ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $h->fecha_ingreso?->format('H:i') }}</td>
+                            <td class="px-4 py-2">
+                                <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-100 text-indigo-700">{{ $h->estado }}</span>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+            </div>
+
+            <!-- Evaluaciones -->
+            <div x-show="tab === 'evaluaciones'" x-cloak>
+                @if($evaluaciones->isEmpty())
+                    <p class="text-sm text-gray-400 py-6 text-center">Sin evaluaciones el {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</p>
+                @else
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Paciente</th>
+                            <th class="px-4 py-2 text-left">Registrado por</th>
+                            <th class="px-4 py-2 text-left">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach($evaluaciones as $ev)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 font-medium text-gray-800">{{ $ev->hospitalizacion?->paciente?->nombre ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-600">{{ $ev->administeredBy?->name ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $ev->hora ? \Carbon\Carbon::parse($ev->hora)->format('H:i') : '—' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+            </div>
+
+            <!-- Medicamentos -->
+            <div x-show="tab === 'medicamentos'" x-cloak>
+                @if($medicamentos->isEmpty())
+                    <p class="text-sm text-gray-400 py-6 text-center">Sin medicamentos dispensados el {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</p>
+                @else
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Paciente</th>
+                            <th class="px-4 py-2 text-left">Medicamento</th>
+                            <th class="px-4 py-2 text-left">Cantidad</th>
+                            <th class="px-4 py-2 text-left">Vía</th>
+                            <th class="px-4 py-2 text-left">Enfermera</th>
+                            <th class="px-4 py-2 text-left">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach($medicamentos as $med)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 font-medium text-gray-800">{{ $med->hospitalizacion?->paciente?->nombre ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-700">{{ $med->catalogo?->nombre ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-600">{{ $med->cantidad }} {{ $med->unidad }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $med->via_administracion ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $med->administeredBy?->name ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $med->hora ? \Carbon\Carbon::parse($med->hora)->format('H:i') : '—' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+            </div>
+
+            <!-- Procedimientos -->
+            <div x-show="tab === 'procedimientos'" x-cloak>
+                @if($procedimientos->isEmpty())
+                    <p class="text-sm text-gray-400 py-6 text-center">Sin procedimientos el {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</p>
+                @else
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Paciente</th>
+                            <th class="px-4 py-2 text-left">Descripción</th>
+                            <th class="px-4 py-2 text-left">Cantidad</th>
+                            <th class="px-4 py-2 text-left">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach($procedimientos as $proc)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 font-medium text-gray-800">{{ $proc->cuentaCobro?->paciente?->nombre ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-700">{{ $proc->descripcion }}</td>
+                            <td class="px-4 py-2 text-gray-600">{{ (int) $proc->cantidad }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $proc->created_at->format('H:i') }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+            </div>
+
+            <!-- Insumos / Estadías -->
+            <div x-show="tab === 'insumos'" x-cloak>
+                @if($insumos->isEmpty())
+                    <p class="text-sm text-gray-400 py-6 text-center">Sin insumos registrados el {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</p>
+                @else
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Paciente</th>
+                            <th class="px-4 py-2 text-left">Descripción</th>
+                            <th class="px-4 py-2 text-left">Tipo</th>
+                            <th class="px-4 py-2 text-left">Cantidad</th>
+                            <th class="px-4 py-2 text-left">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach($insumos as $ins)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 font-medium text-gray-800">{{ $ins->cuentaCobro?->paciente?->nombre ?? '—' }}</td>
+                            <td class="px-4 py-2 text-gray-700">{{ $ins->descripcion }}</td>
+                            <td class="px-4 py-2">
+                                <span class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">{{ $ins->tipo_item_label }}</span>
+                            </td>
+                            <td class="px-4 py-2 text-gray-600">{{ (int) $ins->cantidad }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $ins->created_at->format('H:i') }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+            </div>
+        </div>
+    </div>
+
     <!-- Lista de Pacientes en Internación -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div class="flex justify-between items-center mb-6">

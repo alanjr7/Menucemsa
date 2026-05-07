@@ -3,8 +3,10 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Inventario - Emergencia</h1>
-        <a href="{{ route('emergency-staff.medicamentos.create') }}" class="bg-blue-500 text-white px-4 py-2 rounded">+ Agregar</a>
+        <h1 class="text-3xl font-bold">Inventario - UTI</h1>
+        @empty($readonly)
+            <a href="{{ route('uti.operativa.medicamentos.create') }}" class="bg-blue-500 text-white px-4 py-2 rounded">+ Agregar</a>
+        @endempty
     </div>
 
     @if (session('success'))
@@ -41,8 +43,10 @@
                             <td class="px-4 py-3">Bs. {{ $lote->precio_venta }}</td>
                             <td class="px-4 py-3">{{ $lote->fecha_vencimiento ? $lote->fecha_vencimiento->format('d/m') : 'S/F' }}</td>
                             <td class="px-4 py-3">
-                                <a href="{{ route('emergency-staff.medicamentos.edit', $med) }}" class="text-green-500">Editar</a> |
-                                <a href="{{ route('emergency-staff.medicamentos.show', $med) }}" class="text-blue-500">Ver</a>
+                                @empty($readonly)
+                                    <a href="{{ route('uti.operativa.medicamentos.edit', $med) }}" class="text-green-500">Editar</a> |
+                                @endempty
+                                <a href="{{ route('uti.operativa.medicamentos.show', $med) }}" class="text-blue-500">Ver</a>
                             </td>
                         </tr>
                     @endif

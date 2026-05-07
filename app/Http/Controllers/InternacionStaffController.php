@@ -18,6 +18,7 @@ use App\Models\HospDrenaje;
 use App\Models\CateringPrecio;
 use App\Models\Emergency;
 use App\Models\Quirofano;
+use Carbon\Carbon;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -30,9 +31,49 @@ class InternacionStaffController extends Controller
         $this->middleware('role:internacion|admin|dirmedico|enfermera-internacion|administrador');
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('internacion-staff.dashboard');
+        $fecha = $request->filled('fecha')
+            ? Carbon::parse($request->fecha)->toDateString()
+            : today()->toDateString();
+
+        $habitacionesAsignadas = Hospitalizacion::with(['paciente', 'medico.user'])
+            ->whereDate('fecha_ingreso', $fecha)
+            ->whereNotNull('habitacion_id')
+            ->orderBy('fecha_ingreso')
+            ->get();
+
+        $evaluaciones = HospMedicamentoAdministrado::with(['hospitalizacion.paciente', 'administeredBy'])
+            ->whereDate('fecha', $fecha)
+            ->get()
+            ->groupBy('hospitalizacion_id')
+            ->map(fn($items) => $items->first());
+
+        $medicamentos = HospMedicamentoAdministrado::with(['hospitalizacion.paciente', 'catalogo', 'administeredBy'])
+            ->whereDate('fecha', $fecha)
+            ->orderBy('hora')
+            ->get();
+
+        $procedimientos = CuentaCobroDetalle::with(['cuentaCobro.paciente'])
+            ->where('tipo_item', 'procedimiento')
+            ->where('area_origen', 'internacion')
+            ->whereDate('created_at', $fecha)
+            ->get();
+
+        $insumos = CuentaCobroDetalle::with(['cuentaCobro.paciente'])
+            ->whereIn('tipo_item', ['material', 'equipo_medico', 'estadia'])
+            ->where('area_origen', 'internacion')
+            ->whereDate('created_at', $fecha)
+            ->get();
+
+        return view('internacion-staff.dashboard', compact(
+            'fecha',
+            'habitacionesAsignadas',
+            'evaluaciones',
+            'medicamentos',
+            'procedimientos',
+            'insumos'
+        ));
     }
 
     /**

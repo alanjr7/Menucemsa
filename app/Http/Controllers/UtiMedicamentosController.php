@@ -24,7 +24,9 @@ class UtiMedicamentosController extends Controller
     {
         $query = AlmacenCatalogo::activos()
             ->with(['lotes' => function($q) {
-                $q->vigentes()->with('stocks');
+                $q->with(['stocks' => function($sq) {
+                    $sq->where('ubicacion', $this->ubicacion);
+                }]);
             }])
             ->whereHas('stocks', function($q) {
                 $q->where('ubicacion', $this->ubicacion);
@@ -44,9 +46,9 @@ class UtiMedicamentosController extends Controller
         $medicamentos = $query->orderBy('nombre')->paginate(10);
 
         $stats = [
-            'total' => AlmacenCatalogo::activos()->count(),
-            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->count(),
-            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->count(),
+            'total' => AlmacenCatalogo::activos()->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
             'bajo_stock' => AlmacenStock::where('ubicacion', $this->ubicacion)->bajoStock()->count(),
             'agotados' => AlmacenStock::where('ubicacion', $this->ubicacion)->agotado()->count(),
             'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', function($q) {
@@ -55,6 +57,47 @@ class UtiMedicamentosController extends Controller
         ];
 
         return view('uti.medicamentos.index', compact('medicamentos', 'stats'));
+    }
+
+    public function indexReadonly(Request $request)
+    {
+        $query = AlmacenCatalogo::activos()
+            ->with(['lotes' => function($q) {
+                $q->with(['stocks' => function($sq) {
+                    $sq->where('ubicacion', $this->ubicacion);
+                }]);
+            }])
+            ->whereHas('stocks', function($q) {
+                $q->where('ubicacion', $this->ubicacion);
+            });
+
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+
+        if ($request->filled('buscar')) {
+            $query->where(function($q) use ($request) {
+                $q->where('nombre', 'like', '%' . $request->buscar . '%')
+                  ->orWhere('descripcion', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        $medicamentos = $query->orderBy('nombre')->paginate(10);
+
+        $stats = [
+            'total' => AlmacenCatalogo::activos()->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'bajo_stock' => AlmacenStock::where('ubicacion', $this->ubicacion)->bajoStock()->count(),
+            'agotados' => AlmacenStock::where('ubicacion', $this->ubicacion)->agotado()->count(),
+            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', function($q) {
+                $q->where('ubicacion', $this->ubicacion);
+            })->count(),
+        ];
+
+        $readonly = true;
+
+        return view('uti.medicamentos.index', compact('medicamentos', 'stats', 'readonly'));
     }
 
     public function create()
