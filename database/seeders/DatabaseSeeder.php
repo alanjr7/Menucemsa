@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             EspecialidadMedicoSeeder::class,
             MenuSeeder::class,
-            AlmacenMedicamentoSeeder::class,
+            AlmacenInventarioSeeder::class,
             IpAccessSeeder::class,
             MedicamentosOncologicosAntiinfecciososSeeder::class,
             MedicamentosGeneralesSeeder::class,

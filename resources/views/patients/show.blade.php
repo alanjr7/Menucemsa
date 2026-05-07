@@ -133,7 +133,13 @@
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Fecha Registro:</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->registro->fecha?->format('d/m/Y H:i') ?? '-' }}</dd>
+                        <dd class="text-sm font-medium text-gray-900">
+                            @if($paciente->registro)
+                                {{ $paciente->registro->fecha->format('d/m/Y') }} {{ \Carbon\Carbon::parse($paciente->registro->hora)->format('H:i') }}
+                            @else
+                                -
+                            @endif
+                        </dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Motivo:</dt>

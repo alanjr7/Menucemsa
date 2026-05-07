@@ -22,6 +22,7 @@ return new class extends Migration
             $table->text('observaciones')->nullable();
             $table->string('area_origen', 50)->nullable()
                 ->comment('emergencia|quirofano|internacion|uti|farmacia|consulta_externa');
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             // Foreign keys

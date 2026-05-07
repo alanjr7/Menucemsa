@@ -139,7 +139,7 @@ class MenuSeeder extends Seeder
         // 5. Pacientes (Con Submenús) - Todos los roles
         $pacientes = Menu::create([
             'name' => 'Pacientes',
-            'active_pattern' => 'patients*,consulta*,uti*,quirofano*,pacientes-cirugia*,admin/emergencies*',
+            'active_pattern' => 'patients*,consulta*,uti*,quirofano*,admin/emergencies*',
             'icon_path' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
             'color' => 'blue',
             'roles' => null, // Todos los roles
@@ -149,7 +149,6 @@ class MenuSeeder extends Seeder
         $pacientes->children()->createMany([
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => null, 'order' => 1],
             ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 3],
-            ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 4],
           //  ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 5],
             ['name' => 'Consulta Externa', 'route' => 'consulta.index', 'roles' => 'doctor', 'order' => 6],
             ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
@@ -228,7 +227,6 @@ class MenuSeeder extends Seeder
         ]);
         $quirofano->children()->createMany([
             ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'roles' => 'cirujano', 'order' => 1],
-            ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'cirujano', 'order' => 2],
             ['name' => 'Calendario', 'route' => 'quirofano.calendario', 'roles' => 'cirujano', 'order' => 3],
             ['name' => 'Historial', 'route' => 'quirofano.historial', 'roles' => 'cirujano', 'order' => 4],
             ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'roles' => 'cirujano', 'order' => 5],
@@ -250,6 +248,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Registrar Habitación', 'route' => 'internacion-staff.habitaciones.registro-uso', 'roles' => 'internacion', 'order' => 2],
             ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'internacion', 'order' => 3],
             ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'internacion', 'order' => 4],
+            ['name' => 'Catering', 'route' => 'internacion-staff.catering.index', 'roles' => 'internacion,enfermera-internacion', 'order' => 5],
             ]);
 
         // 11.5 Administración de Internación (Admin/Director Médico/Administrador)
@@ -268,6 +267,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
             ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'admin,administrador', 'order' => 4],
             ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Gestionar Catering', 'route' => 'internacion-staff.catering.gestion', 'roles' => 'admin,administrador', 'order' => 6],
         ]);
 
         // 12. Gerencial

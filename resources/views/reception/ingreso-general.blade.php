@@ -17,7 +17,7 @@
 
     <!-- Formulario General -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <form id="formIngresoGeneral" onsubmit="procesarIngreso(event); return false;">
+        <form id="formIngresoGeneral" onsubmit="procesarIngreso(event); return false;" autocomplete="off">
             @csrf
 
             <!-- PASO 1: DATOS DEL PACIENTE -->
@@ -78,17 +78,17 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Nombres *</label>
                             <input type="text" name="nombres" id="nombres" required
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno *</label>
                             <input type="text" name="apellido_paterno" id="apellido_paterno" required
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno *</label>
                             <input type="text" name="apellido_materno" id="apellido_materno" required
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Sexo *</label>
@@ -102,12 +102,12 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
                             <input type="date" name="fecha_nacimiento" id="fecha_nacimiento"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Lugar de Expedición CI</label>
                             <select name="lugar_expedicion" id="lugar_expedicion"
-                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                                 <option value="">Seleccione...</option>
                                 <option value="LP">LP - La Paz</option>
                                 <option value="OR">OR - Oruro</option>
@@ -152,22 +152,22 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
                             <input type="tel" name="telefono" id="telefono"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Correo</label>
                             <input type="email" name="correo" id="correo"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Profesión</label>
                             <input type="text" name="profesion" id="profesion"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Empresa de Trabajo</label>
                             <input type="text" name="empresa_trabajo" id="empresa_trabajo"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
@@ -299,19 +299,19 @@
                     <!-- Formulario garante -->
                     <div id="formulario_garante" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombres *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" autocomplete='off'>Nombres *</label>
                             <input type="text" name="garante_nombres" id="garante_nombres"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all" autocomplete="off">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" autocomplete="off">Apellido Paterno *</label>
                             <input type="text" name="garante_apellido_paterno" id="garante_apellido_paterno"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all" autocomplete="off">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" autocomplete="off">Apellido Materno *</label>
                             <input type="text" name="garante_apellido_materno" id="garante_apellido_materno"
-                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all">
+                                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all" autocomplete="off">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Sexo *</label>

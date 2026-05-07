@@ -284,6 +284,27 @@ $hasPermission = function($permission) use ($userPermissions) {
                 </div>
             </div>
 
+            <!-- Sección: Catering -->
+            @if($hasPermission('administrar_catering') || empty($userPermissions))
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-1 h-4 bg-orange-500 rounded-full"></div>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Catering</h4>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="mostrarModalCatering()" class="group relative flex flex-col items-center p-3 bg-white border border-orange-200 rounded-lg hover:border-orange-400 hover:shadow-md hover:shadow-orange-500/10 transition-all duration-200 text-center">
+                        <div class="w-9 h-9 bg-orange-50 group-hover:bg-orange-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <span class="font-semibold text-slate-800 text-sm block mb-0.5">Registrar Catering</span>
+                        <span class="text-xs text-slate-500">Desayuno, almuerzo, cena</span>
+                    </button>
+                </div>
+            </div>
+            @endif
+
             <!-- Sección: Egreso -->
             @if($hasPermission('dar_alta_internacion'))
             <div>
@@ -325,12 +346,57 @@ $hasPermission = function($permission) use ($userPermissions) {
                         Atención
                     </span>
                     <span class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                        Catering
+                    </span>
+                    <span class="flex items-center gap-1.5">
                         <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
                         Egreso
                     </span>
                 </div>
                 <span>Presione ESC para cerrar</span>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Catering Rápido -->
+<div id="modalCatering" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white shadow-2xl rounded-2xl max-w-md w-full overflow-hidden transform transition-all duration-300">
+        <div class="bg-gradient-to-r from-orange-600 via-orange-700 to-orange-800 px-6 py-4 rounded-t-2xl">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/15 backdrop-blur rounded-lg flex items-center justify-center border border-white/20">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Registrar Catering</h3>
+                        <p class="text-sm text-orange-100" id="catering-paciente-nombre"></p>
+                    </div>
+                </div>
+                <button onclick="cerrarModalCatering()" class="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all">
+                    <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-50/70">
+            <div class="space-y-2" id="catering-botones">
+                {{-- Los botones se generarán dinámicamente --}}
+            </div>
+        </div>
+
+        <div class="px-4 py-3 bg-slate-100 border-t border-slate-200 rounded-b-2xl flex justify-end gap-2">
+            <button onclick="cerrarModalCatering()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-white transition-colors">
+                Cancelar
+            </button>
+            <button onclick="guardarCateringRapido()" class="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition-colors">
+                Guardar Catering
+            </button>
         </div>
     </div>
 </div>
@@ -617,6 +683,116 @@ $hasPermission = function($permission) use ($userPermissions) {
         }
     }
 
+    // ============== FUNCIONES DE CATERING RÁPIDO ==============
+
+    let cateringEstados = { desayuno: 'no_dado', almuerzo: 'no_dado', merienda: 'no_dado', cena: 'no_dado' };
+
+    async function mostrarModalCatering() {
+        if (!internacionSeleccionada) return;
+
+        document.getElementById('catering-paciente-nombre').textContent = internacionSeleccionada.paciente_nombre;
+
+        // Cargar catering actual del paciente
+        try {
+            const response = await fetch(`/internacion-staff/api/internacion/${internacionSeleccionada.id}/catering`);
+            const data = await response.json();
+
+            if (data.success) {
+                // Inicializar estados desde la respuesta
+                cateringEstados = { desayuno: 'no_dado', almuerzo: 'no_dado', merienda: 'no_dado', cena: 'no_dado' };
+                data.catering.forEach(item => {
+                    cateringEstados[item.tipo_comida] = item.estado;
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando catering:', error);
+        }
+
+        renderizarBotonesCatering();
+        document.getElementById('modalCatering').classList.remove('hidden');
+    }
+
+    function cerrarModalCatering() {
+        document.getElementById('modalCatering').classList.add('hidden');
+        cateringEstados = { desayuno: 'no_dado', almuerzo: 'no_dado', merienda: 'no_dado', cena: 'no_dado' };
+    }
+
+    function toggleCatering(tipo) {
+        const ciclo = { 'no_dado': 'dado', 'dado': 'no_aplica', 'no_aplica': 'no_dado' };
+        cateringEstados[tipo] = ciclo[cateringEstados[tipo]];
+        renderizarBotonesCatering();
+    }
+
+    function renderizarBotonesCatering() {
+        const container = document.getElementById('catering-botones');
+        const tipos = [
+            { id: 'desayuno', label: 'Desayuno', icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z', color: 'yellow' },
+            { id: 'almuerzo', label: 'Almuerzo', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: 'green' },
+            { id: 'merienda', label: 'Merienda', icon: 'M20 12H4', color: 'purple' },
+            { id: 'cena', label: 'Cena', icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z', color: 'indigo' }
+        ];
+
+        const clasesEstado = {
+            'dado': { bg: 'bg-green-50', border: 'border-green-300', badge: 'bg-green-100 text-green-800', label: 'Dado' },
+            'no_dado': { bg: 'bg-gray-50', border: 'border-gray-200', badge: 'bg-gray-100 text-gray-600', label: 'No Dado' },
+            'no_aplica': { bg: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-800', label: 'No Aplica' }
+        };
+
+        container.innerHTML = tipos.map(tipo => {
+            const estado = clasesEstado[cateringEstados[tipo.id]];
+            return `
+                <div onclick="toggleCatering('${tipo.id}')" class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${estado.bg} ${estado.border}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-${tipo.color}-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-${tipo.color}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="${tipo.icon}"/>
+                            </svg>
+                        </div>
+                        <span class="font-medium text-slate-800">${tipo.label}</span>
+                    </div>
+                    <span class="px-2.5 py-1 text-xs font-medium rounded-full ${estado.badge}">${estado.label}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function guardarCateringRapido() {
+        if (!internacionSeleccionada) return;
+
+        const registros = [];
+        for (const [tipo, estado] of Object.entries(cateringEstados)) {
+            registros.push({
+                paciente_ci: internacionSeleccionada.paciente_id,
+                tipo_comida: tipo,
+                estado: estado,
+                observaciones: null
+            });
+        }
+
+        try {
+            const response = await fetch('{{ route('internacion-staff.catering.registrar') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ registros })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                cerrarModalCatering();
+                alert('Catering registrado correctamente');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al guardar el catering');
+        }
+    }
+
     // Cerrar modal al hacer clic fuera
     document.getElementById('modalAcciones').addEventListener('click', function(e) {
         if (e.target === this) {
@@ -624,10 +800,22 @@ $hasPermission = function($permission) use ($userPermissions) {
         }
     });
 
+    // Cerrar modal catering al hacer clic fuera
+    document.getElementById('modalCatering').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModalCatering();
+        }
+    });
+
     // Cerrar modal con tecla ESC
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !document.getElementById('modalAcciones').classList.contains('hidden')) {
-            cerrarModal();
+        if (e.key === 'Escape') {
+            if (!document.getElementById('modalAcciones').classList.contains('hidden')) {
+                cerrarModal();
+            }
+            if (!document.getElementById('modalCatering').classList.contains('hidden')) {
+                cerrarModalCatering();
+            }
         }
     });
 

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('emergencies', function (Blueprint $table) {
             $table->id();
-            $table->integer('patient_id')->nullable();
+            $table->string('patient_id')->nullable();
             $table->boolean('is_temp_id')->default(false);
             $table->string('temp_id')->nullable();
             $table->foreignId('user_id')->constrained('users');
@@ -43,7 +43,7 @@ return new class extends Migration
             $table->timestamp('discharge_date')->nullable();
             $table->timestamps();
             
-            $table->foreign('patient_id')->references('ci')->on('pacientes')->onDelete('set null');
+            // Nota: patient_id es string para soportar CI de pacientes sin FK estricto
         });
     }
 

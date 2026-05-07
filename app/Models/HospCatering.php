@@ -13,6 +13,7 @@ class HospCatering extends Model
 
     protected $fillable = [
         'hospitalizacion_id',
+        'paciente_ci',
         'registered_by',
         'fecha',
         'tipo_comida',
@@ -34,6 +35,11 @@ class HospCatering extends Model
     public function hospitalizacion()
     {
         return $this->belongsTo(Hospitalizacion::class, 'hospitalizacion_id');
+    }
+
+    public function paciente()
+    {
+        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
     }
 
     public function registeredBy()

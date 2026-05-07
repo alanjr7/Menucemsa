@@ -1193,4 +1193,293 @@ class InternacionStaffController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Vista de Gestión de Precios de Catering (Admin)
+     */
+    public function gestionCatering(): View
+    {
+        $precios = CateringPrecio::getPreciosArray();
+
+        return view('internacion-staff.catering.gestion', compact('precios'));
+    }
+
+    /**
+     * Vista de Catering Masivo - Todos los pacientes del sistema
+     */
+    public function cateringIndex(Request $request): View
+    {
+        $fecha = now()->toDateString();
+
+        // Query base: TODOS los pacientes con registro (como en PatientsController)
+        $query = Paciente::with([
+                'seguro',
+                'registro',
+                'consultas' => fn($q) => $q->orderBy('created_at', 'desc')->limit(1),
+                'hospitalizaciones' => fn($q) => $q->orderBy('created_at', 'desc')->limit(1),
+                'emergencias' => fn($q) => $q->orderBy('created_at', 'desc')->limit(1),
+            ])
+            ->whereHas('registro');
+
+        // Filtro de búsqueda
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nombre', 'LIKE', "%{$search}%")
+                    ->orWhere('ci', 'LIKE', "%{$search}%")
+                    ->orWhereHas('registro', fn($rq) => $rq->where('codigo', 'LIKE', "%{$search}%"));
+            });
+        }
+
+        $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        // Obtener pacientes temporales de emergencias
+        $emergencyQuery = Emergency::where('is_temp_id', true)
+            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $emergencyQuery->where(function ($q) use ($search) {
+                $q->where('temp_id', 'LIKE', "%{$search}%")
+                    ->orWhere('code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $pacientesTemporales = $emergencyQuery->orderBy('created_at', 'desc')->get()
+            ->map(fn($emergency) => (object)[
+                'ci' => $emergency->temp_id,
+                'nombre' => 'Paciente Temporal - Emergencia',
+                'is_temporal' => true,
+                'emergency_id' => $emergency->id,
+                'emergency_code' => $emergency->code,
+                'emergency_status' => $emergency->status,
+                'created_at' => $emergency->created_at,
+                'seguro' => null,
+                'area_actual' => 'emergencia',
+            ]);
+
+        // Determinar área actual para cada paciente
+        $pacientes->getCollection()->transform(function ($paciente) {
+            $paciente->area_actual = $this->determinarAreaActualPaciente($paciente);
+            return $paciente;
+        });
+
+        // Combinar pacientes regulares y temporales
+        $todosPacientes = collect($pacientes->items())->merge($pacientesTemporales)
+            ->sortByDesc('created_at')
+            ->values();
+
+        // Cargar catering del día para todos los pacientes (por CI)
+        $cisPacientes = $todosPacientes->pluck('ci')->filter()->unique();
+        $cateringHoy = HospCatering::where('fecha', $fecha)
+            ->whereIn('paciente_ci', $cisPacientes)
+            ->get()
+            ->groupBy('paciente_ci');
+
+        // Obtener precios actuales
+        $precios = CateringPrecio::getPreciosArray();
+
+        // Stats
+        $stats = [
+            'total' => Paciente::whereHas('registro')->count(),
+            'hospitalizados' => Hospitalizacion::whereNull('fecha_alta')->where('estado', '!=', 'trasladado')->count(),
+            'emergencias' => Emergency::whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])->count(),
+        ];
+
+        return view('internacion-staff.catering.index', compact(
+            'pacientes',
+            'pacientesTemporales',
+            'todosPacientes',
+            'cateringHoy',
+            'precios',
+            'fecha',
+            'stats'
+        ));
+    }
+
+    /**
+     * Determinar el área actual donde está el paciente
+     */
+    private function determinarAreaActualPaciente(Paciente $paciente): string
+    {
+        // Verificar si está en emergencia activa
+        $emergenciaActiva = $paciente->emergencias
+            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado'])
+            ->first();
+        if ($emergenciaActiva) {
+            return 'emergencia';
+        }
+
+        // Verificar si está internado
+        $hospitalizacionActiva = $paciente->hospitalizaciones
+            ->whereNull('fecha_alta')
+            ->where('estado', '!=', 'trasladado')
+            ->first();
+        if ($hospitalizacionActiva) {
+            return 'internacion';
+        }
+
+        // Verificar consulta externa reciente (últimas 24 horas)
+        $consultaReciente = $paciente->consultas
+            ->where('created_at', '>=', now()->subDay())
+            ->first();
+        if ($consultaReciente) {
+            return 'consulta';
+        }
+
+        return 'registrado';
+    }
+
+    /**
+     * API: Registrar catering masivo (múltiples pacientes por CI)
+     */
+    public function cateringRegistrar(Request $request): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            $validated = $request->validate([
+                'registros' => 'required|array',
+                'registros.*.paciente_ci' => 'required|string',
+                'registros.*.tipo_comida' => 'required|in:desayuno,almuerzo,merienda,cena',
+                'registros.*.estado' => 'required|in:dado,no_dado,no_aplica',
+                'registros.*.observaciones' => 'nullable|string|max:255',
+            ]);
+
+            $fecha = now()->toDateString();
+            $registrosGuardados = 0;
+            $cargosGenerados = 0;
+            $errores = [];
+
+            foreach ($validated['registros'] as $registroData) {
+                try {
+                    $ciPaciente = $registroData['paciente_ci'];
+
+                    // Buscar hospitalización activa opcionalmente
+                    $hospitalizacion = Hospitalizacion::where('ci_paciente', $ciPaciente)
+                        ->whereNull('fecha_alta')
+                        ->where('estado', '!=', 'trasladado')
+                        ->first();
+
+                    // Buscar registro existente por paciente_ci (prioridad) o hospitalizacion_id
+                    $registro = HospCatering::where('fecha', $fecha)
+                        ->where('tipo_comida', $registroData['tipo_comida'])
+                        ->where(function ($q) use ($ciPaciente, $hospitalizacion) {
+                            $q->where('paciente_ci', $ciPaciente);
+                            if ($hospitalizacion) {
+                                $q->orWhere('hospitalizacion_id', $hospitalizacion->id);
+                            }
+                        })
+                        ->first();
+
+                    $precio = 0;
+                    $cuentaCobroDetalleId = null;
+                    $cargoGenerado = false;
+
+                    if ($registroData['estado'] === 'dado' && $ciPaciente) {
+                        $precio = CateringPrecio::getPrecio($registroData['tipo_comida']);
+
+                        // Si ya tenía un cargo anterior, no generar otro
+                        if ($registro && $registro->cargo_generado && $registro->estado === 'dado') {
+                            $cuentaCobroDetalleId = $registro->cuenta_cobro_detalle_id;
+                            $cargoGenerado = true;
+                        } elseif ($precio > 0) {
+                            // Generar cargo usando paciente_ci directamente
+                            $cuentaCobroDetalleId = $this->generarCargoPorPaciente(
+                                $ciPaciente,
+                                'Catering: ' . ucfirst($registroData['tipo_comida']),
+                                $precio,
+                                1,
+                                'servicio'
+                            );
+                            $cargoGenerado = true;
+                            $cargosGenerados++;
+                        }
+                    }
+
+                    $data = [
+                        'paciente_ci' => $ciPaciente,
+                        'hospitalizacion_id' => $hospitalizacion?->id,
+                        'registered_by' => Auth::id(),
+                        'fecha' => $fecha,
+                        'tipo_comida' => $registroData['tipo_comida'],
+                        'estado' => $registroData['estado'],
+                        'hora_registro' => $registroData['estado'] === 'dado' ? now() : null,
+                        'observaciones' => $registroData['observaciones'] ?? null,
+                        'precio' => $precio,
+                        'cargo_generado' => $cargoGenerado,
+                        'cuenta_cobro_detalle_id' => $cuentaCobroDetalleId,
+                    ];
+
+                    if ($registro) {
+                        // Si cambia de 'dado' a otro estado, anular el cargo anterior
+                        if ($registro->estado === 'dado' && $registroData['estado'] !== 'dado' && $registro->cuenta_cobro_detalle_id) {
+                            $this->anularCargo($registro->cuenta_cobro_detalle_id);
+                            $data['cargo_generado'] = false;
+                            $data['cuenta_cobro_detalle_id'] = null;
+                            $data['precio'] = 0;
+                        }
+                        $registro->update($data);
+                    } else {
+                        HospCatering::create($data);
+                    }
+
+                    $registrosGuardados++;
+
+                } catch (\Exception $e) {
+                    $errores[] = [
+                        'paciente_ci' => $registroData['paciente_ci'],
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Catering registrado: {$registrosGuardados} registros, {$cargosGenerados} cargos generados",
+                'registros_guardados' => $registrosGuardados,
+                'cargos_generados' => $cargosGenerados,
+                'errores' => $errores
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar catering: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper: Generar cargo en cuenta de cobro por CI de paciente
+     */
+    private function generarCargoPorPaciente(string $ciPaciente, string $concepto, float $precio, float $cantidad = 1, string $tipoItem = 'servicio'): ?int
+    {
+        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva($ciPaciente);
+
+        if (!$cuenta) {
+            $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
+                $ciPaciente,
+                'general',
+                null
+            );
+        }
+
+        $detalle = $cuenta->detalles()->create([
+            'tipo_item' => $tipoItem,
+            'descripcion' => $concepto,
+            'cantidad' => $cantidad,
+            'precio_unitario' => $precio,
+            'subtotal' => $precio * $cantidad,
+            'area_origen' => 'internacion',
+            'user_id' => Auth::id(),
+        ]);
+
+        $cuenta->recalcularTotales();
+
+        return $detalle->id;
+    }
 }

@@ -107,7 +107,6 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // API routes (antes que las rutas con parámetros)
         Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
         Route::get('/quirofano/api/dashboard', [QuirofanoController::class, 'apiDashboard'])->name('quirofano.api.dashboard');
-        Route::get('/quirofano/api/pacientes-cirugia', [QuirofanoController::class, 'apiPacientesCirugia'])->name('quirofano.api.pacientes-cirugia');
         Route::get('/api/quirofanos-disponibles', [QuirofanoController::class, 'getQuirofanosDisponibles'])->name('api.quirofanos-disponibles');
         Route::get('/api/paciente/{ci}', [QuirofanoController::class, 'getPaciente'])->name('api.paciente');
         Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
@@ -136,9 +135,6 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/quirofano/{cita}', [QuirofanoController::class, 'show'])->name('quirofano.show')->where('cita', '[0-9]+');
         Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit')->where('cita', '[0-9]+');
 
-        // Rutas para gestión de pacientes en cirugía (rol quirófano)
-        Route::get('/quirofano/pacientes-cirugia', [QuirofanoController::class, 'pacientesEnCirugia'])->name('quirofano.pacientes-cirugia');
-        Route::post('/quirofano/api/emergencia/{emergencyId}/derivar-internacion', [QuirofanoController::class, 'derivarAInternacion'])->name('quirofano.derivar-internacion');
         Route::put('/quirofano/{cita}', [QuirofanoController::class, 'update'])->name('quirofano.update')->where('cita', '[0-9]+');
         Route::post('/quirofano/{cita}/iniciar', [QuirofanoController::class, 'iniciarCirugia'])->name('quirofano.iniciar')->where('cita', '[0-9]+');
         Route::post('/quirofano/{cita}/finalizar', [QuirofanoController::class, 'finalizarCirugia'])->name('quirofano.finalizar')->where('cita', '[0-9]+');
@@ -627,6 +623,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // API Precios de Catering (gestión global)
         Route::get('/api/catering-precios', [InternacionStaffController::class, 'apiCateringPrecios'])->name('api.catering-precios');
         Route::post('/api/catering-precios', [InternacionStaffController::class, 'actualizarCateringPrecios'])->name('api.catering-precios.update');
+
+        // Rutas de Catering Masivo
+        Route::get('/catering', [InternacionStaffController::class, 'cateringIndex'])->name('catering.index');
+        Route::post('/catering/registrar', [InternacionStaffController::class, 'cateringRegistrar'])->name('catering.registrar');
+
+        // Gestión de Precios de Catering (Admin)
+        Route::get('/catering/gestion', [InternacionStaffController::class, 'gestionCatering'])->name('catering.gestion');
 
         // API Drenajes
         Route::get('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'apiDrenajes'])->name('api.drenajes');
