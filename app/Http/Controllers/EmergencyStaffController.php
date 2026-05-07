@@ -8,7 +8,6 @@ use App\Models\Paciente;
 use App\Models\Quirofano;
 use App\Models\Hospitalizacion;
 use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Models\AlmacenCatalogo;
@@ -313,14 +312,6 @@ class EmergencyStaffController extends Controller
     }
 
     /**
-     * Generar número de UTI
-     */
-    private function generarNroUti(Emergency $emergency): string
-    {
-        return 'UTI-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
      * Generar número de hospitalización
      */
     private function generarNroHospitalizacion(Emergency $emergency): string
@@ -343,33 +334,6 @@ class EmergencyStaffController extends Controller
             'fallecido' => 'Fallecido',
             default => $status,
         };
-    }
-
-    /**
-     * Asignar emergencia al usuario actual (enfermera-emergencia o emergencia)
-     */
-    public function assignToMe(Emergency $emergency): RedirectResponse
-    {
-        if ($emergency->status !== 'recibido') {
-            return redirect()->route('emergency-staff.pending')
-                ->with('error', 'Esta emergencia ya no está disponible para asignación');
-        }
-
-        $emergency->update([
-            'user_id' => auth()->id(),
-            'status' => 'en_evaluacion',
-        ]);
-
-        ActivityLogService::log(
-            'asignar_emergencia',
-            'Usuario asignó la emergencia ' . $emergency->code,
-            $emergency,
-            ['status' => 'recibido', 'user_id' => null],
-            ['status' => 'en_evaluacion', 'user_id' => auth()->id()]
-        );
-
-        return redirect()->route('emergency-staff.evaluacion', $emergency)
-            ->with('success', 'Emergencia asignada correctamente');
     }
 
     public function create(): View

@@ -164,6 +164,7 @@
         function posSystem() {
             return {
                 productos: @json($productos),
+                clientes: @json($clientes),
                 searchQuery: '',
                 selectedCliente: '',
                 metodoPago: 'Tarjeta',
@@ -278,9 +279,8 @@
                     }
                 },
                 getClientName(clienteId) {
-                    // Find client name from the clientes array (if available)
-                    const cliente = this.productos ? null : null; // Would need access to clients data
-                    return clienteId ? `Cliente ${clienteId}` : 'Cliente General';
+                    const cliente = this.clientes.find(c => c.id == clienteId);
+                    return cliente ? cliente.nombre : 'Cliente General';
                 },
                 imprimirTicket() {
                     if (!this.ultimaVenta) {

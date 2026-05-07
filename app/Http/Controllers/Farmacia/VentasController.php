@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
-use App\Models\Medicamentos;
+use App\Models\InventarioFarmacia;
 use App\Models\Cliente;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class VentasController extends Controller
 {
@@ -63,16 +64,34 @@ class VentasController extends Controller
     public function destroy($codigoVenta)
     {
         try {
+            DB::beginTransaction();
+
             $venta = VentaFarmacia::where('codigo_venta', $codigoVenta)->firstOrFail();
-            
-            // Eliminar detalles primero
-            DetalleVentaFarmacia::where('codigo_venta', $codigoVenta)->delete();
-            
-            // Eliminar venta
+            $detalles = DetalleVentaFarmacia::where('codigo_venta', $codigoVenta)->get();
+
+            // Restaurar stock antes de eliminar
+            foreach ($detalles as $detalle) {
+                $inventario = InventarioFarmacia::where('codigo_item', $detalle->codigo_producto)
+                    ->where('tipo_item', 'medicamento')
+                    ->first();
+
+                if ($inventario) {
+                    $nuevoStock = $inventario->stock_disponible + $detalle->cantidad;
+                    $inventario->update([
+                        'stock_disponible' => $nuevoStock,
+                        'reposicion' => $nuevoStock <= $inventario->stock_minimo ? 1 : 0
+                    ]);
+                }
+            }
+
+            $detalles->each->delete();
             $venta->delete();
+
+            DB::commit();
 
             return response()->json(['success' => true, 'message' => 'Venta eliminada exitosamente']);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Error al eliminar la venta'], 500);
         }
     }

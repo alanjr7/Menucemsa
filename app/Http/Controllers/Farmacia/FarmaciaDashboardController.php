@@ -4,36 +4,26 @@ namespace App\Http\Controllers\Farmacia;
 use App\Http\Controllers\Controller;
 use App\Models\VentaFarmacia;
 use App\Models\InventarioFarmacia;
-use App\Models\Medicamentos;
-use App\Models\Inventario;
-use App\Models\Cliente;
 use Carbon\Carbon;
 
 class FarmaciaDashboardController extends Controller
 {
     public function index()
     {
-        // Obtener estadísticas de ventas del día
         $hoy = Carbon::today();
-        $ventasHoy = VentaFarmacia::whereDate('FECHA_VENTA', $hoy)->count();
-        $ingresosHoy = VentaFarmacia::whereDate('FECHA_VENTA', $hoy)->sum('TOTAL');
-        
-        // Obtener total de items en inventario_farmacia
+        $ventasHoy = VentaFarmacia::whereDate('fecha_venta', $hoy)->count();
+        $ingresosHoy = VentaFarmacia::whereDate('fecha_venta', $hoy)->sum('total');
+
         $totalMedicamentos = InventarioFarmacia::where('tipo_item', 'medicamento')->count();
         $medicamentosDistintos = InventarioFarmacia::where('tipo_item', 'medicamento')->distinct('codigo_item')->count();
-        
-        // Obtener alertas de stock (medicamentos con bajo stock)
+
         $alertasStock = $this->getAlertasStock();
-        
-        // Obtener alertas de vencimiento próximo
         $alertasVencimiento = $this->getAlertasVencimiento();
-        
-        // Obtener total de ventas históricas
+
         $totalVentas = VentaFarmacia::count();
-        
-        // Obtener últimas ventas
+
         $ultimasVentas = VentaFarmacia::with(['detalles'])
-            ->orderBy('FECHA_VENTA', 'desc')
+            ->orderBy('fecha_venta', 'desc')
             ->take(5)
             ->get();
         
@@ -51,24 +41,12 @@ class FarmaciaDashboardController extends Controller
     
     private function getAlertasStock()
     {
-        // Debug: Obtener todos los productos para ver qué datos hay
-        $todos = InventarioFarmacia::where('tipo_item', 'medicamento')->get();
-        \Log::info('Total productos: ' . $todos->count());
-        \Log::info('Productos sample: ', $todos->take(3)->map(fn($p) => [
-            'codigo' => $p->codigo_item,
-            'stock' => $p->stock_disponible,
-            'minimo' => $p->stock_minimo
-        ])->toArray());
-        
-        // Obtener productos con stock bajo (stock actual <= stock mínimo)
         $alertas = InventarioFarmacia::with('medicamento')
             ->where('tipo_item', 'medicamento')
             ->whereColumn('stock_disponible', '<=', 'stock_minimo')
-            ->where('stock_minimo', '>', 0) // Solo si tiene stock mínimo configurado
+            ->where('stock_minimo', '>', 0)
             ->get();
-            
-        \Log::info('Alertas encontradas: ' . $alertas->count());
-        
+
         return $alertas->map(function ($inventario) {
             return [
                 'id' => $inventario->codigo_item,

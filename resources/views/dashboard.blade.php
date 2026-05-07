@@ -215,27 +215,6 @@
                     </a>
                 @endif
 
-                <!-- Emergencia Actions -->
-                @if(auth()->user()->role === 'emergencia')
-                    <a href="{{ route('emergencias.index') }}" class="flex flex-col items-center p-4 bg-red-50 hover:bg-red-100 rounded-xl transition group">
-                        <div class="p-3 bg-red-500 text-white rounded-lg group-hover:bg-red-600 transition mb-3">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>
-                            </svg>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700">Nueva Emergencia</span>
-                    </a>
-
-                    <a href="{{ route('emergencias.index') }}" class="flex flex-col items-center p-4 bg-orange-50 hover:bg-orange-100 rounded-xl transition group">
-                        <div class="p-3 bg-orange-500 text-white rounded-lg group-hover:bg-orange-600 transition mb-3">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                            </svg>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700">Triaje</span>
-                    </a>
-                @endif
-
                 <!-- Caja Actions -->
                 @if(auth()->user()->role === 'caja')
                     <!-- {{-- Facturación comentada temporalmente

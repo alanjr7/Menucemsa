@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Farmacia;
 
 use App\Http\Controllers\Controller;
 use App\Models\Medicamentos;
-use App\Models\Inventario;
+use App\Models\InventarioFarmacia;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -26,22 +26,6 @@ class MedicamentosController extends Controller
             ]);
 
             $medicamento = Medicamentos::create($validated);
-
-            // Automatically create inventory record
-            try {
-                Inventario::create([
-                    'ID' => $validated['CODIGO'],
-                    'ID_FARMACIA' => 'F1', // Default pharmacy, can be made dynamic
-                    'TIPO_ITEM' => 'Medicamento',
-                    'STOCK_MINIMO' => '10',
-                    'STOCK_DISPONIBLE' => '0',
-                    'REPOSICION' => 'No especificado',
-                    'FECHA_INGRESO' => now()->format('Y-m-d')
-                ]);
-            } catch (\Exception $e) {
-                \Log::error('Error creating inventario record');
-                // Continue even if inventory creation fails
-            }
 
             return response()->json($medicamento, 201);
             
@@ -84,16 +68,9 @@ class MedicamentosController extends Controller
         try {
             $medicamento = Medicamentos::findOrFail($codigo);
             
-            // Eliminar registros relacionados primero
-            $medicamento->detalleMedicamentos()->delete();
             $medicamento->detalleRecetas()->delete();
-            
-            // Eliminar registro de inventario si existe
-            try {
-                Inventario::where('ID', $codigo)->delete();
-            } catch (\Exception $e) {
-                \Log::warning('No se pudo eliminar inventario');
-            }
+
+            InventarioFarmacia::where('codigo_item', $codigo)->delete();
 
             // Eliminar el medicamento
             $medicamento->delete();

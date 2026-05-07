@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Farmacia;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Inventario;
 use App\Models\Medicamentos;
 use App\Models\InventarioFarmacia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class InventarioController extends Controller
 {
@@ -68,7 +68,8 @@ class InventarioController extends Controller
         ]);
 
         try {
-            // Obtener o crear una farmacia por defecto
+            DB::beginTransaction();
+
             $farmacia = \App\Models\Farmacia::first();
             if (!$farmacia) {
                 $farmacia = \App\Models\Farmacia::create([
@@ -77,14 +78,12 @@ class InventarioController extends Controller
                 ]);
             }
 
-            // Crear medicamento
             $medicamento = Medicamentos::create([
                 'codigo' => $validated['codigo_barras'],
                 'descripcion' => $validated['nombre'],
                 'precio' => $validated['precio']
             ]);
 
-            // Crear registro en inventario_farmacia
             InventarioFarmacia::create([
                 'farmacia_id' => $farmacia->id,
                 'tipo_item' => 'medicamento',
@@ -92,16 +91,19 @@ class InventarioController extends Controller
                 'laboratorio' => $validated['proveedor'] ?? null,
                 'fecha_vencimiento' => $validated['vencimiento'],
                 'tipo' => $validated['categoria'],
-                'requerimiento' => $validated['requiere_receta'] ?? false ? 'Receta' : 'Normal',
+                'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
                 'stock_minimo' => $validated['stockMinimo'],
                 'stock_disponible' => $validated['stock'],
                 'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,
                 'fecha_ingreso' => now()
             ]);
 
+            DB::commit();
+
             return response()->json(['success' => true, 'message' => 'Producto creado exitosamente', 'producto' => $medicamento]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Error al crear el producto: ' . $e->getMessage()], 500);
         }
     }
@@ -136,13 +138,12 @@ class InventarioController extends Controller
                     'laboratorio' => $validated['proveedor'],
                     'fecha_vencimiento' => $validated['vencimiento'],
                     'tipo' => $validated['categoria'],
-                    'requerimiento' => $validated['requiere_receta'] ?? false ? 'Receta' : 'Normal',
+                    'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
                     'stock_disponible' => $validated['stock'],
                     'stock_minimo' => $validated['stockMinimo'],
                     'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0
                 ]);
             } else {
-                // Si no existe, crearlo
                 $farmacia = \App\Models\Farmacia::first();
                 InventarioFarmacia::create([
                     'farmacia_id' => $farmacia->id,
@@ -151,7 +152,7 @@ class InventarioController extends Controller
                     'laboratorio' => $validated['proveedor'] ?? null,
                     'fecha_vencimiento' => $validated['vencimiento'] ?? null,
                     'tipo' => $validated['categoria'],
-                    'requerimiento' => $validated['requiere_receta'] ?? false ? 'Receta' : 'Normal',
+                    'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
                     'stock_minimo' => $validated['stockMinimo'],
                     'stock_disponible' => $validated['stock'],
                     'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,

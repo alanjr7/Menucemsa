@@ -592,7 +592,6 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/{emergency}/update-status', [EmergencyStaffController::class, 'updateStatus'])->name('update-status');
         Route::post('/{emergency}/derivar', [EmergencyStaffController::class, 'derivar'])->name('derivar');
         Route::post('/{emergency}/alta', [EmergencyStaffController::class, 'darAlta'])->name('alta');
-        Route::post('/{emergency}/assign-to-me', [EmergencyStaffController::class, 'assignToMe'])->name('assign-to-me');
         Route::get('/{emergency}', [EmergencyStaffController::class, 'show'])->name('show');
         Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
     });
@@ -739,15 +738,6 @@ Route::get('/test-cirujano-access', function() {
     ], JSON_PRETTY_PRINT);
 })->middleware('auth');
 
-// Ruta de prueba para farmacia
-Route::get('/test-farmacia', function() {
-    if (!auth()->check()) {
-        return 'No autenticado';
-    }
-    
-    $user = auth()->user();
-    return 'Usuario: ' . $user->name . ', Rol: ' . $user->role . ', isFarmacia: ' . ($user->isFarmacia() ? 'true' : 'false');
-})->middleware('auth');
 
 // Inventario de medicamentos UTI (solo lectura)
 Route::middleware(['auth', 'role:admin|uti|administrador|dirmedico|doctor'])->get('/uti/medicamentos', [UtiMedicamentosController::class, 'index'])->name('uti.operativa.medicamentos.readonly');
