@@ -41,7 +41,7 @@
                     @endswitch
                 </div>
             </div>
-            @if($cita->estado === 'finalizada' && $cita->costo_final)
+            @if($cita->estado === 'finalizada' && $cita->costo_final && auth()->user()->role !== 'cirujano')
                 <div class="text-right">
                     <span class="text-sm text-gray-500">Costo Total</span>
                     <div class="text-2xl font-bold text-green-600">${{ number_format($cita->costo_final, 2) }}</div>
@@ -176,8 +176,10 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medicamento</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                            @if(auth()->user()->role !== 'cirujano')
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Unitario</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -185,8 +187,10 @@
                             <tr>
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ $med->descripcion }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ $med->cantidad }}</td>
+                                @if(auth()->user()->role !== 'cirujano')
                                 <td class="px-4 py-3 text-sm text-gray-900">${{ number_format($med->precio_unitario, 2) }}</td>
                                 <td class="px-4 py-3 text-sm font-semibold text-gray-900">${{ number_format($med->subtotal, 2) }}</td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>
@@ -213,8 +217,10 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Equipo/Procedimiento</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                            @if(auth()->user()->role !== 'cirujano')
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Unitario</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -222,8 +228,10 @@
                             <tr>
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ str_replace('Cirugía - Equipo/Procedimiento: ', '', $eq->descripcion) }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ $eq->cantidad }}</td>
+                                @if(auth()->user()->role !== 'cirujano')
                                 <td class="px-4 py-3 text-sm text-gray-900">${{ number_format($eq->precio_unitario, 2) }}</td>
                                 <td class="px-4 py-3 text-sm font-semibold text-gray-900">${{ number_format($eq->subtotal, 2) }}</td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>
@@ -234,6 +242,7 @@
         @endif
     </div>
 
+    @if(auth()->user()->role !== 'cirujano')
     <!-- Sección 5: Resumen de Costos -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -268,6 +277,7 @@
             </div>
         </div>
     </div>
+    @endif
 
 </div>
 @endsection

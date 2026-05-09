@@ -1914,7 +1914,7 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
             fputcsv($file, [], ';');
 
             // Encabezados de columnas
-            fputcsv($file, [
+            $encabezados = [
                 'Fecha',
                 'Hora',
                 'Paciente',
@@ -1923,18 +1923,22 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
                 'Quirofano',
                 'Tipo',
                 'Estado',
-                'Duracion',
-                'Costo'
-            ], ';');
+                'Duracion'
+            ];
+
+            if (auth()->user()->role !== 'cirujano') {
+                $encabezados[] = 'Costo';
+            }
+
+            fputcsv($file, $encabezados, ';');
 
             // Datos
             foreach ($citas as $cita) {
                 $duracion = $cita->duracion_real
                     ? ($this->formatearDuracionExport($cita->duracion_real))
                     : '-';
-                $costo = $cita->costo_final ? '$' . number_format($cita->costo_final, 2) : '-';
-
-                fputcsv($file, [
+                
+                $fila = [
                     $cita->fecha->format('d/m/Y'),
                     $cita->hora_inicio_estimada->format('H:i'),
                     $cita->paciente->nombre,
@@ -1943,9 +1947,14 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
                     'Q' . $cita->quirofano->id,
                     $cita->tipo_cirugia,
                     ucfirst($cita->estado),
-                    $duracion,
-                    $costo
-                ], ';');
+                    $duracion
+                ];
+
+                if (auth()->user()->role !== 'cirujano') {
+                    $fila[] = $cita->costo_final ? '$' . number_format($cita->costo_final, 2) : '-';
+                }
+
+                fputcsv($file, $fila, ';');
             }
 
             fclose($file);
