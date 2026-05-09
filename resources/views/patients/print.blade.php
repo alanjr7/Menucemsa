@@ -156,79 +156,10 @@
             font-size: 8pt;
         }
 
-        /* Vista en pantalla */
-        .screen-view {
-            padding: 20px;
-            background: #f5f5f5;
-        }
-
-        .screen-header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .screen-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .screen-actions {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .btn-print {
-            background: #2563eb;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .btn-print:hover {
-            background: #1d4ed8;
-        }
-
-        @media print {
-            .screen-view {
-                display: none !important;
-            }
-        }
     </style>
 </head>
 <body>
-    <!-- VISTA EN PANTALLA -->
-    <div class="screen-view">
-        <div class="screen-header">
-            <h1>Vista Previa de Impresión</h1>
-            <p>Registro de Paciente: {{ $paciente->nombre }}</p>
-        </div>
-        
-        <div class="screen-content">
-            <p><strong>Este documento contiene:</strong></p>
-            <ul>
-                <li>Datos completos del paciente</li>
-                <li>Información del garante (si aplica)</li>
-                <li>Detalles del registro de ingreso</li>
-                <li>Historial de consultas, emergencias y hospitalizaciones</li>
-            </ul>
-            <p><strong>Formato:</strong> Optimizado para impresión en tamaño carta.</p>
-        </div>
-        
-        <div class="screen-actions">
-            <button onclick="window.print()" class="btn-print">
-                🖨️ Imprimir Documento
-            </button>
-        </div>
-    </div>
+
 
     <!-- FORMATO DE IMPRESIÓN -->
     <div class="doc-container">
@@ -549,5 +480,13 @@
             </p>
         </div>
     </div>
+    <script>
+        window.onload = function() {
+            window.print();
+        };
+        window.onafterprint = function() {
+            window.close();
+        };
+    </script>
 </body>
 </html>
