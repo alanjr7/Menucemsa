@@ -178,9 +178,15 @@
                     </div>
                     
                     <div class="flex gap-2 mt-4">
-                        <a href="{{ route('quirofano.show', $cita) }}" class="flex-1 text-center px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                            Ver Detalles
-                        </a>
+                       @if(in_array($cita->estado, ['finalizada', 'cancelada']))
+                            <a href="{{ route('quirofano.show-details', $cita) }}" class="flex-1 text-center px-3 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+                                Ver Detalles
+                            </a>
+                        @else
+                            <a href="{{ route('quirofano.show', $cita) }}" class="flex-1 text-center px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                Ejecutar Cirugía
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -313,9 +319,17 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('quirofano.show', $cita) }}" class="text-blue-600 hover:text-blue-900">
-                                    Ver
-                                </a>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    @if(in_array($cita->estado, ['finalizada', 'cancelada']))
+                                        <a href="{{ route('quirofano.show-details', $cita) }}" class="text-gray-600 hover:text-gray-900">
+                                            Ver Detalles
+                                        </a>
+                                    @else
+                                        <a href="{{ route('quirofano.show', $cita) }}" class="text-blue-600 hover:text-blue-900">
+                                            Ejecutar
+                                        </a>
+                                    @endif
+                                </td>
                             </td>
                         </tr>
                     @empty
