@@ -21,8 +21,11 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             AlmacenInventarioSeeder::class,
             IpAccessSeeder::class,
-            MedicamentosOncologicosAntiinfecciososSeeder::class,
+//   MedicamentosOncologicosAntiinfecciososSeeder::class,
             MedicamentosGeneralesSeeder::class,
+            CamillaSeeder::class,
+            HabitacionSeeder::class,
+            QuirofanoSeeder::class,
         ]);
     }
 }

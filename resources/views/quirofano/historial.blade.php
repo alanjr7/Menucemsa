@@ -17,6 +17,7 @@
                 <span class="hidden sm:inline">Volver</span>
                 <span class="sm:hidden">←</span>
             </a>
+            @if (auth()->user()->role !== 'cirujano')
             <a href="{{ route('quirofano.create') }}" class="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors text-sm">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -24,6 +25,7 @@
                 <span class="hidden sm:inline">Nueva Cita</span>
                 <span class="sm:hidden">+</span>
             </a>
+            @endif
         </div>
     </div>
 
@@ -169,7 +171,7 @@
                             <span class="text-gray-500">Quirófano:</span>
                             <span class="font-medium">Q{{ $cita->quirofano->id }}</span>
                         </div>
-                        @if($cita->costo_final)
+                        @if($cita->costo_final && auth()->user()->role !== 'cirujano')
                             <div class="flex justify-between pt-2 border-t">
                                 <span class="text-gray-500">Costo:</span>
                                 <span class="font-bold text-green-600">${{ number_format($cita->costo_final, 2) }}</span>
@@ -178,9 +180,15 @@
                     </div>
                     
                     <div class="flex gap-2 mt-4">
-                        <a href="{{ route('quirofano.show', $cita) }}" class="flex-1 text-center px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                            Ver Detalles
-                        </a>
+                       @if(in_array($cita->estado, ['finalizada', 'cancelada']))
+                            <a href="{{ route('quirofano.show-details', $cita) }}" class="flex-1 text-center px-3 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+                                Ver Detalles
+                            </a>
+                        @else
+                            <a href="{{ route('quirofano.show', $cita) }}" class="flex-1 text-center px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                Ejecutar Cirugía
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -235,9 +243,11 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Duración
                         </th>
+                        @if(auth()->user()->role !== 'cirujano')
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Costo
                         </th>
+                        @endif
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Acciones
                         </th>
@@ -305,6 +315,7 @@
                                     <span class="text-gray-400">-</span>
                                 @endif
                             </td>
+                            @if(auth()->user()->role !== 'cirujano')
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 @if($cita->costo_final)
                                     ${{ number_format($cita->costo_final, 2) }}
@@ -312,10 +323,18 @@
                                     <span class="text-gray-400">-</span>
                                 @endif
                             </td>
+                            @endif
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ route('quirofano.show', $cita) }}" class="text-blue-600 hover:text-blue-900">
-                                    Ver
-                                </a>
+                              
+                                    @if(in_array($cita->estado, ['finalizada', 'cancelada']))
+                                        <a href="{{ route('quirofano.show-details', $cita) }}" class="text-gray-600 hover:text-gray-900">
+                                            Ver Detalles
+                                        </a>
+                                    @else
+                                        <a href="{{ route('quirofano.show', $cita) }}" class="text-blue-600 hover:text-blue-900">
+                                            Ejecutar
+                                        </a>
+                                    @endif
                             </td>
                         </tr>
                     @empty

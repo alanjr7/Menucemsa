@@ -24,18 +24,31 @@ class QuirofanoController extends Controller
 {
     use \App\Traits\AuditLoggable;
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        \Log::info('Index llamado', [
+            'all_params' => $request->all(),
+            'fecha_param' => $request->input('fecha'),
+            'url' => $request->fullUrl()
+        ]);
+
         $quirofanos = Quirofano::all();
 
-        // Obtener la fecha actual y el rango de la semana
-        $startOfWeek = now()->startOfWeek()->startOfDay();
-        $endOfWeek = now()->endOfWeek()->endOfDay();
+        // Obtener fecha seleccionada o usar hoy
+        $fechaSeleccionada = $request->filled('fecha') 
+            ? \Carbon\Carbon::parse($request->input('fecha'))
+            : now();
+
+        // Obtener la fecha y el rango de la semana
+        $startOfWeek = $fechaSeleccionada->copy()->startOfWeek()->startOfDay();
+        $endOfWeek = $fechaSeleccionada->copy()->endOfWeek()->endOfDay();
 
         \Log::info('Date range', [
             'start' => $startOfWeek->format('Y-m-d H:i:s'),
             'end' => $endOfWeek->format('Y-m-d H:i:s'),
-            'today' => now()->format('Y-m-d H:i:s')
+            'today' => now()->format('Y-m-d H:i:s'),
+            'fecha_seleccionada' => $fechaSeleccionada->format('Y-m-d'),
+            'used_request_date' => $request->filled('fecha')
         ]);
 
         // Obtener todas las citas de la semana
@@ -129,12 +142,17 @@ class QuirofanoController extends Controller
         return view('quirofano.index', compact('quirofanos', 'diasSemana', 'horasDia', 'citasPorDiaHora', 'stats', 'emergenciasEnQuirofano'));
     }
 
-    public function apiDashboard(): JsonResponse
+    public function apiDashboard(Request $request): JsonResponse
     {
         $quirofanos = Quirofano::all();
 
-        $startOfWeek = now()->startOfWeek()->startOfDay();
-        $endOfWeek = now()->endOfWeek()->endOfDay();
+        // Obtener fecha seleccionada o usar hoy (para auto-refresh respetar fecha)
+        $fechaSeleccionada = $request->filled('fecha')
+            ? \Carbon\Carbon::parse($request->input('fecha'))
+            : now();
+
+        $startOfWeek = $fechaSeleccionada->copy()->startOfWeek()->startOfDay();
+        $endOfWeek = $fechaSeleccionada->copy()->endOfWeek()->endOfDay();
 
         $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
             ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
@@ -652,9 +670,65 @@ class QuirofanoController extends Controller
             ], 500);
         }
     }
+    /**
+ * Mostrar detalles de una cirugía finalizada (solo lectura)
+ */
+public function showDetails(CitaQuirurgica $cita): View
+{
+    $cita->load([
+        'paciente.seguro',
+        'cirujano.user',
+        'instrumentista.user',
+        'anestesiologo.user',
+        'quirofano',
+        'usuarioRegistro'
+    ]);
 
-    public function show(CitaQuirurgica $cita): View
+    // Obtener los detalles de la cuenta de cobro
+    $cuentaCobro = \App\Models\CuentaCobro::where(function($q) use ($cita) {
+        $q->where('referencia_id', $cita->id)
+          ->where(function($sub) {
+              $sub->where('referencia_type', CitaQuirurgica::class)
+                   ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+          });
+    })->first();
+
+    $medicamentosUsados = [];
+    $equiposUsados = [];
+    
+    if ($cuentaCobro) {
+        $medicamentosUsados = $cuentaCobro->detalles()
+            ->where('tipo_item', 'medicamento')
+            ->get();
+        
+        $equiposUsados = $cuentaCobro->detalles()
+            ->where('tipo_item', 'equipo_medico')
+            ->get();
+    }
+
+    $tiposCirugia = TipoCirugia::activos()->get();
+    $medicamentos = AlmacenCatalogo::where('tipo', 'medicamento')
+        ->where('activo', true)
+        ->orderBy('nombre')
+        ->get();
+
+    return view('quirofano.show-details', compact(
+        'cita', 
+        'tiposCirugia', 
+        'medicamentos',
+        'medicamentosUsados',
+        'equiposUsados',
+        'cuentaCobro'
+    ));
+}
+    public function show(CitaQuirurgica $cita): \Illuminate\View\View|\Illuminate\Http\RedirectResponse
     {
+        // Si la cita ya está finalizada o cancelada, redirigir al historial
+        if (in_array($cita->estado, ['finalizada', 'cancelada'])) {
+            return redirect()->route('quirofano.historial')
+                ->with('info', 'Esta cirugía ya ha sido ' . $cita->estado . '. Ver el historial.');
+        }
+
         $cita->load([
             'paciente.seguro',
             'cirujano.user',
@@ -664,7 +738,220 @@ class QuirofanoController extends Controller
             'usuarioRegistro'
         ]);
 
-        return view('quirofano.show', compact('cita'));
+        $tiposCirugia = TipoCirugia::activos()->get();
+        $medicamentos = AlmacenCatalogo::where('tipo', 'medicamento')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('quirofano.ejecutar', compact('cita', 'tiposCirugia', 'medicamentos'));
+    }
+
+    public function ejecutar(Request $request, CitaQuirurgica $cita): JsonResponse
+    {
+        if ($cita->estado === 'finalizada') {
+            return response()->json(['success' => false, 'message' => 'La cirugía ya está finalizada.'], 422);
+        }
+
+        $validated = $request->validate([
+            'fecha'              => 'required|date',
+            'hora_inicio'        => 'required|date_format:H:i',
+            'hora_fin'           => 'required|date_format:H:i',
+            'tipo_cirugia'       => 'required|exists:tipos_cirugia,nombre',
+            'descripcion_cirugia'=> 'nullable|string|max:1000',
+            'observaciones'      => 'nullable|string|max:1000',
+            'medicamentos'       => 'nullable|array',
+            'medicamentos.*.id'  => 'required_with:medicamentos|exists:almacen_catalogo,id',
+            'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
+            'equipos'            => 'nullable|array',
+            'equipos.*.nombre'   => 'required_with:equipos|string|max:255',
+            'equipos.*.precio'   => 'required_with:equipos|numeric|min:0',
+            'equipos.*.cantidad' => 'required_with:equipos|integer|min:1',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $fechaBase = Carbon::parse($validated['fecha']);
+            $tsInicio  = $fechaBase->copy()->setTimeFromTimeString($validated['hora_inicio'] . ':00');
+            $tsFin     = $fechaBase->copy()->setTimeFromTimeString($validated['hora_fin']    . ':00');
+
+            if ($tsFin <= $tsInicio) {
+                $tsFin->addDay();
+            }
+
+            $duracion = (int) $tsInicio->diffInMinutes($tsFin);
+
+            if ($duracion <= 45)      $tipoFinal = 'ambulatoria';
+            elseif ($duracion <= 60)  $tipoFinal = 'menor';
+            elseif ($duracion <= 90)  $tipoFinal = 'mediana';
+            else                      $tipoFinal = 'mayor';
+
+            $tipoCirugia  = TipoCirugia::where('nombre', $tipoFinal)->first();
+            $costoExtra   = 0;
+            $costoMinuto  = 0;
+            if ($tipoCirugia) {
+                $minutosExtra = max(0, $duracion - $tipoCirugia->duracion_minutos);
+                $costoMinuto  = (float) $tipoCirugia->costo_minuto_extra;
+                $costoExtra   = $minutosExtra * $costoMinuto;
+            }
+
+            // Obtener o crear cuenta de cobro para esta cirugía
+            $cuenta = \App\Models\CuentaCobro::firstOrCreate(
+                [
+                    'referencia_type' => CitaQuirurgica::class,
+                    'referencia_id' => $cita->id,
+                ],
+                [
+                    'paciente_ci' => $cita->ci_paciente,
+                    'tipo_atencion' => 'cirugia',
+                    'estado' => 'pendiente',
+                    'total_calculado' => 0,
+                ]
+            );
+
+            // Procesar medicamentos recibidos desde el formulario
+            $costoMedicamentos = 0;
+            $medicamentosUsados = [];
+            if (!empty($validated['medicamentos'])) {
+                foreach ($validated['medicamentos'] as $med) {
+                    $medicamento = AlmacenCatalogo::find($med['id']);
+                    if ($medicamento) {
+                        // Obtener precio_venta del lote más reciente no vencido
+                        $lote = \App\Models\AlmacenLote::where('catalogo_id', $medicamento->id)
+                            ->where(function($q) {
+                                $q->whereNull('fecha_vencimiento')
+                                  ->orWhere('fecha_vencimiento', '>', now());
+                            })
+                            ->orderByDesc('created_at')
+                            ->first();
+
+                        $precioUnitario = (float) ($lote->precio_venta ?? 0);
+                        $subtotal = $precioUnitario * $med['cantidad'];
+                        $costoMedicamentos += $subtotal;
+
+                        // Descontar del stock de cirugía/quirófano
+                        $stock = AlmacenStock::whereHas('lote', function($q) use ($medicamento) {
+                                $q->where('catalogo_id', $medicamento->id)
+                                  ->where(function($sub) {
+                                      $sub->whereNull('fecha_vencimiento')
+                                          ->orWhere('fecha_vencimiento', '>', now());
+                                  });
+                            })
+                            ->whereIn('ubicacion', ['cirugia', 'quirofano'])
+                            ->where('cantidad_actual', '>=', $med['cantidad'])
+                            ->first();
+                        
+                        if ($stock) {
+                            $stock->cantidad_actual -= $med['cantidad'];
+                            $stock->save();
+                        } else {
+                            \Log::warning('No hay stock suficiente para medicamento: ' . $medicamento->nombre . ' - Cantidad solicitada: ' . $med['cantidad']);
+                        }
+
+                        // Agregar a la cuenta
+                        $cuenta->detalles()->create([
+                            'tipo_item' => 'medicamento',
+                            'descripcion' => $medicamento->nombre,
+                            'cantidad' => $med['cantidad'],
+                            'precio_unitario' => $precioUnitario,
+                            'subtotal' => $subtotal,
+                        ]);
+
+                        $medicamentosUsados[] = [
+                            'id' => $medicamento->id,
+                            'nombre' => $medicamento->nombre,
+                            'cantidad' => $med['cantidad'],
+                            'precio_unitario' => $precioUnitario,
+                            'subtotal' => $subtotal,
+                        ];
+                    }
+                }
+            }
+
+            // Procesar equipos médicos recibidos desde el formulario
+            $costoEquipos = 0;
+            $equiposUsados = [];
+            if (!empty($validated['equipos'])) {
+                foreach ($validated['equipos'] as $equipo) {
+                    $subtotal = $equipo['precio'] * $equipo['cantidad'];
+                    $costoEquipos += $subtotal;
+
+                    // Agregar a la cuenta (no afecta inventario)
+                    $cuenta->detalles()->create([
+                        'tipo_item' => 'equipo_medico',
+                        'descripcion' => $equipo['nombre'],
+                        'cantidad' => $equipo['cantidad'],
+                        'precio_unitario' => $equipo['precio'],
+                        'subtotal' => $subtotal,
+                    ]);
+
+                    $equiposUsados[] = [
+                        'nombre' => $equipo['nombre'],
+                        'cantidad' => $equipo['cantidad'],
+                        'precio_unitario' => $equipo['precio'],
+                        'subtotal' => $subtotal,
+                    ];
+                }
+            }
+
+            // Agregar cargo principal de cirugía
+            $costoCirugia = (float) $cita->costo_base + $costoExtra;
+            $cuenta->detalles()->create([
+                'tipo_item' => 'procedimiento',
+                'descripcion' => 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min',
+                'cantidad' => 1,
+                'precio_unitario' => $costoCirugia,
+                'subtotal' => $costoCirugia,
+            ]);
+
+            // Actualizar totales de la cuenta
+            $costoTotal = $costoCirugia + $costoMedicamentos + $costoEquipos;
+            $cuenta->total_calculado = $costoTotal;
+            $cuenta->save();
+
+            // Actualizar cita quirúrgica
+            $cita->tipo_cirugia       = $validated['tipo_cirugia'];
+            $cita->descripcion_cirugia= $validated['descripcion_cirugia'];
+            $cita->observaciones      = $validated['observaciones'];
+            $cita->fecha              = $validated['fecha'];
+            $cita->hora_inicio_real   = $validated['hora_inicio'];
+            $cita->hora_fin_real      = $validated['hora_fin'];
+            $cita->timestamp_inicio   = $tsInicio;
+            $cita->timestamp_fin      = $tsFin;
+            $cita->estado             = 'finalizada';
+            $cita->tipo_final         = $tipoFinal;
+            $cita->costo_final        = $costoTotal;
+            $cita->costo_minuto_extra = $costoMinuto;
+            $cita->save();
+
+            if ($cita->quirofano_id) {
+                Quirofano::where('id', $cita->quirofano_id)->update(['estado' => 'disponible']);
+            }
+
+            // Asegurar que la cuenta maestra existe
+            \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra($cita->ci_paciente, 'quirofano');
+
+            DB::commit();
+
+            $this->logActivity(
+                'registrar_cirugia',
+                'Cirugía registrada - Paciente: ' . ($cita->paciente?->nombre ?? 'N/A') .
+                ' - Tipo: ' . $tipoFinal . ' - Duración: ' . $duracion . ' min',
+                $cita
+            );
+
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Cirugía registrada exitosamente.',
+                'redirect' => route('quirofano.historial')
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al registrar cirugía: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function edit(CitaQuirurgica $cita): View
@@ -1062,9 +1349,10 @@ class QuirofanoController extends Controller
     public function getListaMedicos(): JsonResponse
     {
         try {
+            // Médicos con registro en tabla medicos (doctores y cirujanos)
             $medicos = Medico::with('user', 'especialidad')
                 ->whereHas('user', function($q) {
-                    $q->where('role', 'doctor');
+                    $q->whereIn('role', ['doctor', 'cirujano']);
                 })
                 ->get()
                 ->map(function($medico) {
@@ -1075,9 +1363,11 @@ class QuirofanoController extends Controller
                     ];
                 });
 
+            $todos = $medicos->values();
+
             return response()->json([
                 'success' => true,
-                'medicos' => $medicos
+                'medicos' => $todos
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1087,55 +1377,55 @@ class QuirofanoController extends Controller
         }
     }
 
-    /**
-     * Obtener medicamentos disponibles en quirófano para una cirugía
-     */
-    public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
-    {
-        try {
-            \Log::info('getMedicamentosDisponibles llamado', ['cita_id' => $cita->id, 'estado' => $cita->estado]);
-
-            // Verificar que la cirugía esté programada o en curso
-            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La cirugía debe estar programada o en curso'
-                ], 422);
-            }
-
-            \Log::info('Buscando medicamentos de cirugia...');
-
-            $medicamentos = AlmacenStock::porUbicacion('cirugia')
-                ->where('cantidad_actual', '>', 0)
-                ->whereHas('lote.catalogo', fn($q) => $q->activos())
-                ->with('lote.catalogo')
-                ->orderBy('lote.catalogo.nombre')
-                ->get(['id', 'cantidad_actual', 'stock_minimo', 'lote_id', 'ubicacion'])
-                ->map(fn($s) => (object)[
-                    'id' => $s->id,
-                    'nombre' => $s->lote->catalogo->nombre,
-                    'tipo' => $s->lote->catalogo->tipo,
-                    'cantidad' => $s->cantidad_actual,
-                    'unidad_medida' => $s->lote->catalogo->unidad_medida,
-                    'precio' => $s->lote->precio_venta,
-                ]);
-
-            \Log::info('Medicamentos encontrados: ' . $medicamentos->count());
-
-            return response()->json([
-                'success' => true,
-                'medicamentos' => $medicamentos
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error en getMedicamentosDisponibles: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+    
+   /**
+ * Obtener medicamentos disponibles en quirófano para una cirugía
+ */
+public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
+{
+    try {
+        // Verificar que la cirugía esté programada o en curso
+        if (!in_array($cita->estado, ['programada', 'en_curso'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar medicamentos: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ], 500);
+                'message' => 'La cirugía debe estar programada o en curso'
+            ], 422);
         }
+
+        // Obtener medicamentos del área 'quirófano' o 'cirugia' con stock > 0
+        $medicamentos = \App\Models\AlmacenStock::where('cantidad_actual', '>', 0)
+            ->whereIn('ubicacion', ['quirófano', 'cirugia'])
+            ->whereHas('lote.catalogo', function($q) {
+                $q->where('tipo', 'medicamento')
+                  ->where('activo', true);
+            })
+            ->with(['lote.catalogo', 'lote'])
+            ->get()
+            ->map(function($stock) {
+                return [
+                    'id' => $stock->lote->catalogo->id,
+                    'stock_id' => $stock->id,
+                    'nombre' => $stock->lote->catalogo->nombre,
+                    'presentacion' => $stock->lote->catalogo->presentacion ?? '',
+                    'concentracion' => $stock->lote->catalogo->concentracion ?? '',
+                    'cantidad' => $stock->cantidad_actual,
+                    'precio' => (float) ($stock->lote->precio_venta ?? $stock->lote->catalogo->precio ?? 0),
+                    'unidad_medida' => $stock->lote->catalogo->unidad_medida ?? 'unidad',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'medicamentos' => $medicamentos
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Error en getMedicamentosDisponibles: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al cargar medicamentos: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Obtener medicamentos ya usados en una cirugía
@@ -1624,7 +1914,7 @@ class QuirofanoController extends Controller
             fputcsv($file, [], ';');
 
             // Encabezados de columnas
-            fputcsv($file, [
+            $encabezados = [
                 'Fecha',
                 'Hora',
                 'Paciente',
@@ -1633,18 +1923,22 @@ class QuirofanoController extends Controller
                 'Quirofano',
                 'Tipo',
                 'Estado',
-                'Duracion',
-                'Costo'
-            ], ';');
+                'Duracion'
+            ];
+
+            if (auth()->user()->role !== 'cirujano') {
+                $encabezados[] = 'Costo';
+            }
+
+            fputcsv($file, $encabezados, ';');
 
             // Datos
             foreach ($citas as $cita) {
                 $duracion = $cita->duracion_real
                     ? ($this->formatearDuracionExport($cita->duracion_real))
                     : '-';
-                $costo = $cita->costo_final ? '$' . number_format($cita->costo_final, 2) : '-';
-
-                fputcsv($file, [
+                
+                $fila = [
                     $cita->fecha->format('d/m/Y'),
                     $cita->hora_inicio_estimada->format('H:i'),
                     $cita->paciente->nombre,
@@ -1653,9 +1947,14 @@ class QuirofanoController extends Controller
                     'Q' . $cita->quirofano->id,
                     $cita->tipo_cirugia,
                     ucfirst($cita->estado),
-                    $duracion,
-                    $costo
-                ], ';');
+                    $duracion
+                ];
+
+                if (auth()->user()->role !== 'cirujano') {
+                    $fila[] = $cita->costo_final ? '$' . number_format($cita->costo_final, 2) : '-';
+                }
+
+                fputcsv($file, $fila, ';');
             }
 
             fclose($file);

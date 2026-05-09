@@ -3,9 +3,8 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Inventario - Emergencia</h1>
-        <a href="{{ route('emergency-staff.medicamentos.create') }}" class="bg-blue-500 text-white px-4 py-2 rounded">+ Agregar</a>
-    </div>
+        <h1 class="text-3xl font-bold">Inventario - Quirófano</h1>
+         </div>
 
     @if (session('success'))
         <div class="bg-green-100 text-green-700 px-4 py-3 rounded mb-4">{{ session('success') }}</div>
@@ -41,8 +40,8 @@
                             <td class="px-4 py-3">Bs. {{ $lote->precio_venta }}</td>
                             <td class="px-4 py-3">{{ $lote->fecha_vencimiento ? $lote->fecha_vencimiento->format('d/m') : 'S/F' }}</td>
                             <td class="px-4 py-3">
-                                <a href="{{ route('emergency-staff.medicamentos.edit', $med) }}" class="text-green-500">Editar</a> |
-                                <a href="{{ route('emergency-staff.medicamentos.show', $med) }}" class="text-blue-500">Ver</a>
+                                <a href="{{ route('quirofano.medicamentos.edit', $med) }}" class="text-green-500">Editar</a> |
+                                <a href="{{ route('quirofano.medicamentos.show', $med) }}" class="text-blue-500">Ver</a>
                             </td>
                         </tr>
                     @endif

@@ -326,6 +326,35 @@ class PatientsController extends Controller
         return view('patients.show', compact('paciente'));
     }
 
+    public function print($ci): View
+    {
+        $paciente = Paciente::with([
+            'seguro',
+            'triage', 
+            'registro.user',
+            'consultas' => function($q) {
+                $q->with(['medico.user', 'especialidad', 'caja'])
+                  ->orderBy('fecha', 'desc');
+            },
+            'emergencias' => function($q) {
+                $q->with(['user', 'medicamentos', 'equiposMedicos'])
+                  ->orderBy('created_at', 'desc');
+            },
+            'hospitalizaciones' => function($q) {
+                $q->with(['medico.user', 'medicamentos', 'equiposMedicos', 'habitacion'])
+                  ->orderBy('fecha_ingreso', 'desc');
+            }
+        ])->findOrFail($ci);
+
+        // Obtener información del garante si existe
+        $garante = null;
+        if ($paciente->registro && $paciente->registro->garante_ci) {
+            $garante = Paciente::where('ci', $paciente->registro->garante_ci)->first();
+        }
+
+        return view('patients.print', compact('paciente', 'garante'));
+    }
+
     /**
      * Mostrar formulario para editar paciente
      */

@@ -34,15 +34,10 @@
                 @if($menu->canBeSeenBy(auth()->user()))
 
                     @php
-                        // Verificamos si el menú actual o alguno de sus hijos está activo
+                        // Solo verificamos si el menú padre está activo por su propio pattern
+                        // No expandimos automáticamente cuando los hijos están activos
                         $patterns = $menu->active_pattern ? explode(',', $menu->active_pattern) : [$menu->route];
                         $isActive = request()->routeIs(...$patterns);
-
-                        if (!$isActive && $menu->children->isNotEmpty()) {
-                            $isActive = $menu->children->contains(function ($child) {
-                                return request()->routeIs($child->route);
-                            });
-                        }
 
                         // Colores base para Tailwind (evita que Tailwind purgue las clases dinámicas)
                         $colorClass = match ($menu->color) {
@@ -98,11 +93,43 @@
                                 class="pl-4 mt-1 mb-2 space-y-1 border-l {{ $colorClass['border'] }} ml-5">
                                 @foreach($menu->children as $child)
                                     @if($child->canBeSeenBy(auth()->user()))
-                                        @php $isChildActive = request()->routeIs($child->route); @endphp
-                                        <a href="{{ filter_var($child->route, FILTER_VALIDATE_URL) ? $child->route : (Route::has($child->route) ? route($child->route) : '#') }}"
-                                            class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ $isChildActive ? 'text-white ' . $colorClass['bg'] . ' font-bold' : 'text-slate-600 hover:text-[#2563EB] hover:bg-slate-50' }}">
-                                            {{ $child->name }}
-                                        </a>
+                                        @php
+                                            // Solo verificamos si el submenú nivel 2 está activo por su propia ruta
+                                            // No expandimos automáticamente cuando los nietos (nivel 3) están activos
+                                            $isChildActive = request()->routeIs($child->route);
+                                        @endphp
+
+                                        @if($child->children->isEmpty())
+                                            {{-- Submenú sin hijos (nivel 2) --}}
+                                            <a href="{{ filter_var($child->route, FILTER_VALIDATE_URL) ? $child->route : (Route::has($child->route) ? route($child->route) : '#') }}"
+                                                class="block px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ $isChildActive ? 'text-white ' . $colorClass['bg'] . ' font-bold' : 'text-slate-600 hover:text-[#2563EB] hover:bg-slate-50' }}">
+                                                {{ $child->name }}
+                                            </a>
+                                        @else
+                                            {{-- Submenú con hijos (nivel 2 con subnivel 3) --}}
+                                            <div x-data="{ subOpen: {{ $isChildActive ? 'true' : 'false' }} }" class="space-y-1">
+                                                <button @click="subOpen = !subOpen"
+                                                    class="w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-md transition-all whitespace-nowrap {{ $isChildActive ? 'text-white ' . $colorClass['bg'] . ' font-bold' : 'text-slate-600 hover:text-[#2563EB] hover:bg-slate-50' }}">
+                                                    <span>{{ $child->name }}</span>
+                                                    <svg class="w-3 h-3 transition-transform duration-200" :class="subOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                    </svg>
+                                                </button>
+
+                                                {{-- Sub-submenús (nivel 3) --}}
+                                                <div x-show="subOpen" x-collapse class="pl-3 space-y-1">
+                                                    @foreach($child->children as $subChild)
+                                                        @if($subChild->canBeSeenBy(auth()->user()))
+                                                            @php $isSubChildActive = request()->routeIs($subChild->route); @endphp
+                                                            <a href="{{ filter_var($subChild->route, FILTER_VALIDATE_URL) ? $subChild->route : (Route::has($subChild->route) ? route($subChild->route) : '#') }}"
+                                                                class="block px-3 py-1.5 text-[12px] rounded-md transition-all whitespace-nowrap {{ $isSubChildActive ? 'text-white ' . $colorClass['bg'] . ' font-medium' : 'text-slate-500 hover:text-[#2563EB] hover:bg-slate-50' }}">
+                                                                {{ $subChild->name }}
+                                                            </a>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
                                     @endif
                                 @endforeach
                             </div>

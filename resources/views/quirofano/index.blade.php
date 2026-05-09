@@ -17,6 +17,7 @@
                 <span class="hidden sm:inline">Historial</span>
                 <span class="sm:hidden">Hist.</span>
             </a>
+            @if(Auth::user()->isAdmin()||Auth::user()->hasRole('administrador'))
             <a href="{{ route('quirofano.create') }}" class="flex items-center px-3 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 font-medium transition-colors text-sm">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -24,7 +25,6 @@
                 <span class="hidden sm:inline">Nueva Cita</span>
                 <span class="sm:hidden">+</span>
             </a>
-            @if(Auth::user()->isAdmin())
             <a href="{{ route('quirofanos.management.index') }}" class="flex items-center px-4 py-2 border border-slate-600 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
@@ -214,11 +214,27 @@
     <!-- Vista: Tabla Horario -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-slate-100">
-            <div class="flex justify-between items-center">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 class="text-lg font-bold text-slate-800">Horario Semanal Detallado</h2>
-                <div class="text-sm text-slate-500">
-                    {{ $diasSemana[0]['fecha']->format('d/m/Y') }} - {{ $diasSemana[6]['fecha']->format('d/m/Y') }}
+                <div class="flex items-center gap-3">
+                    <form method="GET" action="{{ route('quirofano.index') }}" class="flex items-center gap-2">
+                        <label for="fecha" class="text-sm text-slate-600">Buscar fecha:</label>
+                        <input type="date" id="fecha" name="fecha" 
+                               value="{{ request('fecha', now()->format('Y-m-d')) }}"
+                               class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <button type="submit" class="px-3 py-1.5 bg-slate-700 text-white rounded-lg text-sm hover:bg-slate-800">
+                            Buscar
+                        </button>
+                        @if(request('fecha'))
+                            <a href="{{ route('quirofano.index') }}" class="px-3 py-1.5 border border-slate-300 text-slate-600 rounded-lg text-sm hover:bg-slate-50">
+                                Hoy
+                            </a>
+                        @endif
+                    </form>
                 </div>
+            </div>
+            <div class="mt-2 text-sm text-slate-500">
+                {{ $diasSemana[0]['fecha']->format('d/m/Y') }} - {{ $diasSemana[6]['fecha']->format('d/m/Y') }}
             </div>
         </div>
         
@@ -348,33 +364,6 @@
                     @endforeach
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- Leyenda -->
-    <div class="mt-6 bg-white rounded-xl shadow-sm border border-slate-100 p-4">
-        <h3 class="text-sm font-semibold text-slate-700 mb-3">Leyenda de Estados</h3>
-        <div class="flex flex-wrap gap-4 text-xs">
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-slate-50 border border-slate-200 rounded"></div>
-                <span class="text-slate-600">Programada</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-orange-50 border border-orange-200 rounded"></div>
-                <span class="text-slate-600">En Curso</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-emerald-50 border border-emerald-200 rounded"></div>
-                <span class="text-slate-600">Finalizada</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
-                <span class="text-slate-600">Cancelada</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 bg-orange-100 rounded"></div>
-                <span class="text-orange-600 font-semibold">+Tiempo extra</span>
-            </div>
         </div>
     </div>
 </div>
@@ -581,9 +570,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function iniciarAutoRefresh() {
+    // Obtener fecha seleccionada del URL si existe
+    const urlParams = new URLSearchParams(window.location.search);
+    const fechaSeleccionada = urlParams.get('fecha');
+
+    // Construir endpoint con fecha si existe
+    let endpoint = '{{ route('quirofano.api.dashboard') }}';
+    if (fechaSeleccionada) {
+        endpoint += '?fecha=' + encodeURIComponent(fechaSeleccionada);
+    }
+
     autoRefresh = new AutoRefresh({
         interval: 3000,
-        endpoint: '{{ route('quirofano.api.dashboard') }}',
+        endpoint: endpoint,
         onData: (data) => {
             if (data.success) {
                 actualizarStats(data.stats);

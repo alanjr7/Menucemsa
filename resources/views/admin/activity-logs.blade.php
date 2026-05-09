@@ -318,8 +318,8 @@
             </div>
             
             <!-- Paginación -->
-            <div class="mt-6">
-                {{ $logs->links() }}
+            <div class="mt-6 px-4 py-3 border-t border-gray-100 sm:px-6">
+                {{ $logs->appends(request()->query())->links() }}
             </div>
         </div>
     </div>

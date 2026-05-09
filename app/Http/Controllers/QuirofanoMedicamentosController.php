@@ -22,12 +22,16 @@ class QuirofanoMedicamentosController extends Controller
 
     public function index(Request $request)
     {
+        $ubicacion = $this->ubicacion;
+
         $query = AlmacenCatalogo::activos()
-            ->with(['lotes' => function($q) {
-                $q->vigentes()->with('stocks');
+            ->with(['lotes' => function($q) use ($ubicacion) {
+                $q->with(['stocks' => function($sq) use ($ubicacion) {
+                    $sq->where('ubicacion', $ubicacion);
+                }]);
             }])
-            ->whereHas('stocks', function($q) {
-                $q->where('ubicacion', $this->ubicacion);
+            ->whereHas('lotes.stocks', function($q) use ($ubicacion) {
+                $q->where('ubicacion', $ubicacion);
             });
 
         if ($request->filled('tipo')) {
@@ -44,13 +48,19 @@ class QuirofanoMedicamentosController extends Controller
         $medicamentos = $query->orderBy('nombre')->paginate(10);
 
         $stats = [
-            'total' => AlmacenCatalogo::activos()->count(),
-            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->count(),
-            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->count(),
+            'total' => AlmacenCatalogo::activos()->whereHas('lotes.stocks', function($q) use ($ubicacion) {
+                $q->where('ubicacion', $ubicacion);
+            })->count(),
+            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->whereHas('lotes.stocks', function($q) use ($ubicacion) {
+                $q->where('ubicacion', $ubicacion);
+            })->count(),
+            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->whereHas('lotes.stocks', function($q) use ($ubicacion) {
+                $q->where('ubicacion', $ubicacion);
+            })->count(),
             'bajo_stock' => AlmacenStock::where('ubicacion', $this->ubicacion)->bajoStock()->count(),
             'agotados' => AlmacenStock::where('ubicacion', $this->ubicacion)->agotado()->count(),
-            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', function($q) {
-                $q->where('ubicacion', $this->ubicacion);
+            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', function($q) use ($ubicacion) {
+                $q->where('ubicacion', $ubicacion);
             })->count(),
         ];
 

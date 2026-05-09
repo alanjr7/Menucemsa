@@ -136,12 +136,11 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/quirofano/{cita}/edit', [QuirofanoController::class, 'edit'])->name('quirofano.edit')->where('cita', '[0-9]+');
 
         Route::put('/quirofano/{cita}', [QuirofanoController::class, 'update'])->name('quirofano.update')->where('cita', '[0-9]+');
-        Route::post('/quirofano/{cita}/iniciar', [QuirofanoController::class, 'iniciarCirugia'])->name('quirofano.iniciar')->where('cita', '[0-9]+');
-        Route::post('/quirofano/{cita}/finalizar', [QuirofanoController::class, 'finalizarCirugia'])->name('quirofano.finalizar')->where('cita', '[0-9]+');
+        Route::post('/quirofano/{cita}/ejecutar', [QuirofanoController::class, 'ejecutar'])->name('quirofano.ejecutar')->where('cita', '[0-9]+');
         Route::post('/quirofano/{cita}/cancelar', [QuirofanoController::class, 'cancelar'])->name('quirofano.cancelar')->where('cita', '[0-9]+');
 
         // Rutas para gestión de quirófanos (solo admin y cirujano)
-        Route::middleware(['role:admin|cirujano'])->group(function () {
+        Route::middleware(['role:admin|cirujano|administrador'])->group(function () {
             Route::get('/quirofanos-management', [QuirofanoManagementController::class, 'index'])->name('quirofanos.management.index');
             Route::get('/quirofanos-management/create', [QuirofanoManagementController::class, 'create'])->name('quirofanos.management.create');
             Route::post('/quirofanos-management', [QuirofanoManagementController::class, 'store'])->name('quirofanos.management.store');
@@ -151,6 +150,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
             Route::delete('/quirofanos-management/{quirofano}', [QuirofanoManagementController::class, 'destroy'])->name('quirofanos.management.destroy');
             Route::post('/quirofanos-management/{quirofano}/estado', [QuirofanoManagementController::class, 'cambiarEstado'])->name('quirofanos.management.estado');
 
+            // Ruta para ver detalles de cirugía finalizada (solo lectura)
+Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetails'])->name('quirofano.show-details')->where('cita', '[0-9]+');
             // API para obtener siguiente número de quirófano
             Route::get('/api/quirofanos/next-number', [QuirofanoManagementController::class, 'getNextNumber'])->name('quirofanos.api.next-number');
         });
@@ -168,11 +169,10 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
         Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
+        Route::get('/patients/{ci}/print', [\App\Http\Controllers\PatientsController::class, 'print'])->name('patients.print');
 
-        // Rutas para Historial de Pacientes (Recepción)
+        // Ruta para listado de pacientes en recepción
         Route::get('/reception/pacientes', [\App\Http\Controllers\ReceptionController::class, 'pacientesIndex'])->name('reception.pacientes.index');
-        Route::get('/reception/pacientes/{ci}', [\App\Http\Controllers\ReceptionController::class, 'pacientesHistorial'])->name('reception.pacientes.historial');
-        Route::get('/reception/pacientes/{ci}/print', [\App\Http\Controllers\ReceptionController::class, 'pacientesHistorialPrint'])->name('reception.pacientes.historial.print');
 
         Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
 
@@ -413,6 +413,14 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Rutas API para doctores
         Route::get('api/medicos-por-especialidad', [DoctorController::class, 'getMedicosByEspecialidad'])->name('doctors.by-especialidad');
+
+        // Rutas para gestión de cirujanos
+        Route::get('cirujanos', [\App\Http\Controllers\Admin\CirujanoController::class, 'index'])->name('cirujanos.index');
+        Route::get('cirujanos/create', [\App\Http\Controllers\Admin\CirujanoController::class, 'create'])->name('cirujanos.create');
+        Route::post('cirujanos', [\App\Http\Controllers\Admin\CirujanoController::class, 'store'])->name('cirujanos.store');
+        Route::get('cirujanos/{cirujano}/edit', [\App\Http\Controllers\Admin\CirujanoController::class, 'edit'])->name('cirujanos.edit');
+        Route::put('cirujanos/{cirujano}', [\App\Http\Controllers\Admin\CirujanoController::class, 'update'])->name('cirujanos.update');
+        Route::delete('cirujanos/{cirujano}', [\App\Http\Controllers\Admin\CirujanoController::class, 'destroy'])->name('cirujanos.destroy');
 
         // Camillas (UTI y Emergencia)
         Route::resource('camillas', \App\Http\Controllers\Admin\CamillaController::class);

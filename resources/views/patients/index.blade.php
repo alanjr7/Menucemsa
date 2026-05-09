@@ -198,9 +198,7 @@
                                             'uti'                   => 'evaluacion.uti',
                                             'internacion'           => 'evaluacion.internacion',
                                             'enfermera-internacion' => 'evaluacion.internacion',
-                                            'cirujano'              => 'evaluacion.emergencia',
-                                            'admin'                 => 'evaluacion.emergencia',
-                                        ];
+                                            ];
                                         $evalRoute = $roleAreaRouteMap[auth()->user()->role] ?? null;
                                     @endphp
                                     <div class="flex justify-end gap-2">
