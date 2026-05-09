@@ -319,7 +319,7 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              
                                     @if(in_array($cita->estado, ['finalizada', 'cancelada']))
                                         <a href="{{ route('quirofano.show-details', $cita) }}" class="text-gray-600 hover:text-gray-900">
                                             Ver Detalles
@@ -329,7 +329,6 @@
                                             Ejecutar
                                         </a>
                                     @endif
-                                </td>
                             </td>
                         </tr>
                     @empty

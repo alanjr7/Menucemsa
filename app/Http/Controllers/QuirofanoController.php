@@ -817,16 +817,36 @@ public function showDetails(CitaQuirurgica $cita): View
                 foreach ($validated['medicamentos'] as $med) {
                     $medicamento = AlmacenCatalogo::find($med['id']);
                     if ($medicamento) {
-                        $subtotal = $medicamento->precio * $med['cantidad'];
+                        // Obtener precio_venta del lote más reciente no vencido
+                        $lote = \App\Models\AlmacenLote::where('catalogo_id', $medicamento->id)
+                            ->where(function($q) {
+                                $q->whereNull('fecha_vencimiento')
+                                  ->orWhere('fecha_vencimiento', '>', now());
+                            })
+                            ->orderByDesc('created_at')
+                            ->first();
+
+                        $precioUnitario = (float) ($lote->precio_venta ?? 0);
+                        $subtotal = $precioUnitario * $med['cantidad'];
                         $costoMedicamentos += $subtotal;
 
-                        // Descontar del stock de quirófano
-                        $stock = AlmacenStock::where('catalogo_id', $medicamento->id)
-                            ->where('area', 'quirófano')
+                        // Descontar del stock de cirugía/quirófano
+                        $stock = AlmacenStock::whereHas('lote', function($q) use ($medicamento) {
+                                $q->where('catalogo_id', $medicamento->id)
+                                  ->where(function($sub) {
+                                      $sub->whereNull('fecha_vencimiento')
+                                          ->orWhere('fecha_vencimiento', '>', now());
+                                  });
+                            })
+                            ->whereIn('ubicacion', ['cirugia', 'quirofano'])
+                            ->where('cantidad_actual', '>=', $med['cantidad'])
                             ->first();
+                        
                         if ($stock) {
-                            $stock->cantidad -= $med['cantidad'];
+                            $stock->cantidad_actual -= $med['cantidad'];
                             $stock->save();
+                        } else {
+                            \Log::warning('No hay stock suficiente para medicamento: ' . $medicamento->nombre . ' - Cantidad solicitada: ' . $med['cantidad']);
                         }
 
                         // Agregar a la cuenta
@@ -834,7 +854,7 @@ public function showDetails(CitaQuirurgica $cita): View
                             'tipo_item' => 'medicamento',
                             'descripcion' => $medicamento->nombre,
                             'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $medicamento->precio,
+                            'precio_unitario' => $precioUnitario,
                             'subtotal' => $subtotal,
                         ]);
 
@@ -842,7 +862,7 @@ public function showDetails(CitaQuirurgica $cita): View
                             'id' => $medicamento->id,
                             'nombre' => $medicamento->nombre,
                             'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $medicamento->precio,
+                            'precio_unitario' => $precioUnitario,
                             'subtotal' => $subtotal,
                         ];
                     }
@@ -1357,55 +1377,55 @@ public function showDetails(CitaQuirurgica $cita): View
         }
     }
 
-    /**
-     * Obtener medicamentos disponibles en quirófano para una cirugía
-     */
-    public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
-    {
-        try {
-            \Log::info('getMedicamentosDisponibles llamado', ['cita_id' => $cita->id, 'estado' => $cita->estado]);
-
-            // Verificar que la cirugía esté programada o en curso
-            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La cirugía debe estar programada o en curso'
-                ], 422);
-            }
-
-            \Log::info('Buscando medicamentos de cirugia...');
-
-            $medicamentos = AlmacenStock::porUbicacion('cirugia')
-                ->where('cantidad_actual', '>', 0)
-                ->whereHas('lote.catalogo', fn($q) => $q->activos())
-                ->with('lote.catalogo')
-                ->orderBy('lote.catalogo.nombre')
-                ->get(['id', 'cantidad_actual', 'stock_minimo', 'lote_id', 'ubicacion'])
-                ->map(fn($s) => (object)[
-                    'id' => $s->id,
-                    'nombre' => $s->lote->catalogo->nombre,
-                    'tipo' => $s->lote->catalogo->tipo,
-                    'cantidad' => $s->cantidad_actual,
-                    'unidad_medida' => $s->lote->catalogo->unidad_medida,
-                    'precio' => $s->lote->precio_venta,
-                ]);
-
-            \Log::info('Medicamentos encontrados: ' . $medicamentos->count());
-
-            return response()->json([
-                'success' => true,
-                'medicamentos' => $medicamentos
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error en getMedicamentosDisponibles: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+    
+   /**
+ * Obtener medicamentos disponibles en quirófano para una cirugía
+ */
+public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
+{
+    try {
+        // Verificar que la cirugía esté programada o en curso
+        if (!in_array($cita->estado, ['programada', 'en_curso'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar medicamentos: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ], 500);
+                'message' => 'La cirugía debe estar programada o en curso'
+            ], 422);
         }
+
+        // Obtener medicamentos del área 'quirófano' o 'cirugia' con stock > 0
+        $medicamentos = \App\Models\AlmacenStock::where('cantidad_actual', '>', 0)
+            ->whereIn('ubicacion', ['quirófano', 'cirugia'])
+            ->whereHas('lote.catalogo', function($q) {
+                $q->where('tipo', 'medicamento')
+                  ->where('activo', true);
+            })
+            ->with(['lote.catalogo', 'lote'])
+            ->get()
+            ->map(function($stock) {
+                return [
+                    'id' => $stock->lote->catalogo->id,
+                    'stock_id' => $stock->id,
+                    'nombre' => $stock->lote->catalogo->nombre,
+                    'presentacion' => $stock->lote->catalogo->presentacion ?? '',
+                    'concentracion' => $stock->lote->catalogo->concentracion ?? '',
+                    'cantidad' => $stock->cantidad_actual,
+                    'precio' => (float) ($stock->lote->precio_venta ?? $stock->lote->catalogo->precio ?? 0),
+                    'unidad_medida' => $stock->lote->catalogo->unidad_medida ?? 'unidad',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'medicamentos' => $medicamentos
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Error en getMedicamentosDisponibles: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al cargar medicamentos: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Obtener medicamentos ya usados en una cirugía

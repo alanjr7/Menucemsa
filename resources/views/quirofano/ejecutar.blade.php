@@ -134,47 +134,69 @@
         </div>
 
         <!-- Sección 3: Medicamentos -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                </svg>
-                Medicamentos Utilizados
-            </h2>
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+        </svg>
+        Medicamentos Utilizados
+    </h2>
 
-            <!-- Lista de medicamentos agregados -->
-            <div id="listaMedicamentos" class="space-y-2 mb-4">
-                <p class="text-gray-500 text-sm text-center py-4">No hay medicamentos agregados</p>
+    <!-- Lista de medicamentos agregados -->
+    <div id="listaMedicamentos" class="space-y-2 mb-4 max-h-64 overflow-y-auto">
+        <p class="text-gray-500 text-sm text-center py-4">No hay medicamentos agregados</p>
+    </div>
+
+    <!-- Buscador de medicamentos -->
+    <div class="border-t border-gray-200 pt-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Medicamento</h4>
+        
+        <!-- Buscador -->
+        <div class="relative mb-3">
+            <div class="relative">
+                <input type="text" 
+                       id="buscadorMedicamento" 
+                       placeholder="🔍 Buscar medicamento por nombre, presentación o concentración..."
+                       autocomplete="off"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <div id="loadingMedicamentos" class="absolute right-3 top-3 hidden">
+                    <svg class="animate-spin h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
             </div>
-
-            <!-- Formulario para agregar medicamento -->
-            <div class="border-t border-gray-200 pt-4">
-                <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Medicamento</h4>
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <div class="md:col-span-6">
-                        <select id="medicamentoSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                            <option value="">Seleccione medicamento...</option>
-                            @foreach($medicamentos as $med)
-                                <option value="{{ $med->id }}" data-precio="{{ $med->precio }}" data-nombre="{{ $med->nombre }}">
-                                    {{ $med->nombre }} - Bs. {{ number_format($med->precio, 2) }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="md:col-span-2">
-                        <input type="number" id="medicamentoCantidad" min="1" value="1"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                               placeholder="Cantidad">
-                    </div>
-                    <div class="md:col-span-2">
-                        <button type="button" onclick="agregarMedicamento()"
-                                class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                            Agregar
-                        </button>
-                    </div>
+            
+            <!-- Resultados de búsqueda -->
+            <div id="resultadosBusqueda" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
+                <!-- Los resultados se llenarán dinámicamente -->
+            </div>
+        </div>
+        
+        <!-- Cantidad y botón agregar (se muestra cuando se selecciona un medicamento) -->
+        <div id="seleccionContainer" class="hidden bg-blue-50 rounded-lg p-3 mt-3">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <p id="medicamentoSeleccionadoNombre" class="font-medium text-gray-900"></p>
+                    <p class="text-xs text-gray-500">Stock disponible: <span id="stockDisponible">0</span> unidades</p>
+                    <p class="text-xs text-gray-500">Precio unitario: Bs. <span id="precioUnitario">0</span></p>
+                </div>
+                <div class="flex gap-2">
+                    <input type="number" id="medicamentoCantidad" min="1" value="1" 
+                           class="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center">
+                    <button type="button" onclick="agregarMedicamentoSeleccionado()"
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Agregar
+                    </button>
+                    <button type="button" onclick="limpiarSeleccion()"
+                            class="border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm">
+                        Cancelar
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
         <!-- Sección 4: Equipos y Procedimientos -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -351,33 +373,149 @@ function actualizarCostoExtra(duracion, tipoFinal) {
     actualizarCostoTotal();
 }
 
-// Gestión de Medicamentos
-function agregarMedicamento() {
-    const select = document.getElementById('medicamentoSelect');
-    const cantidadInput = document.getElementById('medicamentoCantidad');
+// ========== GESTIÓN DE MEDICAMENTOS CON BUSCADOR ==========
 
-    if (!select.value) {
-        alert('Seleccione un medicamento');
+let todosLosMedicamentos = [];
+let medicamentoSeleccionado = null;
+let busquedaTimeout = null;
+
+// Cargar medicamentos al iniciar
+async function cargarMedicamentos() {
+    const loadingIcon = document.getElementById('loadingMedicamentos');
+    loadingIcon.classList.remove('hidden');
+    
+    try {
+        const response = await fetch(`/quirofano/{{ $cita->id }}/medicamentos-disponibles`);
+        const data = await response.json();
+        
+        if (data.success) {
+            todosLosMedicamentos = data.medicamentos;
+        } else {
+            console.error('Error cargando medicamentos:', data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    } finally {
+        loadingIcon.classList.add('hidden');
+    }
+}
+
+// Función para resaltar texto
+function highlightText(text, query) {
+    if (!query || query.length < 2) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<mark class="highlight">$1</mark>');
+}
+
+// Buscar medicamentos
+function buscarMedicamentos(query) {
+    const resultadosDiv = document.getElementById('resultadosBusqueda');
+    
+    if (!query || query.length < 2) {
+        resultadosDiv.classList.add('hidden');
         return;
     }
+    
+    const queryLower = query.toLowerCase();
+    const resultados = todosLosMedicamentos.filter(med => {
+        return med.nombre.toLowerCase().includes(queryLower) ||
+               (med.presentacion && med.presentacion.toLowerCase().includes(queryLower)) ||
+               (med.concentracion && med.concentracion.toLowerCase().includes(queryLower));
+    });
+    
+    if (resultados.length === 0) {
+        resultadosDiv.innerHTML = '<div class="p-3 text-center text-gray-500">No se encontraron medicamentos</div>';
+        resultadosDiv.classList.remove('hidden');
+        return;
+    }
+    
+    resultadosDiv.innerHTML = resultados.map(med => `
+        <div class="resultado-item p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50" 
+             data-id="${med.id}"
+             data-stock-id="${med.stock_id}"
+             data-nombre="${med.nombre}"
+             data-precio="${med.precio}"
+             data-cantidad="${med.cantidad}"
+             onclick="seleccionarMedicamento(${med.id}, '${med.nombre.replace(/'/g, "\\'")}', ${med.precio}, ${med.cantidad})">
+            <div class="font-medium text-gray-900">${highlightText(med.nombre, query)}</div>
+            <div class="text-xs text-gray-500 flex gap-3 mt-1">
+                <span>📦 Stock: ${med.cantidad} ${med.unidad_medida}</span>
+                ${med.presentacion ? `<span>💊 ${med.presentacion}</span>` : ''}
+                ${med.concentracion ? `<span>⚖️ ${med.concentracion}</span>` : ''}
+                <span>💰 Bs. ${med.precio.toFixed(2)}</span>
+            </div>
+        </div>
+    `).join('');
+    
+    resultadosDiv.classList.remove('hidden');
+}
 
-    const option = select.selectedOptions[0];
+function seleccionarMedicamento(id, nombre, precio, stock) {
+    medicamentoSeleccionado = { id, nombre, precio, stock };
+    
+    document.getElementById('medicamentoSeleccionadoNombre').textContent = nombre;
+    document.getElementById('stockDisponible').textContent = stock;
+    document.getElementById('precioUnitario').textContent = precio.toFixed(2);
+    document.getElementById('medicamentoCantidad').value = 1;
+    document.getElementById('medicamentoCantidad').max = stock;
+    document.getElementById('seleccionContainer').classList.remove('hidden');
+    
+    // Limpiar buscador
+    document.getElementById('buscadorMedicamento').value = '';
+    document.getElementById('resultadosBusqueda').classList.add('hidden');
+}
+
+function limpiarSeleccion() {
+    medicamentoSeleccionado = null;
+    document.getElementById('seleccionContainer').classList.add('hidden');
+    document.getElementById('buscadorMedicamento').value = '';
+    document.getElementById('buscadorMedicamento').focus();
+}
+
+function agregarMedicamentoSeleccionado() {
+    if (!medicamentoSeleccionado) {
+        alert('Seleccione un medicamento primero');
+        return;
+    }
+    
+    const cantidad = parseInt(document.getElementById('medicamentoCantidad').value);
+    
+    if (isNaN(cantidad) || cantidad < 1) {
+        alert('Ingrese una cantidad válida');
+        return;
+    }
+    
+    if (cantidad > medicamentoSeleccionado.stock) {
+        alert(`Stock insuficiente. Solo hay ${medicamentoSeleccionado.stock} unidades disponibles.`);
+        return;
+    }
+    
     const medicamento = {
-        id: parseInt(select.value),
-        nombre: option.dataset.nombre,
-        precio: parseFloat(option.dataset.precio),
-        cantidad: parseInt(cantidadInput.value) || 1
+        id: medicamentoSeleccionado.id,
+        nombre: medicamentoSeleccionado.nombre,
+        precio: medicamentoSeleccionado.precio,
+        cantidad: cantidad,
+        subtotal: medicamentoSeleccionado.precio * cantidad
     };
-
-    medicamento.subtotal = medicamento.precio * medicamento.cantidad;
+    
     medicamentosAgregados.push(medicamento);
-
     renderizarMedicamentos();
     actualizarCostosMedicamentos();
+    
+    // Reducir stock localmente
+    medicamentoSeleccionado.stock -= cantidad;
+    document.getElementById('stockDisponible').textContent = medicamentoSeleccionado.stock;
+    document.getElementById('medicamentoCantidad').value = 1;
+    
+    // Si el stock llegó a 0, limpiar selección
+    if (medicamentoSeleccionado.stock === 0) {
+        limpiarSeleccion();
+    }
+}
 
-    // Resetear campos
-    select.value = '';
-    cantidadInput.value = '1';
+// Función original agregarMedicamento (para compatibilidad, pero usaremos la nueva)
+function agregarMedicamento() {
+    agregarMedicamentoSeleccionado();
 }
 
 function eliminarMedicamento(index) {
@@ -388,17 +526,18 @@ function eliminarMedicamento(index) {
 
 function renderizarMedicamentos() {
     const container = document.getElementById('listaMedicamentos');
-
+    
     if (medicamentosAgregados.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No hay medicamentos agregados</p>';
         return;
     }
-
+    
     container.innerHTML = medicamentosAgregados.map((med, index) => `
         <div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">
-            <div>
+            <div class="flex-1">
                 <span class="font-medium text-gray-900">${med.nombre}</span>
-                <span class="text-sm text-gray-500">x${med.cantidad}</span>
+                <span class="text-sm text-gray-500 ml-2">x${med.cantidad}</span>
+                <div class="text-xs text-gray-500">Bs. ${med.precio.toFixed(2)} c/u</div>
             </div>
             <div class="flex items-center gap-3">
                 <span class="font-semibold text-green-600">Bs. ${med.subtotal.toFixed(2)}</span>
@@ -412,6 +551,37 @@ function renderizarMedicamentos() {
         </div>
     `).join('');
 }
+
+// Evento de búsqueda con debounce
+document.getElementById('buscadorMedicamento').addEventListener('input', function(e) {
+    clearTimeout(busquedaTimeout);
+    const query = e.target.value;
+    busquedaTimeout = setTimeout(() => buscarMedicamentos(query), 300);
+});
+
+// Cerrar resultados al hacer clic fuera
+document.addEventListener('click', function(e) {
+    const buscador = document.getElementById('buscadorMedicamento');
+    const resultados = document.getElementById('resultadosBusqueda');
+    
+    if (!buscador.contains(e.target) && !resultados.contains(e.target)) {
+        resultados.classList.add('hidden');
+    }
+});
+
+// Validar cantidad máxima
+document.getElementById('medicamentoCantidad').addEventListener('change', function() {
+    const max = parseInt(this.max);
+    const val = parseInt(this.value);
+    if (val > max) {
+        this.value = max;
+        alert(`La cantidad no puede exceder el stock disponible (${max})`);
+    }
+    if (val < 1) this.value = 1;
+});
+
+// Cargar medicamentos al inicio
+cargarMedicamentos();
 
 function actualizarCostosMedicamentos() {
     const total = medicamentosAgregados.reduce((sum, med) => sum + med.subtotal, 0);
