@@ -94,6 +94,16 @@ class Paciente extends Model
                     ->whereIn('estado', ['pendiente', 'parcial']);
     }
 
+    public function altas()
+    {
+        return $this->hasMany(\App\Models\AltaPaciente::class, 'paciente_ci', 'ci');
+    }
+
+    public function estaDeAlta(): bool
+    {
+        return $this->altas()->exists();
+    }
+
     public function garante()
     {
         return $this->belongsTo(Paciente::class, 'id_garante_referencia', 'ci');

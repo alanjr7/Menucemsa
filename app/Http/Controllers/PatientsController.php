@@ -7,6 +7,7 @@ use App\Models\Consulta;
 use App\Models\Hospitalizacion;
 use App\Models\Caja;
 use App\Models\Emergency;
+use App\Models\AltaPaciente;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -28,7 +29,8 @@ class PatientsController extends Controller
                     $q->orderBy('created_at', 'desc')->limit(1);
                 }
             ])
-            ->whereHas('registro'); // Solo pacientes con registro
+            ->whereHas('registro') // Solo pacientes con registro
+            ->whereDoesntHave('altas'); // Excluir pacientes dados de alta
 
         // Búsqueda
         if ($request->filled('search')) {
@@ -426,5 +428,147 @@ class PatientsController extends Controller
         
         return redirect()->back()
             ->with('success', 'Item eliminado correctamente.');
+    }
+
+    /**
+     * Vista de listado de pacientes para dar de alta (roles autorizados)
+     */
+    public function darDeAltaIndex(Request $request): View
+    {
+        $query = Paciente::with([
+                'seguro',
+                'triage',
+                'registro.user',
+                'consultas' => function($q) {
+                    $q->with('caja')->orderBy('created_at', 'desc')->limit(1);
+                },
+                'hospitalizaciones' => function($q) {
+                    $q->orderBy('created_at', 'desc')->limit(1);
+                },
+                'emergencias' => function($q) {
+                    $q->orderBy('created_at', 'desc')->limit(1);
+                },
+                'cuentasPendientes',
+            ])
+            ->whereHas('registro')
+            ->whereDoesntHave('altas'); // Solo pacientes sin alta
+
+        // Búsqueda
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nombre', 'LIKE', "%{$search}%")
+                  ->orWhere('ci', 'LIKE', "%{$search}%")
+                  ->orWhereHas('registro', function($rq) use ($search) {
+                      $rq->where('codigo', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($request->filled('estado')) {
+            $estado = $request->estado;
+            if ($estado === 'hospitalizado') {
+                $query->whereHas('hospitalizaciones', function($q) {
+                    $q->where('estado', 'Activo');
+                });
+            } elseif ($estado === 'emergencia') {
+                $query->whereHas('emergencias', function($q) {
+                    $q->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
+                });
+            }
+        }
+
+        $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        // Agregar tipo_ingreso
+        $pacientes->getCollection()->transform(function($paciente) {
+            $paciente->tipo_ingreso = $this->determinarTipoIngreso($paciente);
+            return $paciente;
+        });
+
+        $stats = [
+            'total'          => Paciente::whereHas('registro')->whereDoesntHave('altas')->count(),
+            'hospitalizados' => Paciente::whereHas('hospitalizaciones', function($q) {
+                $q->where('estado', 'Activo');
+            })->whereDoesntHave('altas')->count(),
+            'emergencias'    => Paciente::whereHas('emergencias', function($q) {
+                $q->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
+            })->whereDoesntHave('altas')->count(),
+        ];
+
+        return view('patients.dar-de-alta', compact('pacientes', 'stats'));
+    }
+
+    /**
+     * Procesar el alta de un paciente
+     */
+    public function darDeAlta(Request $request, $ci)
+    {
+        $paciente = Paciente::with('cuentasPendientes')->whereHas('registro')->findOrFail($ci);
+
+        // Verificar cuentas pendientes
+        $cuentasPendientes = $paciente->cuentasPendientes()->count();
+        if ($cuentasPendientes > 0) {
+            return redirect()->back()->with(
+                'error',
+                "El paciente {$paciente->nombre} tiene {$cuentasPendientes} cuenta(s) pendiente(s) de pago. Debe regularizarlas antes de dar el alta."
+            );
+        }
+
+        $validated = $request->validate([
+            'motivo_alta'   => 'required|in:alta_medica,voluntaria,fallecimiento,traslado',
+            'observaciones' => 'nullable|string|max:1000',
+        ]);
+
+        AltaPaciente::create([
+            'paciente_ci'       => $paciente->ci,
+            'dado_de_alta_por'  => auth()->id(),
+            'motivo_alta'       => $validated['motivo_alta'],
+            'observaciones'     => $validated['observaciones'] ?? null,
+            'fecha_alta'        => now(),
+        ]);
+
+        return redirect()->route('patients.dar-de-alta.index')
+            ->with('success', "Paciente {$paciente->nombre} dado de alta correctamente.");
+    }
+
+    /**
+     * Historial de pacientes dados de alta (solo admin/administrador)
+     */
+    public function historialAltas(Request $request): View
+    {
+        $query = AltaPaciente::with(['paciente.seguro', 'usuario'])
+            ->orderBy('fecha_alta', 'desc');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('paciente', function($q) use ($search) {
+                $q->where('nombre', 'LIKE', "%{$search}%")
+                  ->orWhere('ci', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('motivo')) {
+            $query->where('motivo_alta', $request->motivo);
+        }
+
+        if ($request->filled('desde')) {
+            $query->whereDate('fecha_alta', '>=', $request->desde);
+        }
+        if ($request->filled('hasta')) {
+            $query->whereDate('fecha_alta', '<=', $request->hasta);
+        }
+
+        $altas = $query->paginate(20);
+
+        $statsAltas = [
+            'total'        => AltaPaciente::count(),
+            'este_mes'     => AltaPaciente::whereMonth('fecha_alta', now()->month)
+                                ->whereYear('fecha_alta', now()->year)->count(),
+            'alta_medica'  => AltaPaciente::where('motivo_alta', 'alta_medica')->count(),
+            'voluntaria'   => AltaPaciente::where('motivo_alta', 'voluntaria')->count(),
+        ];
+
+        return view('patients.historial-altas', compact('altas', 'statsAltas'));
     }
 }

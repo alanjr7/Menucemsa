@@ -171,6 +171,17 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
         Route::get('/patients/{ci}/print', [\App\Http\Controllers\PatientsController::class, 'print'])->name('patients.print');
 
+        // Dar de Alta (roles autorizados)
+        Route::middleware(['role:admin|administrador|cirujano|emergencia|internacion'])->group(function () {
+            Route::get('/patients-dar-de-alta', [\App\Http\Controllers\PatientsController::class, 'darDeAltaIndex'])->name('patients.dar-de-alta.index');
+            Route::post('/patients/{ci}/dar-de-alta', [\App\Http\Controllers\PatientsController::class, 'darDeAlta'])->name('patients.dar-de-alta');
+        });
+
+        // Historial de Altas (solo admin y administrador)
+        Route::middleware(['role:admin|administrador'])->group(function () {
+            Route::get('/patients-historial-altas', [\App\Http\Controllers\PatientsController::class, 'historialAltas'])->name('patients.historial-altas');
+        });
+
         // Ruta para listado de pacientes en recepción
         Route::get('/reception/pacientes', [\App\Http\Controllers\ReceptionController::class, 'pacientesIndex'])->name('reception.pacientes.index');
 
