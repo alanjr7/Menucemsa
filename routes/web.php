@@ -141,7 +141,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/quirofano/{cita}/cancelar', [QuirofanoController::class, 'cancelar'])->name('quirofano.cancelar')->where('cita', '[0-9]+');
 
         // Rutas para gestión de quirófanos (solo admin y cirujano)
-        Route::middleware(['role:admin|cirujano'])->group(function () {
+        Route::middleware(['role:admin|cirujano|administrador'])->group(function () {
             Route::get('/quirofanos-management', [QuirofanoManagementController::class, 'index'])->name('quirofanos.management.index');
             Route::get('/quirofanos-management/create', [QuirofanoManagementController::class, 'create'])->name('quirofanos.management.create');
             Route::post('/quirofanos-management', [QuirofanoManagementController::class, 'store'])->name('quirofanos.management.store');
@@ -414,6 +414,14 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Rutas API para doctores
         Route::get('api/medicos-por-especialidad', [DoctorController::class, 'getMedicosByEspecialidad'])->name('doctors.by-especialidad');
+
+        // Rutas para gestión de cirujanos
+        Route::get('cirujanos', [\App\Http\Controllers\Admin\CirujanoController::class, 'index'])->name('cirujanos.index');
+        Route::get('cirujanos/create', [\App\Http\Controllers\Admin\CirujanoController::class, 'create'])->name('cirujanos.create');
+        Route::post('cirujanos', [\App\Http\Controllers\Admin\CirujanoController::class, 'store'])->name('cirujanos.store');
+        Route::get('cirujanos/{cirujano}/edit', [\App\Http\Controllers\Admin\CirujanoController::class, 'edit'])->name('cirujanos.edit');
+        Route::put('cirujanos/{cirujano}', [\App\Http\Controllers\Admin\CirujanoController::class, 'update'])->name('cirujanos.update');
+        Route::delete('cirujanos/{cirujano}', [\App\Http\Controllers\Admin\CirujanoController::class, 'destroy'])->name('cirujanos.destroy');
 
         // Camillas (UTI y Emergencia)
         Route::resource('camillas', \App\Http\Controllers\Admin\CamillaController::class);

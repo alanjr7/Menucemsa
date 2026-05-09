@@ -24,18 +24,31 @@ class QuirofanoController extends Controller
 {
     use \App\Traits\AuditLoggable;
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        \Log::info('Index llamado', [
+            'all_params' => $request->all(),
+            'fecha_param' => $request->input('fecha'),
+            'url' => $request->fullUrl()
+        ]);
+
         $quirofanos = Quirofano::all();
 
-        // Obtener la fecha actual y el rango de la semana
-        $startOfWeek = now()->startOfWeek()->startOfDay();
-        $endOfWeek = now()->endOfWeek()->endOfDay();
+        // Obtener fecha seleccionada o usar hoy
+        $fechaSeleccionada = $request->filled('fecha') 
+            ? \Carbon\Carbon::parse($request->input('fecha'))
+            : now();
+
+        // Obtener la fecha y el rango de la semana
+        $startOfWeek = $fechaSeleccionada->copy()->startOfWeek()->startOfDay();
+        $endOfWeek = $fechaSeleccionada->copy()->endOfWeek()->endOfDay();
 
         \Log::info('Date range', [
             'start' => $startOfWeek->format('Y-m-d H:i:s'),
             'end' => $endOfWeek->format('Y-m-d H:i:s'),
-            'today' => now()->format('Y-m-d H:i:s')
+            'today' => now()->format('Y-m-d H:i:s'),
+            'fecha_seleccionada' => $fechaSeleccionada->format('Y-m-d'),
+            'used_request_date' => $request->filled('fecha')
         ]);
 
         // Obtener todas las citas de la semana
@@ -129,12 +142,17 @@ class QuirofanoController extends Controller
         return view('quirofano.index', compact('quirofanos', 'diasSemana', 'horasDia', 'citasPorDiaHora', 'stats', 'emergenciasEnQuirofano'));
     }
 
-    public function apiDashboard(): JsonResponse
+    public function apiDashboard(Request $request): JsonResponse
     {
         $quirofanos = Quirofano::all();
 
-        $startOfWeek = now()->startOfWeek()->startOfDay();
-        $endOfWeek = now()->endOfWeek()->endOfDay();
+        // Obtener fecha seleccionada o usar hoy (para auto-refresh respetar fecha)
+        $fechaSeleccionada = $request->filled('fecha')
+            ? \Carbon\Carbon::parse($request->input('fecha'))
+            : now();
+
+        $startOfWeek = $fechaSeleccionada->copy()->startOfWeek()->startOfDay();
+        $endOfWeek = $fechaSeleccionada->copy()->endOfWeek()->endOfDay();
 
         $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
             ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
@@ -1062,9 +1080,10 @@ class QuirofanoController extends Controller
     public function getListaMedicos(): JsonResponse
     {
         try {
+            // Médicos con registro en tabla medicos (doctores y cirujanos)
             $medicos = Medico::with('user', 'especialidad')
                 ->whereHas('user', function($q) {
-                    $q->where('role', 'doctor');
+                    $q->whereIn('role', ['doctor', 'cirujano']);
                 })
                 ->get()
                 ->map(function($medico) {
@@ -1075,9 +1094,11 @@ class QuirofanoController extends Controller
                     ];
                 });
 
+            $todos = $medicos->values();
+
             return response()->json([
                 'success' => true,
-                'medicos' => $medicos
+                'medicos' => $todos
             ]);
         } catch (\Exception $e) {
             return response()->json([

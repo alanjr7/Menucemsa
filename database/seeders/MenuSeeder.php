@@ -228,10 +228,26 @@ class MenuSeeder extends Seeder
         ]);
         $quirofano->children()->createMany([
             ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'roles' => 'cirujano', 'order' => 1],
-            ['name' => 'Calendario', 'route' => 'quirofano.calendario', 'roles' => 'cirujano', 'order' => 3],
             ['name' => 'Historial', 'route' => 'quirofano.historial', 'roles' => 'cirujano', 'order' => 4],
             ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'roles' => 'cirujano', 'order' => 5],
-            ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'roles' => 'cirujano', 'order' => 6],
+        ]);
+
+        // 10.5 Admin Cirugías (Admin - duplicado de menú cirujano)
+        $adminCirugias = Menu::create([
+            'name' => 'Admin Cirugías',
+            'active_pattern' => 'quirofano*,quirofanos-management*',
+            'icon_path' => 'M14.121 14.121L19 19m-7-7l7-7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+            'color' => 'teal',
+            'roles' => 'admin,administrador',
+            'order' => 83,
+        ]);
+
+        $adminCirugias->children()->createMany([
+            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Historial', 'route' => 'quirofano.historial', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'roles' => 'admin,administrador', 'order' => 6],
+            ['name' => 'Ver Cirujanos', 'route' => 'admin.cirujanos.index', 'roles' => 'admin,administrador', 'order' => 7],
         ]);
 
         // 11. Internación (Operativo - rol internacion)
