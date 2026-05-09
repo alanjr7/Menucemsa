@@ -168,6 +168,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
         Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
+        Route::get('/patients/{ci}/print', [\App\Http\Controllers\PatientsController::class, 'print'])->name('patients.print');
 
         // Rutas para Historial de Pacientes (Recepción)
         Route::get('/reception/pacientes', [\App\Http\Controllers\ReceptionController::class, 'pacientesIndex'])->name('reception.pacientes.index');

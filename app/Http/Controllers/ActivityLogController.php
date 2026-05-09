@@ -28,7 +28,7 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
         
-        $logs = $query->paginate(50);
+        $logs = $query->paginate(25);
         $users = \App\Models\User::orderBy('name')->pluck('name', 'id');
         
         return view('admin.activity-logs', compact('logs', 'users'));
