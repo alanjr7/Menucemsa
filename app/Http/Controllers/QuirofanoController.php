@@ -796,19 +796,58 @@ public function showDetails(CitaQuirurgica $cita): View
                 $costoExtra   = $minutosExtra * $costoMinuto;
             }
 
-            // Obtener o crear cuenta de cobro para esta cirugía
-            $cuenta = \App\Models\CuentaCobro::firstOrCreate(
-                [
-                    'referencia_type' => CitaQuirurgica::class,
-                    'referencia_id' => $cita->id,
-                ],
-                [
-                    'paciente_ci' => $cita->ci_paciente,
-                    'tipo_atencion' => 'cirugia',
-                    'estado' => 'pendiente',
-                    'total_calculado' => 0,
-                ]
-            );
+            // ---------------------------------------------------------------
+            // CORRECCIÓN DOBLE COBRO:
+            // Al programar la cirugía, crearRegistroCajaCirugia() ya agregó
+            // el cargo de cirugía a la cuenta MAESTRA del paciente (una sola
+            // cuenta unificada). Este método debe reutilizar esa misma cuenta
+            // y actualizar el detalle de cirugía con el costo final real,
+            // en lugar de crear una cuenta separada con otro cargo de cirugía.
+            // ---------------------------------------------------------------
+
+            // Buscar la cuenta maestra del paciente (pendiente/parcial)
+            $cuenta = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
+                ->whereIn('estado', ['pendiente', 'parcial'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Si no existe (ej. cirugía creada antes del fix), crearla
+            if (!$cuenta) {
+                $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
+                    $cita->ci_paciente,
+                    'quirofano'
+                );
+            }
+
+            // Costo final de la cirugía basado en duración real
+            $costoCirugia = (float) $cita->costo_base + $costoExtra;
+
+            // Buscar el detalle de cirugía ya creado al programar (origen = esta CitaQuirurgica)
+            $detalleCirugia = $cuenta->detalles()
+                ->where('tipo_item', 'procedimiento')
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->first();
+
+            if ($detalleCirugia) {
+                // Actualizar el detalle existente con el costo final calculado
+                $detalleCirugia->descripcion    = 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min';
+                $detalleCirugia->precio_unitario = $costoCirugia;
+                $detalleCirugia->subtotal        = $costoCirugia;
+                $detalleCirugia->save();
+            } else {
+                // No existe detalle previo: agregar uno nuevo (ej. cirugía sin pre-programación)
+                $cuenta->detalles()->create([
+                    'tipo_item'       => 'procedimiento',
+                    'descripcion'     => 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min',
+                    'cantidad'        => 1,
+                    'precio_unitario' => $costoCirugia,
+                    'subtotal'        => $costoCirugia,
+                    'area_origen'     => 'quirofano',
+                    'origen_type'     => CitaQuirurgica::class,
+                    'origen_id'       => (string) $cita->id,
+                ]);
+            }
 
             // Procesar medicamentos recibidos desde el formulario
             $costoMedicamentos = 0;
@@ -849,21 +888,33 @@ public function showDetails(CitaQuirurgica $cita): View
                             \Log::warning('No hay stock suficiente para medicamento: ' . $medicamento->nombre . ' - Cantidad solicitada: ' . $med['cantidad']);
                         }
 
-                        // Agregar a la cuenta
-                        $cuenta->detalles()->create([
-                            'tipo_item' => 'medicamento',
-                            'descripcion' => $medicamento->nombre,
-                            'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $precioUnitario,
-                            'subtotal' => $subtotal,
-                        ]);
+                        // Verificar que no se haya agregado ya desde el módulo de medicamentos en tiempo real
+                        $yaAgregado = $cuenta->detalles()
+                            ->where('tipo_item', 'medicamento')
+                            ->where('origen_type', CitaQuirurgica::class)
+                            ->where('origen_id', (string) $cita->id)
+                            ->where('descripcion', 'like', '%' . $medicamento->nombre . '%')
+                            ->exists();
+
+                        if (!$yaAgregado) {
+                            $cuenta->detalles()->create([
+                                'tipo_item'       => 'medicamento',
+                                'descripcion'     => $medicamento->nombre,
+                                'cantidad'        => $med['cantidad'],
+                                'precio_unitario' => $precioUnitario,
+                                'subtotal'        => $subtotal,
+                                'area_origen'     => 'quirofano',
+                                'origen_type'     => CitaQuirurgica::class,
+                                'origen_id'       => (string) $cita->id,
+                            ]);
+                        }
 
                         $medicamentosUsados[] = [
-                            'id' => $medicamento->id,
-                            'nombre' => $medicamento->nombre,
-                            'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $precioUnitario,
-                            'subtotal' => $subtotal,
+                            'id'             => $medicamento->id,
+                            'nombre'         => $medicamento->nombre,
+                            'cantidad'       => $med['cantidad'],
+                            'precio_unitario'=> $precioUnitario,
+                            'subtotal'       => $subtotal,
                         ];
                     }
                 }
@@ -877,37 +928,29 @@ public function showDetails(CitaQuirurgica $cita): View
                     $subtotal = $equipo['precio'] * $equipo['cantidad'];
                     $costoEquipos += $subtotal;
 
-                    // Agregar a la cuenta (no afecta inventario)
                     $cuenta->detalles()->create([
-                        'tipo_item' => 'equipo_medico',
-                        'descripcion' => $equipo['nombre'],
-                        'cantidad' => $equipo['cantidad'],
+                        'tipo_item'       => 'equipo_medico',
+                        'descripcion'     => $equipo['nombre'],
+                        'cantidad'        => $equipo['cantidad'],
                         'precio_unitario' => $equipo['precio'],
-                        'subtotal' => $subtotal,
+                        'subtotal'        => $subtotal,
+                        'area_origen'     => 'quirofano',
+                        'origen_type'     => CitaQuirurgica::class,
+                        'origen_id'       => (string) $cita->id,
                     ]);
 
                     $equiposUsados[] = [
-                        'nombre' => $equipo['nombre'],
-                        'cantidad' => $equipo['cantidad'],
-                        'precio_unitario' => $equipo['precio'],
-                        'subtotal' => $subtotal,
+                        'nombre'         => $equipo['nombre'],
+                        'cantidad'       => $equipo['cantidad'],
+                        'precio_unitario'=> $equipo['precio'],
+                        'subtotal'       => $subtotal,
                     ];
                 }
             }
 
-            // Agregar cargo principal de cirugía
-            $costoCirugia = (float) $cita->costo_base + $costoExtra;
-            $cuenta->detalles()->create([
-                'tipo_item' => 'procedimiento',
-                'descripcion' => 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min',
-                'cantidad' => 1,
-                'precio_unitario' => $costoCirugia,
-                'subtotal' => $costoCirugia,
-            ]);
-
-            // Actualizar totales de la cuenta
+            // Recalcular total de la cuenta desde la suma real de sus detalles
             $costoTotal = $costoCirugia + $costoMedicamentos + $costoEquipos;
-            $cuenta->total_calculado = $costoTotal;
+            $cuenta->total_calculado = $cuenta->detalles()->sum('subtotal');
             $cuenta->save();
 
             // Actualizar cita quirúrgica
@@ -929,7 +972,7 @@ public function showDetails(CitaQuirurgica $cita): View
                 Quirofano::where('id', $cita->quirofano_id)->update(['estado' => 'disponible']);
             }
 
-            // Asegurar que la cuenta maestra existe
+            // La cuenta maestra ya existe (se usó arriba)
             \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra($cita->ci_paciente, 'quirofano');
 
             DB::commit();
