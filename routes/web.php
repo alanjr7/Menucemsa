@@ -182,7 +182,8 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
             Route::get('/patients-historial-altas', [\App\Http\Controllers\PatientsController::class, 'historialAltas'])->name('patients.historial-altas');
         });
 
-        // Ruta para listado de pacientes en recepción
+        // Ruta para listado de pacientes en recepción (área clínica excepto caja)
+    Route::middleware(['role:admin|reception|dirmedico|emergencia|uti|internacion|cirujano|doctor|enfermera-emergencia|enfermera-internacion|administrador|farmacia|gerente'])->group(function () {
         Route::get('/reception/pacientes', [\App\Http\Controllers\ReceptionController::class, 'pacientesIndex'])->name('reception.pacientes.index');
 
         Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
@@ -211,6 +212,8 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::get('/reception/agenda', function() {
             return view('reception.agenda');
         })->name('reception.agenda');
+        Route::get('/reception/citas/{id}/edit', [ReceptionController::class, 'editCita'])->name('reception.citas.edit');
+        Route::put('/reception/citas/{id}', [ReceptionController::class, 'updateCita'])->name('reception.citas.update');
         Route::get('/api/agenda-dia', [ReceptionController::class, 'getAgendaDia'])->name('reception.agenda-dia');
         Route::post('/api/nueva-cita', [ReceptionController::class, 'crearNuevaCita'])->name('reception.nueva-cita');
         Route::post('/api/cita/{id}/confirmar', [ReceptionController::class, 'confirmarCita'])->name('reception.confirmar-cita');
@@ -245,6 +248,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         // Rutas para flujo de pago en recepción
         Route::post('/reception/procesar-pago/{id}', [ReceptionController::class, 'procesarPago'])->name('reception.procesar-pago');
         Route::get('/reception/confirmacion/{id}', [ReceptionController::class, 'confirmacion'])->name('reception.confirmacion');
+    });
     });
 
 

@@ -23,6 +23,7 @@ class Cita extends Model
         'fecha',
         'hora',
         'motivo',
+        'tipo_ingreso',
         'estado',
         'observaciones',
         'confirmado',
@@ -100,8 +101,7 @@ class Cita extends Model
 
     public function scopeEnEspera($query)
     {
-        return $query->where('estado', 'programado')
-                    ->where('confirmado', true)
+        return $query->where('estado', 'confirmado')
                     ->whereDate('fecha', Carbon::today());
     }
 

@@ -442,8 +442,8 @@
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all">
                         </div>
                         <div>
-                            <button type="button" onclick="guardarMedicoNuevo()"
-                                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors text-sm">
+                            <button type="button" id="btn_guardar_medico" onclick="guardarMedicoNuevo()"
+                                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors text-sm disabled:bg-purple-400 disabled:cursor-not-allowed">
                                 Guardar Médico
                             </button>
                         </div>
@@ -844,8 +844,9 @@ async function cargarMedicosPorEspecialidad(especialidadCodigo) {
 
 // Guardar nuevo médico
 async function guardarMedicoNuevo() {
-    const nombre = document.getElementById('nuevo_medico_nombre').value.trim();
+    let nombre = document.getElementById('nuevo_medico_nombre').value.trim();
     const especialidadCodigo = document.getElementById('especialidad_codigo').value;
+    const btn = document.getElementById('btn_guardar_medico');
 
     if (!nombre) {
         alert('Ingrese un nombre para el médico');
@@ -856,6 +857,13 @@ async function guardarMedicoNuevo() {
         alert('Debe seleccionar una especialidad primero');
         return;
     }
+
+    // Formatear a mayúsculas sin acentos
+    nombre = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Guardando...';
 
     try {
         const response = await fetch('/reception/ingreso-general/medicos', {
@@ -891,6 +899,9 @@ async function guardarMedicoNuevo() {
     } catch (error) {
         console.error('Error:', error);
         alert('Error al crear médico');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
 
@@ -930,6 +941,21 @@ async function procesarIngreso(event) {
     // Preparar datos
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData.entries());
+
+    // Convertir a mayúsculas y quitar acentos de los campos de texto
+    const camposATransformar = [
+        'nombres', 'apellido_paterno', 'apellido_materno', 'profesion', 'empresa_trabajo', 'direccion',
+        'garante_nombres', 'garante_apellido_paterno', 'garante_apellido_materno', 'garante_profesion', 'garante_empresa_trabajo', 'garante_direccion'
+    ];
+
+    camposATransformar.forEach(campo => {
+        if (data[campo] && typeof data[campo] === 'string') {
+            data[campo] = data[campo]
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toUpperCase();
+        }
+    });
 
     // Agregar temp_id si aplica
     if (usarTempId) {

@@ -15,7 +15,9 @@ use App\Models\User;
 use App\Models\Cita;
 use App\Models\Hospitalizacion;
 use App\Models\HistorialMedico;
+use App\Models\IngresoPrecio;
 use App\Services\NotificationService;
+use App\Services\CuentaCobroService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -160,17 +162,7 @@ class ReceptionController extends Controller
                 'id_garante_referencia' => $request->id_garante_referencia ?? null,
             ]);
         } else {
-            // Permitir múltiples consultas sin límite
-            // $consultasHoy = Consulta::where('ci_paciente', $ci)
-            //     ->whereDate('fecha', today())
-            //     ->get();
-            
-            // if ($consultasHoy->count() >= 3) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Este paciente ya ha alcanzado el límite de consultas para hoy (máximo 3). Por favor, contacte al administrador.'
-            //     ], 422);
-            // }
+           
             
             // Actualizar datos si es necesario
             $paciente->update([
@@ -621,6 +613,20 @@ class ReceptionController extends Controller
         try {
             DB::beginTransaction();
 
+            // Tipos de ingreso válidos
+            $tiposValidos = ['consulta_externa', 'internacion', 'emergencia', 'enfermeria'];
+            $tipoIngreso = in_array($request->tipo_ingreso, $tiposValidos)
+                ? $request->tipo_ingreso
+                : 'consulta_externa';
+
+            $fechaCita = \Carbon\Carbon::parse($request->fecha)->startOfDay();
+            if ($fechaCita->lt(\Carbon\Carbon::today())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pueden crear citas con fechas anteriores a la actual'
+                ], 422);
+            }
+
             // Validar que no exista una cita en el mismo horario
             $citaExistente = Cita::where('fecha', $request->fecha)
                 ->where('hora', $request->hora)
@@ -635,17 +641,19 @@ class ReceptionController extends Controller
                 ], 422);
             }
 
-            // Crear la cita
+            // Solo crear la cita — NO asignar registro_codigo NI crear CuentaCobro todavía.
+            // Esas acciones ocurren EXCLUSIVAMENTE cuando recepción marca "Asistió".
             $cita = Cita::create([
-                'ci_paciente' => $request->ci_paciente,
-                'ci_medico' => $request->ci_medico,
+                'ci_paciente'         => $request->ci_paciente,
+                'ci_medico'           => $request->ci_medico,
                 'codigo_especialidad' => $request->codigo_especialidad,
-                'fecha' => $request->fecha,
-                'hora' => $request->hora,
-                'motivo' => $request->motivo,
-                'observaciones' => $request->observaciones ?? '',
-                'estado' => 'programado',
-                'user_registro_id' => Auth::id(),
+                'fecha'               => $request->fecha,
+                'hora'                => $request->hora,
+                'motivo'              => $request->motivo,
+                'tipo_ingreso'        => $tipoIngreso,
+                'observaciones'       => $request->observaciones ?? '',
+                'estado'              => 'programado',
+                'user_registro_id'    => Auth::id(),
             ]);
 
             DB::commit();
@@ -653,21 +661,21 @@ class ReceptionController extends Controller
             // Registrar en bitácora
             $this->logActivity(
                 'crear_cita',
-                'Recepción creó cita para: ' . ($cita->paciente ? $cita->paciente->nombre : 'Paciente') . ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora,
+                'Recepción creó cita (' . $tipoIngreso . ') para paciente CI:' . $request->ci_paciente . ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora,
                 $cita
             );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cita creada exitosamente',
-                'cita' => $cita->load(['paciente', 'medico' => function ($query) {
+                'message' => 'Cita programada exitosamente. La cuenta se generará cuando el paciente asista.',
+                'cita'    => $cita->load(['paciente', 'medico' => function ($query) {
                     $query->with('user');
                 }, 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear la cita: ' . $e->getMessage()
@@ -780,9 +788,9 @@ class ReceptionController extends Controller
 
     public function getPendientesLlamada()
     {
-        // Mostrar todas las citas futuras (no canceladas) para gestión de llamadas
+        // Mostrar todas las citas futuras (no canceladas ni atendidas) para gestión de llamadas
         $citas = Cita::where('fecha', '>=', Carbon::today())
-            ->where('estado', '!=', 'cancelado')
+            ->whereNotIn('estado', ['cancelado', 'atendido'])
             ->with(['paciente' => function ($query) {
                 $query->select('ci', 'nombre', 'telefono', 'fecha_nacimiento');
             }, 'medico' => function ($query) {
@@ -1037,7 +1045,7 @@ class ReceptionController extends Controller
     public function marcarAsistida(Request $request, $id)
     {
         try {
-            $cita = Cita::findOrFail($id);
+            $cita = Cita::with('paciente')->findOrFail($id);
 
             if ($cita->estado === 'cancelado') {
                 return response()->json([
@@ -1053,15 +1061,72 @@ class ReceptionController extends Controller
                 ], 422);
             }
 
+            DB::beginTransaction();
+
+            // Asegurar que el paciente tenga registro_codigo para aparecer en /patients
+            if ($cita->paciente && empty($cita->paciente->registro_codigo)) {
+                $currentUser = Auth::user();
+                $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
+                $registro = Registro::firstOrCreate(
+                    ['codigo' => $codigo],
+                    [
+                        'fecha'   => now()->toDateString(),
+                        'hora'    => now()->toTimeString(),
+                        'motivo'  => 'Asistencia a cita confirmada',
+                        'user_id' => $currentUser->id,
+                    ]
+                );
+                $cita->paciente->update(['registro_codigo' => $registro->codigo]);
+            }
+
+            // Eliminar registro de alta para que vuelva a aparecer en /patients
+            if ($cita->paciente) {
+                \App\Models\AltaPaciente::where('paciente_ci', $cita->paciente->ci)->delete();
+            }
+
+            // Si la cita tiene tipo_ingreso y no existe aún una CuentaCobro, crearla
+            if ($cita->paciente && $cita->tipo_ingreso) {
+                $tiposValidos = ['consulta_externa', 'internacion', 'emergencia', 'enfermeria'];
+                if (in_array($cita->tipo_ingreso, $tiposValidos)) {
+                    $cuentaExistente = \App\Models\CuentaCobro::where('paciente_ci', $cita->paciente->ci)
+                        ->where('tipo_atencion', $cita->tipo_ingreso)
+                        ->where('estado', '!=', 'pagado')
+                        ->exists();
+
+                    if (!$cuentaExistente) {
+                        $precio = IngresoPrecio::getPrecio($cita->tipo_ingreso) ?? 50.00;
+                        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
+                            (string) $cita->paciente->ci,
+                            $cita->tipo_ingreso,
+                            null
+                        );
+                        $tipoLabel = IngresoPrecio::TIPOS_INGRESO[$cita->tipo_ingreso] ?? ucfirst(str_replace('_', ' ', $cita->tipo_ingreso));
+                        CuentaCobroService::agregarCargoConDeduplicacion(
+                            $cuenta->id,
+                            'servicio',
+                            'Cargo de ingreso - ' . $tipoLabel . ' (Cita #' . $cita->id . ')',
+                            $precio,
+                            1,
+                            $cita->tipo_ingreso,
+                            Cita::class,
+                            (string) $cita->id
+                        );
+                    }
+                }
+            }
+
             $cita->completarAtencion();
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cita marcada como atendida exitosamente',
+                'message' => 'Cita marcada como atendida. El paciente aparecerá ahora en el listado de pacientes.',
                 'cita' => $cita->load(['paciente', 'medico.user', 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
+            DB::rollback();
             return response()->json([
                 'success' => false,
                 'message' => 'Error al marcar asistencia: ' . $e->getMessage()
@@ -1076,7 +1141,7 @@ class ReceptionController extends Controller
             $fechaFin = $request->get('fecha_fin', Carbon::today()->endOfWeek()->toDateString());
 
             $citas = Cita::whereBetween('fecha', [$fechaInicio, $fechaFin])
-                ->where('estado', '!=', 'cancelado')
+                ->whereNotIn('estado', ['cancelado', 'atendido'])
                 ->with(['paciente', 'medico.user', 'especialidad'])
                 ->orderBy('fecha')
                 ->orderBy('hora')
@@ -1137,16 +1202,7 @@ class ReceptionController extends Controller
             ]);
         }
 
-        $garante = Paciente::where('ci', $ci)
-            ->where(function($q) {
-                $q->whereNull('seguro_id')
-                  ->whereNull('triage_id')
-                  ->whereNull('registro_codigo');
-            })
-            ->orWhere(function($q) {
-                $q->whereNotNull('ci');
-            })
-            ->first();
+        $garante = Paciente::where('ci', $ci)->first();
 
         if ($garante) {
             return response()->json([
@@ -1316,6 +1372,86 @@ class ReceptionController extends Controller
                 'success' => false,
                 'message' => 'Error al registrar paciente: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function editCita($id)
+    {
+        $cita = Cita::with(['paciente', 'medico.user', 'especialidad'])->findOrFail($id);
+        
+        // Obtener especialidades únicas
+        $especialidades = Especialidad::where('estado', 'activo')
+            ->orderBy('nombre')
+            ->get()
+            ->unique(fn ($esp) => strtolower(trim($esp->nombre)))
+            ->values();
+            
+        // Obtener médicos
+        $medicos = Medico::with('user')->get();
+        
+        return view('reception.citas.edit', compact('cita', 'especialidades', 'medicos'));
+    }
+
+    public function updateCita(Request $request, $id)
+    {
+        $request->validate([
+            'codigo_especialidad' => 'required|string',
+            'ci_medico' => 'required|string',
+            'fecha' => 'required|date',
+            'hora' => 'required|string',
+            'motivo' => 'required|string',
+            'estado' => 'required|string|in:programado,confirmado,en_atencion,atendido,cancelado,no_asistio',
+            'observaciones' => 'nullable|string'
+        ]);
+
+        try {
+            $cita = Cita::findOrFail($id);
+
+            // Validar que la nueva fecha no sea en el pasado
+            $fechaCita = \Carbon\Carbon::parse($request->fecha)->startOfDay();
+            if ($fechaCita->lt(\Carbon\Carbon::today())) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'No se puede programar una cita en una fecha pasada.');
+            }
+
+            // Validar si la nueva fecha/hora cruza con otra cita del mismo médico
+            // (excluyendo esta misma cita)
+            $citaExistente = Cita::where('fecha', $request->fecha)
+                ->where('hora', $request->hora)
+                ->where('ci_medico', $request->ci_medico)
+                ->where('id', '!=', $id)
+                ->where('estado', '!=', 'cancelado')
+                ->first();
+
+            if ($citaExistente) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'El médico ya tiene una cita programada en ese horario.');
+            }
+
+            $cita->update([
+                'codigo_especialidad' => $request->codigo_especialidad,
+                'ci_medico' => $request->ci_medico,
+                'fecha' => $request->fecha,
+                'hora' => $request->hora,
+                'motivo' => $request->motivo,
+                'estado' => $request->estado,
+                'observaciones' => $request->observaciones ?? ''
+            ]);
+
+            $this->logActivity(
+                'actualizar_cita',
+                'Recepción actualizó la cita #' . $cita->id . ' del paciente ' . ($cita->paciente ? $cita->paciente->nombre : 'Desconocido'),
+                $cita
+            );
+
+            return redirect()->route('reception.citas.edit', $cita->id)->with('success', 'Cita actualizada exitosamente.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al actualizar la cita: ' . $e->getMessage());
         }
     }
 }

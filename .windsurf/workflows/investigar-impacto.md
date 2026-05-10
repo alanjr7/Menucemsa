@@ -166,3 +166,20 @@ Tus respuestas deben ser **estructuradas, profesionales y directas al punto** (e
 - Crear migraciones reversibles
 - Validar con datos de producción (anónimos)
 - Seguir principios SOLID y Clean Code
+
+## regla importante !
+- para operaciones usa esto : 
+- bcadd — Suma dos números de precisión arbitrária
+- bcceil — Redondea al alza un número de precisión - - arbitraria
+- bccomp — Comparar dos números de gran tamaño
+- bcdiv — Divide dos números de precisión arbitraria
+- bcdivmod — Devuelve el cociente y el resto de un - número de precisión arbitraria
+- bcfloor — Redondea hacia abajo un número de precisión arbitraria
+- bcmod — Devuelve el resto de una división entre números de gran tamaño
+- bcmul — Multiplica dos números de precisión arbitraria
+- bcpow — Elevar un número de precisión arbitraria a otro
+- bcpowmod — Eleva un número de precisión arbitraria a otro, reducido por un módulo especificado
+- bcround — Redondea un número de precisión arbitraria
+- bcscale — Define o recupera la precisión por defecto para todas las funciones bc math
+- bcsqrt — Obtiene la raiz cuadrada de un número de precisión arbitraria
+- bcsub — Resta un número de precisión arbitraria de otro

@@ -11,13 +11,8 @@
             <p class="text-sm text-gray-500">Ficha de ingreso del paciente</p>
         </div>
         <div class="flex gap-3">
-            <a href="{{ route('reception.ingreso-general') }}" class="flex items-center px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                Volver a Hospitalización
-            </a>
-            <button onclick="window.print()" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
+           
+            <button onclick="imprimir()" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                 </svg>
@@ -201,249 +196,447 @@
 
 </div>
 
-<!-- FORMATO DE IMPRESION - Solo visible al imprimir -->
+<!-- FORMATO DE IMPRESION - Oculto en pantalla, visible solo al imprimir -->
 <div class="print-only" style="display: none;">
-    <!-- Encabezado -->
-    <div class="print-header">
-        <h1>CEMSA - COMPROBANTE DE HOSPITALIZACIÓN</h1>
-        <p>Código: {{ $hospitalizacion->id }}</p>
-    </div>
+    <div class="doc-container">
+        
+        <!-- ENCABEZADO -->
+        <div class="header-section">
+            <div class="logo-area">
+                <div style="font-family: Arial, sans-serif;">
+                    <h1 style="font-size: 16pt; font-style: italic; font-weight: normal; margin: 0; color: #444;">Clínica Médica</h1>
+                    <h2 style="font-size: 20pt; font-weight: bold; margin: -5pt 0 0 0; letter-spacing: 1px;">CEMSA</h2>
+                    <div style="border-bottom: 2px solid #000; width: 100%; margin-top: 2px;"></div>
+                </div>
+            </div>
+            
+            <div class="info-area">
+                <div class="doc-number text-right">
+                    <strong>Nº: <span style="margin-left: 20pt;">{{ $hospitalizacion->paciente->registro_codigo ?? $hospitalizacion->id }}</span></strong>
+                </div>
+                <div class="notice-box">
+                    <p><strong>ESTIMADO PACIENTE:</strong></p>
+                    <p>SI DESEA GUARDAR SUS OBJETOS DE VALOR (JOYAS, DINERO, CELULAR U OTROS). UD.</p>
+                    <p>PUEDE HACERLO EN LA ADMINISTRACIÓN</p>
+                    <p><strong>LA CLINICA MEDICA CEMSA LTDA. NO SE RESPONSABILIZARÁ EN CASO DE PÉRDIDAS.</strong></p>
+                </div>
+            </div>
+        </div>
 
-    <!-- Línea separadora -->
-    <div class="print-line"></div>
+        <h3 class="main-title">REGISTRO DE ADMISION Y CONTRATO DE SERVICIOS</h3>
 
-    <!-- Datos del Paciente -->
-    <div class="print-section">
-        <h2>DATOS DEL PACIENTE</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Nombre:</strong> {{ $hospitalizacion->paciente->nombre }}</td>
-                <td><strong>CI:</strong> {{ $hospitalizacion->paciente->ci }}</td>
-            </tr>
-            <tr>
-                <td><strong>Teléfono:</strong> {{ $hospitalizacion->paciente->telefono ?? 'No registrado' }}</td>
-                <td><strong>Sexo:</strong> {{ $hospitalizacion->paciente->sexo }}</td>
-            </tr>
-            <tr>
-                <td colspan="2"><strong>Dirección:</strong> {{ $hospitalizacion->paciente->direccion ?? 'No registrada' }}</td>
-            </tr>
-        </table>
-    </div>
+        <!-- DATOS DEL PACIENTE -->
+        <div class="form-section">
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Paciente - Sr. (a):</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->nombre ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">F. N.</span>
+                    <span class="f-value text-center font-bold">{{ $hospitalizacion->paciente->fecha_nacimiento ? \Carbon\Carbon::parse($hospitalizacion->paciente->fecha_nacimiento)->format('Y-m-d') : '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.2;">
+                    <span class="f-label">Estado Civil</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->estado_civil ?? '') }}</span>
+                </div>
+            </div>
 
-    <!-- Datos de Ingreso -->
-    <div class="print-section">
-        <h2>INFORMACIÓN DE INGRESO</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Fecha de Ingreso:</strong> {{ $hospitalizacion->fecha_ingreso->format('d/m/Y H:i') }}</td>
-                <td><strong>Médico Tratante:</strong> Dr. {{ $hospitalizacion->medico->user->name ?? 'No asignado' }}</td>
-            </tr>
-            <tr>
-                <td colspan="2"><strong>Motivo:</strong> {{ $hospitalizacion->motivo }}</td>
-            </tr>
-            <tr>
-                <td colspan="2"><strong>Diagnóstico Presuntivo:</strong> {{ $hospitalizacion->diagnostico }}</td>
-            </tr>
-        </table>
-    </div>
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Nacionalidad</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->nacionalidad ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Lugar</span>
+                    <span class="f-value text-center font-bold">{{ strtoupper($hospitalizacion->paciente->lugar_expedicion ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Teléfono Nº</span>
+                    <span class="f-value font-bold">{{ $hospitalizacion->paciente->telefono ?? '' }}</span>
+                </div>
+            </div>
 
-    <!-- Contacto de Emergencia -->
-    <div class="print-section">
-        <h2>CONTACTO DE EMERGENCIA</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Nombre:</strong> {{ $hospitalizacion->contacto_nombre ?? 'No registrado' }}</td>
-                <td><strong>Teléfono:</strong> {{ $hospitalizacion->contacto_telefono ?? 'No registrado' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Parentesco:</strong> {{ $hospitalizacion->contacto_parentesco ?? 'No registrado' }}</td>
-                <td><strong>Relación:</strong> {{ $hospitalizacion->contacto_relacion ?? 'No registrada' }}</td>
-            </tr>
-        </table>
-    </div>
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">C.I. Nº</span>
+                    <span class="f-value font-bold">{{ $hospitalizacion->paciente->ci ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Sexo</span>
+                    <span class="f-value font-bold">{{ ($hospitalizacion->paciente->sexo ?? '') === 'M' ? 'MASCULINO' : (($hospitalizacion->paciente->sexo ?? '') === 'F' ? 'FEMENINO' : '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Hora de Ingreso</span>
+                    <span class="f-value font-bold">{{ $hospitalizacion->fecha_ingreso ? $hospitalizacion->fecha_ingreso->format('H:i') : '' }}</span>
+                </div>
+            </div>
 
-    <!-- Triage -->
-    <div class="print-section">
-        <h2>TRIAGE ASIGNADO</h2>
-        <table class="print-table">
-            <tr>
-                <td style="width: 30%;"><strong>Tipo:</strong> {{ $triage ? strtoupper($triage->color) : 'NO ASIGNADO' }}</td>
-                <td><strong>Descripción:</strong> {{ $triage->descripcion ?? 'No asignado' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Prioridad:</strong> {{ $triage ? ucfirst($triage->prioridad) : '-' }}</td>
-                <td><strong>Código Triage:</strong> {{ $triage->id ?? '-' }}</td>
-            </tr>
-        </table>
-    </div>
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Dirección</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->direccion ?? '') }}</span>
+                </div>
+            </div>
 
-    <!-- Registro -->
-    <div class="print-section">
-        <h2>INFORMACIÓN DE REGISTRO</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Código Registro:</strong> {{ $hospitalizacion->paciente->registro_codigo }}</td>
-                <td><strong>Fecha:</strong> {{ $hospitalizacion->paciente->registro->fecha?->format('d/m/Y H:i') ?? '-' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Seguro:</strong> {{ $hospitalizacion->paciente->seguro->nombre_empresa ?? 'Particular' }}</td>
-                <td><strong>Impreso:</strong> {{ now()->format('d/m/Y H:i') }}</td>
-            </tr>
-        </table>
-    </div>
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Profesión</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->profesion ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Empresa</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->empresa_trabajo ?? '') }}</span>
+                </div>
+            </div>
+        </div>
 
-    <!-- Firma -->
-    <div class="print-signature">
-        <p>_______________________________</p>
-        <p>Firma del Paciente / Familiar Responsable</p>
-    </div>
+        <h4 class="section-title" style="margin-top: 10pt; font-size: 8.5pt;">GARANTE RESPONSABLE</h4>
+        <div class="form-section">
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Señor (a):</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->garante->nombre ?? $hospitalizacion->contacto_nombre ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">F. N.</span>
+                    <span class="f-value text-center font-bold">{{ ($hospitalizacion->paciente->garante && $hospitalizacion->paciente->garante->fecha_nacimiento) ? \Carbon\Carbon::parse($hospitalizacion->paciente->garante->fecha_nacimiento)->format('Y-m-d') : '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.2;">
+                    <span class="f-label">Estado Civil</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->garante->estado_civil ?? '') }}</span>
+                </div>
+            </div>
 
-    <!-- Footer -->
-    <div class="print-footer">
-        <p>CEMSA - Centro Médico de Especialidades | Documento generado el {{ now()->format('d/m/Y H:i') }}</p>
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Nacionalidad</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->garante->nacionalidad ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Lugar</span>
+                    <span class="f-value text-center font-bold">{{ strtoupper($hospitalizacion->paciente->garante->lugar_expedicion ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Teléfono Nº</span>
+                    <span class="f-value font-bold">{{ $hospitalizacion->paciente->garante->telefono ?? $hospitalizacion->contacto_telefono ?? '' }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">C.I. Nº</span>
+                    <span class="f-value font-bold">{{ $hospitalizacion->paciente->garante->ci ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Profesión</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->garante->profesion ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Dirección</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->garante->direccion ?? '') }}</span>
+                </div>
+            </div>
+            
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Empresa</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->paciente->garante->empresa_trabajo ?? '') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section" style="margin-top: 15pt;">
+            <div class="f-row" style="margin-bottom: 12pt;">
+                <div class="f-field" style="flex: 3;">
+                    <span class="f-label">CAUSA O MOTIVO DE LA INTERNACION:</span>
+                    <span class="f-value font-bold">{{ strtoupper($hospitalizacion->motivo ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Cirugía ( &nbsp; )</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Tratamiento ( &nbsp; )</span>
+                </div>
+            </div>
+
+            <div class="f-row" style="margin-bottom: 12pt;">
+                <div class="f-field w-100">
+                    <span class="f-label">MEDICO QUE DISPONE LA INTERNACION Dr.</span>
+                    <span class="f-value font-bold text-center">{{ strtoupper($hospitalizacion->medico->user->name ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row" style="margin-bottom: 12pt;">
+                <div class="f-field w-100">
+                    <span class="f-label">DIAGNOSTICO PRELIMINAR</span>
+                    <span class="f-value font-bold text-center">{{ strtoupper($hospitalizacion->diagnostico ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row" style="margin-bottom: 12pt;">
+                <div class="f-field w-100">
+                    <span class="f-label">MEDICO QUE ADMITE AL PACIENTE Dr.</span>
+                    <span class="f-value font-bold text-center">{{ strtoupper($hospitalizacion->medico->user->name ?? '') }}</span>
+                </div>
+            </div>
+            
+            <div class="f-row" style="margin-bottom: 12pt;">
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">HABITACION ASIGNADA Nº</span>
+                    <span class="f-value font-bold text-center">{{ strtoupper($hospitalizacion->habitacion ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 2;"></div>
+            </div>
+        </div>
+
+        <h4 class="section-title text-center" style="margin-top: 15pt; text-align: center;">ACEPTACION</h4>
+        <div style="font-size: 8pt; text-align: justify; margin-top: 5pt; line-height: 1.3;">
+            <strong>NOTA:</strong> Las condiciones del contrato de prestación de servicios, aparecen en el <strong>REVERSO</strong> y los otorgantes declaran haberlas leído atentamente y en señal de conformidad con las mismas, suscriben este documento en doble ejemplar de un mismo tenor y para un solo efecto.
+        </div>
+
+        <div style="margin-top: 15pt; display: flex; font-size: 8.5pt;">
+            <div style="margin-right: 10pt;">Santa Cruz,</div>
+            <div class="inline-val" style="width: 150px;">{{ \Carbon\Carbon::now()->format('d \d\e F \d\e Y') }}</div>
+        </div>
+
+        <div class="signatures">
+            <div class="sig-box">
+                <div class="sig-line"></div>
+                PACIENTE
+            </div>
+            <div class="sig-box">
+                <div class="sig-line"></div>
+                GARANTE RESPONSABLE
+            </div>
+            <div class="sig-box stamp-area">
+                <div class="sig-line"></div>
+                RECEPCIÓN<br>
+                Clínica Médica CEMSA Ltda.
+            </div>
+        </div>
+
+        <h4 class="section-title text-center" style="margin-top: 25pt; text-align: center; font-size: 9pt;">ACTA DE RECONOCIMIENTO DE FIRMAS</h4>
+        
+        <div style="font-size: 8pt; margin-top: 10pt; line-height: 1.8;">
+            <div style="display: flex; justify-content: space-between;">
+                <div>En esta Ciudad de Santa Cruz, a horas <span class="inline-val" style="width: 50px;">{{ \Carbon\Carbon::now()->format('H:i') }}</span> del día <span class="inline-val" style="width: 100px;">{{ \Carbon\Carbon::now()->format('d \d\e F') }}</span> de dos</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <div>mil <span class="inline-val" style="width: 80px;">{{ \Carbon\Carbon::now()->format('Y') }}</span> ante el suscrito Juez de Mínima</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <div>Cuantía Nº <span class="inline-val" style="width: 100px;"></span> de la Capital comparecieron voluntariamente los señores:</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <div style="width: 45%;"><span class="inline-val" style="width: 100%;">{{ strtoupper($hospitalizacion->paciente->nombre ?? '') }}</span></div>
+                <div style="width: 25%;">con C.I.Nº <span class="inline-val" style="width: 100px;">{{ $hospitalizacion->paciente->ci ?? '' }}</span></div>
+                <div style="width: 25%;">y <span class="inline-val" style="width: 100%;"></span></div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <div style="width: 45%;"><span class="inline-val" style="width: 100%;">{{ strtoupper($hospitalizacion->paciente->garante->nombre ?? $hospitalizacion->contacto_nombre ?? '') }}</span></div>
+                <div style="width: 25%;">con C.I.Nº <span class="inline-val" style="width: 100px;">{{ $hospitalizacion->paciente->garante->ci ?? '' }}</span></div>
+                <div style="width: 25%;">y <span class="inline-val" style="width: 100%;"></span></div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <div style="width: 45%;"><span class="inline-val" style="width: 100%;"></span></div>
+                <div style="width: 25%;">con C.I.Nº <span class="inline-val" style="width: 100px;"></span></div>
+                <div style="width: 25%;">a reconocer sus</div>
+            </div>
+            <div>
+                firmas que tienen estampadas al pie del documento anterior, Juramentos en legal forma y puéstoles de manifiesto sus firmas, los comparecientes expresaron ser las suyas y las reconocen como auténticas a los efectos de Ley, en constancia firman con el suscrito Juez y testigo de Actuación que certifica.
+            </div>
+        </div>
+
+        <div class="signatures" style="margin-top: 30pt;">
+            <div class="sig-box">
+                <div class="sig-line"></div>
+                PACIENTE
+            </div>
+            <div class="sig-box">
+                <div class="sig-line"></div>
+                GARANTE RESPONSABLE
+            </div>
+            <div class="sig-box stamp-area">
+                <div class="sig-line"></div>
+                RECEPCIÓN<br>
+                Clínica Médica CEMSA Ltda.
+            </div>
+        </div>
+
     </div>
 </div>
 
-<style>
-/* Estilos para pantalla */
-.screen-only { display: block; }
-.print-only { display: none; }
+<script>
+function imprimir() {
+    const contenido = document.querySelector('.print-only').innerHTML;
+    const ventana = window.open('', '_blank', 'width=900,height=700');
 
-/* Estilos para impresión */
-@media print {
-    /* Ocultar elementos de la UI de la aplicación */
-    nav, aside, header:not(.print-header), .screen-only,
-    [class*="sidebar"], [class*="navbar"], [class*="menu"],
-    #app nav, .bg-gray-50, .bg-gray-100, .shadow-sm {
-        display: none !important;
-    }
-    
-    /* Mostrar solo el contenido de impresión */
-    .print-only {
-        display: block !important;
-        position: static !important;
-    }
-    
-    /* Configuración de página */
-    @page {
-        size: letter; /* Hoja carta 8.5" x 11" */
-        margin: 1.5cm 2cm;
-    }
-    
-    /* Reset de estilos */
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 11pt;
-        line-height: 1.4;
-        color: #000;
-        background: white;
-        margin: 0;
-        padding: 0;
-    }
-    
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-    
-    /* Encabezado */
-    .print-header {
-        text-align: center;
-        margin-bottom: 15pt;
-        border-bottom: 2pt solid #000;
-        padding-bottom: 10pt;
-    }
-    
-    .print-header h1 {
-        font-size: 16pt;
-        font-weight: bold;
-        margin: 0 0 5pt 0;
-        text-transform: uppercase;
-    }
-    
-    .print-header p {
-        font-size: 11pt;
-        margin: 0;
-        font-family: "Courier New", monospace;
-    }
-    
-    /* Línea separadora */
-    .print-line {
-        border-bottom: 0.5pt solid #000;
-        margin: 8pt 0;
-    }
-    
-    /* Secciones */
-    .print-section {
-        margin-bottom: 12pt;
-        page-break-inside: avoid;
-    }
-    
-    .print-section h2 {
-        font-size: 12pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin: 0 0 6pt 0;
-        padding: 3pt 0;
-        border-bottom: 0.5pt solid #333;
-    }
-    
-    /* Tablas */
-    .print-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 10.5pt;
-    }
-    
-    .print-table td {
-        padding: 4pt 6pt;
-        vertical-align: top;
-        border: 0.5pt solid #666;
-    }
-    
-    .print-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    
-    /* Área de firma */
-    .print-signature {
-        margin-top: 40pt;
-        text-align: center;
-        page-break-inside: avoid;
-    }
-    
-    .print-signature p {
-        margin: 3pt 0;
-        font-size: 10pt;
-    }
-    
-    .print-signature p:first-child {
-        font-size: 12pt;
-        letter-spacing: 2pt;
-    }
-    
-    /* Footer */
-    .print-footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 8pt;
-        color: #555;
-        border-top: 0.5pt solid #999;
-        padding-top: 5pt;
-        margin-top: 15pt;
-    }
-    
-    /* Evitar saltos de página en secciones importantes */
-    .print-section, .print-signature {
-        page-break-inside: avoid;
-    }
-    
-    h2 {
-        page-break-after: avoid;
-    }
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Imprimir Comprobante Hospitalización CEMSA</title>
+            <style>
+                /* Estilos base y de reseteo para impresión */
+                @page {
+                    size: letter; /* Tamaño carta estándar */
+                    margin: 1.5cm; 
+                }
+                
+                body {
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 8.5pt;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                }
+
+                * {
+                    box-sizing: border-box;
+                }
+
+                .doc-container {
+                    width: 100%;
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
+
+                /* Encabezado */
+                .header-section {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 15pt;
+                }
+
+                .logo-area {
+                    width: 40%;
+                }
+
+                .info-area {
+                    width: 55%;
+                }
+
+                .doc-number {
+                    font-size: 10pt;
+                    margin-bottom: 10pt;
+                }
+
+                .notice-box {
+                    font-size: 7.5pt;
+                    line-height: 1.3;
+                }
+                .notice-box p { margin: 2px 0; }
+
+                /* Títulos */
+                .main-title {
+                    text-align: center;
+                    font-size: 11pt;
+                    font-weight: bold;
+                    margin: 20pt 0 15pt 0;
+                }
+
+                .section-title {
+                    font-size: 8.5pt;
+                    font-weight: bold;
+                    margin: 10pt 0 5pt 0;
+                    text-transform: uppercase;
+                }
+
+                /* Sistema de filas tipo formulario (Líneas punteadas) */
+                .form-section {
+                    margin-bottom: 10pt;
+                }
+
+                .f-row {
+                    display: flex;
+                    align-items: flex-end;
+                    margin-bottom: 6pt;
+                    width: 100%;
+                    gap: 10pt;
+                }
+
+                .f-field {
+                    display: flex;
+                    align-items: flex-end;
+                }
+
+                .f-label {
+                    white-space: nowrap;
+                    margin-right: 5pt;
+                    font-size: 8pt;
+                    color: #111;
+                }
+
+                .f-value {
+                    flex-grow: 1;
+                    border-bottom: 1.5px dotted #000;
+                    min-height: 12pt;
+                    font-weight: normal;
+                    font-family: monospace, sans-serif;
+                    font-size: 8.5pt;
+                    padding-bottom: 1px;
+                }
+
+                .w-100 { width: 100%; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .text-justify { text-align: justify; }
+
+                /* Textos en línea (Para el Acta) */
+                .inline-val {
+                    display: inline-block;
+                    border-bottom: 1.5px dotted #000;
+                    min-height: 10pt;
+                    text-align: center;
+                    font-family: monospace, sans-serif;
+                }
+
+                /* Firmas */
+                .signatures {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    margin-top: 40pt;
+                }
+
+                .sig-box {
+                    width: 30%;
+                    text-align: center;
+                    font-size: 8pt;
+                }
+
+                .sig-line {
+                    border-bottom: 1px solid #000;
+                    margin-bottom: 5pt;
+                    width: 100%;
+                    height: 20pt;
+                }
+
+                .stamp-area {
+                    position: relative;
+                }
+
+                .stamp-text {
+                    color: #4a5568;
+                    font-family: 'Times New Roman', serif;
+                    font-style: italic;
+                    font-size: 10pt;
+                    line-height: 1.2;
+                }
+            </style>
+        </head>
+        <body onload="setTimeout(() => { window.print(); window.close(); }, 250);">
+            ${contenido}
+        </body>
+        </html>
+    `);
+
+    ventana.document.close();
 }
-</style>
+</script>
 @endsection

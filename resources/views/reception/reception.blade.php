@@ -7,7 +7,7 @@
         <div class="flex justify-between items-end mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Recepción</h1>
-                <p class="text-sm text-gray-500">María González - Turno: Mañana (07:00 - 15:00)</p>
+                <p class="text-sm text-gray-500">hola bienvenido {{ auth()->user()->name ?? 'Recepción' }} !</p>
             </div>
             <div class="flex gap-3">
                 <button onclick="abrirModalNuevaCita()" class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all shadow-sm">
@@ -57,8 +57,7 @@
 
         <!-- Tabs Navigation -->
         <div class="bg-gray-100/50 p-1.5 rounded-xl inline-flex w-full mb-6">
-            <button id="btn-agenda" onclick="switchTab('agenda')" class="flex-1 px-4 py-2.5 bg-white text-gray-800 font-semibold rounded-lg shadow-sm text-center text-sm transition-all duration-200">Agenda del Día</button>
-            <button id="btn-semanal" onclick="switchTab('semanal')" class="flex-1 px-4 py-2.5 text-gray-600 hover:bg-gray-200/50 font-medium rounded-lg text-center text-sm transition-all duration-200">Calendario Semanal</button>
+            <button id="btn-semanal" onclick="switchTab('semanal')" class="flex-1 px-4 py-2.5 bg-white text-gray-800 font-semibold rounded-lg shadow-sm text-center text-sm transition-all duration-200">Calendario Mensual</button>
             <button id="btn-llamadas" onclick="switchTab('llamadas')" class="flex-1 px-4 py-2.5 text-gray-600 hover:bg-gray-200/50 font-medium rounded-lg text-center text-sm transition-all duration-200">Gestión de Llamadas</button>
             <button id="btn-temporales" onclick="switchTab('temporales')" class="flex-1 px-4 py-2.5 text-gray-600 hover:bg-gray-200/50 font-medium rounded-lg text-center text-sm transition-all duration-200">Pacientes Temporales</button>
         </div>
@@ -66,51 +65,8 @@
         <!-- Container for Tab Content -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 min-h-[400px] overflow-hidden">
 
-            <!-- TAB 1: AGENDA DEL DÍA -->
-            <div id="tab-agenda" class="block">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/30">
-                    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-gray-800 font-bold text-sm">Citas Programadas</h3>
-                            <input type="date" id="fecha-filtro" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm" value="{{ date('Y-m-d') }}">
-                            <select id="estado-filtro" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
-                                <option value="">Todos los estados</option>
-                                <option value="programado">Programado</option>
-                                <option value="confirmado">Confirmado</option>
-                                <option value="en_atencion">En Atención</option>
-                                <option value="atendido">Atendido</option>
-                                <option value="cancelado">Cancelado</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="cargarAgendaDia()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors">
-                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Actualizar
-                            </button>
-                            <button onclick="abrirModalNuevaCita()" class="bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors">
-                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Nueva Cita
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="divide-y divide-gray-100" id="lista-citas">
-                    <!-- Las citas se cargarán dinámicamente -->
-                    <div class="p-8 text-center text-gray-500">
-                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <p>Cargando agenda del día...</p>
-                    </div>
-                </div>
-            </div>
-
             <!-- TAB: CALENDARIO SEMANAL -->
-            <div id="tab-semanal" class="hidden">
+            <div id="tab-semanal" class="block">
                 <!-- Header del Calendario -->
                 <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -121,29 +77,35 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-bold text-gray-900">Calendario Semanal</h3>
-                                <p class="text-sm text-gray-500">Vista de 7 dias de citas programadas</p>
+                                <h3 class="text-lg font-bold text-gray-900">Calendario Mensual</h3>
+                                <p class="text-sm text-gray-500">Vista mensual de citas programadas</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
-                            <button onclick="cambiarSemana(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Semana anterior">
+                            <button onclick="cambiarMes(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Mes anterior">
                                 <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                                 </svg>
                             </button>
                             <span id="rango-semana" class="px-4 py-1.5 text-sm font-semibold text-gray-700 min-w-[140px] text-center"></span>
-                            <button onclick="cambiarSemana(1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Semana siguiente">
+                            <button onclick="cambiarMes(1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Mes siguiente">
                                 <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                 </svg>
                             </button>
                         </div>
+                        <button onclick="abrirModalNuevaCita()" class="sm:ml-auto bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors mt-3 sm:mt-0 flex items-center">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Nueva Cita
+                        </button>
                     </div>
                 </div>
 
                 <!-- Grid del Calendario -->
                 <div class="p-6">
-                    <div id="calendario-semanal" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                    <div id="calendario-semanal" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 border-t border-l border-gray-400 bg-white">
                         <!-- Calendario se genera dinámicamente -->
                     </div>
                 </div>
@@ -475,9 +437,22 @@
                             2. Datos de la Cita
                         </h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Tipo de Ingreso -->
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Ingreso *</label>
+                                <select name="tipo_ingreso" id="cita_tipo_ingreso"
+                                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" required>
+                                    <option value="">Seleccione el tipo...</option>
+                                    <option value="consulta_externa">🩺 Consulta Externa</option>
+                                    <option value="internacion">🛏️ Internación</option>
+                                    <option value="emergencia">🚨 Emergencia</option>
+                                    <option value="enfermeria">💉 Enfermería</option>
+                                </select>
+                                <p class="text-xs text-gray-400 mt-1">Se generará una cuenta de cobro con el monto de ingreso correspondiente</p>
+                            </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
-                                <input type="date" name="fecha" onchange="cargarMedicosDisponibles()" 
+                                <input type="date" name="fecha" onchange="cargarMedicosDisponibles()" min="{{ date('Y-m-d') }}"
                                     class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" required>
                             </div>
                             <div>
@@ -537,19 +512,8 @@
         // Cargar datos al iniciar la página
         document.addEventListener('DOMContentLoaded', function() {
             cargarEstadisticasDashboard();
-            cargarAgendaDia();
+            cargarAgendaMensual();
             cargarEspecialidades();
-            
-            // Event listeners para filtros
-            const fechaFiltro = document.getElementById('fecha-filtro');
-            if (fechaFiltro) {
-                fechaFiltro.addEventListener('change', cargarAgendaDia);
-            }
-            
-            const estadoFiltro = document.getElementById('estado-filtro');
-            if (estadoFiltro) {
-                estadoFiltro.addEventListener('change', cargarAgendaDia);
-            }
         });
 
         // Función para cargar estadísticas del dashboard
@@ -566,219 +530,6 @@
                 }
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
-            }
-        }
-
-        // Función para cargar agenda del día
-        async function cargarAgendaDia() {
-            try {
-                const fechaFiltro = document.getElementById('fecha-filtro')?.value;
-                const url = fechaFiltro ? `/api/agenda-dia?fecha=${fechaFiltro}` : '/api/agenda-dia';
-                
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.success) {
-                    mostrarCitas(data.citas);
-                }
-            } catch (error) {
-                console.error('Error al cargar agenda:', error);
-            }
-        }
-
-        // Función para mostrar citas en la agenda con acciones completas
-        function mostrarCitas(citas) {
-            const listaCitas = document.getElementById('lista-citas');
-            const estadoFiltro = document.getElementById('estado-filtro')?.value || '';
-            
-            // Filtrar por estado si hay filtro seleccionado
-            const citasFiltradas = estadoFiltro 
-                ? citas.filter(c => c.estado === estadoFiltro)
-                : citas;
-            
-            if (citasFiltradas.length === 0) {
-                listaCitas.innerHTML = `
-                    <div class="p-8 text-center text-gray-500">
-                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <p>No hay citas ${estadoFiltro ? 'con el estado seleccionado' : 'programadas para esta fecha'}</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            citasFiltradas.forEach(cita => {
-                const estadoColors = {
-                    'programado': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-                    'confirmado': 'bg-green-100 text-green-800 border-green-200',
-                    'en_atencion': 'bg-blue-100 text-blue-800 border-blue-200',
-                    'atendido': 'bg-teal-100 text-teal-800 border-teal-200',
-                    'cancelado': 'bg-red-100 text-red-800 border-red-200',
-                    'no_asistio': 'bg-gray-100 text-gray-800 border-gray-200'
-                };
-                const estadoClass = estadoColors[cita.estado] || 'bg-gray-100 text-gray-800 border-gray-200';
-                const estadoLabel = cita.estado_label || cita.estado;
-                
-                // Botones de acción según estado
-                let botonesAccion = '';
-                if (cita.estado === 'programado') {
-                    botonesAccion = `
-                        <button onclick="confirmarCita(${cita.id})" class="p-1.5 bg-green-500 text-white rounded hover:bg-green-600" title="Confirmar">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        </button>
-                        <button onclick="cancelarCita(${cita.id})" class="p-1.5 bg-red-500 text-white rounded hover:bg-red-600" title="Cancelar">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    `;
-                } else if (cita.estado === 'confirmado') {
-                    botonesAccion = `
-                        <button onclick="marcarAsistida(${cita.id})" class="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600" title="Marcar asistida">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </button>
-                        <button onclick="cancelarCita(${cita.id})" class="p-1.5 bg-red-500 text-white rounded hover:bg-red-600" title="Cancelar">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    `;
-                } else if (cita.estado === 'en_atencion') {
-                    botonesAccion = `
-                        <button onclick="marcarAsistida(${cita.id})" class="p-1.5 bg-teal-500 text-white rounded hover:bg-teal-600" title="Completar atención">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        </button>
-                    `;
-                }
-                
-                // Botón eliminar disponible para todos excepto atendidos
-                if (cita.estado !== 'atendido') {
-                    botonesAccion += `
-                        <button onclick="eliminarCita(${cita.id})" class="p-1.5 bg-gray-500 text-white rounded hover:bg-gray-600" title="Eliminar">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
-                    `;
-                }
-                
-                html += `
-                    <div class="p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4 flex-1">
-                                <div class="text-center min-w-[80px]">
-                                    <div class="text-lg font-bold text-gray-800">${cita.hora_formateada || cita.hora.substring(0, 5)}</div>
-                                    <span class="text-xs px-2 py-1 rounded-full border ${estadoClass}">${estadoLabel}</span>
-                                </div>
-                                <div class="flex-1">
-                                    <div class="font-medium text-gray-900">${cita.paciente?.nombre || 'N/A'}</div>
-                                    <div class="text-sm text-gray-500">CI: ${cita.paciente?.ci || 'N/A'}</div>
-                                    ${cita.motivo ? `<div class="text-xs text-gray-400 mt-1">${cita.motivo}</div>` : ''}
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-sm font-medium text-gray-900">${cita.medico?.user?.name || 'N/A'}</div>
-                                    <div class="text-xs text-gray-500">${cita.especialidad?.nombre || 'N/A'}</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-1 ml-4">
-                                ${botonesAccion}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            listaCitas.innerHTML = html;
-        }
-
-        // Funciones de acciones sobre citas
-        async function confirmarCita(citaId) {
-            if (!confirm('¿Confirmar esta cita?')) return;
-            try {
-                const response = await fetch(`/api/cita/${citaId}/confirmar`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    alert('Cita confirmada exitosamente');
-                    cargarAgendaDia();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al confirmar cita');
-            }
-        }
-
-        async function cancelarCita(citaId) {
-            const motivo = prompt('Ingrese el motivo de cancelación:');
-            if (!motivo) return;
-            try {
-                const response = await fetch(`/api/cita/${citaId}/cancelar`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({ motivo })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    alert('Cita cancelada exitosamente');
-                    cargarAgendaDia();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al cancelar cita');
-            }
-        }
-
-        async function marcarAsistida(citaId) {
-            if (!confirm('¿Marcar esta cita como atendida?')) return;
-            try {
-                const response = await fetch(`/api/cita/${citaId}/asistida`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    alert('Cita marcada como atendida');
-                    cargarAgendaDia();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al marcar asistencia');
-            }
-        }
-
-        async function eliminarCita(citaId) {
-            if (!confirm('¿Eliminar esta cita? La cita se marcará como eliminada pero permanecerá visible para administradores.')) return;
-            try {
-                const response = await fetch(`/api/cita/${citaId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    alert('Cita eliminada exitosamente');
-                    cargarAgendaDia();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al eliminar cita');
             }
         }
 
@@ -802,11 +553,14 @@
             
             if (hoy.length === 0 && manana.length === 0 && futuras.length === 0) {
                 listaLlamadas.innerHTML = `
-                    <div class="p-8 text-center text-gray-500">
-                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <p>No hay citas programadas</p>
+                    <div class="p-12 text-center text-gray-500 bg-white border border-gray-100 shadow-sm rounded-2xl flex flex-col items-center">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-800 mb-1">No hay citas programadas</h4>
+                        <p class="text-sm text-gray-500">No hay llamadas pendientes para gestionar en este momento.</p>
                     </div>
                 `;
                 return;
@@ -816,29 +570,56 @@
             
             // Mostrar citas de hoy
             if (hoy.length > 0) {
-                html += '<div class="mb-6"><h4 class="font-semibold text-orange-700 mb-3 flex items-center"><span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>Citas de Hoy (' + hoy.length + ')</h4>';
+                html += `
+                <div class="mb-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-900">Citas de Hoy</h4>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200">${hoy.length} pendientes</span>
+                    </div>
+                    <div class="space-y-3">`;
                 hoy.forEach(cita => {
                     html += crearTarjetaLlamada(cita, 'hoy');
                 });
-                html += '</div>';
+                html += '</div></div>';
             }
             
             // Mostrar citas de mañana
             if (manana.length > 0) {
-                html += '<div class="mb-6"><h4 class="font-semibold text-blue-700 mb-3 flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Citas de Mañana (' + manana.length + ')</h4>';
+                html += `
+                <div class="mb-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-900">Citas de Mañana</h4>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">${manana.length} pendientes</span>
+                    </div>
+                    <div class="space-y-3">`;
                 manana.forEach(cita => {
                     html += crearTarjetaLlamada(cita, 'manana');
                 });
-                html += '</div>';
+                html += '</div></div>';
             }
             
             // Mostrar citas futuras
             if (futuras.length > 0) {
-                html += '<div class="mb-6"><h4 class="font-semibold text-gray-700 mb-3 flex items-center"><span class="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>Citas Futuras (' + futuras.length + ')</h4>';
+                html += `
+                <div class="mb-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-600 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-900">Citas Futuras</h4>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">${futuras.length} programadas</span>
+                    </div>
+                    <div class="space-y-3">`;
                 futuras.forEach(cita => {
                     html += crearTarjetaLlamada(cita, 'futura');
                 });
-                html += '</div>';
+                html += '</div></div>';
             }
             
             listaLlamadas.innerHTML = html;
@@ -860,47 +641,74 @@
                 day: 'numeric', 
                 month: 'short' 
             });
+            const diaCorto = tipo === 'hoy' ? 'HOY' : tipo === 'manana' ? 'MAÑ.' : fechaObj.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase();
+            const fechaTextoCompleto = tipo === 'hoy' ? 'Hoy' : tipo === 'manana' ? 'Mañana' : fechaFormateada;
             
             return `
-                <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-start space-x-4 flex-1">
-                            <div class="text-center bg-gray-50 rounded-lg p-2 min-w-[70px]">
-                                <div class="text-lg font-bold text-gray-800">${cita.hora}</div>
-                                <div class="text-xs text-gray-500">${tipo === 'hoy' ? 'HOY' : tipo === 'manana' ? 'MAÑANA' : fechaFormateada}</div>
+                <div class="group relative bg-white border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-200 rounded-2xl p-5 transition-all duration-300">
+                    <div class="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+                        
+                        <!-- Date/Time Badge -->
+                        <div class="flex-shrink-0 flex flex-col items-center justify-center w-20 h-20 bg-gradient-to-b from-blue-50 to-blue-100/50 rounded-2xl border border-blue-100 shadow-inner relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute top-0 w-full h-1.5 bg-blue-500"></div>
+                            <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">${diaCorto}</span>
+                            <span class="text-2xl font-black text-gray-800 tracking-tight leading-none mt-1">${cita.hora.substring(0,5)}</span>
+                        </div>
+
+                        <!-- Patient Info -->
+                        <div class="flex-1 min-w-0 flex flex-col justify-center">
+                            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                                <h3 class="text-lg font-bold text-gray-900 truncate">${cita.paciente?.nombre || 'N/A'}</h3>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-wider">
+                                    CI: ${cita.paciente?.ci || 'N/A'}
+                                </span>
                             </div>
-                            <div class="flex-1">
-                                <div class="font-medium text-gray-900 text-lg">${cita.paciente?.nombre || 'N/A'}</div>
-                                <div class="text-sm text-orange-600 font-medium">📅 ${fechaFormateada} - ${cita.hora}</div>
-                                <div class="text-sm text-gray-500">CI: ${cita.paciente?.ci || 'N/A'}</div>
-                                <div class="flex items-center mt-2">
-                                    <svg class="w-4 h-4 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            
+                            <div class="flex flex-wrap items-center text-sm text-gray-600 mb-3 gap-y-1 gap-x-4">
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    <span class="font-medium">Dr. ${cita.medico?.usuario?.name || cita.medico?.user?.name || 'N/A'}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                                    <span>${cita.especialidad?.nombre || 'N/A'}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-gray-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span class="capitalize">${fechaTextoCompleto}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-2 px-3 py-1.5 bg-green-50/80 border border-green-200/60 rounded-lg">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                                     </svg>
-                                    <span class="font-semibold text-green-700 text-lg">${telefono}</span>
-                                    ${tieneTelefono ? `
-                                    <a href="${whatsappUrl}" target="_blank" class="ml-2 bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center font-medium">
-                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                                        </svg>
-                                        WhatsApp
-                                    </a>` : '<span class="ml-2 text-xs text-gray-400">Sin teléfono</span>'}
+                                    <span class="text-sm font-bold text-green-800">${telefono}</span>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-1">Dr. ${cita.medico?.usuario?.name || cita.medico?.user?.name || 'N/A'} - ${cita.especialidad?.nombre || 'N/A'}</div>
+                                ${tieneTelefono ? `
+                                <a href="${whatsappUrl}" target="_blank" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-[#25D366] text-white hover:bg-[#128C7E] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" title="Contactar por WhatsApp">
+                                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                    </svg>
+                                    <span class="text-sm font-semibold tracking-wide">WhatsApp</span>
+                                </a>` : '<span class="ml-2 text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-md">Sin teléfono</span>'}
                             </div>
                         </div>
-                        <div class="flex flex-col space-y-2 ml-4">
-                            <button onclick="registrarLlamada(${cita.id}, true)" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-2 rounded-lg transition-colors flex items-center">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
+
+                        <!-- Actions -->
+                        <div class="flex sm:flex-col items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-100 sm:pl-5">
+                            <button onclick="registrarLlamada(${cita.id}, true)" class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white border border-emerald-100 hover:border-emerald-500 rounded-xl transition-all duration-200 text-sm font-semibold">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 Confirmó
                             </button>
-                            <button onclick="registrarLlamada(${cita.id}, false)" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-2 rounded-lg transition-colors flex items-center">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
+                            <button onclick="registrarLlamada(${cita.id}, false)" class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 w-full bg-rose-50 text-rose-700 hover:bg-rose-500 hover:text-white border border-rose-100 hover:border-rose-500 rounded-xl transition-all duration-200 text-sm font-semibold">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 No contestó
+                            </button>
+                            <button onclick="marcarAsistidaDesdeLlamadas(${cita.id})" class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 w-full bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 rounded-xl transition-all duration-200 text-sm font-bold shadow-md mt-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Asistió ✓
                             </button>
                         </div>
                     </div>
@@ -937,34 +745,35 @@
             }
         }
 
-        function switchTab(tabName) {
-            // Ocultar todos los contenidos
-            ['agenda', 'llamadas', 'temporales'].forEach(tab => {
-                const el = document.getElementById(`tab-${tab}`);
-                el.classList.add('hidden');
-                el.classList.remove('block');
-            });
-
-            // Mostrar contenido seleccionado
-            const selectedEl = document.getElementById(`tab-${tabName}`);
-            selectedEl.classList.remove('hidden');
-            selectedEl.classList.add('block');
-
-            // Activar botón seleccionado
-            document.getElementById(`btn-${tabName}`).className = `flex-1 px-4 py-2.5 ${btnClassesActive} text-center text-sm transition-all duration-200`;
-            
-            // Desactivar otros botones
-            ['agenda', 'llamadas', 'temporales'].forEach(tab => {
-                if (tab !== tabName) {
-                    document.getElementById(`btn-${tab}`).className = `flex-1 px-4 py-2.5 ${btnClassesInactive} text-center text-sm transition-all duration-200`;
+        // Función para marcar asistida desde el tab de Gestión de Llamadas
+        async function marcarAsistidaDesdeLlamadas(citaId) {
+            if (!confirm('¿Confirmar que el paciente asistió a la cita? Esto generará los registros necesarios y el paciente aparecerá en el listado de pacientes.')) return;
+            try {
+                const response = await fetch(`/api/cita/${citaId}/asistida`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    cargarPendientesLlamada();
+                    cargarEstadisticasDashboard();
+                    if (typeof cargarAgendaMensual === 'function') {
+                        cargarAgendaMensual();
+                    }
+                } else {
+                    alert('Error: ' + data.message);
                 }
-            });
-
-            // Cargar datos específicos según el tab
-            if (tabName === 'temporales') {
-                cargarPacientesTemporales();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al marcar asistencia');
             }
         }
+
+
 
         // Funciones para modal de nueva cita
         function abrirModalNuevaCita() {
@@ -1047,29 +856,6 @@
                 }
             } catch (error) {
                 console.error('Error al cargar médicos:', error);
-            }
-        }
-
-        async function buscarPacienteParaCita() {
-            const ci = document.getElementById('cita_ci_paciente').value;
-            
-            if (!ci) {
-                alert('Ingrese un número de CI');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/reception/ingreso-general/buscar-paciente?ci=${encodeURIComponent(ci)}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    alert(`Paciente encontrado: ${data.paciente.nombre}`);
-                } else {
-                    alert('Paciente no encontrado. Debe registrar el paciente primero.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al buscar paciente');
             }
         }
 
@@ -1202,51 +988,56 @@
             }
         }
 
-        // VARIABLES PARA CALENDARIO SEMANAL
-        let semanaActual = new Date();
+        // VARIABLES PARA CALENDARIO MENSUAL
+        let mesActual = new Date();
 
-        // Función para cargar calendario semanal
-        async function cargarAgendaSemanal() {
-            const inicioSemana = new Date(semanaActual);
-            inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1); // Lunes
-            const finSemana = new Date(inicioSemana);
-            finSemana.setDate(finSemana.getDate() + 6); // Domingo
+        // Función para cargar calendario mensual
+        async function cargarAgendaMensual() {
+            const inicioMes = new Date(mesActual.getFullYear(), mesActual.getMonth(), 1);
+            const ultimoDia = new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 0);
 
-            const fechaInicio = inicioSemana.toISOString().split('T')[0];
-            const fechaFin = finSemana.toISOString().split('T')[0];
+            const fechaInicio = inicioMes.toISOString().split('T')[0];
+            const fechaFin = ultimoDia.toISOString().split('T')[0];
 
             // Actualizar rango mostrado
-            const opciones = { day: 'numeric', month: 'short' };
-            document.getElementById('rango-semana').textContent = 
-                `${inicioSemana.toLocaleDateString('es-ES', opciones)} - ${finSemana.toLocaleDateString('es-ES', opciones)}`;
+            const opciones = { month: 'long', year: 'numeric' };
+            const mesStr = mesActual.toLocaleDateString('es-ES', opciones);
+            document.getElementById('rango-semana').textContent = mesStr.charAt(0).toUpperCase() + mesStr.slice(1);
 
             try {
+                // Reuse the same endpoint since it takes any range
                 const response = await fetch(`/api/agenda-semanal?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`);
                 const data = await response.json();
                 
                 if (data.success) {
-                    mostrarCalendarioSemanal(data.citas_por_dia, inicioSemana);
+                    mostrarCalendarioMensual(data.citas_por_dia, inicioMes, ultimoDia);
                 }
             } catch (error) {
-                console.error('Error al cargar agenda semanal:', error);
+                console.error('Error al cargar agenda mensual:', error);
             }
         }
 
-        function mostrarCalendarioSemanal(citasPorDia, fechaInicio) {
+        function mostrarCalendarioMensual(citasPorDia, fechaInicio, ultimoDia) {
             const contenedor = document.getElementById('calendario-semanal');
-            const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const diasSemanaNombres = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
             let html = '';
-            const fechaActual = new Date(fechaInicio);
+            const cantidadDias = ultimoDia.getDate();
+            const diaSemanaInicio = fechaInicio.getDay() === 0 ? 6 : fechaInicio.getDay() - 1; // 0 para lunes, etc
 
-            diasSemana.forEach((dia, index) => {
-                const fecha = new Date(fechaActual);
-                fecha.setDate(fechaActual.getDate() + index);
+            // Agregar cuadros vacíos para el offset del primer día del mes
+            for (let i = 0; i < diaSemanaInicio; i++) {
+                html += `<div class="bg-gray-50/50 border-r border-b border-gray-400"></div>`;
+            }
+
+            for (let i = 0; i < cantidadDias; i++) {
+                const fecha = new Date(fechaInicio);
+                fecha.setDate(fechaInicio.getDate() + i);
                 const fechaStr = fecha.toISOString().split('T')[0];
                 const citasDia = citasPorDia[fechaStr] || [];
                 const esHoy = fecha.toDateString() === new Date().toDateString();
-                const esFinDeSemana = index >= 5;
+                const diaSemana = fecha.getDay();
+                const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
 
                 // Configuracion de colores por estado con semantica clara
                 const coloresEstado = {
@@ -1257,58 +1048,30 @@
                     'cancelado':    { bg: 'bg-rose-50',    border: 'border-rose-200',    text: 'text-rose-700',    badge: 'bg-rose-100 text-rose-800' }
                 };
 
-                const estadoDia = esHoy ? 'ring-2 ring-indigo-400 shadow-md' :
-                                 esFinDeSemana ? 'bg-gray-50/50' : 'bg-white';
-                const headerBg = esHoy ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' :
-                                esFinDeSemana ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-700';
+                const estadoDia = esHoy ? 'bg-indigo-50/30 ring-1 ring-inset ring-indigo-400' : esFinDeSemana ? 'bg-gray-50/50' : 'bg-white';
+                const headerBg = esHoy ? 'text-indigo-700 font-bold' : esFinDeSemana ? 'text-gray-500 font-medium' : 'text-gray-700 font-medium';
 
                 html += `
-                    <div class="rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${estadoDia}">
-                        <!-- Header del dia compacto -->
-                        <div class="${headerBg} px-3 py-2 text-center">
-                            <div class="text-[11px] font-semibold uppercase tracking-wide opacity-90">${dia}</div>
-                            <div class="flex items-baseline justify-center gap-0.5">
-                                <span class="text-xl font-bold">${fecha.getDate()}</span>
-                                <span class="text-xs opacity-75">${meses[fecha.getMonth()]}</span>
-                            </div>
-                            <div class="mt-0.5">
-                                <span class="inline-flex items-center px-2 py-0 rounded-full text-[10px] font-medium ${esHoy ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}">
-                                    ${citasDia.length}
-                                </span>
-                            </div>
+                    <div class="border-r border-b border-gray-400 transition-colors duration-200 hover:bg-gray-50 ${estadoDia} flex flex-col h-32 md:h-40 group relative">
+                        <!-- Header del dia minimalista -->
+                        <div class="px-2 py-1.5 flex justify-between items-center ${headerBg}">
+                            <div class="text-[10px] uppercase tracking-wide opacity-70">${diasSemanaNombres[diaSemana]}</div>
+                            <div class="text-sm">${fecha.getDate()}</div>
                         </div>
 
                         <!-- Lista de citas compacta -->
-                        <div class="p-2 space-y-1.5 max-h-52 overflow-y-auto">
+                        <div class="px-1.5 pb-1.5 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
                             ${citasDia.map(cita => {
                                 const estilo = coloresEstado[cita.estado] || coloresEstado['programado'];
                                 const hora = cita.hora_formateada || cita.hora?.substring(0, 5) || '--:--';
                                 const paciente = cita.paciente?.nombre || 'Sin nombre';
-                                const medico = cita.medico?.user?.name || 'Sin médico';
-                                const especialidad = cita.especialidad?.nombre || '';
 
                                 return `
-                                <div class="group p-2 rounded-lg border ${estilo.border} ${estilo.bg} hover:shadow-sm transition-all duration-200 cursor-pointer"
-                                     onclick="verDetalleCita(${cita.id})">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="font-bold text-xs ${estilo.text}">${hora}</span>
-                                        <span class="px-1.5 py-0 rounded text-[9px] font-semibold uppercase ${estilo.badge}">
-                                            ${cita.estado?.charAt(0).toUpperCase() || 'P'}
-                                        </span>
-                                    </div>
-                                    <div class="space-y-0.5">
-                                        <div class="flex items-center gap-1">
-                                            <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                            </svg>
-                                            <p class="text-xs font-medium text-gray-800 truncate">${paciente.split(' ')[0]}</p>
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                                            </svg>
-                                            <p class="text-[11px] text-gray-500 truncate">${medico.split(' ')[0]}</p>
-                                        </div>
+                                <div class="px-1.5 py-1 rounded border-l-2 ${estilo.border} ${estilo.bg} cursor-pointer hover:opacity-80 transition-opacity"
+                                     onclick="verDetalleCita(${cita.id})" title="${paciente}">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-semibold ${estilo.text}">${hora}</span>
+                                        <span class="text-[9px] text-gray-600 truncate ml-1">${paciente.split(' ')[0]}</span>
                                     </div>
                                 </div>
                                 `;
@@ -1316,23 +1079,17 @@
 
                             <!-- Estado vacio compacto -->
                             ${citasDia.length === 0 ? `
-                            <div class="flex flex-col items-center justify-center py-6 px-2 text-center">
-                                <div class="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center mb-2">
-                                    <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                </div>
-                                <p class="text-xs font-medium text-gray-400">Sin citas</p>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                 <button onclick="abrirModalNuevaCitaParaFecha('${fechaStr}')"
-                                        class="mt-2 text-[10px] font-medium text-indigo-500 hover:text-indigo-600 hover:underline transition-colors">
-                                    + Agregar
+                                        class="text-[11px] font-medium text-gray-500 bg-white/80 backdrop-blur-sm px-2 py-1 rounded shadow-sm hover:text-indigo-600 hover:bg-white transition-colors pointer-events-auto">
+                                    + Añadir
                                 </button>
                             </div>
                             ` : ''}
                         </div>
                     </div>
                 `;
-            });
+            }
 
             contenedor.innerHTML = html;
         }
@@ -1340,17 +1097,16 @@
         // Funcion para abrir modal de nueva cita con fecha preseleccionada
         function abrirModalNuevaCitaParaFecha(fecha) {
             abrirModalNuevaCita();
-            document.getElementById('fecha_cita').value = fecha;
+            document.querySelector('input[name="fecha"]').value = fecha;
         }
 
-        function cambiarSemana(direccion) {
-            semanaActual.setDate(semanaActual.getDate() + (direccion * 7));
-            cargarAgendaSemanal();
+        function cambiarMes(direccion) {
+            mesActual.setMonth(mesActual.getMonth() + direccion);
+            cargarAgendaMensual();
         }
 
         function verDetalleCita(citaId) {
-            // Redirigir a la vista de detalle o mostrar modal
-            alert('Ver detalle de cita ID: ' + citaId);
+            window.location.href = '/reception/citas/' + citaId + '/edit';
         }
 
         // Funciones para buscar paciente y mostrar formulario de registro
@@ -1526,8 +1282,8 @@
             }
             
             // Validar datos de cita
-            if (!data.fecha || !data.hora || !data.codigo_especialidad || !data.ci_medico || !data.motivo) {
-                alert('Complete todos los datos de la cita');
+            if (!data.fecha || !data.hora || !data.codigo_especialidad || !data.ci_medico || !data.motivo || !data.tipo_ingreso) {
+                alert('Complete todos los datos de la cita (incluyendo el tipo de ingreso)');
                 return;
             }
             
@@ -1579,6 +1335,7 @@
                     fecha: data.fecha,
                     hora: data.hora,
                     motivo: data.motivo,
+                    tipo_ingreso: data.tipo_ingreso,
                     observaciones: data.observaciones || '',
                     id_garante_referencia: data.id_garante_referencia || null
                 };
@@ -1597,7 +1354,7 @@
                 if (result.success) {
                     alert(pacienteExistente ? 'Cita creada exitosamente' : 'Paciente registrado y cita creada exitosamente');
                     cerrarModalNuevaCita();
-                    cargarAgendaDia();
+                    cargarAgendaMensual();
                     cargarEstadisticasDashboard();
                     // Resetear estado
                     pacienteExistente = false;
@@ -1616,7 +1373,7 @@
         // Actualizar función switchTab para incluir calendario semanal
         function switchTab(tabName) {
             // Ocultar todos los contenidos
-            ['agenda', 'semanal', 'llamadas', 'temporales'].forEach(tab => {
+            ['semanal', 'llamadas', 'temporales'].forEach(tab => {
                 const el = document.getElementById(`tab-${tab}`);
                 if (el) {
                     el.classList.add('hidden');
@@ -1635,7 +1392,7 @@
             const btnClassesActive = 'bg-white text-gray-800 font-semibold rounded-lg shadow-sm';
             const btnClassesInactive = 'text-gray-600 hover:bg-gray-200/50 font-medium rounded-lg';
             
-            ['agenda', 'semanal', 'llamadas', 'temporales'].forEach(tab => {
+            ['semanal', 'llamadas', 'temporales'].forEach(tab => {
                 const btn = document.getElementById(`btn-${tab}`);
                 if (btn) {
                     if (tab === tabName) {
@@ -1648,13 +1405,11 @@
 
             // Cargar datos específicos según el tab
             if (tabName === 'semanal') {
-                cargarAgendaSemanal();
+                cargarAgendaMensual();
             } else if (tabName === 'temporales') {
                 cargarPacientesTemporales();
             } else if (tabName === 'llamadas') {
                 cargarPendientesLlamada();
-            } else if (tabName === 'agenda') {
-                cargarAgendaDia();
             }
         }
     </script>
@@ -1725,8 +1480,8 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Sexo *</label>
                             <select name="sexo" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all" required>
                                 <option value="">Seleccione...</option>
-                                <option value="Masculino">Masculino</option>
-                                <option value="Femenino">Femenino</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
                             </select>
                         </div>
                         
