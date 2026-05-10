@@ -55,7 +55,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-     Route::resource('menus', MenuController::class);
+    Route::resource('menus', MenuController::class);
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -67,7 +67,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::post('/api/notificaciones/leer-todas', [NotificationController::class, 'markAllAsRead'])->name('notificaciones.leer-todas');
 
     // Endpoint legacy de alertas (mantener por compatibilidad temporal)
-    Route::get('/api/sistema/alertas', function() {
+    Route::get('/api/sistema/alertas', function () {
         $userId = auth()->id();
         $count = \App\Services\NotificationService::getUnreadCount($userId);
         $notifications = \App\Services\NotificationService::getUnreadForUser($userId, 10);
@@ -103,7 +103,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/quirofano/historial/export', [QuirofanoController::class, 'exportHistorial'])->name('quirofano.historial.export');
         Route::get('/quirofano/create', [QuirofanoController::class, 'create'])->name('quirofano.create');
         Route::get('/quirofano/calendario', [QuirofanoController::class, 'calendario'])->name('quirofano.calendario');
-        
+
         // API routes (antes que las rutas con parámetros)
         Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
         Route::get('/quirofano/api/dashboard', [QuirofanoController::class, 'apiDashboard'])->name('quirofano.api.dashboard');
@@ -151,7 +151,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
             Route::post('/quirofanos-management/{quirofano}/estado', [QuirofanoManagementController::class, 'cambiarEstado'])->name('quirofanos.management.estado');
 
             // Ruta para ver detalles de cirugía finalizada (solo lectura)
-Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetails'])->name('quirofano.show-details')->where('cita', '[0-9]+');
+            Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetails'])->name('quirofano.show-details')->where('cita', '[0-9]+');
             // API para obtener siguiente número de quirófano
             Route::get('/api/quirofanos/next-number', [QuirofanoManagementController::class, 'getNextNumber'])->name('quirofanos.api.next-number');
         });
@@ -160,7 +160,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
     // Rutas para recepción (acceso para admin, reception, dirmedico y administrador)
     Route::middleware(['auth', 'role:admin|reception|dirmedico|administrador'])->group(function () {
         Route::get('/reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception');
-        Route::get('/admision', function() {
+        Route::get('/admision', function () {
             return redirect()->route('patients.index');
         })->name('admision.index');
     });
@@ -209,7 +209,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::get('/reception/ingreso-general/medicos-por-especialidad/{codigo}', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'getMedicosPorEspecialidad'])->name('reception.ingreso-general.medicos-por-especialidad');
 
         // Rutas API para gestión de citas
-        Route::get('/reception/agenda', function() {
+        Route::get('/reception/agenda', function () {
             return view('reception.agenda');
         })->name('reception.agenda');
         Route::get('/reception/citas/{id}/edit', [ReceptionController::class, 'editCita'])->name('reception.citas.edit');
@@ -229,7 +229,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         // Rutas API para gestión de llamadas
         Route::get('/api/llamadas-pendientes', [ReceptionController::class, 'getPendientesLlamada'])->name('reception.llamadas-pendientes');
         Route::post('/api/cita/{id}/registrar-llamada', [ReceptionController::class, 'registrarLlamadaCita'])->name('reception.registrar-llamada');
-        
+
         // Rutas API para utilidades
         Route::get('/api/estadisticas-dashboard', [ReceptionController::class, 'getEstadisticasDashboard'])->name('reception.estadisticas');
         Route::get('/api/medicos-disponibles', [ReceptionController::class, 'buscarMedicosDisponibles'])->name('reception.medicos-disponibles');
@@ -244,7 +244,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         // Rutas para completar datos de paciente temporal
         Route::get('/reception/completar-datos-paciente/{emergencyId}', [EmergencyIngresoController::class, 'mostrarFormularioCompletarDatos'])->name('reception.completar-datos-paciente');
         Route::post('/reception/completar-datos-paciente', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal'])->name('reception.completar-datos-paciente.store');
-        
+
         // Rutas para flujo de pago en recepción
         Route::post('/reception/procesar-pago/{id}', [ReceptionController::class, 'procesarPago'])->name('reception.procesar-pago');
         Route::get('/reception/confirmacion/{id}', [ReceptionController::class, 'confirmacion'])->name('reception.confirmacion');
@@ -264,13 +264,16 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::get('/resumen-dia', [CajaOperativaController::class, 'getResumenDia'])->name('resumen-dia');
         Route::get('/buscar-paciente', [CajaOperativaController::class, 'buscarPaciente'])->name('buscar-paciente');
         Route::get('/tarifas', [CajaOperativaController::class, 'getTarifas'])->name('tarifas');
-        
+
         // Comprobante de pago
         Route::get('/comprobante/{cuentaId}', [CajaOperativaController::class, 'comprobante'])->name('comprobante');
     });
 
     // Gestión de Caja - Para usuarios con rol ADMIN y ADMINISTRADOR
     Route::middleware(['auth', 'role:admin|administrador'])->prefix('caja-gestion')->name('caja.gestion.')->group(function () {
+        Route::get('/exportar-auditoria', [CajaGestionController::class, 'exportarAuditoria'])->name('exportar.auditoria');
+        Route::get('/exportar-cajas', [CajaGestionController::class, 'exportarCajas'])->name('exportar.cajas');
+        Route::get('/exportar-transacciones', [CajaGestionController::class, 'exportarTransacciones'])->name('exportar.transacciones');
         Route::get('/', [CajaGestionController::class, 'index'])->name('index');
         Route::get('/transacciones', [CajaGestionController::class, 'getTransacciones'])->name('transacciones');
         Route::get('/transaccion/{id}', [CajaGestionController::class, 'getDetalleTransaccion'])->name('detalle-transaccion');
@@ -284,6 +287,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::get('/detalles-eliminados', [CajaGestionController::class, 'getDetallesEliminados'])->name('detalles-eliminados');
     });
 
+
     // Sistema antiguo de caja ELIMINADO - usar /caja-operativa o /caja-gestion
     // Route::middleware(['auth', 'role:admin|caja'])->prefix('caja')->name('caja.')->group(function () {
     //     Route::get('/', [\App\Http\Controllers\CajaController::class, 'index'])->name('dashboard');
@@ -294,19 +298,19 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         // Rutas de control administrativo para consulta externa (solo admin)
         Route::get('/consulta-externa/historial/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verHistorialMedico'])->name('consulta.historial-medico');
         Route::get('/consulta-externa/pacientes/{ci_medico?}', [\App\Http\Controllers\DoctorController::class, 'verPacientesMedico'])->name('consulta.pacientes-medicos');
-        
+
         // Rutas administrativas para gestión de consulta externa
         Route::get('/admin/consulta-externa-gestion', [\App\Http\Controllers\DoctorController::class, 'vistaControlTotal'])->name('admin.consulta-externa-gestion');
-        
+
         // Vista del médico para atender pacientes
         Route::get('/medico/dashboard', [\App\Http\Controllers\Medical\DoctorDashboardController::class, 'index'])->name('medico.dashboard');
         Route::post('/medico/atender-paciente', [\App\Http\Controllers\Medical\DoctorDashboardController::class, 'atenderPaciente'])->name('medico.atender-paciente');
-        
+
         // Test route
         // Route::get('/test-doctor', function() {
         //     return 'DoctorController works!';
         // });
-        
+
         // Test DoctorController directly
         // Route::get('/test-doctor-class', function() {
         //     try {
@@ -327,14 +331,15 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::get('/api/paciente/{ci}', [\App\Http\Controllers\DoctorController::class, 'getPaciente'])->name('consulta.paciente');
 
         // Ruta para imprimir receta
-        Route::get('/medico/receta/{receta}/print', function(\App\Models\Receta $receta) {
+        Route::get('/medico/receta/{receta}/print', function (\App\Models\Receta $receta) {
             $receta->load(['detalles.medicamento', 'consulta.paciente', 'consulta.especialidad', 'userMedico']);
             return view('medical.receta-print', compact('receta'));
         })->name('medico.receta.print');
 
         // Ruta para evolución médica en internación
         Route::get('/medico/internacion/{id}', [
-            \App\Http\Controllers\Medical\HospitalizacionController::class, 'detalle'
+            \App\Http\Controllers\Medical\HospitalizacionController::class,
+            'detalle'
         ])->name('medico.internacion.detalle');
     });
 
@@ -354,7 +359,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
     // Rutas de administración (admin y caja) - SIN caja antigua (usar nuevo sistema)
     Route::middleware(['role:admin|caja|administrador'])->prefix('admin')->name('admin.')->group(function () {
         // Caja Central antiguo ELIMINADO - usar /caja-operativa o /caja-gestion
-        
+
         Route::get('/facturacion', function () {
             return view('admin.facturacion');
         })->name('facturacion.index');
@@ -363,7 +368,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::post('/tarifarios', [\App\Http\Controllers\Admin\TarifarioController::class, 'store'])->name('tarifarios.store');
         Route::put('/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'update'])->name('tarifarios.update');
         Route::delete('/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'destroy'])->name('tarifarios.destroy');
-        
+
         // API routes for tarifarios
         Route::get('/api/tarifarios', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiIndex'])->name('tarifarios.api.index');
         Route::get('/api/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiShow'])->name('tarifarios.api.show');
@@ -385,7 +390,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::post('/api/preautorizaciones/{cuentaId}/estado', [SeguroController::class, 'cambiarEstadoPreautorizacion'])->name('seguros.api.cambiar-estado');
 
         Route::get('/cuentas-por-cobrar', [CuentaCobrarController::class, 'index'])->name('cuentas');
-        
+
         // API routes para cuentas por cobrar
         Route::get('/api/cuentas', [CuentaCobrarController::class, 'apiIndex'])->name('cuentas.api.index');
         Route::get('/api/cuentas/{id}', [CuentaCobrarController::class, 'show'])->name('cuentas.api.show');
@@ -398,16 +403,16 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
     Route::middleware(['role:admin|administrador'])->prefix('admin')->name('admin.')->group(function () {
         // Dashboard principal del admin
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-        
+
         // Gestión de pacientes
         Route::get('/pacientes/gestionar', [\App\Http\Controllers\PatientsController::class, 'gestionar'])->name('pacientes.gestionar');
-        
+
         // Edición y gestión de pacientes
         Route::get('/pacientes/{ci}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');
         Route::put('/pacientes/{ci}', [\App\Http\Controllers\PatientsController::class, 'update'])->name('patients.update');
         Route::get('/pacientes/{ci}/cuenta', [\App\Http\Controllers\PatientsController::class, 'verCuenta'])->name('cuentas.show');
         Route::delete('/cuentas/{cuentaId}/detalles/{detalleId}', [\App\Http\Controllers\PatientsController::class, 'eliminarItemCuenta'])->name('cuentas.eliminar-item');
-        
+
         Route::get('especialidades', [EspecialidadController::class, 'index'])->name('especialidades.index');
         Route::get('especialidades/create', [EspecialidadController::class, 'create'])->name('especialidades.create');
         Route::post('especialidades', [EspecialidadController::class, 'store'])->name('especialidades.store');
@@ -476,7 +481,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
         Route::get('/dashboard', function () {
             return view('dashboard');
         })->name('dashboard');
-        
+
         Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes');
         Route::get('/reportes/data', [ReportesController::class, 'data'])->name('reportes.data');
         Route::get('/reportes/export', [ReportesController::class, 'export'])->name('reportes.export');
@@ -514,11 +519,11 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
     Route::middleware(['role:admin|administrador'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/emergencies', [AdminEmergencyController::class, 'index'])->name('emergencies.index');
         Route::get('/emergencies/{emergency}', [AdminEmergencyController::class, 'show'])->name('emergencies.show');
-        
+
         // API routes para admin (solo lectura)
         Route::get('/api/emergencias', [AdminEmergencyController::class, 'apiIndex'])->name('emergencies.api.index');
         Route::get('/api/emergencias/{emergency}', [AdminEmergencyController::class, 'apiShow'])->name('emergencies.api.show');
-        
+
         // Rutas para almacén de medicamentos
         Route::get('/almacen-medicamentos', [AlmacenMedicamentosController::class, 'index'])->name('almacen-medicamentos.index');
         Route::get('/almacen-medicamentos/create', [AlmacenMedicamentosController::class, 'create'])->name('almacen-medicamentos.create');
@@ -550,9 +555,9 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
     // Detalle y registro de paciente en dispensación — accesible por admin y personal de área
     Route::middleware(['role:admin|administrador|emergencia|enfermera-emergencia|cirujano|internacion|enfermera-internacion|uti|doctor|farmacia|dirmedico'])
         ->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/almacen-medicamentos/historial/dispensaciones/{dispensacion}', [AlmacenMedicamentosController::class, 'detalleDispensacion'])->name('almacen-medicamentos.detalle-dispensacion');
-        Route::post('/almacen-medicamentos/historial/dispensaciones/{dispensacion}/registrar-paciente', [AlmacenMedicamentosController::class, 'registrarPaciente'])->name('almacen-medicamentos.registrar-paciente');
-    });
+            Route::get('/almacen-medicamentos/historial/dispensaciones/{dispensacion}', [AlmacenMedicamentosController::class, 'detalleDispensacion'])->name('almacen-medicamentos.detalle-dispensacion');
+            Route::post('/almacen-medicamentos/historial/dispensaciones/{dispensacion}/registrar-paciente', [AlmacenMedicamentosController::class, 'registrarPaciente'])->name('almacen-medicamentos.registrar-paciente');
+        });
 
     // API routes accesibles por recepción y emergencia (fuera del middleware de emergencia)
     Route::middleware(['auth'])->prefix('api')->group(function () {
@@ -730,7 +735,7 @@ Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetai
 });
 
 // Ruta de diagnóstico específico para emergency-staff
-Route::get('/test-emergency-access', function() {
+Route::get('/test-emergency-access', function () {
     if (!auth()->check()) {
         return 'No autenticado';
     }
@@ -738,7 +743,7 @@ Route::get('/test-emergency-access', function() {
     $userRole = $user->role;
     $allowedRoles = ['emergencia'];
     $hasAccess = in_array($userRole, $allowedRoles);
-    
+
     return json_encode([
         'usuario' => $user->name,
         'rol_bd' => $userRole,
@@ -749,12 +754,12 @@ Route::get('/test-emergency-access', function() {
 })->middleware('auth');
 
 // Ruta de prueba CON middleware role:emergencia (igual que emergency-staff)
-Route::get('/test-role-middleware', function() {
+Route::get('/test-role-middleware', function () {
     return 'Middleware role:emergencia funcionó correctamente';
 })->middleware(['auth', 'role:emergencia']);
 
 // Ruta de diagnóstico específico para cirujano
-Route::get('/test-cirujano-access', function() {
+Route::get('/test-cirujano-access', function () {
     if (!auth()->check()) {
         return 'No autenticado';
     }
@@ -798,4 +803,4 @@ Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion
     Route::get('/api/evaluacion/procedimientos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarProcedimientos']);
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
