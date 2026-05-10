@@ -30,7 +30,7 @@ class SeguroController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get()
-            ->map(function($cuenta) {
+            ->map(function ($cuenta) {
                 return [
                     'id' => $cuenta->id,
                     'numero' => $cuenta->id,
@@ -63,12 +63,28 @@ class SeguroController extends Controller
         return view('admin.seguros', compact('seguros', 'totalAfiliados', 'preautorizaciones', 'stats'));
     }
 
+    public function cambiarEstado(Request $request, Seguro $seguro): JsonResponse
+    {
+        try {
+            // Invertimos el estado actual
+            $nuevoEstado = $seguro->estado === 'activo' ? 'inactivo' : 'activo';
+            $seguro->update(['estado' => $nuevoEstado]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Estado actualizado a " . strtoupper($nuevoEstado),
+                'nuevo_estado' => $nuevoEstado
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
     /**
      * API: Listar todos los seguros
      */
     public function apiIndex(): JsonResponse
     {
-        $seguros = Seguro::all()->map(function($seguro) {
+        $seguros = Seguro::all()->map(function ($seguro) {
             return [
                 'id' => $seguro->id,
                 'nombre_empresa' => $seguro->nombre_empresa,
@@ -205,13 +221,13 @@ class SeguroController extends Controller
     public function getPreautorizaciones(): JsonResponse
     {
         $preautorizaciones = CuentaCobro::with(['paciente', 'paciente.seguro'])
-            ->whereHas('paciente', function($q) {
+            ->whereHas('paciente', function ($q) {
                 $q->whereNotNull('seguro_id');
             })
             ->whereIn('estado', ['pendiente', 'parcial'])
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function($cuenta) {
+            ->map(function ($cuenta) {
                 return [
                     'id' => $cuenta->id,
                     'numero' => $cuenta->id,
@@ -246,11 +262,11 @@ class SeguroController extends Controller
             ]);
 
             $cuenta = CuentaCobro::with(['seguro', 'paciente'])->findOrFail($cuentaId);
-            
+
             if ($validated['estado'] === 'autorizado') {
                 $seguro = $cuenta->seguro;
                 $calculo = $seguro->calcularCobertura($cuenta->total_calculado);
-                
+
                 $cuenta->update([
                     'seguro_estado' => 'autorizado',
                     'seguro_autorizado_por' => auth()->id(),
@@ -261,10 +277,10 @@ class SeguroController extends Controller
                 ]);
                 $cuenta->recalcularTotales();
 
-                $mensaje = $calculo['monto_paciente'] > 0 
+                $mensaje = $calculo['monto_paciente'] > 0
                     ? "Seguro autorizado. El paciente debe pagar Bs. {$calculo['monto_paciente']} en caja."
                     : 'Seguro autorizado. Cobertura completa.';
-                
+
                 $this->registrarEnHistorialMedico($cuenta, 'autorizado', $validated['observaciones'] ?? null);
             } else {
                 $cuenta->update([
@@ -376,9 +392,9 @@ class SeguroController extends Controller
             $query->whereDate('created_at', '<=', $request->fecha_fin);
         }
         if ($request->filled('paciente')) {
-            $query->whereHas('paciente', function($q) use ($request) {
+            $query->whereHas('paciente', function ($q) use ($request) {
                 $q->where('nombre', 'like', '%' . $request->paciente . '%')
-                  ->orWhere('ci', 'like', '%' . $request->paciente . '%');
+                    ->orWhere('ci', 'like', '%' . $request->paciente . '%');
             });
         }
         if ($request->filled('seguro_id')) {
@@ -432,9 +448,9 @@ class SeguroController extends Controller
             $query->whereDate('created_at', '<=', $request->fecha_fin);
         }
         if ($request->filled('paciente')) {
-            $query->whereHas('paciente', function($q) use ($request) {
+            $query->whereHas('paciente', function ($q) use ($request) {
                 $q->where('nombre', 'like', '%' . $request->paciente . '%')
-                  ->orWhere('ci', 'like', '%' . $request->paciente . '%');
+                    ->orWhere('ci', 'like', '%' . $request->paciente . '%');
             });
         }
         if ($request->filled('seguro_id')) {
@@ -452,14 +468,23 @@ class SeguroController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function() use ($registros) {
+        $callback = function () use ($registros) {
             $file = fopen('php://output', 'w');
-            
+
             // Cabeceras
             fputcsv($file, [
-                'Fecha', 'Paciente', 'CI', 'Seguro', 'Tipo Atención', 
-                'Monto Total', 'Cobertura Seguro', 'Copago Paciente', 
-                'Estado', 'Autorizado Por', 'Fecha Autorización', 'Observaciones',
+                'Fecha',
+                'Paciente',
+                'CI',
+                'Seguro',
+                'Tipo Atención',
+                'Monto Total',
+                'Cobertura Seguro',
+                'Copago Paciente',
+                'Estado',
+                'Autorizado Por',
+                'Fecha Autorización',
+                'Observaciones',
                 'Cargos Detallados'
             ]);
 

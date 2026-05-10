@@ -378,6 +378,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/seguros', [SeguroController::class, 'store'])->name('seguros.store');
         Route::put('/seguros/{seguro}', [SeguroController::class, 'update'])->name('seguros.update');
         Route::delete('/seguros/{seguro}', [SeguroController::class, 'destroy'])->name('seguros.destroy');
+        Route::post('/seguros/{seguro}/estado', [SeguroController::class, 'cambiarEstado']);
 
         // API routes para seguros
         Route::get('/api/seguros', [SeguroController::class, 'apiIndex'])->name('seguros.api.index');
