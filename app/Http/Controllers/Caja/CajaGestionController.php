@@ -26,27 +26,39 @@ class CajaGestionController extends Controller
         $hoy = now()->toDateString();
         $inicioDia = now()->startOfDay();
         $finDia = now()->endOfDay();
-        
+
         // Obtener todos los ingresos de hoy (excluyendo aperturas de caja)
         $ingresosHoy = MovimientoCaja::whereDate('created_at', $hoy)
             ->where('tipo', 'ingreso')
             ->where('concepto', 'like', 'Cobro%')
             ->get();
-        
+
         // Calcular totales manualmente - usar el valor casteado del modelo
         $totalRecaudado = 0;
         $transacciones = $ingresosHoy->count();
         $metodosPagoHoy = ['efectivo' => 0, 'transferencia' => 0, 'tarjeta' => 0, 'qr' => 0];
 
+        // foreach ($ingresosHoy as $mov) {
+        //     $monto = (float) $mov->monto;
+        //     $totalRecaudado += $monto;
+        //     $metodo = $mov->metodo_pago ?? 'efectivo';
+        //     if (isset($metodosPagoHoy[$metodo])) {
+        //         $metodosPagoHoy[$metodo] += $monto;
+        //     }
+        // }
+
         foreach ($ingresosHoy as $mov) {
-            $monto = (float) $mov->monto;
-            $totalRecaudado += $monto;
+            // Usar el cast  monto en el modelo MovimientoCaja 'decimal:2'
+            $monto = $mov->monto;
+
+            $totalRecaudado = bcadd($totalRecaudado, $monto, 2);
+
             $metodo = $mov->metodo_pago ?? 'efectivo';
             if (isset($metodosPagoHoy[$metodo])) {
-                $metodosPagoHoy[$metodo] += $monto;
+                $metodosPagoHoy[$metodo] = bcadd($metodosPagoHoy[$metodo], $monto, 2);
             }
         }
-        
+
         $estadisticas = [
             'total_recaudado_hoy' => $totalRecaudado,
             'transacciones_hoy' => $transacciones,
@@ -175,7 +187,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'transacciones' => $transacciones
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -264,7 +275,6 @@ class CajaGestionController extends Controller
                     'observaciones' => $cuenta->observaciones,
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -312,10 +322,10 @@ class CajaGestionController extends Controller
                     $totalIngresos = $caja->movimientos()->where('tipo', 'ingreso')->where('concepto', 'like', 'Cobro%')->sum('monto');
                     $totalEgresos = $caja->movimientos()->where('tipo', 'egreso')->where('concepto', '!=', 'Cierre de caja')->sum('monto');
                     $totalEsperado = (float) $caja->monto_inicial + (float) $totalIngresos - (float) $totalEgresos;
-                    $diferencia = $caja->monto_final !== null 
-                        ? $caja->monto_final - $totalEsperado 
+                    $diferencia = $caja->monto_final !== null
+                        ? $caja->monto_final - $totalEsperado
                         : null;
-                    
+
                     return [
                         'id' => $caja->id,
                         'user' => [
@@ -340,7 +350,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'cajas' => $cajas
             ]);
-
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -422,10 +431,10 @@ class CajaGestionController extends Controller
 
             // Cuentas pendientes
             $cuentasPendientes = CuentaCobro::pendiente()->get();
-            $montoPendiente = $cuentasPendientes->sum(function($cuenta) {
+            $montoPendiente = $cuentasPendientes->sum(function ($cuenta) {
                 return $cuenta->saldo_pendiente;
             });
-            
+
             $pendientes = [
                 'total' => $cuentasPendientes->count(),
                 'monto' => $montoPendiente,
@@ -446,7 +455,6 @@ class CajaGestionController extends Controller
                     ],
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -516,7 +524,6 @@ class CajaGestionController extends Controller
                 'movimientos' => $movimientos,
                 'usuarios' => $usuarios,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -539,9 +546,9 @@ class CajaGestionController extends Controller
                 ->where('estado', 'pagado')
                 ->where(function ($q) {
                     $q->whereNull('ci_nit_facturacion')
-                      ->orWhereNull('razon_social')
-                      ->orWhere('ci_nit_facturacion', '')
-                      ->orWhere('razon_social', '');
+                        ->orWhereNull('razon_social')
+                        ->orWhere('ci_nit_facturacion', '')
+                        ->orWhere('razon_social', '');
                 });
 
             if ($request->estado === 'completo') {
@@ -557,7 +564,7 @@ class CajaGestionController extends Controller
                 ->paginate(25)
                 ->through(function ($cuenta) {
                     $datosCompletos = !empty($cuenta->ci_nit_facturacion) && !empty($cuenta->razon_social);
-                    
+
                     return [
                         'id' => $cuenta->id,
                         'paciente' => [
@@ -580,7 +587,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'cuentas' => $cuentas
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -603,7 +609,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'usuarios' => $usuarios
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -669,7 +674,6 @@ class CajaGestionController extends Controller
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Ítem eliminado y registrado en historial.']);
-
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error al eliminar detalle: ' . $e->getMessage(), ['user_id' => $user->id ?? null]);
@@ -755,9 +759,9 @@ class CajaGestionController extends Controller
 
             $cuenta->update([
                 'estado'       => 'anulado',
-                'observaciones'=> ($cuenta->observaciones ? $cuenta->observaciones . ' | ' : '') .
-                                 'ANULADO: ' . $request->motivo . ' por ' . auth()->user()->name .
-                                 ' el ' . now()->format('d/m/Y H:i'),
+                'observaciones' => ($cuenta->observaciones ? $cuenta->observaciones . ' | ' : '') .
+                    'ANULADO: ' . $request->motivo . ' por ' . auth()->user()->name .
+                    ' el ' . now()->format('d/m/Y H:i'),
             ]);
 
             \Log::info('Cuenta anulada', [
@@ -768,7 +772,6 @@ class CajaGestionController extends Controller
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Cuenta anulada correctamente']);
-
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error al anular cuenta: ' . $e->getMessage(), ['user_id' => auth()->id()]);

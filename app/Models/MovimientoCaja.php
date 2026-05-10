@@ -69,8 +69,20 @@ class MovimientoCaja extends Model
         return "{$signo}S/ " . number_format($this->monto, 2);
     }
 
-    public function getMontoConSignoAttribute(): float
+    // public function getMontoConSignoAttribute(): float
+    // {
+    //     return $this->tipo === 'ingreso' ? $this->monto : -$this->monto;
+    // }
+
+    public function getMontoConSignoAttribute(): string
     {
-        return $this->tipo === 'ingreso' ? $this->monto : -$this->monto;
+        $valorBase = $this->monto; // Ya es string gracias al cast
+
+        if ($this->tipo === 'egreso') {
+            // Aplicar bcsub("0", $valorBase, 2) es la forma más segura de negativizar con BCMath
+            return bcsub("0", $valorBase, 2);
+        }
+
+        return $valorBase;
     }
 }
