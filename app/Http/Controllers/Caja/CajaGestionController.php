@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Caja;
 
+use App\Exports\ControlCajasExport;
+use App\Exports\MovimientosCajaExport;
+use App\Exports\TransaccionesExport;
 use App\Http\Controllers\Controller;
 use App\Models\CajaSession;
 use App\Models\CuentaCobro;
@@ -14,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CajaGestionController extends Controller
 {
@@ -97,6 +101,27 @@ class CajaGestionController extends Controller
             'cajasAbiertas',
             'transaccionesRecientes'
         ));
+    }
+    public function exportarAuditoria(Request $request)
+    {
+        $filtros = $request->all();
+        $nombreArchivo = 'auditoria_caja_' . now()->format('Ymd_His') . '.xlsx';
+
+        // Al usar el Facade Excel correctamente, el método download funcionará
+        return Excel::download(new \App\Exports\MovimientosCajaExport($filtros), $nombreArchivo);
+    }
+
+    public function exportarCajas(Request $request)
+    {
+        $filtros = $request->all();
+        return Excel::download(new \App\Exports\ControlCajasExport($filtros), 'reporte_cajas.xlsx');
+    }
+
+    public function exportarTransacciones(Request $request)
+    {
+        $filtros = $request->all();
+        $nombre = 'transacciones_caja_' . now()->format('d-m-Y_H-i') . '.xlsx';
+        return Excel::download(new TransaccionesExport($filtros), $nombre);
     }
 
     /**
