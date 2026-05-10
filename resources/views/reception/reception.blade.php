@@ -698,14 +698,6 @@
 
                         <!-- Actions -->
                         <div class="flex sm:flex-col items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-100 sm:pl-5">
-                            <button onclick="registrarLlamada(${cita.id}, true)" class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white border border-emerald-100 hover:border-emerald-500 rounded-xl transition-all duration-200 text-sm font-semibold">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                Confirmó
-                            </button>
-                            <button onclick="registrarLlamada(${cita.id}, false)" class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 w-full bg-rose-50 text-rose-700 hover:bg-rose-500 hover:text-white border border-rose-100 hover:border-rose-500 rounded-xl transition-all duration-200 text-sm font-semibold">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                No contestó
-                            </button>
                             <button onclick="marcarAsistidaDesdeLlamadas(${cita.id})" class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 w-full bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 rounded-xl transition-all duration-200 text-sm font-bold shadow-md mt-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Asistió ✓
