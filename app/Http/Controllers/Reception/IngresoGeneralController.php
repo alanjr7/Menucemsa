@@ -226,8 +226,8 @@ class IngresoGeneralController extends Controller
     {
         $ci = $request->get('ci');
 
-        if (empty($ci)) {
-            return response()->json(['success' => false, 'message' => 'Ingrese un CI']);
+        if (empty($ci) || strlen($ci) < 3) {
+            return response()->json(['success' => false, 'message' => 'El CI debe tener al menos 3 caracteres']);
         }
 
         $garante = Paciente::where('ci', $ci)->first();
@@ -535,7 +535,12 @@ class IngresoGeneralController extends Controller
         $garante = $this->procesarGarante($request);
 
         $triage = $this->crearTriage('amarillo', 'Hospitalización - Ingreso General', 'media');
-        $paciente->update(['triage_id' => $triage->id]);
+        
+        $updateData = ['triage_id' => $triage->id];
+        if ($garante) {
+            $updateData['id_garante_referencia'] = $garante->ci;
+        }
+        $paciente->update($updateData);
 
         $idHospitalizacion = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
 
@@ -549,6 +554,8 @@ class IngresoGeneralController extends Controller
             'ci_medico' => $medicoId,
             'fecha_ingreso' => now(),
             'estado' => 'activo',
+            'contacto_nombre' => $garante ? $garante->nombre : null,
+            'contacto_telefono' => $garante ? $garante->telefono : null,
         ]);
 
         $cuentaCobro = CuentaCobroService::obtenerOCrearCuentaMaestra(

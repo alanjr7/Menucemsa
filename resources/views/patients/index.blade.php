@@ -225,7 +225,7 @@
                                                 class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all">
                                                 Historial
                                             </a>
-                                            <a href="{{ route('emergency-staff.show', $paciente->emergency_id) }}"
+                                            <a href="{{ route('reception.emergencia.comprobante', $paciente->emergency_id) }}"
                                                 class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all">
                                                 Datos
                                             </a>
@@ -234,7 +234,17 @@
                                                 class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all">
                                                 Historial
                                             </a>
-                                            <a href="{{ route('patients.show', $paciente->ci) }}"
+                                            @php
+                                                $datosRoute = route('patients.show', $paciente->ci);
+                                                if ($tipoIngreso === 'internacion' && $paciente->hospitalizaciones->isNotEmpty()) {
+                                                    $datosRoute = route('reception.hospitalizacion.comprobante', $paciente->hospitalizaciones->first()->id);
+                                                } elseif ($tipoIngreso === 'emergencia' && $paciente->emergencias->isNotEmpty()) {
+                                                    $datosRoute = route('reception.emergencia.comprobante', $paciente->emergencias->first()->id);
+                                                } elseif (in_array($tipoIngreso, ['consulta_externa', 'enfermeria', 'otro']) && $paciente->registro_codigo) {
+                                                    $datosRoute = route('reception.confirmacion-registro', $paciente->registro_codigo);
+                                                }
+                                            @endphp
+                                            <a href="{{ $datosRoute }}"
                                                 class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all">
                                                 Datos
                                             </a>

@@ -82,6 +82,7 @@ class MenuSeeder extends Seeder
         $panelEnfermeriaInt->children()->createMany([
             ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'enfermera-internacion', 'order' => 1],
             ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'enfermera-internacion', 'order' => 2],
+            ['name' => 'Catering', 'route' => 'internacion-staff.catering.index', 'roles' => 'enfermera-internacion', 'order' => 3],
         ]);
 
         // 3.7 Panel UTI - Terapia Intensiva (Con Submenús)

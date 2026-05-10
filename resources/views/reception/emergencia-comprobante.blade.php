@@ -11,13 +11,8 @@
             <p class="text-sm text-gray-500">Ficha de ingreso a emergencias</p>
         </div>
         <div class="flex gap-3">
-            <a href="{{ route('reception') }}" class="flex items-center px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                Volver a Emergencia
-            </a>
-            <button onclick="window.print()" class="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors">
+            
+            <button onclick="imprimir()" class="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                 </svg>
@@ -195,282 +190,389 @@
 
 </div>
 
-<!-- FORMATO DE IMPRESION - Solo visible al imprimir -->
+<!-- FORMATO DE IMPRESION - Oculto en pantalla, visible solo al imprimir -->
 <div class="print-only" style="display: none;">
-    <!-- Encabezado -->
-    <div class="print-header">
-        <h1>CEMSA - COMPROBANTE DE EMERGENCIA</h1>
-        <p>Código: {{ $emergencia->code }}</p>
-    </div>
-
-    <!-- Línea separadora -->
-    <div class="print-line"></div>
-
-    <!-- Datos del Paciente -->
-    <div class="print-section">
-        <h2>DATOS DEL PACIENTE</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Nombre:</strong> {{ $emergencia->paciente->nombre ?? 'Paciente Temporal' }}</td>
-                <td>
-                    <strong>
-                        @if($emergencia->is_temp_id)
-                            ID Temporal:
-                        @else
-                            CI:
-                        @endif
-                    </strong> 
-                    {{ $emergencia->is_temp_id ? $emergencia->temp_id : ($emergencia->paciente->ci ?? 'N/A') }}
-                </td>
-            </tr>
-            @if(!$emergencia->is_temp_id)
-            <tr>
-                <td><strong>Teléfono:</strong> {{ $emergencia->paciente->telefono ?? 'No registrado' }}</td>
-                <td><strong>Sexo:</strong> {{ $emergencia->paciente->sexo ?? 'N/A' }}</td>
-            </tr>
-            @endif
-        </table>
-    </div>
-
-    <!-- Detalles de Ingreso -->
-    <div class="print-section">
-        <h2>DETALLES DE INGRESO</h2>
-        <table class="print-table">
-            <tr>
-                <td><strong>Fecha de Ingreso:</strong> {{ $emergencia->admission_date?->format('d/m/Y H:i') ?? $emergencia->created_at->format('d/m/Y H:i') }}</td>
-                <td><strong>Tipo:</strong> {{ strtoupper($emergencia->tipo_ingreso) }}</td>
-            </tr>
-            <tr>
-                <td><strong>Destino Inicial:</strong> {{ strtoupper(str_replace('_', ' ', $emergencia->destino_inicial)) }}</td>
-                <td><strong>Estado:</strong> {{ strtoupper($emergencia->status) }}</td>
-            </tr>
-            <tr>
-                <td colspan="2"><strong>Registrado por:</strong> {{ $emergencia->user->name ?? 'N/A' }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- Síntomas -->
-    <div class="print-section">
-        <h2>SÍNTOMAS Y EVALUACIÓN</h2>
-        <table class="print-table">
-            <tr>
-                <td colspan="2"><strong>Descripción / Síntomas:</strong><br>{{ $emergencia->symptoms ?? 'No registrado' }}</td>
-            </tr>
-            @if($emergencia->initial_assessment)
-            <tr>
-                <td colspan="2"><strong>Evaluación Inicial:</strong><br>{{ $emergencia->initial_assessment }}</td>
-            </tr>
-            @endif
-            @if($emergencia->observations)
-            <tr>
-                <td colspan="2"><strong>Observaciones:</strong><br>{{ $emergencia->observations }}</td>
-            </tr>
-            @endif
-        </table>
-    </div>
-
-    <!-- Signos Vitales -->
-    @if(!empty($vitalSigns))
-    <div class="print-section">
-        <h2>SIGNOS VITALES</h2>
-        <table class="print-table">
-            <tr>
-                @if(!empty($vitalSigns['presion_arterial']))
-                <td><strong>Presión Arterial:</strong> {{ $vitalSigns['presion_arterial'] }}</td>
-                @endif
-                @if(!empty($vitalSigns['frecuencia_cardiaca']))
-                <td><strong>Frec. Cardiaca:</strong> {{ $vitalSigns['frecuencia_cardiaca'] }}</td>
-                @endif
-            </tr>
-            <tr>
-                @if(!empty($vitalSigns['frecuencia_respiratoria']))
-                <td><strong>Frec. Respiratoria:</strong> {{ $vitalSigns['frecuencia_respiratoria'] }}</td>
-                @endif
-                @if(!empty($vitalSigns['temperatura']))
-                <td><strong>Temperatura:</strong> {{ $vitalSigns['temperatura'] }}</td>
-                @endif
-            </tr>
-        </table>
-    </div>
-    @endif
-
-    <!-- Instrucciones -->
-    <div class="print-section">
-        <h2>INSTRUCCIONES</h2>
-        <div class="print-instructions">
-            <p><strong>1.</strong> Este comprobante debe presentarse en el área de emergencias.</p>
-            <p><strong>2.</strong> El paciente será evaluado por el médico de turno según prioridad.</p>
-            <p><strong>3.</strong> Conserve este documento hasta finalizar la atención.</p>
-            <p><strong>4.</strong> Para pacientes con ID temporal: complete los datos personales lo antes posible.</p>
+    <div class="doc-container">
+        
+        <!-- ENCABEZADO -->
+        <div class="header-section">
+            <div class="logo-area">
+                <div style="font-family: Arial, sans-serif;">
+                    <h1 style="font-size: 16pt; font-style: italic; font-weight: normal; margin: 0; color: #444;">Clínica Médica</h1>
+                    <h2 style="font-size: 20pt; font-weight: bold; margin: -5pt 0 0 0; letter-spacing: 1px;">CEMSA</h2>
+                    <div style="border-bottom: 2px solid #000; width: 100%; margin-top: 2px;"></div>
+                </div>
+            </div>
+            
+            <div class="info-area">
+                <div class="doc-number text-right">
+                    <strong>Nº: <span style="margin-left: 20pt;">{{ ($emergencia->paciente && $emergencia->paciente->registro_codigo) ? $emergencia->paciente->registro_codigo : $emergencia->code }}</span></strong>
+                </div>
+                <div class="notice-box">
+                    <p><strong>ESTIMADO PACIENTE:</strong></p>
+                    <p>SI DESEA GUARDAR SUS OBJETOS DE VALOR (JOYAS, DINERO, CELULAR U OTROS). UD.</p>
+                    <p>PUEDE HACERLO EN LA ADMINISTRACIÓN</p>
+                    <p><strong>LA CLINICA MEDICA CEMSA LTDA. NO SE RESPONSABILIZARÁ EN CASO DE PÉRDIDAS.</strong></p>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Firma -->
-    <div class="print-signature">
-        <p>_______________________________</p>
-        <p>Firma del Paciente / Responsable</p>
-    </div>
+        <h3 class="main-title">COMPROBANTE DE INGRESO A EMERGENCIA</h3>
 
-    <!-- Footer -->
-    <div class="print-footer">
-        <p>CEMSA - Centro Médico de Especialidades | Documento generado el {{ now()->format('d/m/Y H:i') }}</p>
+        <!-- DATOS DEL PACIENTE -->
+        <div class="form-section">
+            <div class="f-row">
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Paciente - Sr. (a):</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->nombre ?? 'PACIENTE TEMPORAL') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">F. N.</span>
+                    <span class="f-value text-center font-bold">{{ ($emergencia->paciente && $emergencia->paciente->fecha_nacimiento) ? \Carbon\Carbon::parse($emergencia->paciente->fecha_nacimiento)->format('Y-m-d') : '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.2;">
+                    <span class="f-label">Estado Civil</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->estado_civil ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Nacionalidad</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->nacionalidad ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Lugar</span>
+                    <span class="f-value text-center font-bold">{{ strtoupper($emergencia->paciente->lugar_expedicion ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Teléfono Nº</span>
+                    <span class="f-value font-bold">{{ $emergencia->paciente->telefono ?? '' }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">{{ $emergencia->is_temp_id ? 'ID Temp.' : 'C.I. Nº' }}</span>
+                    <span class="f-value font-bold">{{ $emergencia->is_temp_id ? $emergencia->temp_id : ($emergencia->paciente->ci ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Sexo</span>
+                    <span class="f-value font-bold">{{ ($emergencia->paciente->sexo ?? '') === 'M' ? 'MASCULINO' : (($emergencia->paciente->sexo ?? '') === 'F' ? 'FEMENINO' : '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Correo</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->correo ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Dirección</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->direccion ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Profesión</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->profesion ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Empresa</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->empresa_trabajo ?? '') }}</span>
+                </div>
+            </div>
+            
+            @if($emergencia->paciente && $emergencia->paciente->seguro)
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Seguro</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->seguro->nombre ?? 'SIN SEGURO') }}</span>
+                </div>
+            </div>
+            @endif
+        </div>
+
+        <!-- DATOS DEL INGRESO -->
+        <h4 class="section-title" style="margin-top: 15pt;">DATOS DE EMERGENCIA</h4>
+        <div class="form-section">
+            <div class="f-row">
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Tipo de Ingreso:</span>
+                    <span class="f-value font-bold">EMERGENCIA - {{ strtoupper($emergencia->tipo_ingreso ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Código:</span>
+                    <span class="f-value font-bold">{{ $emergencia->code ?? '' }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Destino Inicial:</span>
+                    <span class="f-value font-bold">{{ strtoupper(str_replace('_', ' ', $emergencia->destino_inicial ?? '')) }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Fecha:</span>
+                    <span class="f-value font-bold">{{ ($emergencia->admission_date ?? $emergencia->created_at)->format('d/m/Y') }}</span>
+                </div>
+                <div class="f-field" style="flex: 0.8;">
+                    <span class="f-label">Hora:</span>
+                    <span class="f-value font-bold">{{ ($emergencia->admission_date ?? $emergencia->created_at)->format('H:i') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Ubicación Actual:</span>
+                    <span class="f-value font-bold">{{ strtoupper(str_replace('_', ' ', $emergencia->ubicacion_actual ?? '')) }}</span>
+                </div>
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Estado:</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->status ?? '') }}</span>
+                </div>
+            </div>
+            
+            <div class="f-row">
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Es Parto:</span>
+                    <span class="f-value font-bold">{{ $emergencia->es_parto ? 'SÍ' : 'NO' }}</span>
+                </div>
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Registrado por:</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->user->name ?? '') }}</span>
+                </div>
+            </div>
+
+            <div class="f-row" style="margin-top: 10pt;">
+                <div class="f-field w-100">
+                    <span class="f-label">Síntomas:</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->symptoms ?? 'NO REGISTRADO') }}</span>
+                </div>
+            </div>
+
+            @if($emergencia->initial_assessment)
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Evaluación Inicial:</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->initial_assessment) }}</span>
+                </div>
+            </div>
+            @endif
+
+            @if($emergencia->observations)
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Observaciones:</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->observations) }}</span>
+                </div>
+            </div>
+            @endif
+        </div>
+        
+        @if(!empty($vitalSigns))
+        <h4 class="section-title" style="margin-top: 15pt;">SIGNOS VITALES</h4>
+        <div class="form-section">
+            <div class="f-row">
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">P.A.:</span>
+                    <span class="f-value font-bold">{{ $vitalSigns['presion_arterial'] ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">F.C.:</span>
+                    <span class="f-value font-bold">{{ $vitalSigns['frecuencia_cardiaca'] ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">F.R.:</span>
+                    <span class="f-value font-bold">{{ $vitalSigns['frecuencia_respiratoria'] ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Temp.:</span>
+                    <span class="f-value font-bold">{{ $vitalSigns['temperatura'] ?? '' }}</span>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <div style="margin-top: 30pt;">
+            <p style="font-size: 8pt; margin-bottom: 2pt;"><strong>Instrucciones:</strong></p>
+            <p style="font-size: 8pt; margin: 2px 0;">1. Este comprobante debe presentarse en el área de emergencias.</p>
+            <p style="font-size: 8pt; margin: 2px 0;">2. El paciente será evaluado por el médico de turno según prioridad.</p>
+            <p style="font-size: 8pt; margin: 2px 0;">3. Conserve este documento hasta finalizar la atención.</p>
+            <p style="font-size: 8pt; margin: 2px 0;">4. Para pacientes con ID temporal: complete los datos personales lo antes posible.</p>
+        </div>
+
     </div>
 </div>
 
-<style>
-/* Estilos para pantalla */
-.screen-only { display: block; }
-.print-only { display: none; }
+<script>
+function imprimir() {
+    const contenido = document.querySelector('.print-only').innerHTML;
+    const ventana = window.open('', '_blank', 'width=900,height=700');
 
-/* Estilos para impresión */
-@media print {
-    /* Ocultar elementos de la UI de la aplicación */
-    nav, aside, header:not(.print-header), .screen-only,
-    [class*="sidebar"], [class*="navbar"], [class*="menu"],
-    #app nav, .bg-gray-50, .bg-gray-100, .shadow-sm {
-        display: none !important;
-    }
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Imprimir Comprobante Emergencia CEMSA</title>
+            <style>
+                /* Estilos base y de reseteo para impresión */
+                @page {
+                    size: letter; /* Tamaño carta estándar */
+                    margin: 1.5cm; 
+                }
+                
+                body {
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 8.5pt;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                }
 
-    /* Mostrar solo el contenido de impresión */
-    .print-only {
-        display: block !important;
-        position: static !important;
-    }
+                * {
+                    box-sizing: border-box;
+                }
 
-    /* Configuración de página */
-    @page {
-        size: letter; /* Hoja carta 8.5" x 11" */
-        margin: 1.5cm 2cm;
-    }
+                .doc-container {
+                    width: 100%;
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
 
-    /* Reset de estilos */
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 11pt;
-        line-height: 1.4;
-        color: #000;
-        background: white;
-        margin: 0;
-        padding: 0;
-    }
+                /* Encabezado */
+                .header-section {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 15pt;
+                }
 
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
+                .logo-area {
+                    width: 40%;
+                }
 
-    /* Encabezado */
-    .print-header {
-        text-align: center;
-        margin-bottom: 15pt;
-        border-bottom: 2pt solid #000;
-        padding-bottom: 10pt;
-    }
+                .info-area {
+                    width: 55%;
+                }
 
-    .print-header h1 {
-        font-size: 16pt;
-        font-weight: bold;
-        margin: 0 0 5pt 0;
-        text-transform: uppercase;
-    }
+                .doc-number {
+                    font-size: 10pt;
+                    margin-bottom: 10pt;
+                }
 
-    .print-header p {
-        font-size: 11pt;
-        margin: 0;
-        font-family: "Courier New", monospace;
-    }
+                .notice-box {
+                    font-size: 7.5pt;
+                    line-height: 1.3;
+                }
+                .notice-box p { margin: 2px 0; }
 
-    /* Línea separadora */
-    .print-line {
-        border-bottom: 0.5pt solid #000;
-        margin: 8pt 0;
-    }
+                /* Títulos */
+                .main-title {
+                    text-align: center;
+                    font-size: 11pt;
+                    font-weight: bold;
+                    margin: 20pt 0 15pt 0;
+                }
 
-    /* Secciones */
-    .print-section {
-        margin-bottom: 12pt;
-        page-break-inside: avoid;
-    }
+                .section-title {
+                    font-size: 8.5pt;
+                    font-weight: bold;
+                    margin: 10pt 0 5pt 0;
+                    text-transform: uppercase;
+                }
 
-    .print-section h2 {
-        font-size: 12pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin: 0 0 6pt 0;
-        padding: 3pt 0;
-        border-bottom: 0.5pt solid #333;
-    }
+                /* Sistema de filas tipo formulario (Líneas punteadas) */
+                .form-section {
+                    margin-bottom: 10pt;
+                }
 
-    /* Tablas */
-    .print-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 10.5pt;
-    }
+                .f-row {
+                    display: flex;
+                    align-items: flex-end;
+                    margin-bottom: 6pt;
+                    width: 100%;
+                    gap: 10pt;
+                }
 
-    .print-table td {
-        padding: 4pt 6pt;
-        vertical-align: top;
-        border: 0.5pt solid #666;
-    }
+                .f-field {
+                    display: flex;
+                    align-items: flex-end;
+                }
 
-    .print-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
+                .f-label {
+                    white-space: nowrap;
+                    margin-right: 5pt;
+                    font-size: 8pt;
+                    color: #111;
+                }
 
-    /* Instrucciones */
-    .print-instructions {
-        font-size: 10pt;
-        line-height: 1.6;
-        padding: 8pt;
-        border: 0.5pt solid #999;
-        background-color: #fafafa;
-    }
+                .f-value {
+                    flex-grow: 1;
+                    border-bottom: 1.5px dotted #000;
+                    min-height: 12pt;
+                    font-weight: normal;
+                    font-family: monospace, sans-serif;
+                    font-size: 8.5pt;
+                    padding-bottom: 1px;
+                }
 
-    .print-instructions p {
-        margin: 4pt 0;
-    }
+                .w-100 { width: 100%; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .text-justify { text-align: justify; }
 
-    /* Área de firma */
-    .print-signature {
-        margin-top: 40pt;
-        text-align: center;
-        page-break-inside: avoid;
-    }
+                /* Textos en línea (Para el Acta) */
+                .inline-val {
+                    display: inline-block;
+                    border-bottom: 1.5px dotted #000;
+                    min-height: 10pt;
+                    text-align: center;
+                    font-family: monospace, sans-serif;
+                }
 
-    .print-signature p {
-        margin: 3pt 0;
-        font-size: 10pt;
-    }
+                /* Firmas */
+                .signatures {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    margin-top: 40pt;
+                }
 
-    .print-signature p:first-child {
-        font-size: 12pt;
-        letter-spacing: 2pt;
-    }
+                .sig-box {
+                    width: 30%;
+                    text-align: center;
+                    font-size: 8pt;
+                }
 
-    /* Footer */
-    .print-footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 8pt;
-        color: #555;
-        border-top: 0.5pt solid #999;
-        padding-top: 5pt;
-        margin-top: 15pt;
-    }
+                .sig-line {
+                    border-bottom: 1px solid #000;
+                    margin-bottom: 5pt;
+                    width: 100%;
+                    height: 20pt;
+                }
 
-    /* Evitar saltos de página en secciones importantes */
-    .print-section, .print-signature {
-        page-break-inside: avoid;
-    }
+                .stamp-area {
+                    position: relative;
+                }
 
-    h2 {
-        page-break-after: avoid;
-    }
+                .stamp-text {
+                    color: #4a5568;
+                    font-family: 'Times New Roman', serif;
+                    font-style: italic;
+                    font-size: 10pt;
+                    line-height: 1.2;
+                }
+            </style>
+        </head>
+        <body onload="setTimeout(() => { window.print(); window.close(); }, 250);">
+            ${contenido}
+        </body>
+        </html>
+    `);
+
+    ventana.document.close();
 }
-</style>
+</script>
 @endsection

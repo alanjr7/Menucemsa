@@ -31,10 +31,10 @@ class HospitalizacionController extends Controller
     {
         $ci = $request->get('ci');
 
-        if (!is_numeric($ci) || strlen($ci) < 7 || strlen($ci) > 10) {
+        if (empty($ci) || strlen($ci) < 3) {
             return response()->json([
                 'success' => false,
-                'message' => 'El CI debe ser un número de 7 a 10 dígitos'
+                'message' => 'El CI debe tener al menos 3 caracteres'
             ]);
         }
 
