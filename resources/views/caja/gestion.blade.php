@@ -440,8 +440,6 @@
 
                 // Set fechas por defecto
                 const hoy = new Date().toISOString().split('T')[0];
-                document.getElementById('filtroFechaInicio').value = hoy;
-                document.getElementById('filtroFechaFin').value = hoy;
                 document.getElementById('filtroCajaFechaInicio').value = hoy;
                 document.getElementById('filtroCajaFechaFin').value = hoy;
                 document.getElementById('filtroAuditoriaFecha').value = hoy;
