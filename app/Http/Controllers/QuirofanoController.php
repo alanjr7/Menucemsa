@@ -796,57 +796,42 @@ public function showDetails(CitaQuirurgica $cita): View
                 $costoExtra   = $minutosExtra * $costoMinuto;
             }
 
-            // ---------------------------------------------------------------
-            // CORRECCIÓN DOBLE COBRO:
-            // Al programar la cirugía, crearRegistroCajaCirugia() ya agregó
-            // el cargo de cirugía a la cuenta MAESTRA del paciente (una sola
-            // cuenta unificada). Este método debe reutilizar esa misma cuenta
-            // y actualizar el detalle de cirugía con el costo final real,
-            // en lugar de crear una cuenta separada con otro cargo de cirugía.
-            // ---------------------------------------------------------------
-
-            // Buscar la cuenta maestra del paciente (pendiente/parcial)
-            $cuenta = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
-                ->whereIn('estado', ['pendiente', 'parcial'])
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            // Si no existe (ej. cirugía creada antes del fix), crearla
-            if (!$cuenta) {
-                $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
-                    $cita->ci_paciente,
-                    'quirofano'
-                );
-            }
-
             // Costo final de la cirugía basado en duración real
             $costoCirugia = (float) $cita->costo_base + $costoExtra;
 
-            // Buscar el detalle de cirugía ya creado al programar (origen = esta CitaQuirurgica)
-            $detalleCirugia = $cuenta->detalles()
-                ->where('tipo_item', 'procedimiento')
+            // Buscar el detalle de cirugía en CUALQUIER cuenta del paciente (no solo la más reciente).
+            // Buscar por cuenta scoped causaba doble cargo cuando una nueva cuenta pendiente
+            // era creada por otro módulo entre la programación y la ejecución.
+            $detalleCirugia = \App\Models\CuentaCobroDetalle::where('tipo_item', 'procedimiento')
                 ->where('origen_type', CitaQuirurgica::class)
                 ->where('origen_id', (string) $cita->id)
                 ->first();
 
             if ($detalleCirugia) {
-                // Actualizar el detalle existente con el costo final calculado
+                // Reutilizar la cuenta donde vive el detalle y actualizar con el costo real
+                $cuenta = $detalleCirugia->cuentaCobro;
                 $detalleCirugia->descripcion    = 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min';
                 $detalleCirugia->precio_unitario = $costoCirugia;
                 $detalleCirugia->subtotal        = $costoCirugia;
                 $detalleCirugia->save();
             } else {
-                // No existe detalle previo: agregar uno nuevo (ej. cirugía sin pre-programación)
-                $cuenta->detalles()->create([
-                    'tipo_item'       => 'procedimiento',
-                    'descripcion'     => 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min',
-                    'cantidad'        => 1,
-                    'precio_unitario' => $costoCirugia,
-                    'subtotal'        => $costoCirugia,
-                    'area_origen'     => 'quirofano',
-                    'origen_type'     => CitaQuirurgica::class,
-                    'origen_id'       => (string) $cita->id,
-                ]);
+                // No existe detalle previo (cirugía de emergencia sin pre-programación):
+                // obtener/crear cuenta maestra y usar agregarCargoConDeduplicacion para seguridad
+                $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
+                    $cita->ci_paciente,
+                    'quirofano'
+                );
+                \App\Services\CuentaCobroService::agregarCargoConDeduplicacion(
+                    $cuenta->id,
+                    'procedimiento',
+                    'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min',
+                    $costoCirugia,
+                    1,
+                    'quirofano',
+                    CitaQuirurgica::class,
+                    (string) $cita->id
+                );
+                $cuenta->refresh();
             }
 
             // Procesar medicamentos recibidos desde el formulario
