@@ -141,6 +141,7 @@ class CamillaUsoController extends Controller
             'cantidad'        => $horas,
             'precio_unitario' => $camilla->precio_por_hora,
             'area_origen'     => 'emergencia',
+            'user_id'         => auth()->id(),
         ]);
 
         $uso = CamillaUso::create([
@@ -161,6 +162,6 @@ class CamillaUsoController extends Controller
         $cuenta->recalcularTotales();
 
         return redirect()->route('emergency-staff.camillas.index')
-            ->with('success', "Uso de camilla registrado. Costo: Bs. " . number_format($costo, 2));
+            ->with('success', 'Uso de camilla registrado correctamente.');
     }
 }

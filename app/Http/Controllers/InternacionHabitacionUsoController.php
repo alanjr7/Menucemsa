@@ -120,7 +120,8 @@ class InternacionHabitacionUsoController extends Controller
         );
 
         $descripcion = 'Estadía — Habitación ' . $cama->habitacion->id . ', Cama ' . $cama->nro
-            . ($cama->tipo ? ' (' . $cama->tipo . ')' : '');
+            . ($cama->tipo ? ' (' . $cama->tipo . ')' : '')
+            . ' — ' . $horas . ' hrs';
 
         CuentaCobroService::agregarCargo(
             $cuenta->id,
@@ -136,7 +137,7 @@ class InternacionHabitacionUsoController extends Controller
         );
 
         return redirect()->route('internacion-staff.habitaciones.registro-uso')
-            ->with('success', "Estadía registrada: {$dias} día(s) × Bs. " . number_format($precio, 2) . " = Bs. " . number_format($costo, 2));
+            ->with('success', "Estadía registrada: {$dias} día(s)");
     }
 
     private function determinarTipoIngreso(Paciente $paciente): string

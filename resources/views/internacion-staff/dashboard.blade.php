@@ -59,25 +59,7 @@ $hasPermission = function($permission) use ($userPermissions) {
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">Pacientes Activos</span>
-            <span class="text-3xl font-bold text-blue-600" id="stat-activos">0</span>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">En Espera</span>
-            <span class="text-3xl font-bold text-yellow-600" id="stat-espera">0</span>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">En Atención</span>
-            <span class="text-3xl font-bold text-green-600" id="stat-atencion">0</span>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">Hoy Ingresados</span>
-            <span class="text-3xl font-bold text-indigo-600" id="stat-hoy">0</span>
-        </div>
-    </div>
+   
 
     <!-- Historial de Operaciones -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
@@ -103,6 +85,7 @@ $hasPermission = function($permission) use ($userPermissions) {
                     'paciente' => $ev->paciente?->nombre ?? '—',
                     'detalle' => 'Realizó evaluación',
                     'hora' => $ev->created_at->setTimezone('America/La_Paz')->format('H:i'),
+                    'fecha_raw' => $ev->created_at,
                 ]);
             }
 
@@ -114,10 +97,11 @@ $hasPermission = function($permission) use ($userPermissions) {
                     'paciente' => $h->cuentaCobro?->paciente?->nombre ?? '—',
                     'detalle' => 'Registró ' . $h->descripcion,
                     'hora' => $h->created_at->setTimezone('America/La_Paz')->format('H:i'),
+                    'fecha_raw' => $h->created_at,
                 ]);
             }
 
-            $operaciones = $operaciones->sortBy('fecha')->values();
+            $operaciones = $operaciones->sortByDesc('fecha')->values();
         @endphp
 
         @if($operaciones->isEmpty())
@@ -139,7 +123,8 @@ $hasPermission = function($permission) use ($userPermissions) {
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm text-gray-800">
-                                <span class="font-semibold">{{ $op['hora'] }}</span> -
+                                <span class="font-semibold">{{ $op['hora'] }}</span>
+                                <span class="text-xs text-gray-500">({{ $op['fecha_raw']->diffForHumans() }})</span> -
                                 <span class="font-medium">{{ $op['usuario'] }}</span>
                                 {{ $op['detalle'] }} a
                                 <span class="font-medium">{{ $op['paciente'] }}</span>

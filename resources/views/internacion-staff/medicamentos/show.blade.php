@@ -23,6 +23,6 @@
             @endforelse
         </tbody>
     </table>
-    <div class="mt-6"><a href="{{ route('emergency-staff.medicamentos.index') }}" class="bg-gray-500 text-white px-6 py-2 rounded">Volver</a></div>
+    <div class="mt-6"><a href="{{ route('internacion-staff.medicamentos.index') }}" class="bg-gray-500 text-white px-6 py-2 rounded">Volver</a></div>
 </div>
 @endsection
