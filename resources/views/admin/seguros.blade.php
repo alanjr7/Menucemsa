@@ -72,7 +72,7 @@
         <div class="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden mb-8">
             <div class="p-8 border-b border-slate-50 flex justify-between items-center">
                 <h3 class="font-bold text-slate-800 text-lg">Preautorizaciones</h3>
-                <span class="text-sm text-slate-500">{{ count($preautorizaciones) }} registros</span>
+                <span class="text-sm text-slate-500" id="conteoRegistros">{{ count($preautorizaciones) }} registros</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left" id="tablaPreautorizaciones">
@@ -88,9 +88,10 @@
                             <th class="px-10 py-5 text-right">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="text-[14px] divide-y divide-slate-50">
+                    <tbody class="text-[14px] divide-y divide-slate-50" id="cuerpoTabla">
                         @forelse($preautorizaciones as $pre)
-                            <tr class="hover:bg-slate-50/50 transition-all pre-row" data-estado="{{ $pre['estado'] }}">
+                            <tr class="hover:bg-slate-50/50 transition-all pre-row" data-estado="{{ $pre['estado'] }}"
+                                data-search="{{ strtolower($pre['numero'] . ' ' . $pre['fecha'] . ' ' . $pre['paciente'] . ' ' . $pre['seguro'] . ' ' . $pre['servicio'] . ' ' . $pre['estado_label']) }}">
                                 <td class="px-10 py-6 font-bold text-slate-800">{{ $pre['numero'] }}</td>
                                 <td class="px-10 py-6 text-slate-500">{{ $pre['fecha'] }}</td>
                                 <td class="px-10 py-6 text-slate-600 font-medium">{{ $pre['paciente'] }}</td>
@@ -123,6 +124,13 @@
                     </tbody>
                 </table>
             </div>
+            <!-- Paginación -->
+            <div class="p-6 border-t border-slate-50 flex items-center justify-between">
+                <div class="flex gap-2" id="paginationButtons">
+                    <!-- Los botones se generarán con JavaScript -->
+                </div>
+                <span class="text-sm text-slate-500" id="infoFiltro">Mostrando todos los registros</span>
+            </div>
         </div>
 
         <!-- Convenios Activos / Filtro de Seguros -->
@@ -145,7 +153,8 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="gridSeguros">
                 @forelse($seguros as $seguro)
                     <div class="seguro-card p-6 rounded-[20px] border border-slate-100 bg-white hover:shadow-md transition-all relative group"
-                        data-estado="{{ $seguro->estado }}">
+                        data-estado="{{ $seguro->estado }}"
+                        data-search="{{ strtolower($seguro->nombre_empresa . ' ' . $seguro->tipo . ' ' . $seguro->estado) }}">
                         <div class="flex justify-between items-start mb-4">
                             <div>
                                 <div class="flex items-center gap-2">
@@ -204,6 +213,10 @@
                             class="text-blue-600 font-bold">Crear uno</button>
                     </div>
                 @endforelse
+            </div>
+            <div class="mt-6 flex items-center justify-between gap-4 flex-wrap">
+                <span class="text-sm text-slate-500" id="infoSeguros"></span>
+                <div class="flex gap-2 flex-wrap" id="paginationSegurosButtons"></div>
             </div>
         </div>
 
@@ -352,27 +365,21 @@
 
     <script>
         let seguroEditando = null;
+        const PREAUTORIZACIONES_POR_PAGINA = 15;
+        const SEGUROS_POR_PAGINA = 9;
+        let paginaPreautorizaciones = 1;
+        let paginaSeguros = 1;
+        let filtroSegurosEstado = 'activo';
 
         // --- FILTRADO DE TABLA PREAUTORIZACIONES EN TIEMPO REAL ---
         function filtrarPreautorizaciones() {
-            const input = document.getElementById('buscarPreautorizacion');
-            const filtro = input.value.toLowerCase().trim();
-            const filas = document.querySelectorAll('#tablaPreautorizaciones tbody tr.pre-row');
-
-            filas.forEach(fila => {
-                // Obtenemos el texto de todas las columnas relevantes
-                const textoFila = fila.textContent.toLowerCase();
-
-                // Si el filtro está vacío o el texto está contenido en la fila, la mostramos
-                if (filtro === "" || textoFila.includes(filtro)) {
-                    fila.style.display = "";
-                } else {
-                    fila.style.display = "none";
-                }
-            });
+            paginaPreautorizaciones = 1;
+            renderPreautorizaciones();
         }
         // NUEVO: Filtrado de seguros por estado (Activo/Inactivo)
         function filtrarSegurosPorEstado(estado) {
+            filtroSegurosEstado = estado;
+            paginaSeguros = 1;
             const btnActivos = document.getElementById('btn-seg-activos');
             const btnInactivos = document.getElementById('btn-seg-inactivos');
 
@@ -386,10 +393,7 @@
                 btnActivos.className = 'px-6 py-2 text-xs font-bold rounded-lg transition-all text-slate-400';
             }
 
-            const cards = document.querySelectorAll('.seguro-card');
-            cards.forEach(card => {
-                card.style.display = card.getAttribute('data-estado') === estado ? 'block' : 'none';
-            });
+            renderSeguros();
         }
 
         // NUEVO: Cambiar estado (Activo/Inactivo) mediante AJAX
@@ -422,7 +426,86 @@
         // Al cargar, mostramos solo activos por defecto
         document.addEventListener('DOMContentLoaded', () => {
             filtrarSegurosPorEstado('activo');
+            renderPreautorizaciones();
         });
+
+        function renderPreautorizaciones() {
+            const filtro = document.getElementById('buscarPreautorizacion').value.toLowerCase().trim();
+            const filas = Array.from(document.querySelectorAll('#tablaPreautorizaciones tbody tr.pre-row'));
+            const visibles = filas.filter(fila => (fila.dataset.search || fila.textContent.toLowerCase()).includes(filtro));
+            const total = visibles.length;
+            const totalPaginas = Math.max(1, Math.ceil(total / PREAUTORIZACIONES_POR_PAGINA));
+            paginaPreautorizaciones = Math.min(paginaPreautorizaciones, totalPaginas);
+            const inicio = (paginaPreautorizaciones - 1) * PREAUTORIZACIONES_POR_PAGINA;
+            const fin = inicio + PREAUTORIZACIONES_POR_PAGINA;
+
+            filas.forEach(fila => fila.style.display = 'none');
+            visibles.slice(inicio, fin).forEach(fila => fila.style.display = '');
+
+            const conteo = document.getElementById('conteoRegistros');
+            if (conteo) conteo.textContent = `${total} registros`;
+            const info = document.getElementById('infoFiltro');
+            if (info) {
+                info.textContent = total
+                    ? `Mostrando ${inicio + 1}-${Math.min(fin, total)} de ${total} registros`
+                    : 'No hay registros';
+            }
+
+            renderPaginationButtons('paginationButtons', totalPaginas, paginaPreautorizaciones, (pagina) => {
+                paginaPreautorizaciones = pagina;
+                renderPreautorizaciones();
+            });
+        }
+
+        function renderSeguros() {
+            const cards = Array.from(document.querySelectorAll('.seguro-card'));
+            const visibles = cards.filter(card => card.dataset.estado === filtroSegurosEstado);
+            const total = visibles.length;
+            const totalPaginas = Math.max(1, Math.ceil(total / SEGUROS_POR_PAGINA));
+            paginaSeguros = Math.min(paginaSeguros, totalPaginas);
+            const inicio = (paginaSeguros - 1) * SEGUROS_POR_PAGINA;
+            const fin = inicio + SEGUROS_POR_PAGINA;
+
+            cards.forEach(card => card.style.display = 'none');
+            visibles.slice(inicio, fin).forEach(card => card.style.display = 'block');
+
+            const info = document.getElementById('infoSeguros');
+            if (info) {
+                info.textContent = total
+                    ? `Mostrando ${inicio + 1}-${Math.min(fin, total)} de ${total} convenios ${filtroSegurosEstado}`
+                    : 'No hay convenios para mostrar';
+            }
+
+            renderPaginationButtons('paginationSegurosButtons', totalPaginas, paginaSeguros, (pagina) => {
+                paginaSeguros = pagina;
+                renderSeguros();
+            });
+        }
+
+        function renderPaginationButtons(containerId, totalPaginas, paginaActual, onClick) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            if (totalPaginas <= 1) return;
+
+            const addButton = (label, page, disabled = false, active = false) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = label;
+                button.className = active
+                    ? 'px-3 py-2 rounded-lg bg-[#0061df] text-white text-sm font-bold'
+                    : 'px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50';
+                button.disabled = disabled;
+                if (!disabled) button.addEventListener('click', () => onClick(page));
+                container.appendChild(button);
+            };
+
+            addButton('‹', Math.max(1, paginaActual - 1), paginaActual === 1);
+            for (let i = 1; i <= totalPaginas; i++) {
+                addButton(String(i), i, false, i === paginaActual);
+            }
+            addButton('›', Math.min(totalPaginas, paginaActual + 1), paginaActual === totalPaginas);
+        }
 
         function abrirModalNuevoSeguro() {
             seguroEditando = null;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\HistorialSegurosExport;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Seguro;
@@ -9,6 +10,7 @@ use App\Models\Paciente;
 use App\Models\CuentaCobro;
 use App\Models\Emergency;
 use Illuminate\Http\JsonResponse;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SeguroController extends Controller
 {
@@ -404,7 +406,7 @@ class SeguroController extends Controller
             $query->where('seguro_estado', $request->estado);
         }
 
-        $historial = $query->orderBy('created_at', 'desc')->paginate(50);
+        $historial = $query->orderBy('created_at', 'desc')->paginate(15);
 
         // Calcular estadísticas
         $stats = [
@@ -431,6 +433,14 @@ class SeguroController extends Controller
         return view('admin.seguros-historial', compact('historial', 'stats', 'seguros'));
     }
 
+    public function exportarExcel(Request $request)
+    {
+        $filtros = $request->only(['fecha_inicio', 'fecha_fin', 'paciente', 'seguro_id', 'estado']);
+        $nombreArchivo = 'historial_seguros_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        // Ahora Excel::download funcionará porque viene del Facade
+        return Excel::download(new \App\Exports\HistorialSegurosExport($filtros), $nombreArchivo);
+    }
     /**
      * Exportar historial de seguros a Excel
      */
