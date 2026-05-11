@@ -67,6 +67,7 @@ class MenuSeeder extends Seeder
         $panelEnfermeria->children()->createMany([
             ['name' => 'Panel Principal', 'route' => 'emergency-staff.dashboard', 'roles' => 'enfermera-emergencia', 'order' => 1],
             ['name' => 'Camillas', 'route' => 'emergency-staff.camillas.index', 'roles' => 'enfermera-emergencia', 'order' => 2],
+            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'enfermera-emergencia', 'order' => 2],
         ]);
 
         // 3.5 Panel Enfermería Internación (Con Submenús)
@@ -80,10 +81,11 @@ class MenuSeeder extends Seeder
         ]);
 
         $panelEnfermeriaInt->children()->createMany([
-            ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'enfermera-internacion', 'order' => 1],
-            ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'enfermera-internacion', 'order' => 2],
-            ['name' => 'Catering', 'route' => 'internacion-staff.catering.index', 'roles' => 'enfermera-internacion', 'order' => 3],
-        ]);
+          ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'enfermera-internacion', 'order' => 1],
+            ['name' => 'Registrar Habitación', 'route' => 'internacion-staff.habitaciones.registro-uso', 'roles' => 'enfermera-internacion', 'order' => 2],
+            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'enfermera-internacion', 'order' => 3],
+            ['name' => 'Catering', 'route' => 'internacion-staff.catering.index', 'roles' => 'enfermera-internacion', 'order' => 5],
+            ]);
 
         // 3.7 Panel UTI - Terapia Intensiva (Con Submenús)
         $panelUti = Menu::create([
@@ -132,10 +134,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => null, 'order' => 1],
             ['name' => 'Gestionar Pacientes', 'route' => 'admin.pacientes.gestionar', 'roles' => 'admin,administrador', 'order' => 2],
             ['name' => 'Dar de Alta', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 3],
-           // ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 3],
-          //  ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 5],
-            //['name' => 'Consulta Externa', 'route' => 'consulta.index', 'roles' => 'doctor', 'order' => 6],
-            ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
+           ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
         ]);
 
         // 6. Caja Operativa

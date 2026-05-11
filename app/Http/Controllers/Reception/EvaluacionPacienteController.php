@@ -180,7 +180,7 @@ class EvaluacionPacienteController extends Controller
 
                 $tipoItem = match ($tipo) {
                     'medicamento' => 'medicamento',
-                    'insumo'      => 'insumo',
+                    'insumo'      => 'material',
                     default       => 'procedimiento',
                 };
 

@@ -4,19 +4,19 @@
 <div class="min-h-screen bg-slate-50" x-data="evaluacion('{{ $area }}', '{{ route('evaluacion.store', $paciente->ci) }}')">
 
     {{-- Encabezado --}}
-    <div class="bg-white border-b border-slate-200 px-8 py-6">
+    <div class="bg-white border-b border-slate-600 px-8 py-6">
         <div class="max-w-4xl mx-auto flex items-start justify-between gap-6">
             <div>
                 <div class="flex items-center gap-3 mb-1">
-                    <span class="inline-block px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200">
+                    <span class="inline-block px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-widest bg-slate-100 text-slate-800 border border-slate-600">
                         {{ $area }}
                     </span>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900 leading-tight">{{ $paciente->nombre }}</h1>
-                <p class="mt-1 text-base text-slate-500">C.I. {{ $paciente->ci }}</p>
+                <p class="mt-1 text-base text-slate-900">C.I. {{ $paciente->ci }}</p>
             </div>
             <a href="{{ route('patients.index') }}"
-               class="shrink-0 px-5 py-2.5 border-2 border-slate-300 rounded-lg text-base font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+               class="shrink-0 px-5 py-2.5 border-2 border-slate-300 rounded-lg text-base font-medium text-slate-800 hover:bg-slate-50 transition-colors">
                 Cancelar
             </a>
         </div>
@@ -26,84 +26,84 @@
         @csrf
 
         {{-- Signos Vitales --}}
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Signos Vitales</h2>
             </div>
             <div class="px-6 py-5">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Presión Arterial</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Presión Arterial</label>
                         <div class="relative">
                             <input type="text" x-model="sv.presion_arterial" placeholder="120/80"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-14">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">mmHg</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-14">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">mmHg</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Frecuencia Cardíaca</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Frecuencia Cardíaca</label>
                         <div class="relative">
                             <input type="text" x-model="sv.frecuencia_cardiaca" placeholder="80"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-10">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">lpm</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-10">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">lpm</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Frecuencia Respiratoria</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Frecuencia Respiratoria</label>
                         <div class="relative">
                             <input type="text" x-model="sv.frecuencia_respiratoria" placeholder="16"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-10">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">rpm</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-10">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">rpm</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Temperatura</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Temperatura</label>
                         <div class="relative">
                             <input type="text" x-model="sv.temperatura" placeholder="37.0"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">°C</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">°C</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Saturación O₂</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Saturación O₂</label>
                         <div class="relative">
                             <input type="text" x-model="sv.saturacion_o2" placeholder="98"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">%</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Glucosa</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Glucosa</label>
                         <div class="relative">
                             <input type="text" x-model="sv.glucosa" placeholder="100"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-14">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">mg/dL</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-14">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">mg/dL</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Peso</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Peso</label>
                         <div class="relative">
                             <input type="number" x-model.number="sv.peso" placeholder="70.5" step="0.1" min="0" max="500"
                                 @input="calcularIMC()"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">kg</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">kg</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Altura</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">Altura</label>
                         <div class="relative">
                             <input type="number" x-model.number="sv.altura" placeholder="170" step="0.1" min="0" max="300"
                                 @input="calcularIMC()"
-                                class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">cm</span>
+                                class="w-full border border-slate-500 rounded-lg px-4 py-2.5 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 pr-8">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">cm</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">IMC</label>
+                        <label class="block text-sm font-medium text-slate-800 mb-1">IMC</label>
                         <div class="relative">
                             <input type="number" x-model="sv.imc" placeholder="24.3" step="0.01" readonly
-                                class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-base text-slate-700 bg-slate-50 focus:outline-none pr-14">
-                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">kg/m²</span>
+                                class="w-full border border-slate-600 rounded-lg px-4 py-2.5 text-base text-slate-900 bg-slate-50 focus:outline-none pr-14">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-700">kg/m²</span>
                         </div>
                     </div>
                 </div>
@@ -111,8 +111,8 @@
         </div>
 
         {{-- Medicamentos --}}
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Medicamentos</h2>
             </div>
             <div class="px-6 py-5">
@@ -120,44 +120,44 @@
                     <input type="text" x-model="medQ" @input.debounce.300ms="buscar('medicamento')"
                         @focus="medOpen=true" @click.outside="medOpen=false"
                         placeholder="Buscar medicamento por nombre..."
-                        class="w-full border border-slate-300 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
+                        class="w-full border border-slate-500 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
                     <ul x-show="medOpen && medResultados.length" x-cloak
-                        class="absolute z-20 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
+                        class="absolute z-20 bg-white border border-slate-600 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
                         <template x-for="item in medResultados" :key="item.id">
                             <li @click="agregar('medicamento', item)"
-                                class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-100 last:border-0">
+                                class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-400 last:border-0">
                                 <span class="font-medium text-slate-900" x-text="item.nombre"></span>
-                                <span class="text-slate-500 text-sm ml-4 shrink-0" x-text="'Stock: ' + item.cantidad_actual + ' ' + item.unidad_medida"></span>
+                                <span class="text-slate-900 text-sm ml-4 shrink-0" x-text="'Stock: ' + item.cantidad_actual + ' ' + item.unidad_medida"></span>
                             </li>
                         </template>
                     </ul>
                 </div>
 
                 <template x-if="medicamentos.length === 0">
-                    <p class="text-base text-slate-400 py-2">Sin medicamentos agregados.</p>
+                    <p class="text-base text-slate-700 py-2">Sin medicamentos agregados.</p>
                 </template>
                 <table x-show="medicamentos.length > 0" class="w-full">
                     <thead>
-                        <tr class="border-b-2 border-slate-200">
-                            <th class="pb-3 text-left text-sm font-semibold text-slate-500 uppercase tracking-wide">Medicamento</th>
-                            <th class="pb-3 text-center text-sm font-semibold text-slate-500 uppercase tracking-wide w-36">Cantidad</th>
-                            <th class="pb-3 text-center text-sm font-semibold text-slate-500 uppercase tracking-wide w-32">Stock</th>
+                        <tr class="border-b-2 border-slate-800">
+                            <th class="pb-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Medicamento</th>
+                            <th class="pb-3 text-center text-sm font-semibold text-slate-900 uppercase tracking-wide w-36">Cantidad</th>
+                            <th class="pb-3 text-center text-sm font-semibold text-slate-900 uppercase tracking-wide w-32">Stock</th>
                             <th class="pb-3 w-12"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(item, i) in medicamentos" :key="item.id">
-                            <tr class="border-b border-slate-100 last:border-0">
+                            <tr class="border-b border-slate-400 last:border-0">
                                 <td class="py-3 text-base text-slate-900 font-medium" x-text="item.nombre"></td>
                                 <td class="py-3 text-center">
                                     <input type="number" x-model.number="item.cantidad" :max="item.cantidad_actual" min="1"
                                         @change="if(item.cantidad > item.cantidad_actual) item.cantidad = item.cantidad_actual"
-                                        class="w-24 border border-slate-300 rounded-lg px-3 py-2 text-center text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                        class="w-24 border border-slate-500 rounded-lg px-3 py-2 text-center text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400">
                                 </td>
-                                <td class="py-3 text-center text-base text-slate-500" x-text="item.cantidad_actual + ' ' + item.unidad_medida"></td>
+                                <td class="py-3 text-center text-base text-slate-900" x-text="item.cantidad_actual + ' ' + item.unidad_medida"></td>
                                 <td class="py-3 text-center">
                                     <button type="button" @click="medicamentos.splice(i,1)"
-                                        class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-xl font-light mx-auto">
+                                        class="w-8 h-8 flex items-center justify-center rounded-md text-slate-700 hover:text-red-600 hover:bg-red-50 transition-colors text-xl font-light mx-auto">
                                         &times;
                                     </button>
                                 </td>
@@ -169,8 +169,8 @@
         </div>
 
         {{-- Insumos --}}
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Insumos</h2>
             </div>
             <div class="px-6 py-5">
@@ -178,44 +178,44 @@
                     <input type="text" x-model="insQ" @input.debounce.300ms="buscar('insumo')"
                         @focus="insOpen=true" @click.outside="insOpen=false"
                         placeholder="Buscar insumo por nombre..."
-                        class="w-full border border-slate-300 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
+                        class="w-full border border-slate-500 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
                     <ul x-show="insOpen && insResultados.length" x-cloak
-                        class="absolute z-20 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
+                        class="absolute z-20 bg-white border border-slate-600 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
                         <template x-for="item in insResultados" :key="item.id">
                             <li @click="agregar('insumo', item)"
-                                class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-100 last:border-0">
+                                class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-400 last:border-0">
                                 <span class="font-medium text-slate-900" x-text="item.nombre"></span>
-                                <span class="text-slate-500 text-sm ml-4 shrink-0" x-text="'Stock: ' + item.cantidad_actual + ' ' + item.unidad_medida"></span>
+                                <span class="text-slate-900 text-sm ml-4 shrink-0" x-text="'Stock: ' + item.cantidad_actual + ' ' + item.unidad_medida"></span>
                             </li>
                         </template>
                     </ul>
                 </div>
 
                 <template x-if="insumos.length === 0">
-                    <p class="text-base text-slate-400 py-2">Sin insumos agregados.</p>
+                    <p class="text-base text-slate-700 py-2">Sin insumos agregados.</p>
                 </template>
                 <table x-show="insumos.length > 0" class="w-full">
                     <thead>
-                        <tr class="border-b-2 border-slate-200">
-                            <th class="pb-3 text-left text-sm font-semibold text-slate-500 uppercase tracking-wide">Insumo</th>
-                            <th class="pb-3 text-center text-sm font-semibold text-slate-500 uppercase tracking-wide w-36">Cantidad</th>
-                            <th class="pb-3 text-center text-sm font-semibold text-slate-500 uppercase tracking-wide w-32">Stock</th>
+                        <tr class="border-b-2 border-slate-800">
+                            <th class="pb-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Insumo</th>
+                            <th class="pb-3 text-center text-sm font-semibold text-slate-900 uppercase tracking-wide w-36">Cantidad</th>
+                            <th class="pb-3 text-center text-sm font-semibold text-slate-900 uppercase tracking-wide w-32">Stock</th>
                             <th class="pb-3 w-12"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(item, i) in insumos" :key="item.id">
-                            <tr class="border-b border-slate-100 last:border-0">
+                            <tr class="border-b border-slate-400 last:border-0">
                                 <td class="py-3 text-base text-slate-900 font-medium" x-text="item.nombre"></td>
                                 <td class="py-3 text-center">
                                     <input type="number" x-model.number="item.cantidad" :max="item.cantidad_actual" min="1"
                                         @change="if(item.cantidad > item.cantidad_actual) item.cantidad = item.cantidad_actual"
-                                        class="w-24 border border-slate-300 rounded-lg px-3 py-2 text-center text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                        class="w-24 border border-slate-500 rounded-lg px-3 py-2 text-center text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400">
                                 </td>
-                                <td class="py-3 text-center text-base text-slate-500" x-text="item.cantidad_actual + ' ' + item.unidad_medida"></td>
+                                <td class="py-3 text-center text-base text-slate-900" x-text="item.cantidad_actual + ' ' + item.unidad_medida"></td>
                                 <td class="py-3 text-center">
                                     <button type="button" @click="insumos.splice(i,1)"
-                                        class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-xl font-light mx-auto">
+                                        class="w-8 h-8 flex items-center justify-center rounded-md text-slate-700 hover:text-red-600 hover:bg-red-50 transition-colors text-xl font-light mx-auto">
                                         &times;
                                     </button>
                                 </td>
@@ -227,8 +227,8 @@
         </div>
 
         {{-- Procedimientos --}}
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Procedimientos</h2>
             </div>
             <div class="px-6 py-5">
@@ -236,43 +236,40 @@
                     <input type="text" x-model="procQ" @input.debounce.300ms="buscar('procedimiento')"
                         @focus="procOpen=true" @click.outside="procOpen=false"
                         placeholder="Buscar procedimiento..."
-                        class="w-full border border-slate-300 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
+                        class="w-full border border-slate-500 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
                     <ul x-show="procOpen && procResultados.length" x-cloak
-                        class="absolute z-20 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
+                        class="absolute z-20 bg-white border border-slate-600 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
                         <template x-for="item in procResultados" :key="item.id">
                             <li @click="agregar('procedimiento', item)"
-                                class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-100 last:border-0">
+                                class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer border-b border-slate-400 last:border-0">
                                 <span class="font-medium text-slate-900" x-text="item.nombre"></span>
-                                <span class="text-slate-500 text-sm ml-4 shrink-0" x-text="'Bs. ' + item.precio"></span>
                             </li>
                         </template>
                     </ul>
                 </div>
 
                 <template x-if="procedimientos.length === 0">
-                    <p class="text-base text-slate-400 py-2">Sin procedimientos agregados.</p>
+                    <p class="text-base text-slate-700 py-2">Sin procedimientos agregados.</p>
                 </template>
                 <table x-show="procedimientos.length > 0" class="w-full">
                     <thead>
-                        <tr class="border-b-2 border-slate-200">
-                            <th class="pb-3 text-left text-sm font-semibold text-slate-500 uppercase tracking-wide">Procedimiento</th>
-                            <th class="pb-3 text-center text-sm font-semibold text-slate-500 uppercase tracking-wide w-36">Cantidad</th>
-                            <th class="pb-3 text-right text-sm font-semibold text-slate-500 uppercase tracking-wide w-36">Precio unit.</th>
+                        <tr class="border-b-2 border-slate-800">
+                            <th class="pb-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Procedimiento</th>
+                            <th class="pb-3 text-center text-sm font-semibold text-slate-900 uppercase tracking-wide w-36">Cantidad</th>
                             <th class="pb-3 w-12"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(item, i) in procedimientos" :key="item.id">
-                            <tr class="border-b border-slate-100 last:border-0">
+                            <tr class="border-b border-slate-400 last:border-0">
                                 <td class="py-3 text-base text-slate-900 font-medium" x-text="item.nombre"></td>
                                 <td class="py-3 text-center">
                                     <input type="number" x-model.number="item.cantidad" min="1"
-                                        class="w-24 border border-slate-300 rounded-lg px-3 py-2 text-center text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                        class="w-24 border border-slate-500 rounded-lg px-3 py-2 text-center text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400">
                                 </td>
-                                <td class="py-3 text-right text-base text-slate-700 font-medium" x-text="'Bs. ' + parseFloat(item.precio).toFixed(2)"></td>
                                 <td class="py-3 text-center">
                                     <button type="button" @click="procedimientos.splice(i,1)"
-                                        class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-xl font-light mx-auto">
+                                        class="w-8 h-8 flex items-center justify-center rounded-md text-slate-700 hover:text-red-600 hover:bg-red-50 transition-colors text-xl font-light mx-auto">
                                         &times;
                                     </button>
                                 </td>
@@ -284,20 +281,20 @@
         </div>
 
         {{-- Observaciones --}}
-        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Observaciones clínicas</h2>
             </div>
             <div class="px-6 py-5">
                 <textarea x-model="observaciones" rows="4"
                     placeholder="Ingrese observaciones clínicas del paciente..."
-                    class="w-full border border-slate-300 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"></textarea>
+                    class="w-full border border-slate-500 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"></textarea>
             </div>
         </div>
 
         {{-- Error --}}
         <div x-show="error" x-cloak
-            class="border border-red-200 bg-red-50 text-red-700 rounded-lg px-5 py-4 text-base"
+            class="border border-red-400 bg-red-50 text-red-700 rounded-lg px-5 py-4 text-base"
             x-text="error">
         </div>
 
@@ -308,7 +305,7 @@
                 <span x-text="saving ? 'Guardando...' : 'Guardar evaluación'"></span>
             </button>
             <a href="{{ route('patients.index') }}"
-               class="px-6 py-3 text-base text-slate-600 hover:text-slate-900 transition-colors">
+               class="px-6 py-3 text-base text-slate-800 hover:text-slate-900 transition-colors">
                 Cancelar
             </a>
         </div>

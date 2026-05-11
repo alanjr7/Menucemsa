@@ -53,7 +53,7 @@ class AlmacenMedicamentosController extends Controller
             });
         }
 
-        $catalogo = $query->activos()->orderBy('nombre')->paginate(20);
+        $catalogo = $query->activos()->orderBy('nombre')->paginate(10);
 
         // Calcular estado_stock para filtro DESPUÉS de paginar (aplica en colección)
         if ($request->filled('estado_stock')) {
@@ -158,9 +158,7 @@ class AlmacenMedicamentosController extends Controller
             'central' => 'Central',
             'emergencia' => 'Emergencia',
             'cirugia' => 'Cirugía',
-            'hospitalizacion' => 'Hospitalización',
             'uti' => 'UTI',
-            'usi' => 'USI',
             'neonato' => 'Neonato',
             'internacion' => 'Internación',
         ];

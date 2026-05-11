@@ -40,7 +40,6 @@
                             <td class="px-4 py-3">Bs. {{ $lote->precio_venta }}</td>
                             <td class="px-4 py-3">{{ $lote->fecha_vencimiento ? $lote->fecha_vencimiento->format('d/m') : 'S/F' }}</td>
                             <td class="px-4 py-3">
-                                <a href="{{ route('quirofano.medicamentos.edit', $med) }}" class="text-green-500">Editar</a> |
                                 <a href="{{ route('quirofano.medicamentos.show', $med) }}" class="text-blue-500">Ver</a>
                             </td>
                         </tr>

@@ -17,7 +17,7 @@ class EmergencyMedicamentosController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin|emergencia|administrador');
+        $this->middleware('role:admin|emergencia|administrador|enfermera-emergencia');
     }
 
     public function index(Request $request)

@@ -175,7 +175,7 @@
                                                         <option value="">Seleccionar camilla...</option>
                                                         @foreach($camillas as $camilla)
                                                             <option value="{{ $camilla->id }}">
-                                                                {{ $camilla->nombre }} ({{ $camilla->codigo }}) — Bs. {{ number_format($camilla->precio_por_hora, 2) }}/hr
+                                                                {{ $camilla->nombre }} ({{ $camilla->codigo }})
                                                             </option>
                                                         @endforeach
                                                     </select>
@@ -193,7 +193,6 @@
                                                 <div x-show="horas > 0" class="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-sm">
                                                     <div class="flex justify-between text-blue-800">
                                                         <span>Horas: <strong x-text="horas"></strong></span>
-                                                        <span>Costo estimado: <strong>Bs. <span x-text="costo"></span></strong></span>
                                                     </div>
                                                 </div>
                                             </div>

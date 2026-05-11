@@ -580,8 +580,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/camillas', [\App\Http\Controllers\EmergencyStaff\CamillaUsoController::class, 'index'])->name('camillas.index');
         Route::post('/camillas', [\App\Http\Controllers\EmergencyStaff\CamillaUsoController::class, 'store'])->name('camillas.store');
 
-        // Rutas para gestión de medicamentos de emergencia (admin, emergencia y administrador)
-        Route::middleware(['role:admin|emergencia|administrador'])->group(function () {
+        // Rutas para gestión de medicamentos de emergencia (admin, emergencia, enfermera-emergencia y administrador)
+        Route::middleware(['role:admin|emergencia|enfermera-emergencia|administrador'])->group(function () {
             Route::get('/medicamentos', [EmergencyMedicamentosController::class, 'index'])->name('medicamentos.index');
             Route::get('/medicamentos/create', [EmergencyMedicamentosController::class, 'create'])->name('medicamentos.create');
             Route::post('/medicamentos', [EmergencyMedicamentosController::class, 'store'])->name('medicamentos.store');
@@ -683,8 +683,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/historial-general', [InternacionStaffController::class, 'historialGeneral'])->name('historial-general');
         Route::get('/export-historial', [InternacionStaffController::class, 'exportHistorial'])->name('export-historial');
 
-        // Rutas para gestión de medicamentos de internación (admin, internacion y administrador)
-        Route::middleware(['role:admin|internacion|administrador'])->group(function () {
+        // Rutas para gestión de medicamentos de internación (admin, internacion, administrador y enfermera-internacion)
+        Route::middleware(['role:admin|internacion|administrador|enfermera-internacion'])->group(function () {
             Route::get('/medicamentos', [InternacionMedicamentosController::class, 'index'])->name('medicamentos.index');
             Route::get('/medicamentos/create', [InternacionMedicamentosController::class, 'create'])->name('medicamentos.create');
             Route::post('/medicamentos', [InternacionMedicamentosController::class, 'store'])->name('medicamentos.store');
