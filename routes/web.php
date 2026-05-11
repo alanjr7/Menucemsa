@@ -47,11 +47,26 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\InternacionHabitacionUsoController;
 use App\Http\Controllers\UtiMedicamentosController;
 
+use Illuminate\Support\Facades\Artisan;
 
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+
+Route::get('/admin/system/optimize', function () {
+    try {
+        Artisan::call('optimize:clear');
+
+        Artisan::call('optimize');
+
+        return "<h1>¡Sistema Optimizado!</h1>
+                <p>Se ha refrescado el archivo .env y las rutas correctamente.</p>";
+    } catch (\Exception $e) {
+        return "<h1>Error al optimizar</h1>" . $e->getMessage();
+    }
+})->name('admin.system.optimize');
 
 Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

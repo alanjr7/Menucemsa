@@ -27,9 +27,9 @@ class DatabaseSeeder extends Seeder
             CamillaSeeder::class,
             HabitacionSeeder::class,
             QuirofanoSeeder::class,
-            PacienteSeeder::class,
-            CuentaCobroSeeder::class,
-            ProcedimientosClinicosSeeder::class,
+            // PacienteSeeder::class,
+            // CuentaCobroSeeder::class,
+            // ProcedimientosClinicosSeeder::class,
         ]);
     }
 }
