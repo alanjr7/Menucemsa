@@ -183,72 +183,72 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         });
 
         // Ruta para listado de pacientes en recepción (área clínica excepto caja)
-    Route::middleware(['role:admin|reception|dirmedico|emergencia|uti|internacion|cirujano|doctor|enfermera-emergencia|enfermera-internacion|administrador|farmacia|gerente'])->group(function () {
-        Route::get('/reception/pacientes', [\App\Http\Controllers\ReceptionController::class, 'pacientesIndex'])->name('reception.pacientes.index');
+        Route::middleware(['role:admin|reception|dirmedico|emergencia|uti|internacion|cirujano|doctor|enfermera-emergencia|enfermera-internacion|administrador|farmacia|gerente'])->group(function () {
+            Route::get('/reception/pacientes', [\App\Http\Controllers\ReceptionController::class, 'pacientesIndex'])->name('reception.pacientes.index');
 
-        Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
+            Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
 
-        // Comprobantes (usados por IngresoGeneralController tras procesar ingreso)
-        Route::get('/emergencia/{id}/comprobante', [EmergencyIngresoController::class, 'comprobante'])->name('reception.emergencia.comprobante');
-        Route::get('/hospitalizacion/{id}/comprobante', [ReceptionHospitalizacionController::class, 'comprobante'])->name('reception.hospitalizacion.comprobante');
+            // Comprobantes (usados por IngresoGeneralController tras procesar ingreso)
+            Route::get('/emergencia/{id}/comprobante', [EmergencyIngresoController::class, 'comprobante'])->name('reception.emergencia.comprobante');
+            Route::get('/hospitalizacion/{id}/comprobante', [ReceptionHospitalizacionController::class, 'comprobante'])->name('reception.hospitalizacion.comprobante');
 
-        // Alta y actualización de hospitalización (operaciones post-ingreso)
-        Route::post('/api/hospitalizacion/{id}/alta', [ReceptionHospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
-        Route::put('/api/hospitalizacion/{id}/actualizar', [ReceptionHospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
+            // Alta y actualización de hospitalización (operaciones post-ingreso)
+            Route::post('/api/hospitalizacion/{id}/alta', [ReceptionHospitalizacionController::class, 'darAlta'])->name('reception.dar-alta');
+            Route::put('/api/hospitalizacion/{id}/actualizar', [ReceptionHospitalizacionController::class, 'actualizarDatos'])->name('reception.actualizar-hospitalizacion');
 
-        // Rutas para formulario unificado de ingreso general
-        Route::get('/reception/ingreso-general', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'index'])->name('reception.ingreso-general');
-        Route::get('/reception/ingreso-general/buscar-paciente', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarPaciente'])->name('reception.ingreso-general.buscar-paciente');
-        Route::get('/reception/ingreso-general/buscar-garante', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarGarante'])->name('reception.ingreso-general.buscar-garante');
-        Route::post('/reception/ingreso-general/procesar', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'procesarIngreso'])->name('reception.ingreso-general.procesar');
-        Route::get('/reception/ingreso-general/especialidades', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarEspecialidades'])->name('reception.ingreso-general.especialidades');
-        Route::post('/reception/ingreso-general/especialidades', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearEspecialidad'])->name('reception.ingreso-general.crear-especialidad');
-        Route::get('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarMedicos'])->name('reception.ingreso-general.medicos');
-        Route::post('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearMedico'])->name('reception.ingreso-general.crear-medico');
-        Route::get('/reception/ingreso-general/especialidades-lista', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'getEspecialidadesLista'])->name('reception.ingreso-general.especialidades-lista');
-        Route::get('/reception/ingreso-general/medicos-por-especialidad/{codigo}', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'getMedicosPorEspecialidad'])->name('reception.ingreso-general.medicos-por-especialidad');
+            // Rutas para formulario unificado de ingreso general
+            Route::get('/reception/ingreso-general', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'index'])->name('reception.ingreso-general');
+            Route::get('/reception/ingreso-general/buscar-paciente', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarPaciente'])->name('reception.ingreso-general.buscar-paciente');
+            Route::get('/reception/ingreso-general/buscar-garante', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarGarante'])->name('reception.ingreso-general.buscar-garante');
+            Route::post('/reception/ingreso-general/procesar', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'procesarIngreso'])->name('reception.ingreso-general.procesar');
+            Route::get('/reception/ingreso-general/especialidades', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarEspecialidades'])->name('reception.ingreso-general.especialidades');
+            Route::post('/reception/ingreso-general/especialidades', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearEspecialidad'])->name('reception.ingreso-general.crear-especialidad');
+            Route::get('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'buscarMedicos'])->name('reception.ingreso-general.medicos');
+            Route::post('/reception/ingreso-general/medicos', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'crearMedico'])->name('reception.ingreso-general.crear-medico');
+            Route::get('/reception/ingreso-general/especialidades-lista', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'getEspecialidadesLista'])->name('reception.ingreso-general.especialidades-lista');
+            Route::get('/reception/ingreso-general/medicos-por-especialidad/{codigo}', [\App\Http\Controllers\Reception\IngresoGeneralController::class, 'getMedicosPorEspecialidad'])->name('reception.ingreso-general.medicos-por-especialidad');
 
-        // Rutas API para gestión de citas
-        Route::get('/reception/agenda', function () {
-            return view('reception.agenda');
-        })->name('reception.agenda');
-        Route::get('/reception/citas/{id}/edit', [ReceptionController::class, 'editCita'])->name('reception.citas.edit');
-        Route::put('/reception/citas/{id}', [ReceptionController::class, 'updateCita'])->name('reception.citas.update');
-        Route::get('/api/agenda-dia', [ReceptionController::class, 'getAgendaDia'])->name('reception.agenda-dia');
-        Route::post('/api/nueva-cita', [ReceptionController::class, 'crearNuevaCita'])->name('reception.nueva-cita');
-        Route::post('/api/cita/{id}/confirmar', [ReceptionController::class, 'confirmarCita'])->name('reception.confirmar-cita');
-        Route::post('/api/cita/{id}/registrar-llegada', [ReceptionController::class, 'registrarLlegadaPaciente'])->name('reception.registrar-llegada');
-        Route::post('/api/cita/{id}/cancelar', [ReceptionController::class, 'cancelarCita'])->name('reception.cancelar-cita');
-        Route::delete('/api/cita/{id}', [ReceptionController::class, 'eliminarCita'])->name('reception.eliminar-cita');
-        Route::post('/api/cita/{id}/restaurar', [ReceptionController::class, 'restaurarCita'])->name('reception.restaurar-cita');
-        Route::get('/api/citas-eliminadas', [ReceptionController::class, 'getCitasEliminadas'])->name('reception.citas-eliminadas');
-        Route::post('/api/cita/{id}/asistida', [ReceptionController::class, 'marcarAsistida'])->name('reception.marcar-asistida');
-        Route::get('/api/agenda-semanal', [ReceptionController::class, 'getAgendaSemanal'])->name('reception.agenda-semanal');
-        Route::get('/api/citas/paciente/{ci}', [ReceptionController::class, 'getCitasPorPaciente'])->name('reception.citas-paciente');
+            // Rutas API para gestión de citas
+            Route::get('/reception/agenda', function () {
+                return view('reception.agenda');
+            })->name('reception.agenda');
+            Route::get('/reception/citas/{id}/edit', [ReceptionController::class, 'editCita'])->name('reception.citas.edit');
+            Route::put('/reception/citas/{id}', [ReceptionController::class, 'updateCita'])->name('reception.citas.update');
+            Route::get('/api/agenda-dia', [ReceptionController::class, 'getAgendaDia'])->name('reception.agenda-dia');
+            Route::post('/api/nueva-cita', [ReceptionController::class, 'crearNuevaCita'])->name('reception.nueva-cita');
+            Route::post('/api/cita/{id}/confirmar', [ReceptionController::class, 'confirmarCita'])->name('reception.confirmar-cita');
+            Route::post('/api/cita/{id}/registrar-llegada', [ReceptionController::class, 'registrarLlegadaPaciente'])->name('reception.registrar-llegada');
+            Route::post('/api/cita/{id}/cancelar', [ReceptionController::class, 'cancelarCita'])->name('reception.cancelar-cita');
+            Route::delete('/api/cita/{id}', [ReceptionController::class, 'eliminarCita'])->name('reception.eliminar-cita');
+            Route::post('/api/cita/{id}/restaurar', [ReceptionController::class, 'restaurarCita'])->name('reception.restaurar-cita');
+            Route::get('/api/citas-eliminadas', [ReceptionController::class, 'getCitasEliminadas'])->name('reception.citas-eliminadas');
+            Route::post('/api/cita/{id}/asistida', [ReceptionController::class, 'marcarAsistida'])->name('reception.marcar-asistida');
+            Route::get('/api/agenda-semanal', [ReceptionController::class, 'getAgendaSemanal'])->name('reception.agenda-semanal');
+            Route::get('/api/citas/paciente/{ci}', [ReceptionController::class, 'getCitasPorPaciente'])->name('reception.citas-paciente');
 
-        // Rutas API para gestión de llamadas
-        Route::get('/api/llamadas-pendientes', [ReceptionController::class, 'getPendientesLlamada'])->name('reception.llamadas-pendientes');
-        Route::post('/api/cita/{id}/registrar-llamada', [ReceptionController::class, 'registrarLlamadaCita'])->name('reception.registrar-llamada');
+            // Rutas API para gestión de llamadas
+            Route::get('/api/llamadas-pendientes', [ReceptionController::class, 'getPendientesLlamada'])->name('reception.llamadas-pendientes');
+            Route::post('/api/cita/{id}/registrar-llamada', [ReceptionController::class, 'registrarLlamadaCita'])->name('reception.registrar-llamada');
 
-        // Rutas API para utilidades
-        Route::get('/api/estadisticas-dashboard', [ReceptionController::class, 'getEstadisticasDashboard'])->name('reception.estadisticas');
-        Route::get('/api/medicos-disponibles', [ReceptionController::class, 'buscarMedicosDisponibles'])->name('reception.medicos-disponibles');
-        Route::get('/api/especialidades', [ReceptionController::class, 'getEspecialidades'])->name('reception.especialidades');
+            // Rutas API para utilidades
+            Route::get('/api/estadisticas-dashboard', [ReceptionController::class, 'getEstadisticasDashboard'])->name('reception.estadisticas');
+            Route::get('/api/medicos-disponibles', [ReceptionController::class, 'buscarMedicosDisponibles'])->name('reception.medicos-disponibles');
+            Route::get('/api/especialidades', [ReceptionController::class, 'getEspecialidades'])->name('reception.especialidades');
 
-        // Rutas API para garantes
-        Route::get('/api/buscar-garante', [ReceptionController::class, 'buscarGarante'])->name('reception.buscar-garante');
-        Route::post('/api/buscar-garante-exacto', [ReceptionController::class, 'buscarGaranteExacto'])->name('reception.buscar-garante-exacto');
-        Route::post('/api/registrar-garante', [ReceptionController::class, 'registrarGarante'])->name('reception.registrar-garante');
-        Route::post('/api/registrar-paciente-cita', [ReceptionController::class, 'registrarPacienteParaCita'])->name('reception.registrar-paciente-cita');
+            // Rutas API para garantes
+            Route::get('/api/buscar-garante', [ReceptionController::class, 'buscarGarante'])->name('reception.buscar-garante');
+            Route::post('/api/buscar-garante-exacto', [ReceptionController::class, 'buscarGaranteExacto'])->name('reception.buscar-garante-exacto');
+            Route::post('/api/registrar-garante', [ReceptionController::class, 'registrarGarante'])->name('reception.registrar-garante');
+            Route::post('/api/registrar-paciente-cita', [ReceptionController::class, 'registrarPacienteParaCita'])->name('reception.registrar-paciente-cita');
 
-        // Rutas para completar datos de paciente temporal
-        Route::get('/reception/completar-datos-paciente/{emergencyId}', [EmergencyIngresoController::class, 'mostrarFormularioCompletarDatos'])->name('reception.completar-datos-paciente');
-        Route::post('/reception/completar-datos-paciente', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal'])->name('reception.completar-datos-paciente.store');
+            // Rutas para completar datos de paciente temporal
+            Route::get('/reception/completar-datos-paciente/{emergencyId}', [EmergencyIngresoController::class, 'mostrarFormularioCompletarDatos'])->name('reception.completar-datos-paciente');
+            Route::post('/reception/completar-datos-paciente', [EmergencyIngresoController::class, 'completarDatosPacienteTemporal'])->name('reception.completar-datos-paciente.store');
 
-        // Rutas para flujo de pago en recepción
-        Route::post('/reception/procesar-pago/{id}', [ReceptionController::class, 'procesarPago'])->name('reception.procesar-pago');
-        Route::get('/reception/confirmacion/{id}', [ReceptionController::class, 'confirmacion'])->name('reception.confirmacion');
-    });
+            // Rutas para flujo de pago en recepción
+            Route::post('/reception/procesar-pago/{id}', [ReceptionController::class, 'procesarPago'])->name('reception.procesar-pago');
+            Route::get('/reception/confirmacion/{id}', [ReceptionController::class, 'confirmacion'])->name('reception.confirmacion');
+        });
     });
 
 
@@ -378,11 +378,12 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         Route::get('/seguros', [SeguroController::class, 'index'])->name('seguros');
         Route::get('/seguros/historial', [SeguroController::class, 'historial'])->name('seguros.historial');
-        Route::get('/seguros/historial/exportar', [SeguroController::class, 'exportarHistorial'])->name('seguros.historial.exportar');
         Route::post('/seguros', [SeguroController::class, 'store'])->name('seguros.store');
         Route::put('/seguros/{seguro}', [SeguroController::class, 'update'])->name('seguros.update');
         Route::delete('/seguros/{seguro}', [SeguroController::class, 'destroy'])->name('seguros.destroy');
         Route::post('/seguros/{seguro}/estado', [SeguroController::class, 'cambiarEstado']);
+        Route::get('/seguros/historial/excel', [SeguroController::class, 'exportarExcel'])
+            ->name('seguros.historial.excel');
 
         // API routes para seguros
         Route::get('/api/seguros', [SeguroController::class, 'apiIndex'])->name('seguros.api.index');

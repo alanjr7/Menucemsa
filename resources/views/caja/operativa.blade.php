@@ -120,6 +120,15 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="px-4 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="text-sm text-gray-500" id="paginacionInfo">Mostrando 0 registros</div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnPaginaAnterior" onclick="cambiarPagina(-1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                    <div class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-md border border-gray-200" id="paginacionPagina">Página 1 de 1</div>
+                    <button type="button" id="btnPaginaSiguiente" onclick="cambiarPagina(1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Siguiente</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -206,6 +215,8 @@
 <script>
     let cuentaActual = null;
     let pacientesData = [];
+    let paginaActual = 1;
+    const registrosPorPagina = 10;
 
     // Cargar datos al iniciar
     document.addEventListener('DOMContentLoaded', () => {
@@ -228,6 +239,7 @@
             const data = await response.json();
             if (data.success) {
                 pacientesData = data.cuentas;
+                paginaActual = 1;
                 filtrarPacientes(); // Refresca la vista
             }
         } catch (error) {
@@ -244,16 +256,32 @@
                    (c.tipo_atencion || '').toLowerCase().includes(t) ||
                    (c.estado_label || '').toLowerCase().includes(t);
         });
+        paginaActual = 1;
         renderizarTabla(filtrados);
     }
 
     function renderizarTabla(cuentas) {
         const tbody = document.getElementById('tablaPacientes');
+        const totalRegistros = cuentas.length;
+        const totalPaginas = Math.max(1, Math.ceil(totalRegistros / registrosPorPagina));
+        if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+        const inicio = (paginaActual - 1) * registrosPorPagina;
+        const fin = inicio + registrosPorPagina;
+        const paginaCuentas = cuentas.slice(inicio, fin);
+
+        document.getElementById('paginacionInfo').textContent = totalRegistros === 0
+            ? 'Mostrando 0 registros'
+            : `Mostrando ${inicio + 1}-${Math.min(fin, totalRegistros)} de ${totalRegistros} registros`;
+        document.getElementById('paginacionPagina').textContent = `Página ${totalPaginas === 0 ? 0 : paginaActual} de ${totalPaginas}`;
+        document.getElementById('btnPaginaAnterior').disabled = paginaActual <= 1;
+        document.getElementById('btnPaginaSiguiente').disabled = paginaActual >= totalPaginas;
+
         if (cuentas.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400 font-medium">No hay registros que coincidan con la búsqueda</td></tr>';
             return;
         }
-        tbody.innerHTML = cuentas.map(c => `
+        tbody.innerHTML = paginaCuentas.map(c => `
             <tr class="hover:bg-blue-50/30 transition-colors">
                 <td class="px-6 py-4">
                     <div class="text-sm font-bold text-gray-800">${c.paciente_nombre}</div>
@@ -273,6 +301,19 @@
                 </td>
             </tr>
         `).join('');
+    }
+
+    function cambiarPagina(direccion) {
+        const t = document.getElementById('buscarPaciente').value.toLowerCase().trim();
+        const filtrados = pacientesData.filter(c => {
+            return (c.paciente_nombre || '').toLowerCase().includes(t) ||
+                   (c.paciente_ci || '').toLowerCase().includes(t) ||
+                   (c.tipo_atencion || '').toLowerCase().includes(t) ||
+                   (c.estado_label || '').toLowerCase().includes(t);
+        });
+        const totalPaginas = Math.max(1, Math.ceil(filtrados.length / registrosPorPagina));
+        paginaActual = Math.min(totalPaginas, Math.max(1, paginaActual + direccion));
+        renderizarTabla(filtrados);
     }
 
     async function cargarResumenDia() {
