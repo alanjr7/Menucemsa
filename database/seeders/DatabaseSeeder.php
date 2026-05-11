@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             QuirofanoSeeder::class,
             PacienteSeeder::class,
             CuentaCobroSeeder::class,
+            ProcedimientosClinicosSeeder::class,
         ]);
     }
 }
