@@ -42,14 +42,6 @@
                 <span class="text-3xl font-bold text-gray-800" id="stat-citas-programadas">0</span>
             </div>
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-                <span class="text-gray-500 text-sm font-medium mb-1">En Atención</span>
-                <span class="text-3xl font-bold text-green-600" id="stat-en-atencion">0</span>
-            </div>
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-                <span class="text-gray-500 text-sm font-medium mb-1">En Espera</span>
-                <span class="text-3xl font-bold text-orange-500" id="stat-en-espera">0</span>
-            </div>
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
                 <span class="text-gray-500 text-sm font-medium mb-1">Admisiones</span>
                 <span class="text-3xl font-bold text-blue-600" id="stat-admisiones">0</span>
             </div>

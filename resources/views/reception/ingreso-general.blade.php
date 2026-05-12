@@ -56,23 +56,68 @@
                     </div>
                 </div>
 
-                <!-- Datos del Paciente (nuevo o existente) -->
-                <div id="datos_paciente_container" class="hidden bg-blue-50 rounded-xl p-5 border border-blue-100">
-                    <div id="paciente_encontrado_card" class="hidden mb-4">
-                        <div class="bg-green-50 border border-green-200 rounded-xl p-4">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span class="font-semibold text-green-800">Paciente Encontrado</span>
-                            </div>
-                            <div class="mt-2 text-sm text-gray-700">
-                                <p><strong>Nombre:</strong> <span id="paciente_nombre_encontrado"></span></p>
-                                <p><strong>CI:</strong> <span id="paciente_ci_encontrado"></span></p>
-                            </div>
+                <!-- Card de visualización: paciente encontrado (solo lectura) -->
+                <div id="paciente_display_card" class="hidden border border-green-200 bg-green-50 rounded-xl p-5">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-green-800">Paciente registrado</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3 text-sm">
+                        <div class="lg:col-span-2">
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Nombre completo</span>
+                            <p id="d_nombre" class="font-semibold text-gray-800 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">CI</span>
+                            <p id="d_ci" class="font-semibold text-gray-800 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Sexo</span>
+                            <p id="d_sexo" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Fecha de nacimiento</span>
+                            <p id="d_fecha_nacimiento" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Expedición CI</span>
+                            <p id="d_lugar_expedicion" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Nacionalidad</span>
+                            <p id="d_nacionalidad" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Estado civil</span>
+                            <p id="d_estado_civil" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</span>
+                            <p id="d_telefono" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Correo</span>
+                            <p id="d_correo" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Profesión</span>
+                            <p id="d_profesion" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</span>
+                            <p id="d_empresa_trabajo" class="text-gray-700 mt-0.5">—</p>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección</span>
+                            <p id="d_direccion" class="text-gray-700 mt-0.5">—</p>
                         </div>
                     </div>
+                </div>
 
+                <!-- Formulario de datos: solo para paciente nuevo -->
+                <div id="datos_paciente_container" class="hidden bg-blue-50 rounded-xl p-5 border border-blue-100">
                     <h3 class="text-md font-semibold text-gray-800 mb-4">Datos Personales</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
@@ -283,33 +328,80 @@
                         </div>
                     </div>
 
-                    <!-- Info garante encontrado -->
-                    <div id="garante_info" class="hidden mb-4">
-                        <div class="bg-green-50 border border-green-200 rounded-xl p-4">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span class="font-semibold text-green-800">Garante encontrado</span>
+                    <!-- Card de visualización: garante encontrado (solo lectura) -->
+                    <div id="garante_display_card" class="hidden mb-4 border border-green-200 bg-green-50 rounded-xl p-5">
+                        <div class="flex items-center gap-2 mb-4">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="font-semibold text-green-800">Garante registrado</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3 text-sm">
+                            <div class="lg:col-span-2">
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Nombre completo</span>
+                                <p id="gd_nombre" class="font-semibold text-gray-800 mt-0.5">—</p>
                             </div>
-                            <p class="text-sm text-gray-700 mt-1"><strong>Nombre:</strong> <span id="garante_nombre_encontrado"></span></p>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">CI</span>
+                                <p id="gd_ci" class="font-semibold text-gray-800 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Sexo</span>
+                                <p id="gd_sexo" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Fecha de nacimiento</span>
+                                <p id="gd_fecha_nacimiento" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Expedición CI</span>
+                                <p id="gd_lugar_expedicion" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Nacionalidad</span>
+                                <p id="gd_nacionalidad" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Estado civil</span>
+                                <p id="gd_estado_civil" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</span>
+                                <p id="gd_telefono" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Correo</span>
+                                <p id="gd_correo" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Profesión</span>
+                                <p id="gd_profesion" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</span>
+                                <p id="gd_empresa_trabajo" class="text-gray-700 mt-0.5">—</p>
+                            </div>
+                            <div class="lg:col-span-2">
+                                <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección</span>
+                                <p id="gd_direccion" class="text-gray-700 mt-0.5">—</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Formulario garante -->
+                    <!-- Formulario garante: solo para garante nuevo -->
                     <div id="formulario_garante" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1" autocomplete='off'>Nombres *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombres *</label>
                             <input type="text" name="garante_nombres" id="garante_nombres"
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all" autocomplete="off">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1" autocomplete="off">Apellido Paterno *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno *</label>
                             <input type="text" name="garante_apellido_paterno" id="garante_apellido_paterno"
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all" autocomplete="off">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1" autocomplete="off">Apellido Materno *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno *</label>
                             <input type="text" name="garante_apellido_materno" id="garante_apellido_materno"
                                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all" autocomplete="off">
                         </div>
@@ -506,6 +598,7 @@
 <script>
 let tipoIngresoSeleccionado = null;
 let pacienteEncontrado = false;
+let garanteEncontrado = false;
 
 // Buscar paciente por CI
 async function buscarPaciente() {
@@ -529,41 +622,40 @@ async function buscarPaciente() {
 
         if (data.success) {
             pacienteEncontrado = true;
-            document.getElementById('paciente_encontrado_card').classList.remove('hidden');
-            document.getElementById('paciente_nombre_encontrado').textContent = data.paciente.nombre;
-            document.getElementById('paciente_ci_encontrado').textContent = data.paciente.ci;
+            const p = data.paciente;
+            const val = v => v && v != '0' ? v : '—';
+            const sexoLabel = p.sexo === 'M' ? 'Masculino' : p.sexo === 'F' ? 'Femenino' : '—';
 
-            // Llenar campos - parsear nombre completo en partes
-            // Estructura: Nombres + Apellido Paterno + Apellido Materno
-            const nombreParts = data.paciente.nombre ? data.paciente.nombre.split(' ') : ['', '', ''];
-            const nombresPartes = nombreParts.slice(0, nombreParts.length - 2).join(' ');
-            document.getElementById('nombres').value = nombresPartes || '';
-            document.getElementById('apellido_paterno').value = nombreParts[nombreParts.length - 2] || '';
-            document.getElementById('apellido_materno').value = nombreParts[nombreParts.length - 1] || '';
-            document.getElementById('sexo').value = data.paciente.sexo || '';
-            document.getElementById('fecha_nacimiento').value = data.paciente.fecha_nacimiento || '';
-            document.getElementById('lugar_expedicion').value = data.paciente.lugar_expedicion || '';
-            document.getElementById('nacionalidad').value = data.paciente.nacionalidad || 'Boliviana';
-            document.getElementById('estado_civil').value = data.paciente.estado_civil || '';
-            document.getElementById('telefono').value = data.paciente.telefono || '';
-            document.getElementById('correo').value = data.paciente.correo || '';
-            document.getElementById('profesion').value = data.paciente.profesion || '';
-            document.getElementById('empresa_trabajo').value = data.paciente.empresa_trabajo || '';
-            document.getElementById('direccion').value = data.paciente.direccion || '';
+            document.getElementById('d_nombre').textContent = val(p.nombre);
+            document.getElementById('d_ci').textContent = val(p.ci);
+            document.getElementById('d_sexo').textContent = sexoLabel;
+            document.getElementById('d_fecha_nacimiento').textContent = p.fecha_nacimiento ? p.fecha_nacimiento.substring(0, 10) : '—';
+            document.getElementById('d_lugar_expedicion').textContent = val(p.lugar_expedicion);
+            document.getElementById('d_nacionalidad').textContent = val(p.nacionalidad);
+            document.getElementById('d_estado_civil').textContent = val(p.estado_civil);
+            document.getElementById('d_telefono').textContent = val(p.telefono);
+            document.getElementById('d_correo').textContent = val(p.correo);
+            document.getElementById('d_profesion').textContent = val(p.profesion);
+            document.getElementById('d_empresa_trabajo').textContent = val(p.empresa_trabajo);
+            document.getElementById('d_direccion').textContent = val(p.direccion);
 
-            // Deshabilitar campos para paciente existente
-            setCamposPacienteReadOnly(true);
+            document.getElementById('paciente_display_card').classList.remove('hidden');
+            document.getElementById('datos_paciente_container').classList.add('hidden');
+            ['nombres', 'apellido_paterno', 'apellido_materno', 'sexo'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.removeAttribute('required');
+            });
         } else {
             pacienteEncontrado = false;
-            document.getElementById('paciente_encontrado_card').classList.add('hidden');
+            document.getElementById('paciente_display_card').classList.add('hidden');
+            document.getElementById('datos_paciente_container').classList.remove('hidden');
+            ['nombres', 'apellido_paterno', 'apellido_materno', 'sexo'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.setAttribute('required', '');
+            });
 
-            // Limpiar campos
             limpiarCamposPaciente();
-
-            // Habilitar campos
             setCamposPacienteReadOnly(false);
-
-            // Focus en nombres
             document.getElementById('nombres').focus();
         }
     } catch (error) {
@@ -587,6 +679,8 @@ function toggleTempId() {
         ciInput.value = '';
         ciInput.disabled = true;
         datosContainer.classList.add('hidden');
+        document.getElementById('paciente_display_card').classList.add('hidden');
+        pacienteEncontrado = false;
 
         // Quitar required de todos los campos de datos personales
         datosContainer.querySelectorAll('input, select').forEach(field => {
@@ -660,13 +754,32 @@ function seleccionarTipoIngreso(tipo) {
 
 // Funciones auxiliares para manejo de campos del paciente
 function setCamposPacienteReadOnly(readonly) {
-    const campos = ['nombres', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'lugar_expedicion', 'nacionalidad', 'estado_civil', 'telefono', 'correo', 'profesion', 'empresa_trabajo', 'direccion'];
-    campos.forEach(id => {
+    const inputs = ['nombres', 'apellido_paterno', 'apellido_materno', 'fecha_nacimiento', 'telefono', 'correo', 'profesion', 'empresa_trabajo', 'direccion'];
+    inputs.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.readOnly = readonly;
+        if (!el) return;
+        el.readOnly = readonly;
+        if (readonly) {
+            el.classList.remove('bg-white');
+            el.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-600');
+        } else {
+            el.classList.add('bg-white');
+            el.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-600');
+        }
     });
-    const sexo = document.getElementById('sexo');
-    if (sexo) sexo.disabled = readonly;
+    const selects = ['sexo', 'lugar_expedicion', 'nacionalidad', 'estado_civil'];
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = readonly;
+        if (readonly) {
+            el.classList.remove('bg-white');
+            el.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-600');
+        } else {
+            el.classList.add('bg-white');
+            el.classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-600');
+        }
+    });
 }
 
 function limpiarCamposPaciente() {
@@ -675,16 +788,6 @@ function limpiarCamposPaciente() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
-}
-
-function setCamposGaranteReadOnly(readonly) {
-    const campos = ['garante_nombres', 'garante_apellido_paterno', 'garante_apellido_materno', 'garante_fecha_nacimiento', 'garante_lugar_expedicion', 'garante_nacionalidad', 'garante_estado_civil', 'garante_telefono', 'garante_correo', 'garante_profesion', 'garante_empresa_trabajo', 'garante_direccion'];
-    campos.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.readOnly = readonly;
-    });
-    const sexo = document.getElementById('garante_sexo');
-    if (sexo) sexo.disabled = readonly;
 }
 
 function limpiarCamposGarante() {
@@ -709,35 +812,31 @@ async function buscarGarante() {
         const data = await response.json();
 
         if (data.success) {
-            document.getElementById('garante_info').classList.remove('hidden');
-            document.getElementById('garante_nombre_encontrado').textContent = data.garante.nombre;
+            const g = data.garante;
+            const val = v => v && v != '0' ? v : '—';
+            const sexoLabel = g.sexo === 'M' ? 'Masculino' : g.sexo === 'F' ? 'Femenino' : '—';
 
-            // Llenar campos - parsear nombre completo en partes
-            // Estructura: Nombres + Apellido Paterno + Apellido Materno
-            const nombreParts = data.garante.nombre ? data.garante.nombre.split(' ') : ['', '', ''];
-            const nombresPartes = nombreParts.slice(0, nombreParts.length - 2).join(' ');
-            document.getElementById('garante_nombres').value = nombresPartes || '';
-            document.getElementById('garante_apellido_paterno').value = nombreParts[nombreParts.length - 2] || '';
-            document.getElementById('garante_apellido_materno').value = nombreParts[nombreParts.length - 1] || '';
-            document.getElementById('garante_sexo').value = data.garante.sexo || '';
-            document.getElementById('garante_fecha_nacimiento').value = data.garante.fecha_nacimiento || '';
-            document.getElementById('garante_lugar_expedicion').value = data.garante.lugar_expedicion || '';
-            document.getElementById('garante_nacionalidad').value = data.garante.nacionalidad || 'Boliviana';
-            document.getElementById('garante_estado_civil').value = data.garante.estado_civil || '';
-            document.getElementById('garante_telefono').value = data.garante.telefono || '';
-            document.getElementById('garante_correo').value = data.garante.correo || '';
-            document.getElementById('garante_profesion').value = data.garante.profesion || '';
-            document.getElementById('garante_empresa_trabajo').value = data.garante.empresa_trabajo || '';
-            document.getElementById('garante_direccion').value = data.garante.direccion || '';
+            document.getElementById('gd_nombre').textContent = val(g.nombre);
+            document.getElementById('gd_ci').textContent = val(g.ci);
+            document.getElementById('gd_sexo').textContent = sexoLabel;
+            document.getElementById('gd_fecha_nacimiento').textContent = g.fecha_nacimiento ? g.fecha_nacimiento.substring(0, 10) : '—';
+            document.getElementById('gd_lugar_expedicion').textContent = val(g.lugar_expedicion);
+            document.getElementById('gd_nacionalidad').textContent = val(g.nacionalidad);
+            document.getElementById('gd_estado_civil').textContent = val(g.estado_civil);
+            document.getElementById('gd_telefono').textContent = val(g.telefono);
+            document.getElementById('gd_correo').textContent = val(g.correo);
+            document.getElementById('gd_profesion').textContent = val(g.profesion);
+            document.getElementById('gd_empresa_trabajo').textContent = val(g.empresa_trabajo);
+            document.getElementById('gd_direccion').textContent = val(g.direccion);
 
-            // Deshabilitar campos para garante existente
-            setCamposGaranteReadOnly(true);
+            garanteEncontrado = true;
+            document.getElementById('garante_display_card').classList.remove('hidden');
+            document.getElementById('formulario_garante').classList.add('hidden');
         } else {
-            document.getElementById('garante_info').classList.add('hidden');
-            // Limpiar campos para nuevo garante
+            garanteEncontrado = false;
+            document.getElementById('garante_display_card').classList.add('hidden');
+            document.getElementById('formulario_garante').classList.remove('hidden');
             limpiarCamposGarante();
-            // Habilitar campos
-            setCamposGaranteReadOnly(false);
             document.getElementById('garante_nombres').focus();
         }
     } catch (error) {
@@ -919,8 +1018,8 @@ async function procesarIngreso(event) {
         return;
     }
 
-    // Solo validar datos del paciente si NO se usa ID temporal
-    if (!usarTempId && (!document.getElementById('nombres').value || !document.getElementById('apellido_paterno').value || !document.getElementById('apellido_materno').value || !document.getElementById('sexo').value)) {
+    // Solo validar datos del paciente si NO se usa ID temporal y NO es paciente existente
+    if (!usarTempId && !pacienteEncontrado && (!document.getElementById('nombres').value || !document.getElementById('apellido_paterno').value || !document.getElementById('apellido_materno').value || !document.getElementById('sexo').value)) {
         alert('Complete los datos del paciente (nombres, apellido paterno, apellido materno, sexo)');
         return;
     }
@@ -932,7 +1031,13 @@ async function procesarIngreso(event) {
 
     // Validaciones específicas
     if (tipoIngresoSeleccionado === 'internacion') {
-        if (!document.getElementById('garante_ci').value || !document.getElementById('garante_nombres').value || !document.getElementById('garante_apellido_paterno').value || !document.getElementById('garante_apellido_materno').value) {
+        const tieneGarante = garanteEncontrado || (
+            document.getElementById('garante_ci').value &&
+            document.getElementById('garante_nombres').value &&
+            document.getElementById('garante_apellido_paterno').value &&
+            document.getElementById('garante_apellido_materno').value
+        );
+        if (!tieneGarante) {
             alert('La internación requiere garante obligatorio. Complete los datos del garante.');
             return;
         }
@@ -999,4 +1104,8 @@ async function procesarIngreso(event) {
     }
 }
 </script>
+
+<style>
+input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+</style>
 @endsection
