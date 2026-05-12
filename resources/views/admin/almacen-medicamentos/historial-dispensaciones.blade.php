@@ -9,13 +9,22 @@
             <h1 class="text-3xl font-bold text-gray-900">Historial de Dispensaciones</h1>
             <p class="text-gray-600 mt-1">Transferencias del almacén central a áreas clínicas</p>
         </div>
-        <a href="{{ route('admin.almacen-medicamentos.index') }}"
-           class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
-            Volver al Almacén
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.almacen-medicamentos.historial.exportar', request()->only(['ubicacion_destino','fecha_desde','fecha_hasta','buscar'])) }}"
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Exportar Excel
+            </a>
+            <a href="{{ route('admin.almacen-medicamentos.index') }}"
+               class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Volver al Almacén
+            </a>
+        </div>
     </div>
 
     <!-- Estadísticas -->

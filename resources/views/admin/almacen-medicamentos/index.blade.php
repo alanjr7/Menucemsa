@@ -97,7 +97,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Área</label>
                 <select name="area" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option value="">Central</option>
+                    <option value="central" {{ request('area', 'central') == 'central' ? 'selected' : '' }}>Central</option>
                     <option value="emergencia" {{ request('area') == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
                     <option value="cirugia" {{ request('area') == 'cirugia' ? 'selected' : '' }}>Cirugía</option>
                     <option value="hospitalizacion" {{ request('area') == 'hospitalizacion' ? 'selected' : '' }}>Hospitalización</option>

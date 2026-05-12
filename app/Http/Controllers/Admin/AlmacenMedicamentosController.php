@@ -26,9 +26,9 @@ class AlmacenMedicamentosController extends Controller
 
     public function index(Request $request)
     {
-        $area = $request->filled('area') ? $request->area : null;
+        $area = $request->filled('area') ? $request->area : 'central';
         $mostrarTodos = $area === 'todos';
-        $ubicacion = (!$area || $mostrarTodos) ? null : $area;
+        $ubicacion = $mostrarTodos ? null : $area;
 
         $query = AlmacenCatalogo::query()->with([
             'lotes' => fn ($q) => $q->with([
@@ -53,25 +53,18 @@ class AlmacenMedicamentosController extends Controller
             });
         }
 
-        $catalogo = $query->activos()->orderBy('nombre')->paginate(10);
-
-        // Calcular estado_stock para filtro DESPUÉS de paginar (aplica en colección)
         if ($request->filled('estado_stock')) {
-            $catalogo->setCollection(
-                $catalogo->getCollection()->filter(function ($item) use ($request, $ubicacion) {
-                    $area = $ubicacion ?? 'central';
-                    $stocks = $item->lotes->flatMap->stocks->where('ubicacion', $area);
-                    $total = $stocks->sum('cantidad_actual');
-                    $minimo = $stocks->min('stock_minimo') ?? 0;
-                    $estado = $total <= 0 ? 'agotado' : ($total <= $minimo ? 'bajo' : 'normal');
-
-                    if ($request->estado_stock === 'con_stock') {
-                        return $estado !== 'agotado';
-                    }
-                    return $estado === $request->estado_stock;
-                })->values()
-            );
+            $areaStock = $ubicacion ?? 'central';
+            if ($request->estado_stock === 'con_stock') {
+                $query->whereHas('stocks', fn ($q) => $q->where('ubicacion', $areaStock)->where('cantidad_actual', '>', 0));
+            } elseif ($request->estado_stock === 'agotado') {
+                $query->whereDoesntHave('stocks', fn ($q) => $q->where('ubicacion', $areaStock)->where('cantidad_actual', '>', 0));
+            } elseif ($request->estado_stock === 'bajo') {
+                $query->whereHas('stocks', fn ($q) => $q->where('ubicacion', $areaStock)->where('cantidad_actual', '>', 0)->whereColumn('cantidad_actual', '<=', 'stock_minimo'));
+            }
         }
+
+        $catalogo = $query->activos()->orderBy('nombre')->paginate(10);
 
         $stats = $this->calcularStats();
 
@@ -252,12 +245,15 @@ class AlmacenMedicamentosController extends Controller
 
                         if (!$stockCentral->exists) {
                             $stockCentral->cantidad_actual = $loteData['cantidad_inicial'];
-                        } elseif (isset($stockData['cantidad_actual'])) {
-                            $stockCentral->cantidad_actual = (int) $stockData['cantidad_actual'];
                         }
 
                         $stockCentral->stock_minimo = $stockData['stock_minimo'];
                         $stockCentral->save();
+
+                        $cantidadAgregar = (int) ($stockData['cantidad_a_agregar'] ?? 0);
+                        if ($cantidadAgregar > 0) {
+                            $stockCentral->increment('cantidad_actual', $cantidadAgregar);
+                        }
                     }
 
                     // Segundo paso: otras áreas
@@ -389,12 +385,60 @@ class AlmacenMedicamentosController extends Controller
             ->bajoStock()
             ->whereHas('lote.catalogo', fn ($q) => $q->where('activo', true))
             ->orderBy('cantidad_actual')
-            ->get();
+            ->paginate(10);
 
         return view('admin.almacen-medicamentos.reporte-bajo-stock', compact('stocks'));
     }
 
-    public function reporteVencimiento()
+    public function exportarBajoStock()
+    {
+        $stocks = AlmacenStock::with(['lote.catalogo'])
+            ->bajoStock()
+            ->whereHas('lote.catalogo', fn ($q) => $q->where('activo', true))
+            ->orderBy('cantidad_actual')
+            ->get();
+
+        $nombre = 'bajo-stock-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($stocks) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, ['Medicamento/Insumo', 'Lote', 'Ubicación', 'Stock Actual', 'Mínimo', 'Estado'], ';');
+            foreach ($stocks as $stock) {
+                fputcsv($file, [
+                    $stock->lote->catalogo->nombre ?? 'N/A',
+                    $stock->lote->codigo_lote ?? '-',
+                    $stock->ubicacion_label,
+                    $stock->cantidad_actual,
+                    $stock->stock_minimo,
+                    $stock->cantidad_actual <= 0 ? 'Agotado' : 'Bajo Stock',
+                ], ';');
+            }
+            fclose($file);
+        }, $nombre, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Cache-Control'       => 'no-cache',
+        ]);
+    }
+
+    public function reporteVencimiento(Request $request)
+    {
+        $vencidos = AlmacenLote::with('catalogo')
+            ->vencidos()
+            ->whereHas('catalogo', fn ($q) => $q->where('activo', true))
+            ->orderBy('fecha_vencimiento')
+            ->paginate(10, ['*'], 'pag_vencidos');
+
+        $porVencer = AlmacenLote::with('catalogo')
+            ->porVencer()
+            ->whereHas('catalogo', fn ($q) => $q->where('activo', true))
+            ->orderBy('fecha_vencimiento')
+            ->paginate(10, ['*'], 'pag_por_vencer');
+
+        return view('admin.almacen-medicamentos.reporte-vencimiento', compact('vencidos', 'porVencer'));
+    }
+
+    public function exportarVencimiento()
     {
         $vencidos = AlmacenLote::with('catalogo')
             ->vencidos()
@@ -408,7 +452,40 @@ class AlmacenMedicamentosController extends Controller
             ->orderBy('fecha_vencimiento')
             ->get();
 
-        return view('admin.almacen-medicamentos.reporte-vencimiento', compact('vencidos', 'porVencer'));
+        $nombre = 'vencimiento-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($vencidos, $porVencer) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($file, ['LOTES VENCIDOS'], ';');
+            fputcsv($file, ['Medicamento/Insumo', 'Código Lote', 'Fecha Vencimiento', 'Días Vencido'], ';');
+            foreach ($vencidos as $lote) {
+                fputcsv($file, [
+                    $lote->catalogo->nombre ?? 'N/A',
+                    $lote->codigo_lote ?? '-',
+                    $lote->fecha_vencimiento->format('d/m/Y'),
+                    abs($lote->dias_para_vencer) . ' días',
+                ], ';');
+            }
+
+            fputcsv($file, [], ';');
+            fputcsv($file, ['LOTES POR VENCER (próximos 30 días)'], ';');
+            fputcsv($file, ['Medicamento/Insumo', 'Código Lote', 'Fecha Vencimiento', 'Días Restantes'], ';');
+            foreach ($porVencer as $lote) {
+                fputcsv($file, [
+                    $lote->catalogo->nombre ?? 'N/A',
+                    $lote->codigo_lote ?? '-',
+                    $lote->fecha_vencimiento->format('d/m/Y'),
+                    $lote->dias_para_vencer . ' días',
+                ], ';');
+            }
+
+            fclose($file);
+        }, $nombre, [
+            'Content-Type'  => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-cache',
+        ]);
     }
 
     public function porArea(string $area)
@@ -538,7 +615,7 @@ class AlmacenMedicamentosController extends Controller
             });
         }
 
-        $dispensaciones = $query->recientes()->paginate(20);
+        $dispensaciones = $query->recientes()->paginate(10);
 
         $stats = [
             'total'          => AlmacenDispensacion::count(),
@@ -557,6 +634,51 @@ class AlmacenMedicamentosController extends Controller
         ];
 
         return view('admin.almacen-medicamentos.historial-dispensaciones', compact('dispensaciones', 'stats', 'areas'));
+    }
+
+    public function exportarHistorial(Request $request)
+    {
+        $query = AlmacenDispensacion::with(['detalles.lote.catalogo', 'dispensadoPor']);
+
+        if ($request->filled('ubicacion_destino')) {
+            $query->porDestino($request->ubicacion_destino);
+        }
+        if ($request->filled('fecha_desde')) {
+            $query->where('fecha_dispensacion', '>=', $request->fecha_desde . ' 00:00:00');
+        }
+        if ($request->filled('fecha_hasta')) {
+            $query->where('fecha_dispensacion', '<=', $request->fecha_hasta . ' 23:59:59');
+        }
+        if ($request->filled('buscar')) {
+            $query->whereHas('detalles.lote.catalogo', fn ($q) => $q->where('nombre', 'like', '%' . $request->buscar . '%'));
+        }
+
+        $dispensaciones = $query->recientes()->get();
+        $nombre = 'dispensaciones-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($dispensaciones) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, ['#', 'Fecha', 'Hora', 'Ítems', 'Cantidades', 'Área Destino', 'Dispensado por', 'Recibido por'], ';');
+            foreach ($dispensaciones as $d) {
+                $items     = $d->detalles->map(fn ($det) => $det->lote->catalogo->nombre ?? 'N/A')->join(' | ');
+                $cantidades = $d->detalles->map(fn ($det) => $det->cantidad)->join(' | ');
+                fputcsv($file, [
+                    '#' . $d->id,
+                    $d->fecha_dispensacion->format('d/m/Y'),
+                    $d->fecha_dispensacion->format('H:i'),
+                    $items,
+                    $cantidades,
+                    $d->ubicacion_destino_label,
+                    $d->dispensadoPor->name ?? 'N/A',
+                    $d->recibido_por ?? '-',
+                ], ';');
+            }
+            fclose($file);
+        }, $nombre, [
+            'Content-Type'  => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-cache',
+        ]);
     }
 
     public function detalleDispensacion(AlmacenDispensacion $dispensacion)

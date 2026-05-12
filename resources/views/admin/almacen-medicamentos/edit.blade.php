@@ -546,11 +546,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-a
                        class="form-input">
             </div>
 
+            <input type="hidden" name="lotes[{INDEX}][cantidad_inicial]" value="0">
             <div class="form-group">
-                <label class="form-label required" for="cantidad_inicial_{INDEX}">Cantidad Inicial</label>
-                <input type="number" id="cantidad_inicial_{INDEX}" name="lotes[{INDEX}][cantidad_inicial]"
-                       required min="0" placeholder="0"
-                       class="form-input">
+                <label class="form-label" for="stock_actual_{INDEX}">Stock Actual</label>
+                <input type="number" id="stock_actual_{INDEX}"
+                       min="0" value="0"
+                       class="form-input" readonly tabindex="-1">
             </div>
 
             <div class="form-group">
@@ -677,10 +678,11 @@ function crearLoteHtml(lote, index) {
         <div class="stock-item stock-item-central">
             <label class="stock-label">Central</label>
             <input type="hidden" name="lotes[${index}][stocks][0][ubicacion]" value="central">
-            <span class="stock-field-label">Stock actual</span>
+            <span class="stock-field-label" style="color:var(--gray-500);font-weight:600;">Actual: ${centralCantidadActual}</span>
+            <span class="stock-field-label">Agregar</span>
             <input type="number"
-                   name="lotes[${index}][stocks][0][cantidad_actual]"
-                   min="0" placeholder="0" value="${centralCantidadActual}"
+                   name="lotes[${index}][stocks][0][cantidad_a_agregar]"
+                   min="0" placeholder="0" value="0"
                    class="form-input stock-small-input">
             <span class="stock-field-label">Mínimo</span>
             <input type="number"
@@ -762,10 +764,11 @@ function crearLoteHtml(lote, index) {
                            class="form-input">
                 </div>
 
+                <input type="hidden" name="lotes[${index}][cantidad_inicial]" value="${lote.cantidad_inicial || 0}">
                 <div class="form-group">
-                    <label class="form-label" for="cantidad_inicial_${index}">Cantidad Inicial</label>
-                    <input type="number" id="cantidad_inicial_${index}" name="lotes[${index}][cantidad_inicial]"
-                           min="0" value="${lote.cantidad_inicial || 0}"
+                    <label class="form-label" for="stock_actual_${index}">Stock Actual</label>
+                    <input type="number" id="stock_actual_${index}"
+                           min="0" value="${centralCantidadActual}"
                            class="form-input" readonly tabindex="-1">
                 </div>
 
