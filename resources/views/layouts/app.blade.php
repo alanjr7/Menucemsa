@@ -212,7 +212,6 @@
                                 },
 
                                 async marcarTodas() {
-                                    if (!confirm('¿Marcar todas las notificaciones como leídas?')) return;
                                     try {
                                         const r = await fetch('{{ route("notificaciones.leer-todas") }}', {
                                             method: 'POST',
@@ -227,7 +226,6 @@
 
                                 init() {
                                     this.cargar();
-                                    setInterval(() => this.cargar(), 30000);
                                 }
                             }
                         }

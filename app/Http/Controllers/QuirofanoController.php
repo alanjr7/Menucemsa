@@ -684,24 +684,27 @@ public function showDetails(CitaQuirurgica $cita): View
         'usuarioRegistro'
     ]);
 
-    // Obtener los detalles de la cuenta de cobro
-    $cuentaCobro = \App\Models\CuentaCobro::where(function($q) use ($cita) {
-        $q->where('referencia_id', $cita->id)
-          ->where(function($sub) {
-              $sub->where('referencia_type', CitaQuirurgica::class)
-                   ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
-          });
-    })->first();
+    // Buscar la cuenta a partir de los detalles vinculados a esta cita
+    $detallePivot = \App\Models\CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+        ->where('origen_id', (string) $cita->id)
+        ->first();
 
-    $medicamentosUsados = [];
-    $equiposUsados = [];
-    
+    $cuentaCobro = $detallePivot?->cuentaCobro;
+
+    // Filtrar detalles de esta cita específica (la cuenta puede ser compartida/maestra)
+    $medicamentosUsados = collect();
+    $equiposUsados      = collect();
+
     if ($cuentaCobro) {
-        $medicamentosUsados = $cuentaCobro->detalles()
+        $medicamentosUsados = \App\Models\CuentaCobroDetalle::where('cuenta_cobro_id', $cuentaCobro->id)
+            ->where('origen_type', CitaQuirurgica::class)
+            ->where('origen_id', (string) $cita->id)
             ->where('tipo_item', 'medicamento')
             ->get();
-        
-        $equiposUsados = $cuentaCobro->detalles()
+
+        $equiposUsados = \App\Models\CuentaCobroDetalle::where('cuenta_cobro_id', $cuentaCobro->id)
+            ->where('origen_type', CitaQuirurgica::class)
+            ->where('origen_id', (string) $cita->id)
             ->where('tipo_item', 'equipo_medico')
             ->get();
     }
@@ -787,17 +790,26 @@ public function showDetails(CitaQuirurgica $cita): View
             elseif ($duracion <= 90)  $tipoFinal = 'mediana';
             else                      $tipoFinal = 'mayor';
 
-            $tipoCirugia  = TipoCirugia::where('nombre', $tipoFinal)->first();
-            $costoExtra   = 0;
-            $costoMinuto  = 0;
-            if ($tipoCirugia) {
-                $minutosExtra = max(0, $duracion - $tipoCirugia->duracion_minutos);
-                $costoMinuto  = (float) $tipoCirugia->costo_minuto_extra;
-                $costoExtra   = $minutosExtra * $costoMinuto;
-            }
+            $tipoCirugia      = TipoCirugia::where('nombre', $tipoFinal)->first();
+            $tipoCirugiaBase  = TipoCirugia::where('nombre', $cita->tipo_cirugia)->first();
+            $costoBaseStr     = (string) $cita->costo_base;
+            $duracionStr      = (string) $duracion;
+            // Duración de referencia = tipo originalmente programado (base del cobro)
+            $duracionBaseStr  = (string) ($tipoCirugiaBase ? $tipoCirugiaBase->duracion_minutos : $duracion);
 
-            // Costo final de la cirugía basado en duración real
-            $costoCirugia = (float) $cita->costo_base + $costoExtra;
+            // Regla de 3: costo_total = (costo_base * duracion_real) / duracion_base
+            $costoTotalBc = bcdiv(bcmul($costoBaseStr, $duracionStr, 10), $duracionBaseStr, 2);
+            $costoExtraBc = bccomp($costoTotalBc, $costoBaseStr, 2) > 0
+                ? bcsub($costoTotalBc, $costoBaseStr, 2)
+                : '0.00';
+            $costoExtra   = (float) $costoExtraBc;
+            // Costo por minuto efectivo (base / duracion_base) para auditoría
+            $costoMinuto  = bccomp($duracionBaseStr, '0', 0) > 0
+                ? (float) bcdiv($costoBaseStr, $duracionBaseStr, 4)
+                : 0;
+
+            // Costo final = regla de 3 proporcional a la duración real
+            $costoCirugia = (float) $costoTotalBc;
 
             // Buscar el detalle de cirugía en CUALQUIER cuenta del paciente (no solo la más reciente).
             // Buscar por cuenta scoped causaba doble cargo cuando una nueva cuenta pendiente
@@ -810,7 +822,7 @@ public function showDetails(CitaQuirurgica $cita): View
             if ($detalleCirugia) {
                 // Reutilizar la cuenta donde vive el detalle y actualizar con el costo real
                 $cuenta = $detalleCirugia->cuentaCobro;
-                $detalleCirugia->descripcion    = 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min';
+                $detalleCirugia->descripcion    = 'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min (Cita #' . $cita->id . ')';
                 $detalleCirugia->precio_unitario = $costoCirugia;
                 $detalleCirugia->subtotal        = $costoCirugia;
                 $detalleCirugia->save();
@@ -824,7 +836,7 @@ public function showDetails(CitaQuirurgica $cita): View
                 \App\Services\CuentaCobroService::agregarCargoConDeduplicacion(
                     $cuenta->id,
                     'procedimiento',
-                    'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min',
+                    'Cirugía ' . $tipoFinal . ' - ' . $duracion . ' min (Cita #' . $cita->id . ')',
                     $costoCirugia,
                     1,
                     'quirofano',
@@ -1154,7 +1166,7 @@ public function showDetails(CitaQuirurgica $cita): View
             \App\Services\CuentaCobroService::agregarCargoConDeduplicacion(
                 $cuenta->id,
                 'procedimiento',
-                'Cirugía ' . $cita->tipo_cirugia . ' - ' . ($cita->descripcion_cirugia ?? 'Sin descripción'),
+                'Cirugía ' . $cita->tipo_cirugia . ' (Cita #' . $cita->id . ')',
                 (float) $monto,
                 1,
                 'quirofano',
@@ -1339,8 +1351,7 @@ public function showDetails(CitaQuirurgica $cita): View
             $query->whereDate('fecha', '<=', $request->fecha_hasta);
         }
 
-        $citas = $query->orderBy('fecha', 'desc')
-            ->orderBy('hora_inicio_estimada', 'desc')
+        $citas = $query->orderBy('created_at', 'desc')
             ->paginate(10);
 
         $stats = [
@@ -1406,6 +1417,18 @@ public function showDetails(CitaQuirurgica $cita): View
     }
 
     
+    public function buscarProcedimientos(Request $request): JsonResponse
+    {
+        $q = trim($request->get('q', ''));
+        $procedimientos = \App\Models\Procedimiento::activos()
+            ->porArea('cirugia')
+            ->when($q !== '', fn($query) => $query->where('nombre', 'like', "%{$q}%"))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'precio', 'descripcion']);
+
+        return response()->json(['success' => true, 'procedimientos' => $procedimientos]);
+    }
+
    /**
  * Obtener medicamentos disponibles en quirófano para una cirugía
  */

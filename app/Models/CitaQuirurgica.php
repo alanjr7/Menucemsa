@@ -145,37 +145,33 @@ class CitaQuirurgica extends Model
 
     private function calcularCostoFinal()
     {
-        $tipoCirugia = TipoCirugia::where('nombre', $this->tipo_final)->first();
-        if (!$tipoCirugia) return;
-
         $duracionReal = $this->duracion_real;
-        $duracionEstimada = $tipoCirugia->duracion_minutos;
-        
-        // Usar el costo base ingresado por el admin (no el del tipo de cirugía)
-        $costoBase = $this->costo_base ?? 0;
-        
-        // Calcular costo extra por minutos adicionales
-        $costoExtra = 0;
-        if ($duracionReal > $duracionEstimada) {
-            $minutosExtras = $duracionReal - $duracionEstimada;
-            $costoExtra = $minutosExtras * $tipoCirugia->costo_minuto_extra;
-        }
-        
-        // Buscar y sumar el costo de medicamentos usados
-        $costoMedicamentos = 0;
+        $costoBaseStr = (string) ($this->costo_base ?? '0');
+
+        // Duración de referencia = tipo originalmente programado
+        $tipoOriginal     = TipoCirugia::where('nombre', $this->tipo_cirugia)->first();
+        $duracionBaseStr  = (string) ($tipoOriginal ? $tipoOriginal->duracion_minutos : $duracionReal);
+
+        // Regla de 3: costo_total = (costo_base * duracion_real) / duracion_base
+        $costoTotal = bcdiv(bcmul($costoBaseStr, (string) $duracionReal, 10), $duracionBaseStr, 2);
+        $costoExtra = bccomp($costoTotal, $costoBaseStr, 2) > 0
+            ? bcsub($costoTotal, $costoBaseStr, 2)
+            : '0.00';
+
+        $costoMedicamentos = '0';
         $cuentaCobro = \App\Models\CuentaCobro::where('referencia_type', self::class)
             ->where('referencia_id', $this->id)
             ->first();
-        
         if ($cuentaCobro) {
-            $costoMedicamentos = $cuentaCobro->detalles()
+            $costoMedicamentos = (string) $cuentaCobro->detalles()
                 ->where('tipo_item', 'medicamento')
                 ->sum('subtotal');
         }
-        
-        // Calcular costo final: base + extra + medicamentos
-        $this->costo_final = $costoBase + $costoExtra + $costoMedicamentos;
-        $this->costo_minuto_extra = $tipoCirugia->costo_minuto_extra;
+
+        $this->costo_final        = bcadd($costoTotal, $costoMedicamentos, 2);
+        $this->costo_minuto_extra = bccomp($duracionBaseStr, '0', 0) > 0
+            ? bcdiv($costoBaseStr, $duracionBaseStr, 4)
+            : '0.0000';
     }
 
     public function validarDisponibilidadQuirofano()

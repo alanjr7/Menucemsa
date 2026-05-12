@@ -194,6 +194,7 @@
                 </div>
             </div>
 
+            @unless(auth()->user()->hasRole('cirujano'))
             <!-- Costos -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
                 <h3 class="text-base font-bold text-gray-800 mb-4">Costos</h3>
@@ -238,6 +239,7 @@
                     @endif
                 </div>
             </div>
+            @endunless
 
             @if(in_array($cita->estado, ['programada', 'en_curso']) && (Auth::user()->isAdmin() || Auth::user()->isCirujano() || Auth::user()->hasRole('administrador')))
             <!-- Medicamentos e Insumos -->
@@ -494,6 +496,7 @@
         <!-- Sidebar -->
         <div class="space-y-6">
             
+            @unless(auth()->user()->hasRole('cirujano'))
             <!-- Costos -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 class="text-lg font-bold text-gray-800 mb-4">Costos</h3>
@@ -536,6 +539,7 @@
                     @endif
                 </div>
             </div>
+            @endunless
 
             @if(in_array($cita->estado, ['programada', 'en_curso']) && Auth::user()->isAdmin())
             <!-- Medicamentos e Insumos -->

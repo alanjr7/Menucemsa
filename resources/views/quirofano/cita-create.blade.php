@@ -184,9 +184,9 @@
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <span class="text-gray-500 font-semibold">$</span>
                                     </div>
-                                    <input type="number" name="costo_base" id="costo_base"
+                                    <input type="text" inputmode="decimal" name="costo_base" id="costo_base"
                                            class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                           placeholder="0.00" min="0" step="0.01" required>
+                                           placeholder="0.00" required>
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1">Este monto reemplaza el costo base del tipo de cirugía y se reflejará en caja</p>
                             </div>
@@ -494,5 +494,37 @@ function limpiarCirujano() {
     document.getElementById('ci_cirujano').value = '';
     document.getElementById('info_cirujano').classList.add('hidden');
     document.getElementById('buscar_cirujano').value = '';
-}</script>
+}
+
+// Normalizar entrada de precio
+(function() {
+    const input = document.getElementById('costo_base');
+    if (!input) return;
+
+    input.addEventListener('keypress', function(e) {
+        const allowed = /[0-9.,]/;
+        if (!allowed.test(e.key)) e.preventDefault();
+    });
+
+    input.addEventListener('input', function() {
+        const pos = this.selectionStart;
+        let val = this.value;
+        // Normalizar coma a punto
+        val = val.replace(',', '.');
+        // Eliminar caracteres no válidos
+        val = val.replace(/[^0-9.]/g, '');
+        // Solo un punto decimal
+        const parts = val.split('.');
+        if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+        if (this.value !== val) {
+            this.value = val;
+            this.setSelectionRange(pos, pos);
+        }
+    });
+
+    input.addEventListener('blur', function() {
+        const num = parseFloat(this.value);
+        if (!isNaN(num)) this.value = num.toFixed(2);
+    });
+})();</script>
 @endsection

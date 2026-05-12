@@ -174,7 +174,7 @@
                         @if($cita->costo_final && auth()->user()->role !== 'cirujano')
                             <div class="flex justify-between pt-2 border-t">
                                 <span class="text-gray-500">Costo:</span>
-                                <span class="font-bold text-green-600">${{ number_format($cita->costo_final, 2) }}</span>
+                                <span class="font-bold text-green-600">Bs{{ number_format($cita->costo_final, 2) }}</span>
                             </div>
                         @endif
                     </div>
@@ -318,7 +318,7 @@
                             @if(auth()->user()->role !== 'cirujano')
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 @if($cita->costo_final)
-                                    ${{ number_format($cita->costo_final, 2) }}
+                                    Bs. {{ number_format($cita->costo_final, 2) }}
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif

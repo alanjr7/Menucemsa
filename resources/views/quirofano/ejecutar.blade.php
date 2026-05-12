@@ -207,38 +207,50 @@
                 Equipos y Procedimientos
             </h2>
 
-            <!-- Lista de equipos agregados -->
-            <div id="listaEquipos" class="space-y-2 mb-4">
-                <p class="text-gray-500 text-sm text-center py-4">No hay equipos agregados</p>
+            <!-- Lista de procedimientos agregados -->
+            <div id="listaEquipos" class="space-y-2 mb-4 max-h-64 overflow-y-auto">
+                <p class="text-gray-500 text-sm text-center py-4">No hay procedimientos agregados</p>
             </div>
 
-            <!-- Formulario para agregar equipo -->
+            <!-- Buscador -->
             <div class="border-t border-gray-200 pt-4">
-                <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Equipo/Procedimiento</h4>
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <div class="md:col-span-4">
-                        <input type="text" id="equipoNombre" placeholder="Nombre del equipo"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Procedimiento</h4>
+
+                <div class="relative mb-3">
+                    <input type="text" id="buscadorProcedimiento"
+                           placeholder="Buscar procedimiento por nombre..."
+                           autocomplete="off"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                    <div id="resultadosProcedimientos"
+                         class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
                     </div>
-                    <div class="md:col-span-3">
-                        <input type="number" id="equipoPrecio" min="0" step="0.01" placeholder="Precio (Bs.)"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    </div>
-                    <div class="md:col-span-2">
-                        <input type="number" id="equipoCantidad" min="1" value="1"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                               placeholder="Cantidad">
-                    </div>
-                    <div class="md:col-span-2">
-                        <button type="button" onclick="agregarEquipo()"
-                                class="w-full bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                            Agregar
-                        </button>
+                </div>
+
+                <!-- Panel de selección -->
+                <div id="seleccionProcContainer" class="hidden bg-cyan-50 rounded-lg p-3 mt-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p id="procedimientoSeleccionadoNombre" class="font-medium text-gray-900"></p>
+                            <p class="text-xs text-gray-500">Precio unitario: Bs. <span id="procedimientoPrecioUnitario">0</span></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="number" id="procedimientoCantidad" min="1" value="1"
+                                   class="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center">
+                            <button type="button" onclick="agregarProcedimientoSeleccionado()"
+                                    class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                Agregar
+                            </button>
+                            <button type="button" onclick="limpiarSeleccionProc()"
+                                    class="border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm">
+                                Cancelar
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        @unless(auth()->user()->hasRole('cirujano'))
         <!-- Sección 5: Resumen de Costos -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -270,6 +282,7 @@
                 </div>
             </div>
         </div>
+        @endunless
 
         <!-- Sección 6: Botones de Acción -->
         <div class="flex flex-col sm:flex-row gap-4 justify-end">
@@ -361,15 +374,19 @@ function calcularDuracion() {
 }
 
 function actualizarCostoExtra(duracion, tipoFinal) {
-    const tipoCirugia = tiposCirugia[tipoFinal];
+    // Regla de 3: costo_total = (costo_base × duracion_real) / duracion_base
+    // duracion_base = duración del tipo originalmente programado
+    const tipoProgramado = tiposCirugia['{{ $cita->tipo_cirugia }}'];
+    const duracionBase = tipoProgramado ? tipoProgramado.duracion : duracion;
     let costoExtra = 0;
 
-    if (tipoCirugia && duracion > tipoCirugia.duracion) {
-        const minutosExtra = duracion - tipoCirugia.duracion;
-        costoExtra = minutosExtra * tipoCirugia.costoMinutoExtra;
+    if (duracionBase > 0) {
+        const costoTotal = (costoBase * duracion) / duracionBase;
+        costoExtra = Math.max(0, costoTotal - costoBase);
     }
 
-    document.getElementById('costoExtraPreview').textContent = 'Bs. ' + costoExtra.toFixed(2);
+    const elExtra = document.getElementById('costoExtraPreview');
+    if (elExtra) elExtra.textContent = 'Bs. ' + costoExtra.toFixed(2);
     actualizarCostoTotal();
 }
 
@@ -490,15 +507,19 @@ function agregarMedicamentoSeleccionado() {
         return;
     }
     
-    const medicamento = {
-        id: medicamentoSeleccionado.id,
-        nombre: medicamentoSeleccionado.nombre,
-        precio: medicamentoSeleccionado.precio,
-        cantidad: cantidad,
-        subtotal: medicamentoSeleccionado.precio * cantidad
-    };
-    
-    medicamentosAgregados.push(medicamento);
+    const existente = medicamentosAgregados.find(m => m.id === medicamentoSeleccionado.id);
+    if (existente) {
+        existente.cantidad += cantidad;
+        existente.subtotal  = existente.precio * existente.cantidad;
+    } else {
+        medicamentosAgregados.push({
+            id:       medicamentoSeleccionado.id,
+            nombre:   medicamentoSeleccionado.nombre,
+            precio:   medicamentoSeleccionado.precio,
+            cantidad,
+            subtotal: medicamentoSeleccionado.precio * cantidad,
+        });
+    }
     renderizarMedicamentos();
     actualizarCostosMedicamentos();
     
@@ -585,42 +606,112 @@ cargarMedicamentos();
 
 function actualizarCostosMedicamentos() {
     const total = medicamentosAgregados.reduce((sum, med) => sum + med.subtotal, 0);
-    document.getElementById('costoMedicamentosPreview').textContent = 'Bs. ' + total.toFixed(2);
+    const elMed = document.getElementById('costoMedicamentosPreview');
+    if (elMed) elMed.textContent = 'Bs. ' + total.toFixed(2);
     actualizarCostoTotal();
 }
 
-// Gestión de Equipos
-function agregarEquipo() {
-    const nombreInput = document.getElementById('equipoNombre');
-    const precioInput = document.getElementById('equipoPrecio');
-    const cantidadInput = document.getElementById('equipoCantidad');
+// ========== GESTIÓN DE PROCEDIMIENTOS/EQUIPOS ==========
 
-    if (!nombreInput.value.trim()) {
-        alert('Ingrese el nombre del equipo');
+let procedimientoSeleccionado = null;
+let busquedaProcTimeout = null;
+
+document.getElementById('buscadorProcedimiento').addEventListener('input', function (e) {
+    clearTimeout(busquedaProcTimeout);
+    const query = e.target.value.trim();
+    if (query.length < 2) {
+        document.getElementById('resultadosProcedimientos').classList.add('hidden');
         return;
     }
+    busquedaProcTimeout = setTimeout(() => buscarProcedimientos(query), 300);
+});
 
-    if (!precioInput.value || parseFloat(precioInput.value) <= 0) {
-        alert('Ingrese un precio válido');
+document.addEventListener('click', function (e) {
+    const buscador  = document.getElementById('buscadorProcedimiento');
+    const resultados = document.getElementById('resultadosProcedimientos');
+    if (!buscador.contains(e.target) && !resultados.contains(e.target)) {
+        resultados.classList.add('hidden');
+    }
+});
+
+async function buscarProcedimientos(query) {
+    const resultadosDiv = document.getElementById('resultadosProcedimientos');
+    resultadosDiv.innerHTML = '<div class="p-3 text-center text-gray-400 text-sm">Buscando...</div>';
+    resultadosDiv.classList.remove('hidden');
+
+    try {
+        const res  = await fetch(`/quirofano/procedimientos/buscar?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+
+        if (!data.success || data.procedimientos.length === 0) {
+            resultadosDiv.innerHTML = '<div class="p-3 text-center text-gray-500 text-sm">No se encontraron procedimientos</div>';
+            return;
+        }
+
+        resultadosDiv.innerHTML = data.procedimientos.map(p => {
+            const nombreEsc = p.nombre.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+            const desc = p.descripcion
+                ? `<div class="text-xs text-gray-400 mt-0.5">${p.descripcion}</div>` : '';
+            return `<div class="resultado-proc-item p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                         data-id="${p.id}" data-nombre="${nombreEsc}" data-precio="${p.precio}">
+                <div class="font-medium text-gray-900">${highlightText(p.nombre, query)}</div>
+                <div class="text-xs text-gray-500 mt-1">
+                    <span class="text-cyan-600 font-semibold">Bs. ${parseFloat(p.precio).toFixed(2)}</span>
+                </div>
+                ${desc}
+            </div>`;
+        }).join('');
+
+        resultadosDiv.querySelectorAll('.resultado-proc-item').forEach(el => {
+            el.addEventListener('click', function () {
+                seleccionarProcedimiento(this.dataset.id, this.dataset.nombre, parseFloat(this.dataset.precio));
+            });
+        });
+    } catch (err) {
+        resultadosDiv.innerHTML = '<div class="p-3 text-center text-red-400 text-sm">Error al buscar</div>';
+    }
+}
+
+function seleccionarProcedimiento(id, nombre, precio) {
+    procedimientoSeleccionado = { id, nombre, precio };
+
+    document.getElementById('procedimientoSeleccionadoNombre').textContent = nombre;
+    document.getElementById('procedimientoPrecioUnitario').textContent = precio.toFixed(2);
+    document.getElementById('procedimientoCantidad').value = 1;
+    document.getElementById('seleccionProcContainer').classList.remove('hidden');
+
+    document.getElementById('buscadorProcedimiento').value = '';
+    document.getElementById('resultadosProcedimientos').classList.add('hidden');
+}
+
+function limpiarSeleccionProc() {
+    procedimientoSeleccionado = null;
+    document.getElementById('seleccionProcContainer').classList.add('hidden');
+    document.getElementById('buscadorProcedimiento').value = '';
+    document.getElementById('buscadorProcedimiento').focus();
+}
+
+function agregarProcedimientoSeleccionado() {
+    if (!procedimientoSeleccionado) {
+        alert('Seleccione un procedimiento primero');
         return;
     }
-
-    const equipo = {
-        nombre: nombreInput.value.trim(),
-        precio: parseFloat(precioInput.value),
-        cantidad: parseInt(cantidadInput.value) || 1
-    };
-
-    equipo.subtotal = equipo.precio * equipo.cantidad;
-    equiposAgregados.push(equipo);
-
+    const cantidad  = parseInt(document.getElementById('procedimientoCantidad').value) || 1;
+    const existente = equiposAgregados.find(e => e.nombre === procedimientoSeleccionado.nombre);
+    if (existente) {
+        existente.cantidad += cantidad;
+        existente.subtotal  = existente.precio * existente.cantidad;
+    } else {
+        equiposAgregados.push({
+            nombre:   procedimientoSeleccionado.nombre,
+            precio:   procedimientoSeleccionado.precio,
+            cantidad,
+            subtotal: procedimientoSeleccionado.precio * cantidad,
+        });
+    }
     renderizarEquipos();
     actualizarCostosEquipos();
-
-    // Resetear campos
-    nombreInput.value = '';
-    precioInput.value = '';
-    cantidadInput.value = '1';
+    limpiarSeleccionProc();
 }
 
 function eliminarEquipo(index) {
@@ -633,20 +724,20 @@ function renderizarEquipos() {
     const container = document.getElementById('listaEquipos');
 
     if (equiposAgregados.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No hay equipos agregados</p>';
+        container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No hay procedimientos agregados</p>';
         return;
     }
 
     container.innerHTML = equiposAgregados.map((eq, index) => `
         <div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">
-            <div>
+            <div class="flex-1">
                 <span class="font-medium text-gray-900">${eq.nombre}</span>
-                <span class="text-sm text-gray-500">x${eq.cantidad}</span>
+                <span class="text-sm text-gray-500 ml-2">x${eq.cantidad}</span>
+                <div class="text-xs text-gray-500">Bs. ${eq.precio.toFixed(2)} c/u</div>
             </div>
             <div class="flex items-center gap-3">
                 <span class="font-semibold text-cyan-600">Bs. ${eq.subtotal.toFixed(2)}</span>
-                <button type="button" onclick="eliminarEquipo(${index})"
-                        class="text-red-500 hover:text-red-700">
+                <button type="button" onclick="eliminarEquipo(${index})" class="text-red-500 hover:text-red-700">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -658,18 +749,24 @@ function renderizarEquipos() {
 
 function actualizarCostosEquipos() {
     const total = equiposAgregados.reduce((sum, eq) => sum + eq.subtotal, 0);
-    document.getElementById('costoEquiposPreview').textContent = 'Bs. ' + total.toFixed(2);
+    const elEq = document.getElementById('costoEquiposPreview');
+    if (elEq) elEq.textContent = 'Bs. ' + total.toFixed(2);
     actualizarCostoTotal();
 }
 
 // Cálculo del total
 function actualizarCostoTotal() {
-    const costoExtra = parseFloat(document.getElementById('costoExtraPreview').textContent.replace('Bs. ', '')) || 0;
-    const costoMedicamentos = parseFloat(document.getElementById('costoMedicamentosPreview').textContent.replace('Bs. ', '')) || 0;
-    const costoEquipos = parseFloat(document.getElementById('costoEquiposPreview').textContent.replace('Bs. ', '')) || 0;
+    const elExtra = document.getElementById('costoExtraPreview');
+    const elMed   = document.getElementById('costoMedicamentosPreview');
+    const elEq    = document.getElementById('costoEquiposPreview');
+    const elTotal = document.getElementById('costoTotalPreview');
+
+    const costoExtra       = elExtra ? (parseFloat(elExtra.textContent.replace('Bs. ', '')) || 0) : 0;
+    const costoMedicamentos = elMed  ? (parseFloat(elMed.textContent.replace('Bs. ', ''))   || 0) : 0;
+    const costoEquipos      = elEq   ? (parseFloat(elEq.textContent.replace('Bs. ', ''))    || 0) : 0;
 
     const total = costoBase + costoExtra + costoMedicamentos + costoEquipos;
-    document.getElementById('costoTotalPreview').textContent = 'Bs. ' + total.toFixed(2);
+    if (elTotal) elTotal.textContent = 'Bs. ' + total.toFixed(2);
 }
 
 // Event Listeners
