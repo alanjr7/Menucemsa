@@ -58,8 +58,17 @@ class AlmacenMedicamentosController extends Controller
         // Calcular estado_stock para filtro DESPUÉS de paginar (aplica en colección)
         if ($request->filled('estado_stock')) {
             $catalogo->setCollection(
-                $catalogo->getCollection()->filter(function ($item) use ($request) {
-                    return $item->estado_stock === $request->estado_stock;
+                $catalogo->getCollection()->filter(function ($item) use ($request, $ubicacion) {
+                    $area = $ubicacion ?? 'central';
+                    $stocks = $item->lotes->flatMap->stocks->where('ubicacion', $area);
+                    $total = $stocks->sum('cantidad_actual');
+                    $minimo = $stocks->min('stock_minimo') ?? 0;
+                    $estado = $total <= 0 ? 'agotado' : ($total <= $minimo ? 'bajo' : 'normal');
+
+                    if ($request->estado_stock === 'con_stock') {
+                        return $estado !== 'agotado';
+                    }
+                    return $estado === $request->estado_stock;
                 })->values()
             );
         }
@@ -197,7 +206,8 @@ class AlmacenMedicamentosController extends Controller
             'lotes.*.stocks.*.cantidad_a_agregar' => 'nullable|integer|min:0',
         ]);
 
-        DB::transaction(function () use ($request, $almacenMedicamento) {
+        try {
+            DB::transaction(function () use ($request, $almacenMedicamento) {
             $almacenMedicamento->update($request->only([
                 'nombre', 'descripcion', 'unidad_medida', 'tipo', 'observaciones',
             ]));
@@ -311,7 +321,12 @@ class AlmacenMedicamentosController extends Controller
                 'lotes_count'       => count($request->lotes ?? []),
                 'distribuciones'    => array_keys($dispensacionesPorArea),
             ]);
-        });
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
 
         return redirect()->route('admin.almacen-medicamentos.show', $almacenMedicamento->id)
             ->with('success', 'Medicamento/Insumo y lotes actualizados correctamente.');
@@ -609,6 +624,105 @@ class AlmacenMedicamentosController extends Controller
         ]);
     }
 
+    public function agregarStockForm()
+    {
+        $medicamentos = AlmacenCatalogo::activos()
+            ->with(['lotes.stocks' => fn ($q) => $q->where('ubicacion', 'central')])
+            ->withSum(['stocks as stock_central' => fn ($q) => $q->where('ubicacion', 'central')], 'cantidad_actual')
+            ->withMin(['stocks as stock_minimo_central' => fn ($q) => $q->where('ubicacion', 'central')], 'stock_minimo')
+            ->orderBy('nombre')
+            ->get()
+            ->map(fn ($m) => [
+                'catalogo_id'  => $m->id,
+                'nombre'       => $m->nombre,
+                'descripcion'  => $m->descripcion,
+                'unidad'       => $m->unidad_medida,
+                'tipo'         => $m->tipo,
+                'stock'        => (int) ($m->stock_central ?? 0),
+                'stock_minimo' => (int) ($m->stock_minimo_central ?? 0),
+            ])
+            ->sortBy(fn ($m) => match (true) {
+                $m['stock'] <= 0                          => 0,
+                $m['stock'] <= $m['stock_minimo']         => 1,
+                default                                   => 2,
+            })
+            ->values();
+
+        return view('admin.almacen-medicamentos.agregar-stock', compact('medicamentos'));
+    }
+
+    public function procesarAgregarStock(Request $request)
+    {
+        $request->validate([
+            'motivo' => 'required|string|max:255',
+            'items'  => 'required|string',
+        ]);
+
+        $items = json_decode($request->items, true);
+
+        if (!is_array($items) || count($items) === 0) {
+            return redirect()->back()->with('error', 'Debe ingresar cantidades para al menos un ítem.')->withInput();
+        }
+
+        foreach ($items as $i => $item) {
+            if (!isset($item['catalogo_id'], $item['cantidad']) || (int) $item['cantidad'] <= 0) {
+                return redirect()->back()->with('error', 'Datos inválidos en ítem #' . ($i + 1))->withInput();
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($items, $request) {
+                foreach ($items as $item) {
+                    $catalogoId = (int) $item['catalogo_id'];
+                    $cantidad   = (int) $item['cantidad'];
+
+                    // Lote con más stock central (FIFO inverso: preferir el más cargado para no fragmentar)
+                    $lote = AlmacenLote::where('catalogo_id', $catalogoId)
+                        ->withSum(['stocks as stock_c' => fn ($q) => $q->where('ubicacion', 'central')], 'cantidad_actual')
+                        ->orderByDesc('stock_c')
+                        ->first();
+
+                    if (!$lote) {
+                        $lote = AlmacenLote::create([
+                            'catalogo_id'     => $catalogoId,
+                            'cantidad_inicial' => $cantidad,
+                        ]);
+                    }
+
+                    $stock = AlmacenStock::firstOrNew([
+                        'lote_id'   => $lote->id,
+                        'ubicacion' => 'central',
+                    ]);
+
+                    if (!$stock->exists) {
+                        $stock->cantidad_actual = $cantidad;
+                        $stock->stock_minimo    = 0;
+                        $stock->save();
+                    } else {
+                        $stock->increment('cantidad_actual', $cantidad);
+                    }
+
+                    Log::info("Almacén: ingreso de stock +{$cantidad} → catálogo #{$catalogoId}. Motivo: {$request->motivo}", [
+                        'user_id'     => Auth::id(),
+                        'catalogo_id' => $catalogoId,
+                        'lote_id'     => $lote->id,
+                        'cantidad'    => $cantidad,
+                        'motivo'      => $request->motivo,
+                        'action'      => 'ingreso_stock',
+                        'module'      => 'almacen',
+                    ]);
+                }
+            });
+
+            return redirect()->route('admin.almacen-medicamentos.index')
+                ->with('success', 'Stock actualizado correctamente para ' . count($items) . ' ítem(s).');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error al agregar stock: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
     public function transferirForm()
     {
         $medicamentos = AlmacenCatalogo::activos()
@@ -623,98 +737,109 @@ class AlmacenMedicamentosController extends Controller
     public function procesarTransferencia(Request $request)
     {
         $request->validate([
-            'ubicacion_destino' => 'required|in:emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
-            'recibido_por'      => 'nullable|string|max:150',
-            'items'             => 'required|string',
+            'recibido_por' => 'nullable|string|max:150',
+            'data'         => 'required|string',
         ]);
 
-        $items = json_decode($request->items, true);
+        $areasValidas = ['emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato', 'internacion'];
+        $data = json_decode($request->data, true);
 
-        if (!is_array($items) || count($items) === 0) {
-            return redirect()->back()
-                ->with('error', 'Debe seleccionar al menos un ítem para transferir.')
-                ->withInput();
+        if (!is_array($data) || count($data) === 0) {
+            return redirect()->back()->with('error', 'Debe ingresar cantidades para al menos un área.')->withInput();
         }
 
-        foreach ($items as $index => $item) {
-            if (!isset($item['catalogo_id']) || !isset($item['cantidad'])) {
-                return redirect()->back()
-                    ->with('error', 'Datos inválidos en ítem #' . ($index + 1))
-                    ->withInput();
+        foreach ($data as $area => $items) {
+            if (!in_array($area, $areasValidas)) {
+                return redirect()->back()->with('error', "Área inválida: {$area}")->withInput();
+            }
+            if (!is_array($items) || count($items) === 0) {
+                return redirect()->back()->with('error', "Sin ítems para área {$area}.")->withInput();
+            }
+            foreach ($items as $i => $item) {
+                if (!isset($item['catalogo_id'], $item['cantidad']) || (int) $item['cantidad'] <= 0) {
+                    return redirect()->back()->with('error', "Datos inválidos en {$area}, ítem #" . ($i + 1))->withInput();
+                }
             }
         }
 
         try {
-            DB::transaction(function () use ($items, $request) {
-                $dispensacion = AlmacenDispensacion::create([
-                    'ubicacion_origen'   => 'central',
-                    'ubicacion_destino'  => $request->ubicacion_destino,
-                    'dispensado_por'     => Auth::id(),
-                    'recibido_por'       => $request->recibido_por,
-                    'fecha_dispensacion' => now(),
-                ]);
+            $totalItems = 0;
+            $areasAfectadas = [];
 
-                foreach ($items as $item) {
-                    $restante = (int) $item['cantidad'];
+            DB::transaction(function () use ($data, $request, &$totalItems, &$areasAfectadas) {
+                foreach ($data as $area => $items) {
+                    $dispensacion = AlmacenDispensacion::create([
+                        'ubicacion_origen'   => 'central',
+                        'ubicacion_destino'  => $area,
+                        'dispensado_por'     => Auth::id(),
+                        'recibido_por'       => $request->recibido_por,
+                        'fecha_dispensacion' => now(),
+                    ]);
 
-                    // FIFO: lotes con stock central, ordenados por vencimiento más próximo
-                    $lotes = AlmacenLote::where('catalogo_id', $item['catalogo_id'])
-                        ->whereHas('stocks', fn ($q) => $q->where('ubicacion', 'central')->where('cantidad_actual', '>', 0))
-                        ->orderByRaw('ISNULL(fecha_vencimiento), fecha_vencimiento ASC')
-                        ->get();
+                    foreach ($items as $item) {
+                        $restante = (int) $item['cantidad'];
 
-                    $stockTotalDisponible = AlmacenStock::whereIn('lote_id', $lotes->pluck('id'))
-                        ->where('ubicacion', 'central')
-                        ->sum('cantidad_actual');
+                        $lotes = AlmacenLote::where('catalogo_id', $item['catalogo_id'])
+                            ->whereHas('stocks', fn ($q) => $q->where('ubicacion', 'central')->where('cantidad_actual', '>', 0))
+                            ->orderByRaw('ISNULL(fecha_vencimiento), fecha_vencimiento ASC')
+                            ->get();
 
-                    if ($stockTotalDisponible < $restante) {
-                        throw new \Exception("Stock insuficiente para catálogo #{$item['catalogo_id']}. Disponible: {$stockTotalDisponible}");
-                    }
-
-                    foreach ($lotes as $lote) {
-                        if ($restante <= 0) break;
-
-                        $stockCentral = AlmacenStock::where('lote_id', $lote->id)
+                        $stockDisponible = AlmacenStock::whereIn('lote_id', $lotes->pluck('id'))
                             ->where('ubicacion', 'central')
-                            ->lockForUpdate()
-                            ->first();
+                            ->sum('cantidad_actual');
 
-                        if (!$stockCentral || $stockCentral->cantidad_actual <= 0) continue;
+                        if ($stockDisponible < $restante) {
+                            throw new \Exception("Stock insuficiente para catálogo #{$item['catalogo_id']} → {$area}. Disponible: {$stockDisponible}, requerido: {$restante}.");
+                        }
 
-                        $tomar = min($restante, $stockCentral->cantidad_actual);
-                        $stockCentral->decrement('cantidad_actual', $tomar);
+                        foreach ($lotes as $lote) {
+                            if ($restante <= 0) break;
 
-                        $stockDestino = AlmacenStock::firstOrNew([
-                            'lote_id'   => $lote->id,
-                            'ubicacion' => $request->ubicacion_destino,
-                        ]);
-                        $stockDestino->cantidad_actual = ($stockDestino->cantidad_actual ?? 0) + $tomar;
-                        $stockDestino->stock_minimo    = $stockDestino->stock_minimo ?? 0;
-                        $stockDestino->save();
+                            $stockCentral = AlmacenStock::where('lote_id', $lote->id)
+                                ->where('ubicacion', 'central')
+                                ->lockForUpdate()
+                                ->first();
 
-                        AlmacenDispensacionDetalle::create([
-                            'dispensacion_id' => $dispensacion->id,
-                            'lote_id'         => $lote->id,
-                            'cantidad'        => $tomar,
-                        ]);
+                            if (!$stockCentral || $stockCentral->cantidad_actual <= 0) continue;
 
-                        $restante -= $tomar;
+                            $tomar = min($restante, $stockCentral->cantidad_actual);
+                            $stockCentral->decrement('cantidad_actual', $tomar);
+
+                            $stockDestino = AlmacenStock::firstOrNew([
+                                'lote_id'   => $lote->id,
+                                'ubicacion' => $area,
+                            ]);
+                            $stockDestino->cantidad_actual = ($stockDestino->cantidad_actual ?? 0) + $tomar;
+                            $stockDestino->stock_minimo    = $stockDestino->stock_minimo ?? 0;
+                            $stockDestino->save();
+
+                            AlmacenDispensacionDetalle::create([
+                                'dispensacion_id' => $dispensacion->id,
+                                'lote_id'         => $lote->id,
+                                'cantidad'        => $tomar,
+                            ]);
+
+                            $restante -= $tomar;
+                        }
                     }
-                }
 
-                Log::info('Almacén: transferencia masiva a ' . $request->ubicacion_destino . ', ' . count($items) . ' ítems', [
-                    'user_id'         => Auth::id(),
-                    'dispensacion_id' => $dispensacion->id,
-                    'action'          => 'transferencia_masiva',
-                    'module'          => 'almacen',
-                ]);
+                    $totalItems += count($items);
+                    $areasAfectadas[] = ucfirst($area);
+
+                    Log::info('Almacén: distribución masiva → ' . $area . ', ' . count($items) . ' ítems', [
+                        'user_id'         => Auth::id(),
+                        'dispensacion_id' => $dispensacion->id,
+                        'action'          => 'distribucion_masiva',
+                        'module'          => 'almacen',
+                    ]);
+                }
             });
 
-            return redirect()->route('admin.almacen-medicamentos.historial')
-                ->with('success', 'Transferencia completada. ' . count($items) . ' ítems enviados a ' . ucfirst($request->ubicacion_destino) . '.');
+            $msg = 'Distribución completada. ' . $totalItems . ' ítems enviados a: ' . implode(', ', $areasAfectadas) . '.';
+            return redirect()->route('admin.almacen-medicamentos.historial')->with('success', $msg);
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Error en la transferencia: ' . $e->getMessage())
+                ->with('error', 'Error en la distribución: ' . $e->getMessage())
                 ->withInput();
         }
     }

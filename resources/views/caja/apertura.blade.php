@@ -30,11 +30,10 @@
                                 <label for="monto_inicial" class="block text-sm font-medium text-gray-700 mb-2">
                                     Monto Inicial (S/)
                                 </label>
-                                <input type="number" 
-                                       id="monto_inicial" 
-                                       name="monto_inicial" 
-                                       step="0.01" 
-                                       min="0"
+                                <input type="text"
+                                       inputmode="decimal"
+                                       id="monto_inicial"
+                                       name="monto_inicial"
                                        required
                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
                                        placeholder="0.00">
@@ -97,6 +96,24 @@
 
 @push('scripts')
 <script>
+        (function() {
+            const input = document.getElementById('monto_inicial');
+            input.addEventListener('keypress', function(e) {
+                if (!/[0-9.,]/.test(e.key)) e.preventDefault();
+            });
+            input.addEventListener('input', function() {
+                const pos = this.selectionStart;
+                let val = this.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                const parts = val.split('.');
+                if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                if (this.value !== val) { this.value = val; this.setSelectionRange(pos, pos); }
+            });
+            input.addEventListener('blur', function() {
+                const num = parseFloat(this.value);
+                if (!isNaN(num)) this.value = num.toFixed(2);
+            });
+        })();
+
         document.getElementById('formApertura').addEventListener('submit', async function(e) {
             e.preventDefault();
             

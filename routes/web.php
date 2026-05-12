@@ -551,6 +551,10 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/almacen-medicamentos/transferir', [AlmacenMedicamentosController::class, 'transferirForm'])->name('almacen-medicamentos.transferir.form');
         Route::post('/almacen-medicamentos/transferir', [AlmacenMedicamentosController::class, 'procesarTransferencia'])->name('almacen-medicamentos.transferir.procesar');
 
+        // Agregar stock masivo al almacén central
+        Route::get('/almacen-medicamentos/agregar-stock', [AlmacenMedicamentosController::class, 'agregarStockForm'])->name('almacen-medicamentos.agregar-stock.form');
+        Route::post('/almacen-medicamentos/agregar-stock', [AlmacenMedicamentosController::class, 'procesarAgregarStock'])->name('almacen-medicamentos.agregar-stock.procesar');
+
         // Rutas de historial de dispensaciones (ANTES de las rutas con wildcard {id})
         Route::get('/almacen-medicamentos/historial/dispensaciones', [AlmacenMedicamentosController::class, 'historialDispensaciones'])->name('almacen-medicamentos.historial');
 

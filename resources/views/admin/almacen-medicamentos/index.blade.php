@@ -12,6 +12,13 @@
                 <p class="text-gray-600 mt-1">Catálogo normalizado con trazabilidad por lote</p>
             </div>
             <div class="flex gap-3">
+                <a href="{{ route('admin.almacen-medicamentos.agregar-stock.form') }}"
+                   class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                    </svg>
+                    Agregar Stock
+                </a>
                 <a href="{{ route('admin.almacen-medicamentos.transferir.form') }}"
                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,6 +89,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Estado Stock</label>
                 <select name="estado_stock" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Todos</option>
+                    <option value="con_stock" {{ request('estado_stock') == 'con_stock' ? 'selected' : '' }}>Con stock</option>
                     <option value="bajo" {{ request('estado_stock') == 'bajo' ? 'selected' : '' }}>Bajo Stock</option>
                     <option value="agotado" {{ request('estado_stock') == 'agotado' ? 'selected' : '' }}>Agotado</option>
                 </select>

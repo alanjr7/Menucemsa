@@ -4,517 +4,339 @@
 
 @prepend('head')
 <style>
-/* =====================================================
-   PALETA DE COLORES MEDICA PROFESIONAL
-   Sistema de salud - Menucemsa
-   ===================================================== */
 :root {
-  /* Primarios médicos */
-  --color-primary: #0d4f6b;
-  --color-primary-hover: #083649;
-  --color-primary-light: #e6f2f5;
-  --color-secondary: #2d5a4a;
-  --color-accent: #0891b2;
-  
-  /* Estados */
-  --color-success: #059669;
-  --color-success-light: #d1fae5;
-  --color-warning: #d97706;
-  --color-warning-light: #fef3c7;
-  --color-danger: #dc2626;
-  --color-danger-light: #fee2e2;
-  --color-info: #0284c7;
-  --color-info-light: #e0f2fe;
-  
-  /* Neutros médicos */
-  --color-gray-25: #f8fafc;
-  --color-gray-50: #f1f5f9;
-  --color-gray-100: #e2e8f0;
-  --color-gray-200: #cbd5e1;
-  --color-gray-300: #94a3b8;
-  --color-gray-400: #64748b;
-  --color-gray-500: #475569;
-  --color-gray-600: #334155;
-  --color-gray-700: #1e293b;
-  --color-gray-800: #0f172a;
-  
-  /* Sombras profesionales */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
-  --shadow-focus: 0 0 0 3px rgba(13, 79, 107, 0.15);
-  
-  /* Bordes */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  
-  /* Transiciones */
-  --transition-fast: 150ms ease-out;
-  --transition-normal: 200ms ease-out;
+  --primary:       #0d4f6b;
+  --primary-hover: #093d54;
+  --primary-light: #edf4f7;
+  --primary-ring:  rgba(13, 79, 107, 0.16);
+
+  --success:       #065f46;
+  --success-hover: #054d38;
+  --danger:        #b91c1c;
+  --danger-bg:     #fef2f2;
+  --warning:       #92400e;
+  --warning-bg:    #fffbeb;
+
+  --gray-50:  #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 11px;
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 4px rgb(0 0 0 / 0.07), 0 1px 2px rgb(0 0 0 / 0.04);
+
+  --t: 140ms ease;
 }
 
-/* Estilos base corporativos */
 body {
-  background: var(--color-gray-25);
-  min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.6;
-  color: var(--color-gray-900);
+  background: #eef0f3;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: var(--gray-900);
+  line-height: 1.5;
 }
 
-/* Header corporativo médico */
+/* ---- Page header ---- */
 .page-header {
   background: white;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem 2rem;
+  border: 1px solid var(--gray-200);
+  padding: 1.25rem 1.75rem;
   margin-bottom: 1.5rem;
-  border: 1px solid var(--color-gray-200);
+  box-shadow: var(--shadow-xs);
 }
-
 .page-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-gray-800);
-  margin-bottom: 0.25rem;
-  letter-spacing: -0.02em;
+  color: var(--gray-900);
+  letter-spacing: -0.015em;
+  margin: 0 0 0.125rem;
 }
+.page-subtitle { font-size: 0.8125rem; color: var(--gray-500); margin: 0; }
 
-.page-subtitle {
-  color: var(--color-gray-500);
-  font-size: 0.875rem;
-  font-weight: 400;
-  margin: 0;
-}
-
-/* Breadcrumb y navegación */
+/* ---- Breadcrumb ---- */
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
   font-size: 0.75rem;
-  color: var(--color-gray-400);
-  margin-bottom: 0.75rem;
+  color: var(--gray-400);
+  margin-bottom: 0.5rem;
 }
+.breadcrumb a { color: var(--gray-500); text-decoration: none; transition: color var(--t); }
+.breadcrumb a:hover { color: var(--primary); }
 
-.breadcrumb a {
-  color: var(--color-gray-500);
-  text-decoration: none;
-  transition: var(--transition-fast);
-}
-
-.breadcrumb a:hover {
-  color: var(--color-primary);
-}
-
-/* Badges médicos */
+/* ---- Badges — sobrios ---- */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
 }
+.badge-medicamento { background: #dbeafe; color: #1e40af; }
+.badge-insumo      { background: var(--gray-100); color: var(--gray-600); }
+.badge-activo      { background: #dcfce7; color: #166534; }
+.badge-inactivo    { background: var(--gray-100); color: var(--gray-500); }
+.badge-vigente     { background: #dcfce7; color: #166534; }
+.badge-por-vencer  { background: #fef9c3; color: #854d0e; }
+.badge-vencido     { background: #fee2e2; color: #991b1b; }
+.badge-vencimiento { background: #fee2e2; color: #991b1b; padding: 0.2rem 0.5rem; font-size: 0.6875rem; }
+#lotesCount        { background: var(--gray-100); color: var(--gray-600); }
 
-.badge-medicamento {
-  background: var(--color-info-light);
-  color: var(--color-info);
-}
-
-.badge-insumo {
-  background: var(--color-gray-100);
-  color: var(--color-gray-600);
-}
-
-.badge-activo {
-  background: var(--color-success-light);
-  color: var(--color-success);
-}
-
-.badge-inactivo {
-  background: var(--color-gray-100);
-  color: var(--color-gray-500);
-}
-
-.badge-vigente {
-  background: var(--color-success-light);
-  color: var(--color-success);
-}
-
-.badge-por-vencer {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
-}
-
-.badge-vencido {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-}
-
-.badge-vencimiento {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.7rem;
-}
-
-/* Cards de secciones corporativas */
+/* ---- Section cards ---- */
 .section-card {
   background: white;
   border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
   box-shadow: var(--shadow-xs);
-  border: 1px solid var(--color-gray-200);
   overflow: hidden;
-  transition: var(--transition);
 }
-
-.section-card:hover {
-  box-shadow: var(--shadow-sm);
-}
-
 .section-header {
-  background: var(--color-gray-50);
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--color-gray-200);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
 }
-
 .section-title {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--color-gray-900);
+  color: var(--gray-800);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin: 0;
 }
+.section-title svg { color: var(--primary); }
+.section-content { padding: 1.5rem; }
 
-.section-content {
-  padding: 1.5rem;
-}
-
-/* Formularios corporativos */
-.form-group {
-  margin-bottom: 1.25rem;
-}
+/* ---- Forms ---- */
+.form-group { margin-bottom: 1.125rem; }
 
 .form-label {
   display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-gray-700);
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.025em;
-}
-
-.form-label.required::after {
-  content: ' *';
-  color: var(--color-danger);
+  font-size: 0.8125rem;
   font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 0.375rem;
+  letter-spacing: 0.01em;
 }
+.form-label.required::after { content: ' *'; color: var(--danger); }
 
 .form-input,
 .form-select,
 .form-textarea {
   width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid var(--color-gray-300);
+  padding: 0.6875rem 0.9375rem;
+  border: 1px solid var(--gray-300);
   border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  transition: var(--transition-fast);
-  background-color: white;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  min-height: 44px;
+  background: white;
+  color: var(--gray-900);
   font-family: inherit;
+  transition: border-color var(--t), box-shadow var(--t);
 }
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
+.form-input::placeholder, .form-textarea::placeholder { color: var(--gray-400); }
+.form-input:hover, .form-select:hover { border-color: var(--gray-400); }
+.form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-focus);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
 }
+.form-input.error { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(185,28,28,.12); }
+.error-message { font-size: 0.75rem; color: var(--danger); margin-top: 0.25rem; font-weight: 500; }
 
-.form-input.error,
-.form-select.error,
-.form-textarea.error {
-  border-color: var(--color-danger);
-  box-shadow: 0 0 0 1px var(--color-danger);
-}
-
-.error-message {
-  color: var(--color-danger);
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-  font-weight: 500;
-}
-
-/* Grid responsivo */
-.form-grid {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.form-grid-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.form-grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
+/* ---- Grid ---- */
+.form-grid { display: grid; gap: 1.125rem; }
+.form-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.form-grid-3 { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 768px) {
-  .form-grid-2,
-  .form-grid-3 {
-    grid-template-columns: 1fr;
-  }
+  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
 }
 
-/* Lotes corporativos */
+/* ---- Lote cards ---- */
 .lote-item {
-  background: var(--color-gray-50);
-  border: 1px solid var(--color-gray-200);
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-left: 3px solid var(--primary);
   border-radius: var(--radius-lg);
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-  transition: var(--transition-fast);
-  position: relative;
+  padding: 1.25rem 1.375rem;
+  margin-bottom: 0.875rem;
+  animation: slideIn 0.18s ease-out;
+  transition: box-shadow var(--t);
 }
-
-.lote-item:hover {
-  border-color: var(--color-gray-300);
-  box-shadow: var(--shadow-sm);
-}
-
-.lote-item.vencido {
-  background: #fef2f2;
-  border-color: var(--color-danger);
-}
-
-.lote-item.por-vencer {
-  background: #fffbeb;
-  border-color: var(--color-warning);
-}
+.lote-item:hover { box-shadow: var(--shadow-sm); }
+.lote-item.vencido    { border-left-color: var(--danger);  background: #fffafa; }
+.lote-item.por-vencer { border-left-color: var(--warning); background: #fffef5; }
 
 .lote-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-gray-200);
+  margin-bottom: 1.125rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-100);
 }
+.lote-title { font-size: 0.9375rem; font-weight: 600; color: var(--gray-800); margin: 0; }
 
-.lote-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-gray-900);
-  margin: 0;
+/* ---- Stock area ---- */
+.stock-item {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 0.625rem 0.75rem;
+  transition: border-color var(--t);
 }
+.stock-item:hover { border-color: var(--gray-300); }
 
-.lote-meta {
+.stock-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.375rem;
+}
+.stock-field-label {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--gray-400);
+  margin: 0.3rem 0 0.1rem;
+}
+.stock-small-input {
+  padding: 0.375rem 0.5rem !important;
+  font-size: 0.8125rem !important;
+  min-height: 32px !important;
+}
+.stocks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.625rem;
+  margin-top: 0.75rem;
+}
+.stock-item-central {
+  border-color: var(--primary) !important;
+  background: var(--primary-light) !important;
+}
+.form-input[readonly] {
+  background: var(--gray-50);
+  color: var(--gray-600);
+  cursor: default;
+  border-color: var(--gray-200);
+  user-select: none;
+}
+.stocks-section-label {
   font-size: 0.75rem;
-  color: var(--color-gray-500);
-  margin-left: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-400);
+  margin: 0 0 0.5rem;
 }
 
-/* Botones corporativos */
+/* ---- Buttons ---- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
+  gap: 0.375rem;
+  padding: 0.625rem 1.125rem;
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 500;
-  text-decoration: none;
   border: none;
   cursor: pointer;
-  transition: var(--transition-fast);
   min-height: 40px;
-  min-width: 40px;
   font-family: inherit;
+  text-decoration: none;
+  transition: background var(--t), border-color var(--t), box-shadow var(--t);
 }
+.btn:focus { outline: none; box-shadow: 0 0 0 3px var(--primary-ring); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary   { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: white; color: var(--gray-700); border: 1px solid var(--gray-300); }
+.btn-secondary:hover { background: var(--gray-50); border-color: var(--gray-400); }
+.btn-success   { background: var(--success); color: white; }
+.btn-success:hover { background: var(--success-hover); }
+.btn-danger    { background: transparent; color: var(--gray-400); padding: 0.375rem 0.5rem; border-radius: var(--radius-sm); }
+.btn-danger:hover { background: var(--danger-bg); color: var(--danger); }
 
-.btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-primary);
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--color-primary-hover);
-}
-
-.btn-secondary {
-  background: white;
-  color: var(--color-gray-700);
-  border: 1px solid var(--color-gray-300);
-}
-
-.btn-secondary:hover {
-  background: var(--color-gray-50);
-  border-color: var(--color-gray-400);
-}
-
-.btn-success {
-  background: var(--color-success);
-  color: white;
-}
-
-.btn-success:hover {
-  background: #047857;
-}
-
-.btn-danger {
-  background: transparent;
-  color: var(--color-gray-500);
-  padding: 0.375rem;
-}
-
-.btn-danger:hover {
-  background: var(--color-danger);
-  color: white;
-}
-
-/* Alertas corporativas */
+/* ---- Alerts ---- */
 .alert {
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 1.125rem;
   border-radius: var(--radius-md);
   margin-bottom: 1.25rem;
   border: 1px solid;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
+  font-size: 0.875rem;
 }
+.alert-error   { background: var(--danger-bg); border-color: #fca5a5; color: #991b1b; }
+.alert-success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.alert-warning { background: var(--warning-bg); border-color: #fcd34d; color: var(--warning); }
 
-.alert-error {
-  background: var(--color-danger-light);
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-}
+/* ---- Numeric inputs — no spinners, no scroll ---- */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
 
-.alert-success {
-  background: var(--color-success-light);
-  border-color: var(--color-success);
-  color: var(--color-success);
-}
-
-.alert-warning {
-  background: var(--color-warning-light);
-  border-color: var(--color-warning);
-  color: var(--color-warning);
-}
-
-.stock-item {
-  background: white;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  padding: 0.75rem;
-  transition: var(--transition-fast);
-}
-
-.stock-item:hover {
-  border-color: var(--color-gray-300);
-  box-shadow: var(--shadow-xs);
-}
-
-.stock-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-gray-600);
-  margin-bottom: 0.375rem;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-}
-
-.stock-field-label {
-  display: block;
-  font-size: 0.65rem;
-  color: var(--color-gray-400);
-  margin-top: 0.375rem;
-  margin-bottom: 0.125rem;
-}
-
-.stock-small-input {
-  padding: 0.375rem 0.5rem !important;
-  font-size: 0.8rem !important;
-}
-
-.stock-item-central {
-  border-color: var(--color-primary) !important;
-  background: var(--color-primary-light) !important;
-}
-
-.stocks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-/* Animaciones corporativas */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.lote-item {
-  animation: slideIn 0.2s ease-out;
-}
-
-/* Layout de dos columnas */
+/* ---- Layout ---- */
 .two-column-layout {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 350px 1fr;
   gap: 1.5rem;
   align-items: start;
 }
+@media (max-width: 1024px) { .two-column-layout { grid-template-columns: 1fr; } }
 
-@media (max-width: 1024px) {
-  .two-column-layout {
-    grid-template-columns: 1fr;
-  }
+.action-bar {
+  position: sticky;
+  bottom: 0;
+  background: rgba(238, 240, 243, 0.96);
+  backdrop-filter: blur(8px);
+  padding: 0.875rem 0;
+  margin-top: 1.5rem;
+  z-index: 20;
+  display: flex;
+  gap: 0.75rem;
+  border-top: 1px solid var(--gray-200);
 }
 
-/* Loading states */
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* ---- Animations ---- */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 .btn.loading::after {
   content: '';
-  width: 14px;
-  height: 14px;
+  width: 14px; height: 14px;
   border: 2px solid transparent;
-  border-top: 2px solid currentColor;
+  border-top-color: currentColor;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-left: 0.5rem;
+  animation: spin 0.7s linear infinite;
 }
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 @endprepend
 
@@ -555,6 +377,15 @@ body {
         </div>
     </div>
 
+    @if(session('error'))
+    <div class="alert alert-error">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>{{ session('error') }}</span>
+    </div>
+    @endif
+
     @if($errors->any())
     <div class="alert alert-error">
         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -578,7 +409,7 @@ body {
             <div class="section-card">
                 <div class="section-header">
                     <h2 class="section-title">
-                        <svg class="w-5 h-5" style="color: var(--color-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                         Información General
@@ -591,8 +422,7 @@ body {
                         <input type="text" id="nombre" name="nombre" 
                                value="{{ old('nombre', $catalogo->nombre) }}" 
                                required maxlength="255"
-                               class="form-input @error('nombre') error @enderror"
-                               style="font-size: 1rem; font-weight: 500;">
+                               class="form-input @error('nombre') error @enderror" style="font-weight:500;">
                         @error('nombre')<p class="error-message">{{ $message }}</p>@enderror
                     </div>
 
@@ -643,24 +473,21 @@ body {
             <!-- Columna Derecha: Gestión de Lotes -->
             <div class="section-card">
                 <div class="section-header">
-                    <div class="flex items-center justify-between">
-                        <h2 class="section-title">
-                            <svg class="w-5 h-5" style="color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                            </svg>
-                            Lotes y Precios
-                            <span id="lotesCount" class="badge" style="background: var(--color-gray-100); color: var(--color-gray-600); margin-left: 0.5rem;">0</span>
-                        </h2>
-                        <button type="button" onclick="agregarLote()" 
-                                class="btn btn-success">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                            Nuevo Lote
-                        </button>
-                    </div>
+                    <h2 class="section-title">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                        Lotes y Precios
+                        <span id="lotesCount" class="badge" style="margin-left:0.25rem;">0</span>
+                    </h2>
+                    <button type="button" onclick="agregarLote()" class="btn btn-success">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Nuevo Lote
+                    </button>
                 </div>
-                <div class="section-content" style="max-height: calc(100vh - 300px); overflow-y: auto;">
+                <div class="section-content">
                     <div id="lotesContainer" class="space-y-4">
                         <!-- Los lotes existentes se cargarán aquí con JavaScript -->
                     </div>
@@ -677,16 +504,14 @@ body {
             </div>
         </div>
 
-        <!-- Botones de acción sticky -->
-        <div class="flex gap-3 mt-6" style="position: sticky; bottom: 0; background: var(--color-gray-25); padding: 1rem 0; z-index: 10;">
+        <div class="action-bar">
             <button type="submit" class="btn btn-primary">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 Guardar Cambios
             </button>
-            <a href="{{ route('admin.almacen-medicamentos.show', $catalogo) }}"
-               class="btn btn-secondary">
+            <a href="{{ route('admin.almacen-medicamentos.show', $catalogo) }}" class="btn btn-secondary">
                 Cancelar
             </a>
         </div>
@@ -710,70 +535,74 @@ body {
         <div class="form-grid form-grid-3">
             <div class="form-group">
                 <label class="form-label" for="codigo_lote_{INDEX}">Código de Lote</label>
-                <input type="text" id="codigo_lote_{INDEX}" name="lotes[{INDEX}][codigo_lote]" 
-                       class="form-input">
+                <input type="text" id="codigo_lote_{INDEX}" name="lotes[{INDEX}][codigo_lote]"
+                       class="form-input"
+                       oninput="this.closest('.lote-item').querySelector('.lote-title').textContent = this.value || 'Nuevo Lote'">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="fecha_vencimiento_{INDEX}">Fecha Vencimiento</label>
-                <input type="date" id="fecha_vencimiento_{INDEX}" name="lotes[{INDEX}][fecha_vencimiento]" 
+                <input type="date" id="fecha_vencimiento_{INDEX}" name="lotes[{INDEX}][fecha_vencimiento]"
                        class="form-input">
             </div>
 
             <div class="form-group">
                 <label class="form-label required" for="cantidad_inicial_{INDEX}">Cantidad Inicial</label>
-                <input type="number" id="cantidad_inicial_{INDEX}" name="lotes[{INDEX}][cantidad_inicial]" 
-                       required min="0"
+                <input type="number" id="cantidad_inicial_{INDEX}" name="lotes[{INDEX}][cantidad_inicial]"
+                       required min="0" placeholder="0"
+                       class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="stock_minimo_central_{INDEX}">Stock Mínimo</label>
+                <input type="hidden" name="lotes[{INDEX}][stocks][0][ubicacion]" value="central">
+                <input type="number" id="stock_minimo_central_{INDEX}" name="lotes[{INDEX}][stocks][0][stock_minimo]"
+                       min="0" placeholder="0"
                        class="form-input">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="precio_compra_{INDEX}">Precio Compra</label>
-                <input type="number" id="precio_compra_{INDEX}" name="lotes[{INDEX}][precio_compra]" 
-                       step="0.01" min="0"
+                <input type="number" id="precio_compra_{INDEX}" name="lotes[{INDEX}][precio_compra]"
+                       step="0.01" min="0" placeholder="0.00"
                        class="form-input"
                        onchange="calcularPrecioVenta({INDEX})">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="porcentaje_ganancia_{INDEX}">% Ganancia</label>
-                <input type="number" id="porcentaje_ganancia_{INDEX}" name="lotes[{INDEX}][porcentaje_ganancia]" 
-                       step="0.01" min="0" max="999"
+                <input type="number" id="porcentaje_ganancia_{INDEX}" name="lotes[{INDEX}][porcentaje_ganancia]"
+                       step="0.01" min="0" max="999" placeholder="0"
                        class="form-input"
                        onchange="calcularPrecioVenta({INDEX})">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="precio_venta_{INDEX}">Precio Venta</label>
-                <input type="number" id="precio_venta_{INDEX}" name="lotes[{INDEX}][precio_venta]" 
-                       step="0.01" min="0"
-                       class="form-input">
+                <input type="number" id="precio_venta_{INDEX}" name="lotes[{INDEX}][precio_venta]"
+                       step="0.01" min="0" placeholder="0.00"
+                       class="form-input"
+                       onchange="calcularPorcentaje({INDEX})">
             </div>
         </div>
 
         <!-- Stocks por ubicación -->
-        <div class="mt-6">
-            <h4 class="text-sm font-medium text-gray-700 mb-3">Stock y Distribución por Área</h4>
+        <div class="mt-5">
+            <p class="stocks-section-label">Distribución por Área</p>
             <div class="stocks-grid">
                 @foreach($ubicaciones as $key => $label)
-                <div class="stock-item{{ $key === 'central' ? ' stock-item-central' : '' }}">
+                @if($key === 'central') @continue @endif
+                <div class="stock-item">
                     <label class="stock-label">{{ $label }}</label>
                     <input type="hidden" name="lotes[{INDEX}][stocks][{{ $loop->index }}][ubicacion]" value="{{ $key }}">
-                    @if($key === 'central')
-                    <span class="stock-field-label">Mínimo</span>
-                    <input type="number"
-                           name="lotes[{INDEX}][stocks][{{ $loop->index }}][stock_minimo]"
-                           min="0" value="0" class="form-input stock-small-input">
-                    @else
                     <span class="stock-field-label">Distribuir</span>
                     <input type="number"
                            name="lotes[{INDEX}][stocks][{{ $loop->index }}][cantidad_a_agregar]"
-                           min="0" value="0" class="form-input stock-small-input">
+                           min="0" placeholder="0" class="form-input stock-small-input">
                     <span class="stock-field-label">Mínimo</span>
                     <input type="number"
                            name="lotes[{INDEX}][stocks][{{ $loop->index }}][stock_minimo]"
-                           min="0" value="0" class="form-input stock-small-input">
-                    @endif
+                           min="0" placeholder="0" class="form-input stock-small-input">
                 </div>
                 @endforeach
             </div>
@@ -785,10 +614,23 @@ body {
 let loteIndex = 0;
 const lotesExistentes = @json($catalogo->lotes);
 
-// Cargar lotes existentes al iniciar
 document.addEventListener('DOMContentLoaded', function() {
     cargarLotesExistentes();
     actualizarContadorLotes();
+});
+
+// Evitar que la rueda del mouse cambie valores numéricos
+document.addEventListener('wheel', function() {
+    if (document.activeElement.type === 'number') {
+        document.activeElement.blur();
+    }
+}, { passive: true });
+
+// Antes de enviar, los campos requeridos vacíos se envían como 0
+document.getElementById('editForm').addEventListener('submit', function() {
+    this.querySelectorAll('input[name*="stock_minimo"], input[name*="cantidad_actual"]').forEach(function(input) {
+        if (input.value === '') input.value = '0';
+    });
 });
 
 function cargarLotesExistentes() {
@@ -826,49 +668,52 @@ function actualizarContadorLotes() {
 function crearLoteHtml(lote, index) {
     let stocksHtml = '';
     const ubicaciones = @json($ubicaciones);
-    
+
+    const centralStock = lote.stocks?.find(s => s.ubicacion === 'central');
+    const centralStockMinimo = centralStock?.stock_minimo || 0;
+    const centralCantidadActual = centralStock?.cantidad_actual ?? 0;
+
+    stocksHtml += `
+        <div class="stock-item stock-item-central">
+            <label class="stock-label">Central</label>
+            <input type="hidden" name="lotes[${index}][stocks][0][ubicacion]" value="central">
+            <span class="stock-field-label">Stock actual</span>
+            <input type="number"
+                   name="lotes[${index}][stocks][0][cantidad_actual]"
+                   min="0" placeholder="0" value="${centralCantidadActual}"
+                   class="form-input stock-small-input">
+            <span class="stock-field-label">Mínimo</span>
+            <input type="number"
+                   name="lotes[${index}][stocks][0][stock_minimo]"
+                   min="0" placeholder="0" value="${centralStockMinimo}"
+                   class="form-input stock-small-input">
+        </div>
+    `;
+
     Object.entries(ubicaciones).forEach(([key, label], stockIndex) => {
+        if (key === 'central') return;
+
         const stock = lote.stocks?.find(s => s.ubicacion === key);
         const stockMinimo = stock?.stock_minimo || 0;
+        const cantidadActual = stock?.cantidad_actual ?? 0;
 
-        if (key === 'central') {
-            const cantidadActual = stock?.cantidad_actual ?? 0;
-            stocksHtml += `
-                <div class="stock-item stock-item-central">
-                    <label class="stock-label">${label}</label>
-                    <input type="hidden" name="lotes[${index}][stocks][${stockIndex}][ubicacion]" value="${key}">
-                    <span class="stock-field-label">Stock actual</span>
-                    <input type="number"
-                           name="lotes[${index}][stocks][${stockIndex}][cantidad_actual]"
-                           min="0" value="${cantidadActual}"
-                           class="form-input stock-small-input">
-                    <span class="stock-field-label">Mínimo</span>
-                    <input type="number"
-                           name="lotes[${index}][stocks][${stockIndex}][stock_minimo]"
-                           min="0" value="${stockMinimo}"
-                           class="form-input stock-small-input">
-                </div>
-            `;
-        } else {
-            const cantidadActual = stock?.cantidad_actual ?? 0;
-            stocksHtml += `
-                <div class="stock-item">
-                    <label class="stock-label">${label}</label>
-                    <input type="hidden" name="lotes[${index}][stocks][${stockIndex}][ubicacion]" value="${key}">
-                    <span class="stock-field-label" style="color:var(--color-gray-400);">Actual: ${cantidadActual}</span>
-                    <span class="stock-field-label">Distribuir</span>
-                    <input type="number"
-                           name="lotes[${index}][stocks][${stockIndex}][cantidad_a_agregar]"
-                           min="0" value="0"
-                           class="form-input stock-small-input">
-                    <span class="stock-field-label">Mínimo</span>
-                    <input type="number"
-                           name="lotes[${index}][stocks][${stockIndex}][stock_minimo]"
-                           min="0" value="${stockMinimo}"
-                           class="form-input stock-small-input">
-                </div>
-            `;
-        }
+        stocksHtml += `
+            <div class="stock-item">
+                <label class="stock-label">${label}</label>
+                <input type="hidden" name="lotes[${index}][stocks][${stockIndex}][ubicacion]" value="${key}">
+                <span class="stock-field-label" style="color:var(--color-gray-400);">Actual: ${cantidadActual}</span>
+                <span class="stock-field-label">Distribuir</span>
+                <input type="number"
+                       name="lotes[${index}][stocks][${stockIndex}][cantidad_a_agregar]"
+                       min="0" placeholder="0"
+                       class="form-input stock-small-input">
+                <span class="stock-field-label">Mínimo</span>
+                <input type="number"
+                       name="lotes[${index}][stocks][${stockIndex}][stock_minimo]"
+                       min="0" value="${stockMinimo}"
+                       class="form-input stock-small-input">
+            </div>
+        `;
     });
 
     const vencimientoClass = lote.estado_vencimiento === 'vencido' ? 'vencido' : 
@@ -904,30 +749,30 @@ function crearLoteHtml(lote, index) {
             <div class="form-grid form-grid-3">
                 <div class="form-group">
                     <label class="form-label" for="codigo_lote_${index}">Código de Lote</label>
-                    <input type="text" id="codigo_lote_${index}" name="lotes[${index}][codigo_lote]" 
+                    <input type="text" id="codigo_lote_${index}" name="lotes[${index}][codigo_lote]"
                            value="${lote.codigo_lote || ''}"
-                           class="form-input">
+                           class="form-input"
+                           oninput="this.closest('.lote-item').querySelector('.lote-title').textContent = this.value || 'Nuevo Lote'">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="fecha_vencimiento_${index}">Fecha Vencimiento</label>
-                    <input type="date" id="fecha_vencimiento_${index}" name="lotes[${index}][fecha_vencimiento]" 
+                    <input type="date" id="fecha_vencimiento_${index}" name="lotes[${index}][fecha_vencimiento]"
                            value="${lote.fecha_vencimiento || ''}"
                            class="form-input">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label required" for="cantidad_inicial_${index}">Cantidad Inicial</label>
-                    <input type="number" id="cantidad_inicial_${index}" name="lotes[${index}][cantidad_inicial]" 
-                           required min="0"
-                           value="${lote.cantidad_inicial || 0}"
-                           class="form-input">
+                    <label class="form-label" for="cantidad_inicial_${index}">Cantidad Inicial</label>
+                    <input type="number" id="cantidad_inicial_${index}" name="lotes[${index}][cantidad_inicial]"
+                           min="0" value="${lote.cantidad_inicial || 0}"
+                           class="form-input" readonly tabindex="-1">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="precio_compra_${index}">Precio Compra</label>
-                    <input type="number" id="precio_compra_${index}" name="lotes[${index}][precio_compra]" 
-                           step="0.01" min="0"
+                    <input type="number" id="precio_compra_${index}" name="lotes[${index}][precio_compra]"
+                           step="0.01" min="0" placeholder="0.00"
                            value="${lote.precio_compra || ''}"
                            class="form-input"
                            onchange="calcularPrecioVenta(${index})">
@@ -935,8 +780,8 @@ function crearLoteHtml(lote, index) {
 
                 <div class="form-group">
                     <label class="form-label" for="porcentaje_ganancia_${index}">% Ganancia</label>
-                    <input type="number" id="porcentaje_ganancia_${index}" name="lotes[${index}][porcentaje_ganancia]" 
-                           step="0.01" min="0" max="999"
+                    <input type="number" id="porcentaje_ganancia_${index}" name="lotes[${index}][porcentaje_ganancia]"
+                           step="0.01" min="0" max="999" placeholder="0"
                            value="${lote.porcentaje_ganancia || ''}"
                            class="form-input"
                            onchange="calcularPrecioVenta(${index})">
@@ -944,15 +789,16 @@ function crearLoteHtml(lote, index) {
 
                 <div class="form-group">
                     <label class="form-label" for="precio_venta_${index}">Precio Venta</label>
-                    <input type="number" id="precio_venta_${index}" name="lotes[${index}][precio_venta]" 
-                           step="0.01" min="0"
+                    <input type="number" id="precio_venta_${index}" name="lotes[${index}][precio_venta]"
+                           step="0.01" min="0" placeholder="0.00"
                            value="${lote.precio_venta || ''}"
-                           class="form-input">
+                           class="form-input"
+                           onchange="calcularPorcentaje(${index})">
                 </div>
             </div>
 
-            <div class="mt-6">
-                <h4 class="text-sm font-medium text-gray-700 mb-3">Stock y Distribución por Área</h4>
+            <div class="mt-5">
+                <p class="stocks-section-label">Distribución por Área</p>
                 <div class="stocks-grid">
                     ${stocksHtml}
                 </div>
@@ -992,11 +838,21 @@ function calcularPrecioVenta(index) {
     const precioCompra = parseFloat(document.querySelector(`input[name="lotes[${index}][precio_compra]"]`).value) || 0;
     const porcentaje = parseFloat(document.querySelector(`input[name="lotes[${index}][porcentaje_ganancia]"]`).value) || 0;
     const precioVenta = precioCompra * (1 + porcentaje / 100);
-    
+
     const precioVentaInput = document.querySelector(`input[name="lotes[${index}][precio_venta]"]`);
     if (precioVenta > 0) {
         precioVentaInput.value = precioVenta.toFixed(2);
     }
+}
+
+function calcularPorcentaje(index) {
+    const precioCompra = parseFloat(document.querySelector(`input[name="lotes[${index}][precio_compra]"]`).value) || 0;
+    const precioVenta = parseFloat(document.querySelector(`input[name="lotes[${index}][precio_venta]"]`).value) || 0;
+
+    if (precioCompra <= 0 || precioVenta <= 0) return;
+
+    const porcentaje = ((precioVenta - precioCompra) / precioCompra) * 100;
+    document.querySelector(`input[name="lotes[${index}][porcentaje_ganancia]"]`).value = porcentaje.toFixed(2);
 }
 </script>
 @endsection
