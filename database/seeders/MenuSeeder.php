@@ -217,6 +217,19 @@ class MenuSeeder extends Seeder
             ['name' => 'Catering', 'route' => 'internacion-staff.catering.gestion', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
 
+        // 5. UTI (Nivel 2)
+        $utiAdmin = $gestionarClinica->children()->create([
+            'name' => 'UTI',
+            'active_pattern' => 'uti*,admin.camillas*',
+            'roles' => 'admin,administrador',
+            'order' => 5,
+        ]);
+        $utiAdmin->children()->createMany([
+            ['name' => 'Camillas', 'route' => 'admin.camillas.index', 'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Panel UTI', 'route' => 'uti.dashboard', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'admin,administrador', 'order' => 3],
+        ]);
+
         // 7. Administración (Financiera - admin y administrador)
         $admin = Menu::create([
             'name' => 'Administración',

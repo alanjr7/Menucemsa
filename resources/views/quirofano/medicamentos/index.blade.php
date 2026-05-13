@@ -17,6 +17,19 @@
         <div class="bg-orange-50 p-4 rounded"><div class="text-sm">Vencidos</div><div class="text-2xl font-bold">{{ $stats['vencidos'] }}</div></div>
     </div>
 
+    <form method="GET" class="flex gap-3 mb-4">
+        <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Buscar..." class="border rounded px-3 py-2 text-sm flex-1">
+        <select name="tipo" class="border rounded px-3 py-2 text-sm">
+            <option value="">Todos los tipos</option>
+            <option value="medicamento" @selected(request('tipo') === 'medicamento')>Medicamento</option>
+            <option value="insumo" @selected(request('tipo') === 'insumo')>Insumo</option>
+        </select>
+        <button type="submit" class="bg-gray-700 text-white px-4 py-2 rounded text-sm">Filtrar</button>
+        @if(request('buscar') || request('tipo'))
+            <a href="{{ route('quirofano.medicamentos.index') }}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm">Limpiar</a>
+        @endif
+    </form>
+
     <table class="w-full bg-white rounded shadow">
         <thead class="bg-gray-200">
             <tr>
@@ -50,5 +63,7 @@
             @endforelse
         </tbody>
     </table>
+
+    <div class="mt-4">{{ $medicamentos->withQueryString()->links() }}</div>
 </div>
 @endsection

@@ -115,8 +115,18 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidad</label>
-                            <input type="text" name="nacionalidad" placeholder="Ej: Boliviana"
+                            <select name="nacionalidad"
                                 class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                                <option value="">Seleccione...</option>
+                                <option value="Boliviana">Boliviana</option>
+                                <option value="Brasileña">Brasileña</option>
+                                <option value="Chilena">Chilena</option>
+                                <option value="Colombiana">Colombiana</option>
+                                <option value="Mexicana">Mexicana</option>
+                                <option value="Peruana">Peruana</option>
+                                <option value="Venezolana">Venezolana</option>
+                                <option value="Otra">Otra</option>
+                            </select>
                         </div>
 
                         <div>
@@ -174,6 +184,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Seguro Médico</label>
                             <select name="seguro_id"
                                 class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                                <option value="">Sin seguro / Particular</option>
                                 @foreach($seguros as $seguro)
                                     <option value="{{ $seguro->id }}" {{ $seguro->tipo === 'particular' ? 'selected' : '' }}>
                                         {{ $seguro->nombre_empresa }} ({{ $seguro->tipo }})

@@ -316,7 +316,7 @@ class EmergencyIngresoController extends Controller
                 ->with('error', 'Esta emergencia ya tiene datos completos del paciente');
         }
         
-        $seguros = \App\Models\Seguro::orderBy('tipo')->orderBy('nombre_empresa')->get();
+        $seguros = \App\Models\Seguro::where('estado', 'activo')->orderBy('tipo')->orderBy('nombre_empresa')->get();
         return view('reception.completar-datos-paciente', compact('emergency', 'seguros'));
     }
 
