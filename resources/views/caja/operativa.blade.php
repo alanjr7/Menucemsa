@@ -361,7 +361,15 @@
                         <span class="font-bold text-gray-900">${cuentaActual.paciente.nombre}</span>
                     </div>
                     <div class="space-y-1 text-xs text-gray-600 border-t pt-3 mb-3">
-                        ${cuentaActual.detalles.map(d => `<div class="flex justify-between"><span>${d.descripcion}</span><span class="font-mono">Bs ${parseFloat(d.subtotal).toFixed(2)}</span></div>`).join('')}
+                        ${cuentaActual.detalles.map(d => {
+                            // Limpiar floats crudos en descripciones antiguas (ej: 40.3666 hrs → 40h 22min)
+                            const desc = d.descripcion.replace(/(\d+\.\d{3,})\s*hrs?/g, (_, h) => {
+                                const hh = Math.floor(parseFloat(h));
+                                const mm = Math.round((parseFloat(h) - hh) * 60);
+                                return mm > 0 ? `${hh}h ${mm}min` : `${hh}h`;
+                            });
+                            return `<div class="flex justify-between"><span>${desc}</span><span class="font-mono">Bs ${parseFloat(d.subtotal).toFixed(2)}</span></div>`;
+                        }).join('')}
                     </div>
                     <div class="border-t mt-2 pt-3 flex justify-between font-black text-xl text-gray-900">
                         <span>Pagar:</span>

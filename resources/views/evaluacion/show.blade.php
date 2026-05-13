@@ -111,7 +111,7 @@
         </div>
 
         {{-- Medicamentos --}}
-        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-visible">
             <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Medicamentos</h2>
             </div>
@@ -169,7 +169,7 @@
         </div>
 
         {{-- Insumos --}}
-        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-visible">
             <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Insumos</h2>
             </div>
@@ -227,7 +227,7 @@
         </div>
 
         {{-- Procedimientos --}}
-        <div class="bg-white rounded-xl border border-slate-600 overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-600 overflow-visible">
             <div class="px-6 py-4 border-b border-slate-400">
                 <h2 class="text-lg font-semibold text-slate-800">Procedimientos</h2>
             </div>

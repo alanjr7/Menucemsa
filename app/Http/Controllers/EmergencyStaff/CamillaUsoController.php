@@ -126,18 +126,31 @@ class CamillaUsoController extends Controller
             'fecha_fin'    => ['required', 'date', 'after:fecha_inicio'],
         ]);
 
-        $camilla = Camilla::findOrFail($data['camilla_id']);
-        $inicio  = Carbon::parse($data['fecha_inicio']);
-        $fin     = Carbon::parse($data['fecha_fin']);
-        $horas   = max(0.5, round($inicio->diffInMinutes($fin) / 60, 2));
-        $costo   = round($horas * (float)$camilla->precio_por_hora, 2);
+        $camilla    = Camilla::findOrFail($data['camilla_id']);
+        $inicio     = Carbon::parse($data['fecha_inicio']);
+        $fin        = Carbon::parse($data['fecha_fin']);
+        $totalMin   = (string) $inicio->diffInMinutes($fin);
+        $horasCalc  = bcdiv($totalMin, '60', 4);
+
+        // Solo se cobra si el uso supera 3 horas
+        if (bccomp($horasCalc, '3', 4) <= 0) {
+            return redirect()->back()
+                ->with('info', 'La camilla no se cobra: el uso no superó las 3 horas.');
+        }
+
+        $horas = $horasCalc;
+        $costo = bcmul($horas, (string) $camilla->precio_por_hora, 2);
+
+        $hh = (int) bcfloor($horas);
+        $mm = (int) bcround(bcmul(bcsub($horas, (string) $hh, 4), '60', 4), 0);
+        $tiempoLabel = $mm > 0 ? "{$hh}h {$mm}min" : "{$hh}h";
 
         $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($data['paciente_ci'], 'emergencia');
 
         $detalle = CuentaCobroDetalle::create([
             'cuenta_cobro_id' => $cuenta->id,
             'tipo_item'       => 'equipo_medico',
-            'descripcion'     => 'Uso de Camilla: ' . $camilla->nombre . ' (' . $camilla->codigo . ')',
+            'descripcion'     => 'Uso de Camilla: ' . $camilla->nombre . ' (' . $camilla->codigo . ') — ' . $tiempoLabel,
             'cantidad'        => $horas,
             'precio_unitario' => $camilla->precio_por_hora,
             'area_origen'     => 'emergencia',

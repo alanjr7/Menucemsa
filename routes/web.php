@@ -271,7 +271,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
     // NUEVAS RUTAS DE CAJA - Sistema Integrado (2026)
     // Caja Operativa - Para usuarios con rol CAJA
-    Route::middleware(['auth', 'role:admin|caja'])->prefix('caja-operativa')->name('caja.operativa.')->group(function () {
+    Route::middleware(['auth', 'role:admin|caja|administrador'])->prefix('caja-operativa')->name('caja.operativa.')->group(function () {
         Route::get('/', [CajaOperativaController::class, 'index'])->name('index');
         Route::post('/abrir', [CajaOperativaController::class, 'abrirCaja'])->name('abrir');
         Route::post('/cerrar', [CajaOperativaController::class, 'cerrarCaja'])->name('cerrar');

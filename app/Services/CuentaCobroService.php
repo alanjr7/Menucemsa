@@ -157,6 +157,7 @@ class CuentaCobroService
                 'origen_type'     => $origenType,
                 'origen_id'       => $origenId ? (string)$origenId : null,
                 'area_origen'     => $areaOrigen,
+                'user_id'         => auth()->id(),
             ]);
 
             // Recalcular total de la cuenta

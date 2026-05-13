@@ -97,18 +97,22 @@ class InternacionHabitacionUsoController extends Controller
             'fecha_fin'    => ['required', 'date', 'after:fecha_inicio'],
         ]);
 
-        $cama   = Cama::with('habitacion')->findOrFail($data['cama_id']);
-        $inicio = Carbon::parse($data['fecha_inicio']);
-        $fin    = Carbon::parse($data['fecha_fin']);
-        $horas  = $inicio->diffInHours($fin);
-        $dias   = $horas < 8 ? 0 : max(1, (int) ceil($horas / 24));
-        $precio = (float) $cama->precio_por_dia;
-        $costo  = round($dias * $precio, 2);
+        $cama       = Cama::with('habitacion')->findOrFail($data['cama_id']);
+        $inicio     = Carbon::parse($data['fecha_inicio']);
+        $fin        = Carbon::parse($data['fecha_fin']);
+        $totalMin   = (string) $inicio->diffInMinutes($fin);
+        $horasExact = bcdiv($totalMin, '60', 6);
+        $diasExact  = bcdiv($horasExact, '24', 6);
+        $dias       = bccomp($horasExact, '8', 6) < 0 ? 0 : max(1, (int) bcceil($diasExact));
+        $precio     = (string) $cama->precio_por_dia;
+        $costo      = bcmul((string) $dias, $precio, 2);
 
         if ($dias === 0) {
             return redirect()->back()
                 ->with('error', 'Se requieren al menos 8 horas para registrar un día de estadía.');
         }
+
+        $diasLabel = $dias === 1 ? '1 día' : "{$dias} días";
 
         $paciente = Paciente::where('ci', $data['paciente_ci'])->first();
         $seguroId = $paciente?->seguro_id ?? null;
@@ -121,7 +125,7 @@ class InternacionHabitacionUsoController extends Controller
 
         $descripcion = 'Estadía — Habitación ' . $cama->habitacion->id . ', Cama ' . $cama->nro
             . ($cama->tipo ? ' (' . $cama->tipo . ')' : '')
-            . ' — ' . $horas . ' hrs';
+            . ' — ' . $diasLabel;
 
         CuentaCobroService::agregarCargo(
             $cuenta->id,

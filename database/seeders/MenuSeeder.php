@@ -250,7 +250,7 @@ class MenuSeeder extends Seeder
             // Inventario y Caja
             ['name' => 'Almacén Inventario', 'route' => 'admin.almacen-inventario.index', 'roles' => 'admin,administrador', 'order' => 10],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 11],
-
+            ['name' => 'Cobro de Pacientes', 'route' => 'caja.operativa.index', 'order' => 12],
             // Gestión Financiera
             ['name' => 'Cuentas por Cobrar', 'route' => 'admin.cuentas', 'roles' => 'admin,administrador', 'order' => 20],
         ]);
