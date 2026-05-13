@@ -35,7 +35,7 @@ class UserManagementController extends Controller
 
     public function create()
     {
-        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia', 'neonato'];
 
         if (!$this->esAdministrador()) {
             array_unshift($roles, 'admin');
@@ -48,7 +48,7 @@ class UserManagementController extends Controller
     {
         try {
             // Validación básica siempre requerida
-            $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion';
+            $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion,neonato';
             if (!$this->esAdministrador()) {
                 $allowedRoles .= ',admin';
             }
@@ -222,7 +222,7 @@ class UserManagementController extends Controller
                 ->with('error', 'No tienes permisos para modificar usuarios administradores.');
         }
 
-        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia', 'neonato'];
 
         if (!$this->esAdministrador()) {
             array_unshift($roles, 'admin');

@@ -829,11 +829,67 @@ Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion
     Route::get('/evaluacion/uti/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.uti');
     Route::get('/evaluacion/internacion/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.internacion');
     Route::post('/evaluacion/{ci}/store', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'store'])->name('evaluacion.store');
+});
 
-    // AJAX endpoints
+// AJAX endpoints de evaluacion — todos los roles con formulario de evaluación
+Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|neonato|admin|administrador|dirmedico'])->group(function () {
     Route::get('/api/evaluacion/medicamentos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarMedicamentos']);
     Route::get('/api/evaluacion/insumos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarInsumos']);
     Route::get('/api/evaluacion/procedimientos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarProcedimientos']);
 });
+
+// =============================================================================
+// NEONATO — Admin (Gestionar Clínica)
+// =============================================================================
+Route::middleware(['auth', 'role:admin|administrador'])
+    ->prefix('admin/neonato')
+    ->name('admin.neonato.')
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/medicamentos', [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'medicamentos'])->name('medicamentos');
+
+        // Cunas CRUD
+        Route::get('/cunas',                [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'cunas'])->name('cunas');
+        Route::get('/cunas/create',         [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'createCuna'])->name('cunas.create');
+        Route::post('/cunas',               [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'storeCuna'])->name('cunas.store');
+        Route::get('/cunas/{cuna}/edit',    [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'editCuna'])->name('cunas.edit');
+        Route::put('/cunas/{cuna}',         [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'updateCuna'])->name('cunas.update');
+        Route::delete('/cunas/{cuna}',      [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'destroyCuna'])->name('cunas.destroy');
+
+        // Recién nacidos (solo lectura)
+        Route::get('/recien-nacidos',           [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'recienNacidos'])->name('recien-nacidos');
+        Route::get('/recien-nacidos/{neonato}', [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'showRecienNacido'])->name('recien-nacidos.show');
+
+        // Procedimientos (solo lectura)
+        Route::get('/procedimientos', [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'procedimientos'])->name('procedimientos');
+    });
+
+// =============================================================================
+// NEONATO — Rol operativo
+// =============================================================================
+Route::middleware(['auth', 'role:neonato|admin|administrador|dirmedico'])
+    ->prefix('neonato')
+    ->name('neonato.')
+    ->group(function () {
+        // Cunas (ruta estática primero)
+        Route::get('/cunas',  [\App\Http\Controllers\Neonato\NeonatoController::class, 'cunas'])->name('cunas');
+        Route::post('/cunas', [\App\Http\Controllers\Neonato\NeonatoController::class, 'storeCunaUso'])->name('cunas.store');
+
+        // AJAX búsqueda madre
+        Route::get('/api/buscar-madre', [\App\Http\Controllers\Neonato\NeonatoController::class, 'buscarMadre'])->name('api.buscar-madre');
+
+        // Recién nacidos
+        Route::get('/',               [\App\Http\Controllers\Neonato\NeonatoController::class, 'index'])->name('index');
+        Route::get('/add',            [\App\Http\Controllers\Neonato\NeonatoController::class, 'create'])->name('create');
+        Route::post('/add',           [\App\Http\Controllers\Neonato\NeonatoController::class, 'store'])->name('store');
+        Route::get('/medicamentos',        [\App\Http\Controllers\Neonato\NeonatoController::class, 'medicamentos'])->name('medicamentos');
+        Route::get('/procedimientos',     [\App\Http\Controllers\Neonato\NeonatoController::class, 'procedimientos'])->name('procedimientos');
+        Route::get('/{neonato}/datos',    [\App\Http\Controllers\Neonato\NeonatoController::class, 'show'])->name('show');
+        Route::patch('/{neonato}/status', [\App\Http\Controllers\Neonato\NeonatoController::class, 'updateStatus'])->name('status');
+        Route::get('/{neonato}/historial',[\App\Http\Controllers\Neonato\NeonatoController::class, 'historial'])->name('historial');
+        Route::get('/{neonato}/evaluar',  [\App\Http\Controllers\Neonato\NeonatoController::class, 'evaluar'])->name('evaluar');
+        Route::post('/{neonato}/evaluar',                  [\App\Http\Controllers\Neonato\NeonatoController::class, 'storeEvaluacion'])->name('evaluar.store');
+        Route::delete('/{neonato}/evaluar/{evaluacion}',   [\App\Http\Controllers\Neonato\NeonatoController::class, 'destroyEvaluacion'])->name('evaluar.destroy');
+    });
 
 require __DIR__ . '/auth.php';

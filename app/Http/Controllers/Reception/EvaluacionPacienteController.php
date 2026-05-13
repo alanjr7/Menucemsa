@@ -23,12 +23,13 @@ use Illuminate\View\View;
 class EvaluacionPacienteController extends Controller
 {
     private static array $roleAreaMap = [
-        'emergencia'          => 'emergencia',
+        'emergencia'           => 'emergencia',
         'enfermera-emergencia' => 'emergencia',
-        'uti'                 => 'uti',
-        'internacion'         => 'internacion',
-        'enfermera-internacion' => 'internacion',
-        'cirujano'            => 'cirugia',
+        'uti'                  => 'uti',
+        'internacion'          => 'internacion',
+        'enfermera-internacion'=> 'internacion',
+        'cirujano'             => 'cirugia',
+        'neonato'              => 'neonato',
     ];
 
     private function areaFromRole(string $role): string
@@ -45,6 +46,16 @@ class EvaluacionPacienteController extends Controller
                 'nombre'     => 'Paciente Temporal - Emergencia',
                 'is_temporal'=> true,
                 'emergency'  => $emergency,
+            ];
+        }
+
+        if (str_starts_with($ci, 'RN-')) {
+            $neonato = \App\Models\Neonato::where('temp_id', $ci)->firstOrFail();
+            return (object)[
+                'ci'         => $ci,
+                'nombre'     => $neonato->nombre_display,
+                'is_temporal'=> true,
+                'neonato'    => $neonato,
             ];
         }
 
@@ -273,9 +284,18 @@ class EvaluacionPacienteController extends Controller
         return view('evaluacion.print', compact('paciente', 'evaluacion'));
     }
 
+    private function resolveArea(Request $request): string
+    {
+        $role = auth()->user()->role;
+        if (in_array($role, ['admin', 'administrador', 'dirmedico']) && $request->filled('area')) {
+            return $request->input('area');
+        }
+        return $this->areaFromRole($role);
+    }
+
     public function buscarMedicamentos(Request $request): JsonResponse
     {
-        $area = $this->areaFromRole(auth()->user()->role);
+        $area = $this->resolveArea($request);
         $q = $request->input('q', '');
 
         $items = AlmacenCatalogo::where('tipo', 'medicamento')
@@ -302,7 +322,7 @@ class EvaluacionPacienteController extends Controller
 
     public function buscarInsumos(Request $request): JsonResponse
     {
-        $area = $this->areaFromRole(auth()->user()->role);
+        $area = $this->resolveArea($request);
         $q = $request->input('q', '');
 
         $items = AlmacenCatalogo::where('tipo', 'insumo')
@@ -329,7 +349,7 @@ class EvaluacionPacienteController extends Controller
 
     public function buscarProcedimientos(Request $request): JsonResponse
     {
-        $area = $this->areaFromRole(auth()->user()->role);
+        $area = $this->resolveArea($request);
         $q = $request->input('q', '');
 
         $procedimientos = Procedimiento::activos()

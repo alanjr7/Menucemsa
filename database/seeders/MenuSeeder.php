@@ -103,6 +103,22 @@ class MenuSeeder extends Seeder
             ['name' => 'Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'uti', 'order' => 3],
         ]);
 
+        // 3.8 Panel Neonatología (rol neonato)
+        $neonato = Menu::create([
+            'name' => 'Neonatología',
+            'active_pattern' => 'neonato*',
+            'icon_path' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+            'color' => 'pink',
+            'roles' => 'neonato',
+            'order' => 29,
+        ]);
+        $neonato->children()->createMany([
+            ['name' => 'Recién Nacidos', 'route' => 'neonato.index',          'roles' => 'neonato', 'order' => 1],
+            ['name' => 'Cunas',          'route' => 'neonato.cunas',          'roles' => 'neonato', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'neonato.medicamentos',   'roles' => 'neonato', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'neonato.procedimientos', 'roles' => 'neonato', 'order' => 4],
+        ]);
+
         // 4. Emergencias (Operativo - rol emergencia)
         $emergencias = Menu::create([
             'name' => 'Emergencias',
@@ -229,6 +245,21 @@ class MenuSeeder extends Seeder
             ['name' => 'Camillas', 'route' => 'admin.camillas.index', 'roles' => 'admin,administrador', 'order' => 1],
             ['name' => 'Panel UTI', 'route' => 'uti.dashboard', 'roles' => 'admin,administrador', 'order' => 2],
             ['name' => 'Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'admin,administrador', 'order' => 3],
+        ]);
+
+        // 6. Neonato (Nivel 2)
+        $neonatoAdmin = $gestionarClinica->children()->create([
+            'name' => 'Neonatología',
+            'active_pattern' => 'admin.neonato*,neonato*',
+            'roles' => 'admin,administrador',
+            'order' => 6,
+        ]);
+        $neonatoAdmin->children()->createMany([
+            ['name' => 'Dashboard',       'route' => 'admin.neonato.dashboard',      'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Recién Nacidos',  'route' => 'admin.neonato.recien-nacidos', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Cunas',           'route' => 'admin.neonato.cunas',          'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Medicamentos',    'route' => 'admin.neonato.medicamentos',   'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Procedimientos',  'route' => 'admin.neonato.procedimientos', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
 
         // 7. Administración (Financiera - admin y administrador)

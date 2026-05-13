@@ -26,7 +26,7 @@ class ProcedimientosController extends Controller
         $data = $request->validate([
             'nombre'      => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'area'        => ['required', 'in:emergencia,uti,internacion,cirugia,hospitalizacion'],
+            'area'        => ['required', 'in:emergencia,uti,internacion,cirugia,hospitalizacion,neonato'],
             'precio'      => ['required', 'numeric', 'min:0'],
             'activo'      => ['boolean'],
         ]);
@@ -49,7 +49,7 @@ class ProcedimientosController extends Controller
         $data = $request->validate([
             'nombre'      => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'area'        => ['required', 'in:emergencia,uti,internacion,cirugia,hospitalizacion'],
+            'area'        => ['required', 'in:emergencia,uti,internacion,cirugia,hospitalizacion,neonato'],
             'precio'      => ['required', 'numeric', 'min:0'],
         ]);
 

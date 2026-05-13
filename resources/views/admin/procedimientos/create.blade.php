@@ -21,7 +21,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Área</label>
                     <select name="area" required class="w-full border rounded-lg px-3 py-2 text-sm @error('area') border-red-500 @enderror">
                         <option value="">Seleccionar área</option>
-                        @foreach(['emergencia','uti','internacion','cirugia','hospitalizacion'] as $area)
+                        @foreach(['emergencia','uti','internacion','cirugia','hospitalizacion','neonato'] as $area)
                             <option value="{{ $area }}" {{ old('area') === $area ? 'selected' : '' }}>{{ ucfirst($area) }}</option>
                         @endforeach
                     </select>

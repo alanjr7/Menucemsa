@@ -31,7 +31,7 @@ class CamillaController extends Controller
             'nombre'          => ['required', 'string', 'max:100'],
             'codigo'          => ['required', 'string', 'max:30', 'unique:camillas,codigo'],
             'precio_por_hora' => ['required', 'numeric', 'min:0'],
-            'area'            => ['required', 'in:uti,emergencia'],
+            'area'            => ['required', 'in:uti,emergencia,neonato'],
         ]);
 
         $data['codigo'] = strtoupper($data['codigo']);
@@ -54,7 +54,7 @@ class CamillaController extends Controller
             'nombre'          => ['required', 'string', 'max:100'],
             'codigo'          => ['required', 'string', 'max:30', 'unique:camillas,codigo,' . $camilla->id],
             'precio_por_hora' => ['required', 'numeric', 'min:0'],
-            'area'            => ['required', 'in:uti,emergencia'],
+            'area'            => ['required', 'in:uti,emergencia,neonato'],
         ]);
 
         $data['codigo'] = strtoupper($data['codigo']);
