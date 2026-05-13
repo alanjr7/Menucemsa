@@ -21,6 +21,7 @@ return new class extends Migration
             $table->text('motivo')->nullable();
             $table->enum('estado', ['programado', 'confirmado', 'en_atencion', 'atendido', 'cancelado', 'no_asistio'])->default('programado');
             $table->text('observaciones')->nullable();
+            $table->string('tipo_ingreso')->nullable();
             $table->boolean('confirmado')->default(false);
             $table->timestamp('fecha_confirmacion')->nullable();
             $table->boolean('llamado')->default(false);

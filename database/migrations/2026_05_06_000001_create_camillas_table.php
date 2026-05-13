@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('nombre', 100);
             $table->string('codigo', 30)->unique();
             $table->decimal('precio_por_hora', 10, 2)->default(0);
-            $table->enum('area', ['uti', 'emergencia'])->default('emergencia');
+            $table->enum('area', ['uti', 'emergencia', 'neonato'])->default('emergencia');
             $table->boolean('activa')->default(true);
             $table->timestamps();
         });

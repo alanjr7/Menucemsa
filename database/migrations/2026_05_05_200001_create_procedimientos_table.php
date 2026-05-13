@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->text('descripcion')->nullable();
-            $table->enum('area', ['emergencia', 'uti', 'internacion', 'cirugia', 'hospitalizacion']);
+            $table->enum('area', ['emergencia', 'uti', 'internacion', 'cirugia', 'hospitalizacion', 'neonato']);
             $table->decimal('precio', 10, 2);
             $table->boolean('activo')->default(true);
             $table->timestamps();

@@ -34,6 +34,7 @@ return new class extends Migration
 
             // Estado y flujo
             $table->string('status', 30)->default('recibido');     // recibido|en_observacion|estable|uti_neonatal|alta|fallecido
+            $table->json('status_logs')->nullable();
             $table->text('observaciones')->nullable();
 
             // Fechas de ingreso/egreso del área neonatal
