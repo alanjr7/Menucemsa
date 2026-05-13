@@ -10,12 +10,15 @@ return new class extends Migration
     {
         Schema::create('evaluaciones', function (Blueprint $table) {
             $table->id();
-            $table->integer('paciente_ci');
+            $table->integer('paciente_ci')->nullable();
             $table->foreign('paciente_ci')->references('ci')->on('pacientes')->onDelete('cascade');
+            $table->string('temp_id')->nullable();
             $table->string('area', 50);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('observaciones')->nullable();
             $table->json('signos_vitales')->nullable();
+            $table->unsignedBigInteger('episodio_id')->nullable();
+            $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
             $table->timestamps();
         });
     }

@@ -21,6 +21,7 @@ class HistorialMedico extends Model
         'observaciones',
         'alergias',
         'user_medico_id',
+        'episodio_id',
     ];
 
     protected $casts = [
@@ -36,5 +37,10 @@ class HistorialMedico extends Model
     public function userMedico()
     {
         return $this->belongsTo(User::class, 'user_medico_id', 'id');
+    }
+
+    public function episodio()
+    {
+        return $this->belongsTo(\App\Models\Episodio::class);
     }
 }

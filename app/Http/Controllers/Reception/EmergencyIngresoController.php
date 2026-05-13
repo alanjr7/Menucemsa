@@ -11,6 +11,7 @@ use App\Models\Registro;
 use App\Models\Seguro;
 use App\Models\CuentaCobro;
 use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -85,25 +86,34 @@ class EmergencyIngresoController extends Controller
                 ],
             ];
 
-            // 4. Crear emergencia
+            // 4. Abrir episodio (solo para pacientes con CI real)
+            $episodio = null;
+            if (!$usarTempId) {
+                $episodio = EpisodioService::abrirEpisodio((int) $paciente->ci, 'emergencia', Auth::id());
+                $emergencyData['episodio_id'] = $episodio->id;
+            }
+
+            // 5. Crear emergencia
             $emergency = Emergency::create($emergencyData);
 
-            // 5. Crear cuenta de cobro con seguro (pre-autorización)
-            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
-            // ya que paciente_ci en BD es integer y temp_id es string
+            // 6. Crear cuenta de cobro con seguro (pre-autorización)
             $pacienteCi = $usarTempId
-                ? (int) $emergency->id  // Usar ID de emergencia como identificador numérico
+                ? (int) $emergency->id
                 : (int) $paciente->ci;
 
             $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
                 $pacienteCi,
                 $emergency->id,
-                [], // Sin servicios predefinidos, se agregarán después
-                true, // esPostPago = true
-                $request->seguro_id // seguro_id seleccionado en el formulario
+                [],
+                true,
+                $request->seguro_id
             );
 
-            // 6. Procesar destino inicial si es necesario
+            if ($episodio) {
+                $cuentaCobro->update(['episodio_id' => $episodio->id]);
+            }
+
+            // 7. Procesar destino inicial si es necesario
             if (in_array($request->destino_inicial, ['cirugia', 'uti'])) {
                 $this->preReservarRecurso($emergency, $request->destino_inicial);
             }
@@ -417,7 +427,22 @@ class EmergencyIngresoController extends Controller
                     ]);
             }
 
-            // 6. Registrar en el historial
+            // 6. Abrir episodio real ahora que tenemos CI
+            $episodio = EpisodioService::abrirEpisodio((int) $validated['ci'], 'emergencia', Auth::id());
+            $emergency->update(['episodio_id' => $episodio->id]);
+            CuentaCobro::where('referencia_type', Emergency::class)
+                ->where('referencia_id', $emergency->id)
+                ->update(['episodio_id' => $episodio->id]);
+
+            // 6b. Migrar evaluaciones temporales al CI real y vincular al episodio
+            \App\Models\Evaluacion::where('temp_id', $tempIdAnterior)
+                ->update([
+                    'paciente_ci' => (int) $validated['ci'],
+                    'episodio_id' => $episodio->id,
+                    'temp_id'     => null,
+                ]);
+
+            // 7. Registrar en el historial
             $emergency->registrarMovimiento(
                 'emergencia',
                 'emergencia',

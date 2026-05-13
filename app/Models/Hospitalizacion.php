@@ -35,6 +35,7 @@ class Hospitalizacion extends Model
         'contacto_parentesco',
         'contacto_relacion',
         'equipos_medicos',
+        'episodio_id',
     ];
 
     protected $casts = [
@@ -70,6 +71,11 @@ class Hospitalizacion extends Model
     public function cuentaCobroDetalle()
     {
         return $this->belongsTo(CuentaCobroDetalle::class, 'cuenta_cobro_detalle_id');
+    }
+
+    public function episodio()
+    {
+        return $this->belongsTo(\App\Models\Episodio::class);
     }
 
     /**

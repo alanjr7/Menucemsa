@@ -8,6 +8,7 @@ use App\Models\Hospitalizacion;
 use App\Models\Caja;
 use App\Models\Emergency;
 use App\Models\AltaPaciente;
+use App\Services\EpisodioService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -30,7 +31,7 @@ class PatientsController extends Controller
                 }
             ])
             ->whereHas('registro') // Solo pacientes con registro
-            ->whereDoesntHave('altas'); // Excluir pacientes dados de alta
+            ->whereHas('episodioAbierto'); // Solo pacientes con episodio activo
 
         // Búsqueda
         if ($request->filled('search')) {
@@ -451,7 +452,7 @@ class PatientsController extends Controller
                 'cuentasPendientes',
             ])
             ->whereHas('registro')
-            ->whereDoesntHave('altas'); // Solo pacientes sin alta
+            ->whereHas('episodioAbierto'); // Solo pacientes con episodio activo
 
         // Búsqueda
         if ($request->filled('search')) {
@@ -487,13 +488,13 @@ class PatientsController extends Controller
         });
 
         $stats = [
-            'total'          => Paciente::whereHas('registro')->whereDoesntHave('altas')->count(),
-            'hospitalizados' => Paciente::whereHas('hospitalizaciones', function($q) {
-                $q->where('estado', 'Activo');
-            })->whereDoesntHave('altas')->count(),
-            'emergencias'    => Paciente::whereHas('emergencias', function($q) {
+            'total'          => Paciente::whereHas('episodioAbierto')->count(),
+            'hospitalizados' => Paciente::whereHas('episodioAbierto')->whereHas('hospitalizaciones', function($q) {
+                $q->where('estado', 'activo');
+            })->count(),
+            'emergencias'    => Paciente::whereHas('episodioAbierto')->whereHas('emergencias', function($q) {
                 $q->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
-            })->whereDoesntHave('altas')->count(),
+            })->count(),
         ];
 
         return view('patients.dar-de-alta', compact('pacientes', 'stats'));
@@ -527,6 +528,12 @@ class PatientsController extends Controller
             'observaciones'     => $validated['observaciones'] ?? null,
             'fecha_alta'        => now(),
         ]);
+
+        EpisodioService::cerrarEpisodioDelPaciente(
+            $paciente->ci,
+            auth()->id(),
+            $validated['motivo_alta']
+        );
 
         return redirect()->route('patients.dar-de-alta.index')
             ->with('success', "Paciente {$paciente->nombre} dado de alta correctamente.");

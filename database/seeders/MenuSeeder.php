@@ -133,8 +133,9 @@ class MenuSeeder extends Seeder
         $pacientes->children()->createMany([
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => null, 'order' => 1],
             ['name' => 'Gestionar Pacientes', 'route' => 'admin.pacientes.gestionar', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Dar de Alta', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 3],
-           ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
+            ['name' => 'Episodios', 'route' => 'admin.episodios.index', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Dar de Alta', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 4],
+            ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
         ]);
 
         // 6. Caja Operativa

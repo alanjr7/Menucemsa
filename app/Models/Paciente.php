@@ -99,6 +99,18 @@ class Paciente extends Model
         return $this->hasMany(\App\Models\AltaPaciente::class, 'paciente_ci', 'ci');
     }
 
+    public function episodios()
+    {
+        return $this->hasMany(\App\Models\Episodio::class, 'paciente_ci', 'ci')
+                    ->orderBy('numero', 'desc');
+    }
+
+    public function episodioAbierto()
+    {
+        return $this->hasOne(\App\Models\Episodio::class, 'paciente_ci', 'ci')
+                    ->where('estado', 'abierto');
+    }
+
     public function estaDeAlta(): bool
     {
         return $this->altas()->exists();

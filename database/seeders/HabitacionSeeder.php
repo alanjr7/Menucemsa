@@ -104,21 +104,24 @@ class HabitacionSeeder extends Seeder
             $camas = $habitacionData['camas'];
             unset($habitacionData['camas']);
 
-            $habitacion = Habitacion::create([
-                'id'      => $habitacionData['id'],
-                'detalle' => $habitacionData['detalle'],
-                'capacidad' => $habitacionData['capacidad'],
-                'estado'  => 'disponible',
-            ]);
+            $habitacion = Habitacion::firstOrCreate(
+                ['id' => $habitacionData['id']],
+                [
+                    'detalle'   => $habitacionData['detalle'],
+                    'capacidad' => $habitacionData['capacidad'],
+                    'estado'    => 'disponible',
+                ]
+            );
 
             foreach ($camas as $cama) {
-                Cama::create([
-                    'nro'             => $cama['nro'],
-                    'habitacion_id'   => $habitacion->id,
-                    'tipo'            => $cama['tipo'],
-                    'precio_por_dia'  => $cama['precio_por_dia'],
-                    'disponibilidad'  => 'disponible',
-                ]);
+                Cama::firstOrCreate(
+                    ['habitacion_id' => $habitacion->id, 'nro' => $cama['nro']],
+                    [
+                        'tipo'           => $cama['tipo'],
+                        'precio_por_dia' => $cama['precio_por_dia'],
+                        'disponibilidad' => 'disponible',
+                    ]
+                );
             }
         }
     }

@@ -32,6 +32,8 @@ return new class extends Migration
             $table->enum('destino_alta', ['hospitalizacion', 'domicilio', 'otro_hospital'])->nullable();
             $table->integer('medico_responsable_ci')->nullable();
             $table->text('observaciones')->nullable();
+            $table->unsignedBigInteger('episodio_id')->nullable();
+            $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 

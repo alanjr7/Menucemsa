@@ -31,9 +31,8 @@ class CamillaSeeder extends Seeder
         ];
 
         foreach ($camillasEmergencia as $camilla) {
-            Camilla::create([
+            Camilla::firstOrCreate(['codigo' => $camilla['codigo']], [
                 'nombre'          => $camilla['nombre'],
-                'codigo'          => $camilla['codigo'],
                 'precio_por_hora' => $camilla['precio_por_hora'],
                 'area'            => 'emergencia',
                 'activa'          => true,
@@ -41,9 +40,8 @@ class CamillaSeeder extends Seeder
         }
 
         foreach ($camillasUti as $camilla) {
-            Camilla::create([
+            Camilla::firstOrCreate(['codigo' => $camilla['codigo']], [
                 'nombre'          => $camilla['nombre'],
-                'codigo'          => $camilla['codigo'],
                 'precio_por_hora' => $camilla['precio_por_hora'],
                 'area'            => 'uti',
                 'activa'          => true,

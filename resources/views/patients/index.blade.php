@@ -221,7 +221,7 @@
                                         @endif
 
                                         @if(isset($paciente->is_temporal) && $paciente->is_temporal)
-                                            <a href="{{ route('emergency-staff.historial', $paciente->emergency_id) }}"
+                                            <a href="{{ route('evaluacion.historial', $paciente->ci) }}"
                                                 class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all">
                                                 Historial
                                             </a>

@@ -13,6 +13,7 @@ use App\Models\Paciente;
 use App\Models\Procedimiento;
 use App\Services\AlmacenEntregaService;
 use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -111,17 +112,16 @@ class EvaluacionPacienteController extends Controller
                 if (empty($signosVitales)) $signosVitales = null;
             }
 
-            // Solo guardar Evaluacion si el paciente existe en la tabla pacientes (no temporales)
-            $evaluacion = null;
-            if (!str_starts_with($ci, 'TEMP-')) {
-                $evaluacion = Evaluacion::create([
-                    'paciente_ci'    => $ci,
-                    'area'           => $area,
-                    'user_id'        => auth()->id(),
-                    'observaciones'  => $request->observaciones,
-                    'signos_vitales' => $signosVitales,
-                ]);
-            }
+            $esTemporal = str_starts_with($ci, 'TEMP-');
+            $evaluacion = Evaluacion::create([
+                'paciente_ci'    => $esTemporal ? null : $ci,
+                'temp_id'        => $esTemporal ? $ci : null,
+                'area'           => $area,
+                'user_id'        => auth()->id(),
+                'observaciones'  => $request->observaciones,
+                'signos_vitales' => $signosVitales,
+                'episodio_id'    => $esTemporal ? null : EpisodioService::getEpisodioAbierto((int) $ci)?->id,
+            ]);
 
             $items = $request->input('items', []);
             if (empty($items)) return;
@@ -147,8 +147,9 @@ class EvaluacionPacienteController extends Controller
 
                     $stock->decrement('cantidad_actual', $cantidad);
 
+                    // TEMP- no tiene FK en pacientes, se omite el registro de entrega
                     $pacienteCiInt = str_starts_with($ci, 'TEMP-')
-                        ? ($emergencyForTemp?->id)
+                        ? null
                         : (int) $ci;
 
                     if ($pacienteCiInt) {
@@ -210,20 +211,42 @@ class EvaluacionPacienteController extends Controller
         return redirect($redirectUrl)->with('success', 'Evaluación guardada correctamente.');
     }
 
-    public function historial(int $ci): View
+    public function historial(string $ci): View
     {
-        $paciente = Paciente::with('consultas.caja')->where('ci', $ci)->firstOrFail();
-        $evaluaciones = Evaluacion::with(['user', 'items'])
-            ->where('paciente_ci', $ci)
-            ->orderByDesc('created_at')
-            ->paginate(15);
+        $esTemporal = str_starts_with($ci, 'TEMP-');
 
-        $camillaUsos = \App\Models\CamillaUso::with('camilla', 'registradoPor')
-            ->where('paciente_ci', $ci)
-            ->orderByDesc('fecha_inicio')
-            ->get();
+        if ($esTemporal) {
+            $emergency = Emergency::where('temp_id', $ci)->firstOrFail();
+            $paciente = (object) [
+                'ci'     => $ci,
+                'nombre' => $emergency->patient_name ?? $ci,
+            ];
+            $episodio    = null;
+            $evaluaciones = Evaluacion::with(['user', 'items'])
+                ->where('temp_id', $ci)
+                ->orderByDesc('created_at')
+                ->paginate(15);
+            $camillaUsos = collect();
+        } else {
+            $paciente = Paciente::with('consultas.caja')->where('ci', $ci)->firstOrFail();
+            $episodio = EpisodioService::getEpisodioAbierto($ci);
 
-        return view('evaluacion.historial', compact('paciente', 'evaluaciones', 'camillaUsos'));
+            $evaluaciones = Evaluacion::with(['user', 'items'])
+                ->where('paciente_ci', $ci)
+                ->when($episodio, fn($q) => $q->where('episodio_id', $episodio->id))
+                ->when(!$episodio, fn($q) => $q->whereRaw('1=0'))
+                ->orderByDesc('created_at')
+                ->paginate(15);
+
+            $camillaUsos = \App\Models\CamillaUso::with('camilla', 'registradoPor')
+                ->where('paciente_ci', $ci)
+                ->when($episodio, fn($q) => $q->where('created_at', '>=', $episodio->fecha_apertura))
+                ->when(!$episodio, fn($q) => $q->whereRaw('1=0'))
+                ->orderByDesc('fecha_inicio')
+                ->get();
+        }
+
+        return view('evaluacion.historial', compact('paciente', 'evaluaciones', 'camillaUsos', 'episodio'));
     }
 
     public function destroy(int $ci, int $evaluacionId): RedirectResponse

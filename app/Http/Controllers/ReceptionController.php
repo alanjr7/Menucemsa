@@ -18,6 +18,7 @@ use App\Models\HistorialMedico;
 use App\Models\IngresoPrecio;
 use App\Services\NotificationService;
 use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -790,7 +791,7 @@ class ReceptionController extends Controller
     {
         // Mostrar todas las citas futuras (no canceladas ni atendidas) para gestión de llamadas
         $citas = Cita::where('fecha', '>=', Carbon::today())
-            ->whereNotIn('estado', ['cancelado', 'atendido'])
+            ->whereNotIn('estado', ['cancelado', 'atendido', 'no_asistio'])
             ->with(['paciente' => function ($query) {
                 $query->select('ci', 'nombre', 'telefono', 'fecha_nacimiento');
             }, 'medico' => function ($query) {
@@ -1047,71 +1048,59 @@ class ReceptionController extends Controller
         try {
             $cita = Cita::with('paciente')->findOrFail($id);
 
-            if ($cita->estado === 'cancelado') {
+            if (in_array($cita->estado, ['cancelado', 'atendido'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede marcar asistida una cita cancelada'
+                    'message' => 'La cita ya tiene un estado final: ' . $cita->estado
                 ], 422);
             }
 
-            if ($cita->estado === 'atendido') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Esta cita ya fue marcada como atendida'
-                ], 422);
+            if (!$cita->paciente) {
+                return response()->json(['success' => false, 'message' => 'El paciente no existe.'], 422);
             }
 
             DB::beginTransaction();
 
-            // Asegurar que el paciente tenga registro_codigo para aparecer en /patients
-            if ($cita->paciente && empty($cita->paciente->registro_codigo)) {
-                $currentUser = Auth::user();
-                $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-                $registro = Registro::firstOrCreate(
-                    ['codigo' => $codigo],
-                    [
-                        'fecha'   => now()->toDateString(),
-                        'hora'    => now()->toTimeString(),
-                        'motivo'  => 'Asistencia a cita confirmada',
-                        'user_id' => $currentUser->id,
-                    ]
-                );
-                $cita->paciente->update(['registro_codigo' => $registro->codigo]);
-            }
+            // Mapear tipo_ingreso de cita → tipo de episodio
+            $tipoEpisodio = match($cita->tipo_ingreso) {
+                'internacion'     => 'internacion',
+                'emergencia'      => 'emergencia',
+                'consulta_externa','enfermeria' => 'consulta',
+                default           => 'consulta',
+            };
 
-            // Eliminar registro de alta para que vuelva a aparecer en /patients
-            if ($cita->paciente) {
-                \App\Models\AltaPaciente::where('paciente_ci', $cita->paciente->ci)->delete();
-            }
+            // Abrir episodio — esto hace que el paciente aparezca en /patients
+            $episodio = EpisodioService::abrirEpisodio(
+                $cita->paciente->ci,
+                $tipoEpisodio,
+                Auth::id()
+            );
 
-            // Si la cita tiene tipo_ingreso y no existe aún una CuentaCobro, crearla
-            if ($cita->paciente && $cita->tipo_ingreso) {
+            // Crear CuentaCobro vinculada al episodio si hay tipo_ingreso válido
+            if ($cita->tipo_ingreso) {
                 $tiposValidos = ['consulta_externa', 'internacion', 'emergencia', 'enfermeria'];
                 if (in_array($cita->tipo_ingreso, $tiposValidos)) {
-                    $cuentaExistente = \App\Models\CuentaCobro::where('paciente_ci', $cita->paciente->ci)
-                        ->where('tipo_atencion', $cita->tipo_ingreso)
-                        ->where('estado', '!=', 'pagado')
-                        ->exists();
+                    $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
+                        (string) $cita->paciente->ci,
+                        $cita->tipo_ingreso,
+                        null
+                    );
 
-                    if (!$cuentaExistente) {
-                        $precio = IngresoPrecio::getPrecio($cita->tipo_ingreso) ?? 50.00;
-                        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
-                            (string) $cita->paciente->ci,
-                            $cita->tipo_ingreso,
-                            null
-                        );
-                        $tipoLabel = IngresoPrecio::TIPOS_INGRESO[$cita->tipo_ingreso] ?? ucfirst(str_replace('_', ' ', $cita->tipo_ingreso));
-                        CuentaCobroService::agregarCargoConDeduplicacion(
-                            $cuenta->id,
-                            'servicio',
-                            'Cargo de ingreso - ' . $tipoLabel . ' (Cita #' . $cita->id . ')',
-                            $precio,
-                            1,
-                            $cita->tipo_ingreso,
-                            Cita::class,
-                            (string) $cita->id
-                        );
+                    if (!$cuenta->episodio_id) {
+                        $cuenta->update(['episodio_id' => $episodio->id]);
                     }
+
+                    $tipoLabel = IngresoPrecio::TIPOS_INGRESO[$cita->tipo_ingreso] ?? ucfirst(str_replace('_', ' ', $cita->tipo_ingreso));
+                    CuentaCobroService::agregarCargoConDeduplicacion(
+                        $cuenta->id,
+                        'servicio',
+                        'Cargo de ingreso - ' . $tipoLabel . ' (Cita #' . $cita->id . ')',
+                        IngresoPrecio::getPrecio($cita->tipo_ingreso) ?? 50.00,
+                        1,
+                        $cita->tipo_ingreso,
+                        Cita::class,
+                        (string) $cita->id
+                    );
                 }
             }
 
@@ -1121,7 +1110,7 @@ class ReceptionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cita marcada como atendida. El paciente aparecerá ahora en el listado de pacientes.',
+                'message' => 'Cita marcada como atendida. El paciente aparece ahora en el listado de pacientes.',
                 'cita' => $cita->load(['paciente', 'medico.user', 'especialidad'])
             ]);
 
@@ -1130,6 +1119,33 @@ class ReceptionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al marcar asistencia: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function marcarNoAsistida(Request $request, $id)
+    {
+        try {
+            $cita = Cita::findOrFail($id);
+
+            if (in_array($cita->estado, ['cancelado', 'atendido', 'no_asistio'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cita ya tiene un estado final: ' . $cita->estado
+                ], 422);
+            }
+
+            $cita->update(['estado' => 'no_asistio']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cita marcada como no asistida. No se generó ningún cargo ni episodio.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
     }

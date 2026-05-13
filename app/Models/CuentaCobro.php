@@ -29,6 +29,7 @@ class CuentaCobro extends Model
         'es_emergencia',
         'es_post_pago',
         'episodio_numero',
+        'episodio_id',
         'ci_nit_facturacion',
         'razon_social',
         'caja_session_id',
@@ -108,6 +109,11 @@ class CuentaCobro extends Model
     public function seguroAutorizadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'seguro_autorizado_por');
+    }
+
+    public function episodio(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Episodio::class);
     }
 
     // Scopes

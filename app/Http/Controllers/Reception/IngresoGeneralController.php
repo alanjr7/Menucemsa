@@ -16,6 +16,7 @@ use App\Models\Especialidad;
 use App\Models\Caja;
 use App\Models\User;
 use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -427,6 +428,9 @@ class IngresoGeneralController extends Controller
             $consulta->codigo
         );
 
+        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'consulta', Auth::id());
+        $cuenta->update(['episodio_id' => $episodio->id]);
+
         return [
             'success' => true,
             'message' => 'Consulta externa registrada exitosamente.',
@@ -445,6 +449,7 @@ class IngresoGeneralController extends Controller
         $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
         $triage = $this->crearTriage('rojo', 'Emergencia - Ingreso General (Temp)', 'alta');
 
+        // Episodios no aplican a pacientes temporales (sin CI real)
         $emergencia = Emergency::create([
             'patient_id'         => $tempId,
             'user_id'            => Auth::id(),
@@ -486,6 +491,8 @@ class IngresoGeneralController extends Controller
 
         $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
 
+        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'emergencia', Auth::id());
+
         $emergencia = Emergency::create([
             'patient_id'         => $paciente->ci,
             'user_id'            => Auth::id(),
@@ -497,6 +504,7 @@ class IngresoGeneralController extends Controller
             'is_temp_id'         => false,
             'temp_id'            => null,
             'ubicacion_actual'   => 'emergencia',
+            'episodio_id'        => $episodio->id,
         ]);
 
         $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
@@ -506,6 +514,8 @@ class IngresoGeneralController extends Controller
             true,
             $request->filled('seguro_id') ? (int) $request->input('seguro_id') : null
         );
+
+        $cuentaCobro->update(['episodio_id' => $episodio->id]);
 
         NotificationService::notifyRole('emergencia', 'emergencia', 'Nueva Emergencia', "Paciente {$paciente->nombre} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
         NotificationService::notifyRole('enfermera-emergencia', 'emergencia', 'Nueva Emergencia', "Paciente {$paciente->nombre} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
@@ -546,6 +556,8 @@ class IngresoGeneralController extends Controller
 
         $medicoId = $request->medico_ci ? (int)$request->medico_ci : null;
 
+        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'internacion', Auth::id());
+
         $hospitalizacion = Hospitalizacion::create([
             'id' => $idHospitalizacion,
             'ci_paciente' => $paciente->ci,
@@ -556,6 +568,7 @@ class IngresoGeneralController extends Controller
             'estado' => 'activo',
             'contacto_nombre' => $garante ? $garante->nombre : null,
             'contacto_telefono' => $garante ? $garante->telefono : null,
+            'episodio_id' => $episodio->id,
         ]);
 
         $cuentaCobro = CuentaCobroService::obtenerOCrearCuentaMaestra(
@@ -573,6 +586,8 @@ class IngresoGeneralController extends Controller
             1,
             $precioAdmision
         );
+
+        $cuentaCobro->update(['episodio_id' => $episodio->id]);
 
         return [
             'success' => true,
@@ -761,6 +776,9 @@ class IngresoGeneralController extends Controller
             Consulta::class,
             $consulta->codigo
         );
+
+        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'consulta', Auth::id());
+        $cuenta->update(['episodio_id' => $episodio->id]);
 
         return [
             'success' => true,

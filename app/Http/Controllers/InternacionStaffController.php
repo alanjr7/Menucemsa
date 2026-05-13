@@ -21,6 +21,7 @@ use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Services\EpisodioService;
 
 class InternacionStaffController extends Controller
 {
@@ -320,6 +321,14 @@ class InternacionStaffController extends Controller
                 'motivo_alta' => $validated['motivo_alta'] ?? 'Alta médica',
                 'estado' => 'alta',
             ]);
+
+            if ($hospitalizacion->ci_paciente) {
+                EpisodioService::cerrarEpisodioDelPaciente(
+                    $hospitalizacion->ci_paciente,
+                    Auth::id(),
+                    $validated['motivo_alta'] ?? 'alta_medica'
+                );
+            }
 
             DB::commit();
 

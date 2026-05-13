@@ -37,6 +37,8 @@ return new class extends Migration
             $table->foreign('cama_id')->references('id')->on('camas')->onDelete('set null');
             $table->foreign('cuenta_cobro_detalle_id')->references('id')->on('cuenta_cobro_detalles')->onDelete('set null');
             $table->json('equipos_medicos')->nullable();
+            $table->unsignedBigInteger('episodio_id')->nullable();
+            $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
             $table->timestamps();
         });
     }

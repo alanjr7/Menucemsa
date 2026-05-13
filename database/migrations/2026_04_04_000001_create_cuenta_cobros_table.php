@@ -21,6 +21,8 @@ return new class extends Migration
             $table->boolean('es_post_pago')->default(false);
             $table->unsignedInteger('episodio_numero')->default(1)
                 ->comment('Número de episodio del paciente, se incrementa en cada nuevo ingreso');
+            $table->unsignedBigInteger('episodio_id')->nullable();
+            $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
             $table->string('ci_nit_facturacion', 30)->nullable();
             $table->string('razon_social', 255)->nullable();
             $table->foreignId('caja_session_id')->nullable()->constrained('caja_sessions');

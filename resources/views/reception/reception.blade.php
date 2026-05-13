@@ -694,10 +694,39 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Asistió ✓
                             </button>
+                            <button onclick="marcarNoAsistidaDesdeLlamadas(${cita.id})" class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 w-full bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-gray-200 rounded-xl transition-all duration-200 text-sm font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                No Asistió
+                            </button>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        // Función para marcar no asistida
+        async function marcarNoAsistidaDesdeLlamadas(citaId) {
+            if (!confirm('¿Confirmar que el paciente NO asistió? No se generará ningún cargo ni episodio.')) return;
+            try {
+                const response = await fetch(`/api/cita/${citaId}/no-asistida`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('La cita fue marcada como no asistida.');
+                    cargarPendientesLlamada();
+                    cargarEstadisticasDashboard();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al registrar inasistencia');
+            }
         }
 
         // Función para registrar llamada

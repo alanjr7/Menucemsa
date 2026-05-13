@@ -37,6 +37,7 @@ class Emergency extends Model
         'admission_date',
         'discharge_date',
         'equipos_medicos',
+        'episodio_id',
     ];
 
     protected $casts = [
@@ -56,6 +57,11 @@ class Emergency extends Model
     public function paciente(): BelongsTo
     {
         return $this->belongsTo(Paciente::class, 'patient_id', 'ci');
+    }
+
+    public function episodio(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Episodio::class);
     }
 
     public function user(): BelongsTo

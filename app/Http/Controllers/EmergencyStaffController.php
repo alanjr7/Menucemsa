@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\AlmacenStock;
 use App\Services\CuentaCobroService;
 use App\Services\ActivityLogService;
+use App\Services\EpisodioService;
 
 class EmergencyStaffController extends Controller
 {
@@ -255,6 +256,14 @@ class EmergencyStaffController extends Controller
         ]);
 
         $emergency->registrarMovimiento($ubicacionAnterior, 'alta', 'Paciente dado de alta');
+
+        if (!$emergency->is_temp_id && $emergency->patient_id) {
+            EpisodioService::cerrarEpisodioDelPaciente(
+                $emergency->patient_id,
+                auth()->id(),
+                'alta_medica'
+            );
+        }
 
         // Registrar en auditoría
         ActivityLogService::log(

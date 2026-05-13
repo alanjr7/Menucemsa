@@ -12,6 +12,7 @@ use App\Models\Seguro;
 use App\Models\Medico;
 use App\Models\Especialidad;
 use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -81,10 +82,13 @@ class HospitalizacionController extends Controller
             $triage = $this->crearTriagePorTipo('amarillo');
             $paciente->update(['triage_id' => $triage->id]);
 
-            // 4. Crear registro de hospitalización
-            $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage);
+            // 4. Abrir episodio
+            $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'internacion', Auth::id());
 
-            // 5. Obtener o crear cuenta maestra (reutiliza la de emergencia si ya existe)
+            // 5. Crear registro de hospitalización
+            $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage, $episodio->id);
+
+            // 6. Obtener o crear cuenta maestra (reutiliza la de emergencia si ya existe)
             $cuentaCobro = CuentaCobroService::obtenerOCrearCuentaMaestra(
                 $paciente->ci,
                 'internacion',
@@ -105,6 +109,8 @@ class HospitalizacionController extends Controller
                 $hospitalizacion->id,
                 null
             );
+
+            $cuentaCobro->update(['episodio_id' => $episodio->id]);
 
             DB::commit();
 
@@ -219,10 +225,10 @@ class HospitalizacionController extends Controller
         return $paciente;
     }
 
-    private function crearHospitalizacion($request, $paciente, $triage)
+    private function crearHospitalizacion($request, $paciente, $triage, ?int $episodioId = null)
     {
         $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-        
+
         return Hospitalizacion::create([
             'id' => $idHosp,
             'fecha_ingreso' => now(),
@@ -235,6 +241,7 @@ class HospitalizacionController extends Controller
             'contacto_telefono' => $request->contacto_telefono,
             'contacto_parentesco' => $request->contacto_parentesco,
             'contacto_relacion' => $request->contacto_relacion,
+            'episodio_id' => $episodioId,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -310,6 +317,14 @@ class HospitalizacionController extends Controller
                 'motivo_alta' => $request->motivo_alta ?? 'Alta médica',
                 'updated_at' => now(),
             ]);
+
+            if ($hospitalizacion->ci_paciente) {
+                EpisodioService::cerrarEpisodioDelPaciente(
+                    $hospitalizacion->ci_paciente,
+                    Auth::id(),
+                    $request->motivo_alta ?? 'alta_medica'
+                );
+            }
 
             return response()->json([
                 'success' => true,

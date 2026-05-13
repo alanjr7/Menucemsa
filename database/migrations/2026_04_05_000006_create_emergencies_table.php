@@ -41,6 +41,8 @@ return new class extends Migration
             $table->string('estado_parto', 60)->nullable();
             $table->timestamp('admission_date')->nullable();
             $table->timestamp('discharge_date')->nullable();
+            $table->unsignedBigInteger('episodio_id')->nullable();
+            $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
             $table->timestamps();
             
             // Nota: patient_id es string para soportar CI de pacientes sin FK estricto

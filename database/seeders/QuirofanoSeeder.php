@@ -23,10 +23,10 @@ class QuirofanoSeeder extends Seeder
         ];
 
         foreach ($quirofanos as $quirofano) {
-            Quirofano::create([
-                'tipo'   => $quirofano['tipo'],
-                'estado' => 'disponible',
-            ]);
+            Quirofano::firstOrCreate(
+                ['tipo' => $quirofano['tipo']],
+                ['estado' => 'disponible']
+            );
         }
     }
 }

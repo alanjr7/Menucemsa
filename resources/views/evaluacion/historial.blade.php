@@ -341,9 +341,13 @@
                     HISTORIAL DE EVALUACIONES CLINICAS
 ================================================================================
 @php
-    $codigoPaciente = isset($paciente->is_temporal) && $paciente->is_temporal
-        ? $paciente->emergency_code
-        : ($paciente->consultas->first()?->caja?->id ?? $paciente->registro_codigo);
+    if (isset($paciente->is_temporal) && $paciente->is_temporal) {
+        $codigoPaciente = $paciente->emergency_code ?? $paciente->ci;
+    } elseif (isset($paciente->consultas)) {
+        $codigoPaciente = $paciente->consultas->first()?->caja?->id ?? ($paciente->registro_codigo ?? '—');
+    } else {
+        $codigoPaciente = $paciente->ci;
+    }
 @endphp
 PACIENTE: {{ str_pad(strtoupper($paciente->nombre), 46, ' ') }}  CI: {{ $paciente->ci }}
 CODIGO:   {{ $codigoPaciente }}

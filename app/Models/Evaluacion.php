@@ -8,7 +8,7 @@ class Evaluacion extends Model
 {
     protected $table = 'evaluaciones';
 
-    protected $fillable = ['paciente_ci', 'area', 'user_id', 'observaciones', 'signos_vitales'];
+    protected $fillable = ['paciente_ci', 'temp_id', 'area', 'user_id', 'observaciones', 'signos_vitales', 'episodio_id'];
 
     protected $casts = ['signos_vitales' => 'array'];
 
@@ -25,5 +25,10 @@ class Evaluacion extends Model
     public function items()
     {
         return $this->hasMany(EvaluacionItem::class);
+    }
+
+    public function episodio()
+    {
+        return $this->belongsTo(\App\Models\Episodio::class);
     }
 }

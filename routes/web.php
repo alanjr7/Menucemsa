@@ -239,6 +239,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
             Route::post('/api/cita/{id}/restaurar', [ReceptionController::class, 'restaurarCita'])->name('reception.restaurar-cita');
             Route::get('/api/citas-eliminadas', [ReceptionController::class, 'getCitasEliminadas'])->name('reception.citas-eliminadas');
             Route::post('/api/cita/{id}/asistida', [ReceptionController::class, 'marcarAsistida'])->name('reception.marcar-asistida');
+            Route::post('/api/cita/{id}/no-asistida', [ReceptionController::class, 'marcarNoAsistida'])->name('reception.marcar-no-asistida');
             Route::get('/api/agenda-semanal', [ReceptionController::class, 'getAgendaSemanal'])->name('reception.agenda-semanal');
             Route::get('/api/citas/paciente/{ci}', [ReceptionController::class, 'getCitasPorPaciente'])->name('reception.citas-paciente');
 
@@ -424,6 +425,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Gestión de pacientes
         Route::get('/pacientes/gestionar', [\App\Http\Controllers\PatientsController::class, 'gestionar'])->name('pacientes.gestionar');
+
+        // Episodios
+        Route::get('/episodios', [\App\Http\Controllers\Admin\EpisodioController::class, 'index'])->name('episodios.index');
+        Route::get('/episodios/paciente/{ci}', [\App\Http\Controllers\Admin\EpisodioController::class, 'porPaciente'])->name('episodios.paciente');
+        Route::get('/episodios/{id}', [\App\Http\Controllers\Admin\EpisodioController::class, 'show'])->name('episodios.show');
+        Route::get('/episodios/{id}/excel', [\App\Http\Controllers\Admin\EpisodioController::class, 'exportExcel'])->name('episodios.excel');
+        Route::get('/episodios/{id}/pdf', [\App\Http\Controllers\Admin\EpisodioController::class, 'exportPdf'])->name('episodios.pdf');
 
         // Edición y gestión de pacientes
         Route::get('/pacientes/{ci}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');

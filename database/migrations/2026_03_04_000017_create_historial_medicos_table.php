@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('alergias', 255)->nullable();
             $table->foreignId('user_medico_id')->constrained('users')->onDelete('cascade');
             $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade');
+            $table->unsignedBigInteger('episodio_id')->nullable();
             $table->timestamps();
         });
     }
