@@ -7,6 +7,7 @@ use App\Models\Medicamentos;
 use App\Models\InventarioFarmacia;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class MedicamentosController extends Controller
 {
@@ -67,13 +68,12 @@ class MedicamentosController extends Controller
     {
         try {
             $medicamento = Medicamentos::findOrFail($codigo);
-            
-            $medicamento->detalleRecetas()->delete();
 
-            InventarioFarmacia::where('codigo_item', $codigo)->delete();
-
-            // Eliminar el medicamento
-            $medicamento->delete();
+            DB::transaction(function () use ($medicamento, $codigo) {
+                $medicamento->detalleRecetas()->delete();
+                InventarioFarmacia::where('codigo_item', $codigo)->delete();
+                $medicamento->delete();
+            });
 
             return response()->json(null, 204);
 

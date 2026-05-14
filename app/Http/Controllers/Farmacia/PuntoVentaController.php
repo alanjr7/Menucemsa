@@ -58,18 +58,18 @@ class PuntoVentaController extends Controller
 
     public function procesarVenta(Request $request)
     {
-        $validated = $request->validate([
-            'items' => 'required|array|min:1',
-            'items.*.id' => 'required|string',
-            'items.*.cantidad' => 'required|integer|min:1',
-            'items.*.precio' => 'required|numeric|min:0',
-            'cliente_id' => 'nullable|exists:clientes,id',
-            'metodo_pago' => 'required|string|in:Efectivo,Tarjeta,Transferencia',
-            'requiere_receta' => 'boolean',
-            'observaciones' => 'nullable|string'
-        ]);
-
         try {
+            $validated = $request->validate([
+                'items' => 'required|array|min:1',
+                'items.*.id' => 'required|string',
+                'items.*.cantidad' => 'required|integer|min:1',
+                'items.*.precio' => 'required|numeric|min:0',
+                'cliente_id' => 'nullable|exists:clientes,id',
+                'metodo_pago' => 'required|string|in:efectivo,tarjeta,transferencia,qr,credito',
+                'requiere_receta' => 'boolean',
+                'observaciones' => 'nullable|string'
+            ]);
+
             DB::beginTransaction();
 
             $ids = collect($validated['items'])->pluck('id');
@@ -135,6 +135,7 @@ class PuntoVentaController extends Controller
             $venta = VentaFarmacia::create([
                 'codigo_venta' => $codigoVenta,
                 'farmacia_id' => $farmacia->id,
+                'usuario_id' => Auth::id(),
                 'cliente' => $clienteNombre,
                 'total' => $total,
                 'metodo_pago' => $validated['metodo_pago'],
@@ -152,7 +153,7 @@ class PuntoVentaController extends Controller
                 DetalleVentaFarmacia::create([
                     'codigo_venta' => $codigoVenta,
                     'codigo_producto' => $item['id'],
-                    'tipo_producto' => 'Medicamento',
+                    'tipo_producto' => 'medicamento',
                     'nombre_producto' => $medicamento->descripcion ?? $item['id'],
                     'cantidad' => $item['cantidad'],
                     'precio_unitario' => $item['precio'],
@@ -175,12 +176,17 @@ class PuntoVentaController extends Controller
                 'total' => $total
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => implode(' ', collect($e->errors())->flatten()->all())
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error al procesar venta en punto de venta: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Ocurrió un error. Por favor contacte al administrador.'
+                'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -94,13 +94,14 @@ class InventarioController extends Controller
                 'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
                 'stock_minimo' => $validated['stockMinimo'],
                 'stock_disponible' => $validated['stock'],
+                'precio_unitario' => $validated['precio'],
                 'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,
                 'fecha_ingreso' => now()
             ]);
 
             DB::commit();
 
-            return response()->json(['success' => true, 'message' => 'Producto creado exitosamente', 'producto' => $medicamento]);
+            return response()->json(['success' => true, 'message' => 'Producto creado exitosamente', 'producto' => array_merge($medicamento->toArray(), ['id' => $medicamento->codigo])]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -141,6 +142,7 @@ class InventarioController extends Controller
                     'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
                     'stock_disponible' => $validated['stock'],
                     'stock_minimo' => $validated['stockMinimo'],
+                    'precio_unitario' => $validated['precio'],
                     'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0
                 ]);
             } else {
@@ -155,12 +157,13 @@ class InventarioController extends Controller
                     'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
                     'stock_minimo' => $validated['stockMinimo'],
                     'stock_disponible' => $validated['stock'],
+                    'precio_unitario' => $validated['precio'],
                     'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,
                     'fecha_ingreso' => now()
                 ]);
             }
 
-            return response()->json(['success' => true, 'message' => 'Producto actualizado exitosamente', 'producto' => $medicamento]);
+            return response()->json(['success' => true, 'message' => 'Producto actualizado exitosamente', 'producto' => array_merge($medicamento->toArray(), ['id' => $medicamento->codigo])]);
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al actualizar el producto: ' . $e->getMessage()], 500);

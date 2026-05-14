@@ -81,6 +81,8 @@ class VentasController extends Controller
                         'stock_disponible' => $nuevoStock,
                         'reposicion' => $nuevoStock <= $inventario->stock_minimo ? 1 : 0
                     ]);
+                } else {
+                    \Log::warning("Anulación de venta {$codigoVenta}: no se encontró inventario para producto {$detalle->codigo_producto}. Stock no restaurado.");
                 }
             }
 

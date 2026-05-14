@@ -24,6 +24,7 @@ class InventarioFarmacia extends Model
         'requerimiento',
         'stock_minimo',
         'stock_disponible',
+        'precio_unitario',
         'reposicion',
         'lote',
         'fecha_ingreso'
@@ -36,6 +37,7 @@ class InventarioFarmacia extends Model
         'fecha_ingreso' => 'date',
         'stock_minimo' => 'integer',
         'stock_disponible' => 'integer',
+        'precio_unitario' => 'decimal:2',
         'reposicion' => 'integer',
     ];
 

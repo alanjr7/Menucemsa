@@ -17,6 +17,7 @@ class VentaFarmacia extends Model
     protected $fillable = [
         'codigo_venta',
         'farmacia_id',
+        'usuario_id',
         'cliente',
         'total',
         'metodo_pago',
@@ -50,6 +51,11 @@ class VentaFarmacia extends Model
     public function cajaDiaria()
     {
         return $this->belongsTo(CajaDiaria::class);
+    }
+
+    public function usuario()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'usuario_id');
     }
 
     public static function generarCodigoVenta()

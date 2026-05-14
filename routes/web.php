@@ -123,6 +123,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/quirofano/disponibilidad', [QuirofanoController::class, 'disponibilidad'])->name('quirofano.disponibilidad');
         Route::get('/quirofano/api/dashboard', [QuirofanoController::class, 'apiDashboard'])->name('quirofano.api.dashboard');
         Route::get('/quirofano/procedimientos/buscar', [QuirofanoController::class, 'buscarProcedimientos'])->name('quirofano.procedimientos.buscar');
+        Route::get('/quirofano/procedimientos/lista', [QuirofanoController::class, 'procedimientosLista'])->name('quirofano.procedimientos.lista');
         Route::get('/api/quirofanos-disponibles', [QuirofanoController::class, 'getQuirofanosDisponibles'])->name('api.quirofanos-disponibles');
         Route::get('/api/paciente/{ci}', [QuirofanoController::class, 'getPaciente'])->name('api.paciente');
         Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
@@ -485,6 +486,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // URL: /farmacia/inventario -> Llama a InventarioController
         Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario');
         Route::post('/inventario', [InventarioController::class, 'store'])->name('inventario.store');
+        Route::get('/inventario/{id}', fn() => redirect()->route('farmacia.inventario'))->name('inventario.show');
         Route::put('/inventario/{id}', [InventarioController::class, 'update'])->name('inventario.update');
         Route::delete('/inventario/{id}', [InventarioController::class, 'destroy'])->name('inventario.destroy');
 
@@ -498,6 +500,9 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::delete('/clientes/{id}', [ClientesController::class, 'destroy'])->name('clientes.destroy');
 
         Route::get('/reporte', [ReporteController::class, 'index'])->name('reporte');
+        Route::get('/reporte/datos', [ReporteController::class, 'datos'])->name('reporte.datos');
+        Route::get('/reporte/exportar', [ReporteController::class, 'exportar'])->name('reporte.exportar');
+        Route::get('/reporte/pdf', [ReporteController::class, 'pdf'])->name('reporte.pdf');
         Route::post('/reporte/filtrar', [ReporteController::class, 'filtrar'])->name('reporte.filtrar');
     });
 
@@ -603,6 +608,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // Rutas simples PRIMERO (antes que las rutas con parámetros)
         Route::get('/dashboard', [EmergencyStaffController::class, 'index'])->name('dashboard');
         Route::get('/create', [EmergencyStaffController::class, 'create'])->name('create');
+        Route::get('/procedimientos', [EmergencyStaffController::class, 'procedimientos'])->name('procedimientos');
         // API routes (antes que las rutas con parámetros)
         Route::get('/api/emergencias', [EmergencyStaffController::class, 'apiEmergencias'])->name('api.emergencias');
         Route::get('/api/estadisticas', [EmergencyStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
@@ -665,6 +671,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::middleware(['role:internacion|admin|dirmedico|enfermera-internacion|administrador'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
         // Dashboard principal
         Route::get('/dashboard', [InternacionStaffController::class, 'index'])->name('dashboard');
+        Route::get('/procedimientos', [InternacionStaffController::class, 'procedimientos'])->name('procedimientos');
 
         // Página de evaluación del paciente
         Route::get('/evaluar/{id}', [InternacionStaffController::class, 'evaluar'])->name('evaluar');
@@ -816,6 +823,7 @@ Route::middleware(['auth', 'role:admin|uti|administrador|dirmedico|doctor'])->ge
 
 // Dashboard UTI - Terapia Intensiva
 Route::middleware(['auth', 'role:uti|admin|dirmedico|administrador'])->get('/uti/dashboard', [\App\Http\Controllers\UtiController::class, 'dashboard'])->name('uti.dashboard');
+Route::middleware(['auth', 'role:uti|admin|administrador'])->get('/uti/procedimientos', [\App\Http\Controllers\UtiController::class, 'procedimientos'])->name('uti.procedimientos');
 
 // Rutas de evaluación clínica de pacientes
 Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|admin|administrador|dirmedico|reception'])->group(function () {
@@ -863,6 +871,14 @@ Route::middleware(['auth', 'role:admin|administrador'])
         // Procedimientos (solo lectura)
         Route::get('/procedimientos', [\App\Http\Controllers\Admin\NeonatoAdminController::class, 'procedimientos'])->name('procedimientos');
     });
+
+// Procedimientos por área — Admin (Gestionar Clínica)
+Route::middleware(['auth', 'role:admin|administrador'])->group(function () {
+    Route::get('/admin/emergencia/procedimientos',  [EmergencyStaffController::class,      'procedimientos'])->name('admin.emergencia.procedimientos');
+    Route::get('/admin/cirugia/procedimientos',     [QuirofanoController::class,           'procedimientosLista'])->name('admin.cirugia.procedimientos');
+    Route::get('/admin/uti/procedimientos',         [\App\Http\Controllers\UtiController::class, 'procedimientos'])->name('admin.uti.procedimientos');
+    Route::get('/admin/internacion/procedimientos', [InternacionStaffController::class,    'procedimientos'])->name('admin.internacion.procedimientos');
+});
 
 // =============================================================================
 // NEONATO — Rol operativo

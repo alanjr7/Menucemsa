@@ -98,9 +98,10 @@ class MenuSeeder extends Seeder
         ]);
 
         $panelUti->children()->createMany([
-            ['name' => 'Panel', 'route' => 'uti.dashboard', 'roles' => 'uti', 'order' => 1],
-            ['name' => 'Camillas', 'route' => 'emergency-staff.camillas.index', 'roles' => 'uti', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'uti', 'order' => 3],
+            ['name' => 'Panel',          'route' => 'uti.dashboard',                      'roles' => 'uti', 'order' => 1],
+            ['name' => 'Camillas',       'route' => 'emergency-staff.camillas.index',      'roles' => 'uti', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'uti', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'uti.procedimientos',                  'roles' => 'uti', 'order' => 4],
         ]);
 
         // 3.8 Panel Neonatología (rol neonato)
@@ -130,10 +131,11 @@ class MenuSeeder extends Seeder
         ]);
 
         $emergencias->children()->createMany([
-            ['name' => 'Panel Principal', 'route' => 'emergency-staff.dashboard', 'roles' => 'emergencia', 'order' => 1],
-            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'emergencia', 'order' => 2],
-            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'emergencia', 'order' => 4],
-            ['name' => 'Camillas', 'route' => 'emergency-staff.camillas.index', 'roles' => 'emergencia', 'order' => 5],
+            ['name' => 'Panel Principal',  'route' => 'emergency-staff.dashboard',       'roles' => 'emergencia', 'order' => 1],
+            ['name' => 'Medicamentos',     'route' => 'emergency-staff.medicamentos.index', 'roles' => 'emergencia', 'order' => 2],
+            ['name' => 'Procedimientos',   'route' => 'emergency-staff.procedimientos',  'roles' => 'emergencia', 'order' => 3],
+            ['name' => 'Enfermeras',       'route' => 'emergency-staff.enfermeras.index','roles' => 'emergencia', 'order' => 4],
+            ['name' => 'Camillas',         'route' => 'emergency-staff.camillas.index',  'roles' => 'emergencia', 'order' => 5],
         ]);
 
         // 5. Pacientes (Con Submenús) - Todos los roles
@@ -198,11 +200,12 @@ class MenuSeeder extends Seeder
             'order' => 2,
         ]);
         $emergenciasAdmin->children()->createMany([
-            ['name' => 'Dashboard', 'route' => 'emergency-staff.dashboard', 'roles' => 'admin,administrador', 'order' => 1],
-            ['name' => 'Gestión Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'admin,administrador', 'order' => 4],
-            ['name' => 'Camillas', 'route' => 'admin.camillas.index', 'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Dashboard',          'route' => 'emergency-staff.dashboard',         'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Gestión Emergencias','route' => 'admin.emergencies.index',            'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos',       'route' => 'emergency-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Procedimientos',     'route' => 'admin.emergencia.procedimientos',    'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Enfermeras',         'route' => 'emergency-staff.enfermeras.index',   'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Camillas',           'route' => 'admin.camillas.index',               'roles' => 'admin,administrador', 'order' => 6],
         ]);
 
         // 3. Cirugías (Nivel 2)
@@ -213,10 +216,11 @@ class MenuSeeder extends Seeder
             'order' => 3,
         ]);
         $cirugiasAdmin->children()->createMany([
-            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'roles' => 'admin,administrador', 'order' => 1],
-            ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Ver Cirujanos', 'route' => 'admin.cirujanos.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Panel de Cirugías',   'route' => 'quirofano.index',               'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Gestionar Quirófanos','route' => 'quirofanos.management.index',   'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Ver Cirujanos',        'route' => 'admin.cirujanos.index',        'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Medicamentos',         'route' => 'quirofano.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Procedimientos',       'route' => 'admin.cirugia.procedimientos', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
 
         // 4. Internación (Nivel 2)
@@ -227,11 +231,12 @@ class MenuSeeder extends Seeder
             'order' => 4,
         ]);
         $internacionAdmin->children()->createMany([
-            ['name' => 'Dashboard', 'route' => 'internacion-staff.dashboard', 'roles' => 'admin,administrador', 'order' => 1],
-            ['name' => 'Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'admin,administrador', 'order' => 4],
-            ['name' => 'Catering', 'route' => 'internacion-staff.catering.gestion', 'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Dashboard',      'route' => 'internacion-staff.dashboard',              'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Habitaciones',   'route' => 'internacion-staff.habitaciones.index',     'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'internacion-staff.medicamentos.index',     'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'admin.internacion.procedimientos',         'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Enfermeras',     'route' => 'internacion-staff.enfermeras.index',       'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Catering',       'route' => 'internacion-staff.catering.gestion',       'roles' => 'admin,administrador', 'order' => 6],
         ]);
 
         // 5. UTI (Nivel 2)
@@ -242,9 +247,10 @@ class MenuSeeder extends Seeder
             'order' => 5,
         ]);
         $utiAdmin->children()->createMany([
-            ['name' => 'Camillas', 'route' => 'admin.camillas.index', 'roles' => 'admin,administrador', 'order' => 1],
-            ['name' => 'Panel UTI', 'route' => 'uti.dashboard', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Camillas',       'route' => 'admin.camillas.index',               'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Panel UTI',      'route' => 'uti.dashboard',                      'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'admin.uti.procedimientos',            'roles' => 'admin,administrador', 'order' => 4],
         ]);
 
         // 6. Neonato (Nivel 2)
@@ -302,6 +308,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia,admin,administrador', 'order' => 3],
             ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin,administrador', 'order' => 4],
             ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin,administrador', 'order' => 5],
+            ['name' => 'Reporte', 'route' => 'farmacia.reporte', 'roles' => 'farmacia,admin,administrador', 'order' => 6],
         ]);
 
         // 10. Quirófano (Cirujano)
@@ -314,9 +321,10 @@ class MenuSeeder extends Seeder
             'order' => 82,
         ]);
         $quirofano->children()->createMany([
-            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'roles' => 'cirujano', 'order' => 1],
-            ['name' => 'Historial', 'route' => 'quirofano.historial', 'roles' => 'cirujano', 'order' => 4],
-            ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'roles' => 'cirujano', 'order' => 5],
+            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index',                   'roles' => 'cirujano', 'order' => 1],
+            ['name' => 'Procedimientos',    'route' => 'quirofano.procedimientos.lista',     'roles' => 'cirujano', 'order' => 3],
+            ['name' => 'Historial',         'route' => 'quirofano.historial',                'roles' => 'cirujano', 'order' => 4],
+            ['name' => 'Medicamentos',      'route' => 'quirofano.medicamentos.index',       'roles' => 'cirujano', 'order' => 5],
         ]);
 
         // 11. Internación (Operativo - rol internacion)
@@ -330,12 +338,13 @@ class MenuSeeder extends Seeder
         ]);
 
         $internacion->children()->createMany([
-            ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'internacion', 'order' => 1],
-            ['name' => 'Registrar Habitación', 'route' => 'internacion-staff.habitaciones.registro-uso', 'roles' => 'internacion', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'internacion', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'internacion', 'order' => 4],
-            ['name' => 'Catering', 'route' => 'internacion-staff.catering.index', 'roles' => 'internacion,enfermera-internacion', 'order' => 5],
-            ]);
+            ['name' => 'Panel Principal',      'route' => 'internacion-staff.dashboard',                'roles' => 'internacion', 'order' => 1],
+            ['name' => 'Registrar Habitación', 'route' => 'internacion-staff.habitaciones.registro-uso','roles' => 'internacion', 'order' => 2],
+            ['name' => 'Medicamentos',         'route' => 'internacion-staff.medicamentos.index',       'roles' => 'internacion', 'order' => 3],
+            ['name' => 'Procedimientos',       'route' => 'internacion-staff.procedimientos',           'roles' => 'internacion', 'order' => 4],
+            ['name' => 'Enfermeras',           'route' => 'internacion-staff.enfermeras.index',         'roles' => 'internacion', 'order' => 5],
+            ['name' => 'Catering',             'route' => 'internacion-staff.catering.index',           'roles' => 'internacion,enfermera-internacion', 'order' => 6],
+        ]);
 
         // 12. Gerencial
         $gerencial = Menu::create([

@@ -623,4 +623,14 @@ class EmergencyStaffController extends Controller
         fclose($file);
         exit;
     }
+
+    public function procedimientos(): \Illuminate\View\View
+    {
+        $procedimientos = \App\Models\Procedimiento::where('area', 'emergencia')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->paginate(50);
+
+        return view('emergency-staff.procedimientos', compact('procedimientos'));
+    }
 }

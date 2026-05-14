@@ -196,7 +196,7 @@
             get filteredProducts() {
                 return this.productos.filter(p => {
                     const matchSearch = p.nombre.toLowerCase().includes(this.search.toLowerCase()) ||
-                                      p.codigo.includes(this.search);
+                                      (p.codigo_barras || '').includes(this.search);
                     const matchCategory = this.selectedCategory === 'Todas' ||
                                         p.categoria === this.selectedCategory;
                     return matchSearch && matchCategory;
@@ -244,6 +244,7 @@
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                             },
                             body: JSON.stringify(this.editingProduct)
@@ -253,6 +254,7 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                             },
                             body: JSON.stringify(this.editingProduct)
@@ -287,6 +289,7 @@
                             method: 'DELETE',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                             }
                         });

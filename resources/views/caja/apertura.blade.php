@@ -28,7 +28,7 @@
 
                             <div>
                                 <label for="monto_inicial" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Monto Inicial (S/)
+                                    Monto Inicial (Bs/)
                                 </label>
                                 <input type="text"
                                        inputmode="decimal"

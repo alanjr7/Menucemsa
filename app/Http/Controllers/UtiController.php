@@ -34,4 +34,14 @@ class UtiController extends Controller
 
         return view('uti.dashboard', compact('fecha', 'evaluaciones', 'camillaRegistradas'));
     }
+
+    public function procedimientos(): \Illuminate\View\View
+    {
+        $procedimientos = \App\Models\Procedimiento::where('area', 'uti')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->paginate(50);
+
+        return view('uti.procedimientos', compact('procedimientos'));
+    }
 }

@@ -1491,4 +1491,14 @@ class InternacionStaffController extends Controller
 
         return $detalle->id;
     }
+
+    public function procedimientos(): \Illuminate\View\View
+    {
+        $procedimientos = \App\Models\Procedimiento::where('area', 'internacion')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->paginate(50);
+
+        return view('internacion-staff.procedimientos', compact('procedimientos'));
+    }
 }

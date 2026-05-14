@@ -2028,4 +2028,14 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
         return "{$mins}min";
     }
 
+    public function procedimientosLista(): \Illuminate\View\View
+    {
+        $procedimientos = \App\Models\Procedimiento::where('area', 'cirugia')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->paginate(50);
+
+        return view('quirofano.procedimientos', compact('procedimientos'));
+    }
+
 }

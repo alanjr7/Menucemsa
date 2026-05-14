@@ -142,8 +142,12 @@
                         <p class="text-sm text-slate-500">Últimos 7 días</p>
                     </div>
                     <div class="flex gap-2">
-                        <button class="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">7 días</button>
-                        <button class="px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">30 días</button>
+                        <button @click="setPeriodo(7)"
+                                :class="periodo===7 ? 'bg-slate-200 text-slate-700 font-semibold' : 'text-slate-500 hover:bg-slate-100'"
+                                class="px-3 py-1.5 text-sm rounded-lg transition-colors">7 días</button>
+                        <button @click="setPeriodo(30)"
+                                :class="periodo===30 ? 'bg-slate-200 text-slate-700 font-semibold' : 'text-slate-500 hover:bg-slate-100'"
+                                class="px-3 py-1.5 text-sm rounded-lg transition-colors">30 días</button>
                     </div>
                 </div>
                 <div class="h-64 relative">
@@ -347,62 +351,114 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    const _datos7  = @json($ventasPorDia7);
+    const _datos30 = @json($ventasPorDia30);
+
     function farmaciaDashboard() {
         return {
+            periodo: 7,
+            chart: null,
+
             init() {
                 this.initChart();
             },
+
+            setPeriodo(p) {
+                this.periodo = p;
+                const datos = p === 7 ? _datos7 : _datos30;
+                this.chart.data.labels   = datos.map(d => this.fmtFecha(d.fecha));
+                this.chart.data.datasets[0].data = datos.map(d => parseFloat(d.total_ingresos) || 0);
+                this.chart.data.datasets[1].data = datos.map(d => parseInt(d.total_ventas) || 0);
+                this.chart.update();
+            },
+
+            fmtFecha(f) {
+                const d = new Date(f + 'T00:00:00');
+                return d.toLocaleDateString('es-BO', { day: '2-digit', month: 'short' });
+            },
+
             initChart() {
                 const ctx = document.getElementById('ventasChart');
                 if (!ctx) return;
 
-                // Datos de ejemplo para el gráfico
-                const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-                const data = [1200, 1900, 1500, 2200, 2800, 3200, 2400];
+                const datos = _datos7;
+                const labels = datos.map(d => this.fmtFecha(d.fecha));
+                const ingresos = datos.map(d => parseFloat(d.total_ingresos) || 0);
+                const nVentas  = datos.map(d => parseInt(d.total_ventas) || 0);
 
-                new Chart(ctx, {
+                this.chart = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Ventas ($)',
-                            data: data,
-                            borderColor: '#059669',
-                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: '#059669',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        }]
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Ingresos (Bs.)',
+                                data: ingresos,
+                                borderColor: '#059669',
+                                backgroundColor: 'rgba(5,150,105,0.08)',
+                                borderWidth: 2.5,
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: '#059669',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                yAxisID: 'y',
+                            },
+                            {
+                                label: 'N° Ventas',
+                                data: nVentas,
+                                borderColor: '#6366f1',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                borderDash: [5, 4],
+                                fill: false,
+                                tension: 0.4,
+                                pointBackgroundColor: '#6366f1',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 3,
+                                pointHoverRadius: 5,
+                                yAxisID: 'y2',
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
                         plugins: {
                             legend: {
-                                display: false
+                                position: 'top',
+                                labels: { font: { size: 11 }, boxWidth: 12, usePointStyle: true }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => ctx.dataset.yAxisID === 'y2'
+                                        ? `Ventas: ${ctx.raw}`
+                                        : `Bs. ${parseFloat(ctx.raw).toLocaleString('es-BO', {minimumFractionDigits:2})}`
+                                }
                             }
                         },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                },
+                                grid: { color: 'rgba(0,0,0,0.05)' },
                                 ticks: {
-                                    callback: function(value) {
-                                        return '$' + value.toLocaleString();
-                                    }
+                                    font: { size: 11 },
+                                    callback: v => 'Bs. ' + v.toLocaleString('es-BO')
                                 }
                             },
+                            y2: {
+                                position: 'right',
+                                beginAtZero: true,
+                                grid: { display: false },
+                                ticks: { font: { size: 11 } }
+                            },
                             x: {
-                                grid: {
-                                    display: false
-                                }
+                                grid: { display: false },
+                                ticks: { font: { size: 11 } }
                             }
                         }
                     }

@@ -26,7 +26,19 @@ class FarmaciaDashboardController extends Controller
             ->orderBy('fecha_venta', 'desc')
             ->take(5)
             ->get();
-        
+
+        $ventasPorDia7 = VentaFarmacia::where('fecha_venta', '>=', Carbon::now()->subDays(6)->startOfDay())
+            ->selectRaw('DATE(fecha_venta) as fecha, SUM(total) as total_ingresos, COUNT(*) as total_ventas')
+            ->groupBy('fecha')
+            ->orderBy('fecha')
+            ->get();
+
+        $ventasPorDia30 = VentaFarmacia::where('fecha_venta', '>=', Carbon::now()->subDays(29)->startOfDay())
+            ->selectRaw('DATE(fecha_venta) as fecha, SUM(total) as total_ingresos, COUNT(*) as total_ventas')
+            ->groupBy('fecha')
+            ->orderBy('fecha')
+            ->get();
+
         return view('farmacia.index', compact(
             'ventasHoy',
             'ingresosHoy',
@@ -35,7 +47,9 @@ class FarmaciaDashboardController extends Controller
             'alertasStock',
             'alertasVencimiento',
             'totalVentas',
-            'ultimasVentas'
+            'ultimasVentas',
+            'ventasPorDia7',
+            'ventasPorDia30'
         ));
     }
     

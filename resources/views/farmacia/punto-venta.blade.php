@@ -123,9 +123,9 @@
                 <div>
                     <label class="block text-[12px] text-gray-500 font-medium mb-3">Método de Pago</label>
                     <div class="grid grid-cols-3 gap-2">
-                        <button @click="metodoPago = 'Efectivo'" :class="metodoPago === 'Efectivo' ? 'border-2 border-blue-500 text-blue-600' : 'border border-gray-200 text-gray-700'" class="py-2.5 text-xs font-bold rounded-lg bg-white">Efectivo</button>
-                        <button @click="metodoPago = 'Tarjeta'" :class="metodoPago === 'Tarjeta' ? 'border-2 border-blue-500 text-blue-600' : 'border border-gray-200 text-gray-700'" class="py-2.5 text-xs font-bold rounded-lg bg-white">Tarjeta</button>
-                        <button @click="metodoPago = 'Transferencia'" :class="metodoPago === 'Transferencia' ? 'border-2 border-blue-500 text-blue-600' : 'border border-gray-200 text-gray-700'" class="py-2.5 text-xs font-bold rounded-lg bg-white">Transferencia</button>
+                        <button @click="metodoPago = 'efectivo'" :class="metodoPago === 'efectivo' ? 'border-2 border-blue-500 text-blue-600' : 'border border-gray-200 text-gray-700'" class="py-2.5 text-xs font-bold rounded-lg bg-white">Efectivo</button>
+                        <button @click="metodoPago = 'tarjeta'" :class="metodoPago === 'tarjeta' ? 'border-2 border-blue-500 text-blue-600' : 'border border-gray-200 text-gray-700'" class="py-2.5 text-xs font-bold rounded-lg bg-white">Tarjeta</button>
+                        <button @click="metodoPago = 'transferencia'" :class="metodoPago === 'transferencia' ? 'border-2 border-blue-500 text-blue-600' : 'border border-gray-200 text-gray-700'" class="py-2.5 text-xs font-bold rounded-lg bg-white">Transferencia</button>
                     </div>
                 </div>
 
@@ -149,9 +149,7 @@
                     <button @click="procesarVenta()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-50 transition-all text-[15px]">
                         Procesar Venta
                     </button>
-                    <button @click="imprimirTicket()" x-show="ultimaVenta && !mostrarImprimir" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-50 transition-all text-[15px]">
-                        🖨️ Imprimir Ticket
-                    </button>
+                    
                     <button @click="cart = []; mostrarImprimir = false; ultimaVenta = null;" class="w-full text-gray-500 hover:text-red-500 font-medium py-2 text-[14px] transition-colors">
                         Limpiar Carrito
                     </button>
@@ -167,7 +165,7 @@
                 clientes: @json($clientes),
                 searchQuery: '',
                 selectedCliente: '',
-                metodoPago: 'Tarjeta',
+                metodoPago: 'tarjeta',
                 requiereReceta: false,
                 cart: [],
                 ultimaVenta: null, // Store last sale data
@@ -199,7 +197,7 @@
                         if (existing.qty >= stock) return;
                         existing.qty++;
                     } else {
-                        this.cart.push({ name, price, qty: 1, id, stock, requiereReceta });
+                        this.cart.push({ name, price: parseFloat(price) || 0, qty: 1, id, stock, requiereReceta });
                     }
                 },
                 updateQty(index, amount) {
@@ -236,6 +234,7 @@
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                             },
                             body: JSON.stringify({
@@ -253,7 +252,6 @@
                         const result = await response.json();
 
                         if (result.success) {
-                            // Store last sale data for ticket printing
                             this.ultimaVenta = {
                                 codigo: result.codigo_venta,
                                 total: result.total,
@@ -263,11 +261,8 @@
                                 fecha: new Date().toLocaleString(),
                                 requiere_receta: this.requiereReceta
                             };
-                            
-                            // Mostrar el botón de imprimir para esta venta
-                            this.mostrarImprimir = false;
-                            
-                            alert(`Venta procesada exitosamente!\nCódigo: ${result.codigo_venta}\nTotal: $${result.total}`);
+
+                            this.generarTicketHTML(this.ultimaVenta);
                             this.cart = [];
                             this.selectedCliente = '';
                             this.requiereReceta = false;
@@ -296,78 +291,50 @@
                 generarTicketHTML(venta) {
                     let itemsHTML = '';
                     venta.items.forEach(item => {
-                        itemsHTML += `<div class="item">
-                            <span>${item.qty} x ${item.name}</span>
-                            <span>$${(item.price * item.qty).toFixed(2)}</span>
-                        </div>`;
+                        itemsHTML += `<tr>
+                            <td>${item.qty} x ${item.name}</td>
+                            <td style="text-align:right">$${(item.price * item.qty).toFixed(2)}</td>
+                        </tr>`;
                     });
 
-                    const recetaHTML = venta.requiere_receta ? '<div style="color: red;"><strong>⚠️ Requiere Receta</strong></div>' : '';
-                    
-                    const ticketHTML = `
-                        <html>
-                            <head>
-                                <title>Ticket de Venta</title>
-                                <style>
-                                    @media print {
-                                        body { margin: 0; padding: 0; font-family: 'Courier New', monospace; }
-                                        .ticket { 
-                                            width: 80mm; 
-                                            max-width: 80mm;
-                                            margin: 0 auto;
-                                            padding: 10px;
-                                            font-size: 12px;
-                                            border: 1px solid #000;
-                                            background: white;
-                                        }
-                                        .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
-                                        .header h1 { font-size: 16px; margin: 0; }
-                                        .header p { font-size: 10px; margin: 2px 0; }
-                                        .content { padding: 10px 0; }
-                                        .item { display: flex; justify-content: space-between; margin: 3px 0; }
-                                        .total { border-top: 2px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
-                                        .footer { text-align: center; margin-top: 10px; font-size: 10px; }
-                                    }
-                                </style>
-                            </head>
-                            <body>
-                                <div class="ticket">
-                                    <div class="header">
-                                        <h1> FARMACIA - cemsa</h1>
-                                        <p>Ticket de Venta</p>
-                                        <p>${venta.fecha}</p>
-                                    </div>
-                                    <div class="content">
-                                        <div><strong>Código:</strong> ${venta.codigo}</div>
-                                        <div><strong>Cliente:</strong> ${venta.cliente}</div>
-                                        <div><strong>Método:</strong> ${venta.metodo_pago}</div>
-                                        ${recetaHTML}
-                                        <br>
-                                        <strong>Productos:</strong><br>
-                                        ${itemsHTML}
-                                        <div class="total">
-                                            <div><strong>TOTAL:</strong></div>
-                                            <div>$${venta.total.toFixed(2)}</div>
-                                        </div>
-                                    </div>
-                                    <div class="footer">
-                                        <p>¡Gracias por su compra!</p>
-                                        <p>Vuelva pronto</p>
-                                    </div>
-                                </div>
-                                <script>
-                                    window.onload = function() {
-                                        window.print();
-                                        window.close();
-                                    }
-                                <\/script>
-                            </body>
-                        </html>
+                    const recetaHTML = venta.requiere_receta
+                        ? '<p style="color:red;font-weight:bold;text-align:center">⚠️ Requiere Receta</p>'
+                        : '';
+
+                    const html = `
+                        <style>
+                            body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; width: 80mm; }
+                            h2 { font-size: 14px; margin: 0 0 2px; }
+                            hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+                            table { width: 100%; border-collapse: collapse; }
+                            td { padding: 1px 0; vertical-align: top; }
+                            .total td { font-weight: bold; font-size: 13px; border-top: 1px dashed #000; padding-top: 4px; }
+                            .center { text-align: center; }
+                        </style>
+                        <div class="center">
+                            <h2>FARMACIA CEMSA</h2>
+                            <p style="margin:0;font-size:10px">Ticket de Venta</p>
+                            <p style="margin:2px 0;font-size:10px">${venta.fecha}</p>
+                        </div>
+                        <hr>
+                        <p style="margin:2px 0"><strong>Código:</strong> ${venta.codigo}</p>
+                        <p style="margin:2px 0"><strong>Cliente:</strong> ${venta.cliente}</p>
+                        <p style="margin:2px 0"><strong>Método:</strong> ${venta.metodo_pago}</p>
+                        ${recetaHTML}
+                        <hr>
+                        <table>${itemsHTML}</table>
+                        <table class="total">
+                            <tr><td>TOTAL</td><td style="text-align:right">$${parseFloat(venta.total).toFixed(2)}</td></tr>
+                        </table>
+                        <hr>
+                        <p class="center" style="font-size:10px;margin-top:6px">¡Gracias por su compra!</p>
                     `;
 
-                    const printWindow = window.open('', '_blank');
-                    printWindow.document.write(ticketHTML);
-                    printWindow.document.close();
+                    const win = window.open('', '_blank', 'width=420,height=600,toolbar=0,menubar=0,location=0');
+                    win.document.write(html);
+                    win.document.close();
+                    win.focus();
+                    setTimeout(() => win.print(), 300);
                 }
             }
         }
