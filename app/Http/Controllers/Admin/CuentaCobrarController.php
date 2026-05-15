@@ -215,6 +215,14 @@ class CuentaCobrarController extends Controller
     public function registrarPago(Request $request, string $id): JsonResponse
     {
         try {
+            $userId = auth()->user()?->id;
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                ], 401);
+            }
+
             $validated = $request->validate([
                 'monto' => 'required|numeric|min:0.01',
                 'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr,cheque',
@@ -254,13 +262,13 @@ class CuentaCobrarController extends Controller
             }
 
             // Registrar pago
-            $pago = PagoCuenta::create([
-                'cuenta_cobro_id' => $id,
-                'monto' => $validated['monto'],
-                'metodo_pago' => $validated['metodo_pago'],
-                'referencia' => $validated['referencia'],
-                'usuario_id' => auth()->id(),
-            ]);
+            $pago = new PagoCuenta();
+            $pago->cuenta_cobro_id = $id;
+            $pago->monto = $validated['monto'];
+            $pago->metodo_pago = $validated['metodo_pago'];
+            $pago->referencia = $validated['referencia'];
+            $pago->user_id = $userId;
+            $pago->save();
 
             // Actualizar cuenta
             $cuenta->total_pagado += $validated['monto'];
