@@ -34,8 +34,6 @@ class CamillaUsoController extends Controller
             });
         }
 
-        $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
-
         $emergencyQuery = \App\Models\Emergency::where('is_temp_id', true)
             ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
 
@@ -58,10 +56,11 @@ class CamillaUsoController extends Controller
             'consultas' => collect(),
         ]);
 
-        $pacientesCollection = collect($pacientes->items());
-        $todosPacientes = $pacientesCollection->merge($pacientesTemporales)->sortByDesc('created_at');
+        $todosPacientes = $query->orderBy('created_at', 'desc')->get()
+            ->merge($pacientesTemporales)
+            ->sortByDesc('created_at');
 
-        $page = $request->get('page', 1);
+        $page    = $request->get('page', 1);
         $perPage = 15;
         $pacientes = new \Illuminate\Pagination\LengthAwarePaginator(
             $todosPacientes->forPage($page, $perPage)->values(),
