@@ -18,7 +18,7 @@
     <div class="flex items-center justify-between mb-6 no-print">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Historial — {{ $neonato->nombre_display }}</h1>
-            <p class="text-sm text-gray-500">{{ $neonato->code }} · {{ $neonato->temp_id }} · Madre: {{ $neonato->madre_nombre ?? '—' }}</p>
+            <p class="text-sm text-gray-500">{{ $neonato->code }} · {{ $neonato->identificador }} · Madre: {{ $neonato->madre_nombre ?? '—' }}</p>
         </div>
         <div class="flex gap-2 no-print">
             <button onclick="printEpson()"
@@ -265,7 +265,7 @@
                      HISTORIAL NEONATAL - NEONATOLOGIA
 ================================================================================
 RN     : {{ str_pad(strtoupper($neonato->nombre_display), 50, ' ') }}
-CODIGO : {{ $neonato->code }}    ID: {{ $neonato->temp_id }}
+CODIGO : {{ $neonato->code }}    ID: {{ $neonato->identificador }}
 MADRE  : {{ strtoupper($neonato->madre_nombre ?? 'SIN REGISTRO') }}
 FECHA  : {{ now()->setTimezone('America/La_Paz')->format('d/m/Y H:i') }}
 ================================================================================

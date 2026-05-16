@@ -15,7 +15,7 @@ class HistorialMedico extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
-        'ci_paciente',
+        'paciente_id',
         'fecha',
         'detalle',
         'observaciones',
@@ -25,13 +25,12 @@ class HistorialMedico extends Model
     ];
 
     protected $casts = [
-        'ci_paciente' => 'integer',
         'fecha' => 'date',
     ];
 
     public function paciente()
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function userMedico()

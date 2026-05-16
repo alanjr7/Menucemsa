@@ -21,7 +21,7 @@ class Consulta extends Model
         'motivo',
         'observaciones',
         'codigo_especialidad',
-        'ci_paciente',
+        'paciente_id',
         'ci_medico',
         'estado_pago',
         'caja_id',
@@ -41,7 +41,7 @@ class Consulta extends Model
 
     public function paciente()
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function medico()

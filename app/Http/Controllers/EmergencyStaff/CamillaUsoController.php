@@ -19,41 +19,44 @@ class CamillaUsoController extends Controller
     {
         $query = Paciente::with([
                 'seguro',
-                'consultas' => fn($q) => $q->with('caja')->orderBy('created_at', 'desc')->limit(1),
+                'consultas'         => fn($q) => $q->with('caja')->orderBy('created_at', 'desc')->limit(1),
                 'hospitalizaciones' => fn($q) => $q->orderBy('created_at', 'desc')->limit(1),
-                'emergencias' => fn($q) => $q->orderBy('created_at', 'desc')->limit(1),
+                'emergencias'       => fn($q) => $q->orderBy('created_at', 'desc')->limit(1),
             ])
             ->whereHas('registro');
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'LIKE', "%{$search}%")
                   ->orWhere('ci', 'LIKE', "%{$search}%")
                   ->orWhereHas('registro', fn($rq) => $rq->where('codigo', 'LIKE', "%{$search}%"));
             });
         }
 
-        $emergencyQuery = \App\Models\Emergency::where('is_temp_id', true)
+        $tempQuery = \App\Models\Emergency::with('paciente')
+            ->whereHas('paciente', fn($q) => $q->where('is_temp', true))
             ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $emergencyQuery->where(fn($q) => $q->where('temp_id', 'LIKE', "%{$search}%")
-                ->orWhere('code', 'LIKE', "%{$search}%"));
+            $tempQuery->where(fn($q) => $q->where('code', 'LIKE', "%{$search}%")
+                ->orWhereHas('paciente', fn($q2) => $q2->where('temp_code', 'LIKE', "%{$search}%")));
         }
 
-        $pacientesTemporales = $emergencyQuery->orderBy('created_at', 'desc')->get()->map(fn($emergency) => (object)[
-            'ci' => $emergency->temp_id,
-            'nombre' => 'Paciente Temporal - Emergencia',
-            'is_temporal' => true,
-            'emergency_id' => $emergency->id,
-            'emergency_code' => $emergency->code,
+        $pacientesTemporales = $tempQuery->orderBy('created_at', 'desc')->get()->map(fn($emergency) => (object)[
+            'id'               => $emergency->paciente_id,
+            'ci'               => null,
+            'temp_code'        => $emergency->paciente?->temp_code,
+            'nombre'           => 'Paciente Temporal - Emergencia',
+            'is_temp'          => true,
+            'emergency_id'     => $emergency->id,
+            'emergency_code'   => $emergency->code,
             'emergency_status' => $emergency->status,
-            'created_at' => $emergency->created_at,
-            'tipo_ingreso' => 'emergencia',
-            'seguro' => null,
-            'consultas' => collect(),
+            'created_at'       => $emergency->created_at,
+            'tipo_ingreso'     => 'emergencia',
+            'seguro'           => null,
+            'consultas'        => collect(),
         ]);
 
         $todosPacientes = $query->orderBy('created_at', 'desc')->get()
@@ -70,7 +73,7 @@ class CamillaUsoController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        $pacientes->getCollection()->transform(function($paciente) {
+        $pacientes->getCollection()->transform(function ($paciente) {
             if (!($paciente instanceof Paciente)) {
                 return $paciente;
             }
@@ -85,25 +88,25 @@ class CamillaUsoController extends Controller
 
     private function determinarTipoIngreso(Paciente $paciente): string
     {
-        $consulta = $paciente->consultas->first();
-        $emergencia = $paciente->emergencias->first();
+        $consulta        = $paciente->consultas->first();
+        $emergencia      = $paciente->emergencias->first();
         $hospitalizacion = $paciente->hospitalizaciones->first();
 
         $fechaMasReciente = null;
-        $tipoIngreso = 'otro';
+        $tipoIngreso      = 'otro';
 
         if ($consulta) {
             $fecha = $consulta->created_at ?? $consulta->fecha;
             if ($fechaMasReciente === null || $fecha > $fechaMasReciente) {
                 $fechaMasReciente = $fecha;
-                $tipoIngreso = $consulta->tipo === 'enfermeria' ? 'enfermeria' : 'consulta_externa';
+                $tipoIngreso      = $consulta->tipo === 'enfermeria' ? 'enfermeria' : 'consulta_externa';
             }
         }
         if ($emergencia) {
             $fecha = $emergencia->created_at;
             if ($fechaMasReciente === null || $fecha > $fechaMasReciente) {
                 $fechaMasReciente = $fecha;
-                $tipoIngreso = 'emergencia';
+                $tipoIngreso      = 'emergencia';
             }
         }
         if ($hospitalizacion) {
@@ -120,18 +123,18 @@ class CamillaUsoController extends Controller
     {
         $data = $request->validate([
             'camilla_id'   => ['required', 'exists:camillas,id'],
-            'paciente_ci'  => ['required', 'exists:pacientes,ci'],
+            'paciente_id'  => ['required', 'exists:pacientes,id'],
             'fecha_inicio' => ['required', 'date'],
             'fecha_fin'    => ['required', 'date', 'after:fecha_inicio'],
         ]);
 
-        $camilla    = Camilla::findOrFail($data['camilla_id']);
-        $inicio     = Carbon::parse($data['fecha_inicio']);
-        $fin        = Carbon::parse($data['fecha_fin']);
-        $totalMin   = (string) $inicio->diffInMinutes($fin);
-        $horasCalc  = bcdiv($totalMin, '60', 4);
+        $camilla   = Camilla::findOrFail($data['camilla_id']);
+        $paciente  = Paciente::findOrFail($data['paciente_id']);
+        $inicio    = Carbon::parse($data['fecha_inicio']);
+        $fin       = Carbon::parse($data['fecha_fin']);
+        $totalMin  = (string) $inicio->diffInMinutes($fin);
+        $horasCalc = bcdiv($totalMin, '60', 4);
 
-        // Solo se cobra si el uso supera 3 horas
         if (bccomp($horasCalc, '3', 4) <= 0) {
             return redirect()->back()
                 ->with('info', 'La camilla no se cobra: el uso no superó las 3 horas.');
@@ -140,11 +143,11 @@ class CamillaUsoController extends Controller
         $horas = $horasCalc;
         $costo = bcmul($horas, (string) $camilla->precio_por_hora, 2);
 
-        $hh = (int) bcfloor($horas);
-        $mm = (int) bcround(bcmul(bcsub($horas, (string) $hh, 4), '60', 4), 0);
+        $hh          = (int) bcfloor($horas);
+        $mm          = (int) bcround(bcmul(bcsub($horas, (string) $hh, 4), '60', 4), 0);
         $tiempoLabel = $mm > 0 ? "{$hh}h {$mm}min" : "{$hh}h";
 
-        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($data['paciente_ci'], 'emergencia');
+        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($paciente->id, 'emergencia');
 
         $detalle = CuentaCobroDetalle::create([
             'cuenta_cobro_id' => $cuenta->id,
@@ -158,7 +161,7 @@ class CamillaUsoController extends Controller
 
         $uso = CamillaUso::create([
             'camilla_id'              => $camilla->id,
-            'paciente_ci'             => $data['paciente_ci'],
+            'paciente_id'             => $paciente->id,
             'fecha_inicio'            => $inicio,
             'fecha_fin'               => $fin,
             'costo_calculado'         => $costo,

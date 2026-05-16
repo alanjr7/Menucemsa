@@ -25,25 +25,25 @@ class CuentaCobroService
      *   cargos se agregan como detalles a esa misma cuenta).
      * - Si NO existe → crea una nueva con episodio_numero incrementado.
      *
-     * @param int|string $pacienteCi   CI del paciente
+     * @param int $pacienteId   CI del paciente
      * @param string     $areaOrigen   'emergencia'|'quirofano'|'internacion'|'uti'|...
      * @param int|null   $seguroId     ID del seguro (solo aplica al crear cuenta nueva)
      */
     public static function obtenerOCrearCuentaMaestra(
-        int|string $pacienteCi,
+        int $pacienteId,
         string $areaOrigen = 'general',
         ?int $seguroId = null
     ): CuentaCobro {
-        return DB::transaction(function () use ($pacienteCi, $areaOrigen, $seguroId) {
+        return DB::transaction(function () use ($pacienteId, $areaOrigen, $seguroId) {
             // Buscar cuenta activa existente (pendiente o pago parcial), cualquier tipo
-            $cuenta = CuentaCobro::where('paciente_ci', (string)$pacienteCi)
+            $cuenta = CuentaCobro::where('paciente_id', $pacienteId)
                 ->whereIn('estado', ['pendiente', 'parcial'])
                 ->orderBy('created_at', 'desc')
                 ->first();
 
             if ($cuenta) {
                 \Log::info('[CuentaMaestra] Cuenta existente reutilizada', [
-                    'paciente_ci'     => $pacienteCi,
+                    'paciente_id'     => $pacienteId,
                     'cuenta_cobro_id' => $cuenta->id,
                     'area_origen'     => $areaOrigen,
                     'episodio'        => $cuenta->episodio_numero,
@@ -52,7 +52,7 @@ class CuentaCobroService
             }
 
             // Calcular número de episodio (nuevo ingreso del paciente)
-            $ultimoEpisodio = CuentaCobro::where('paciente_ci', (string)$pacienteCi)
+            $ultimoEpisodio = CuentaCobro::where('paciente_id', $pacienteId)
                 ->max('episodio_numero') ?? 0;
 
             $tieneSeguro = false;
@@ -64,7 +64,7 @@ class CuentaCobroService
             }
 
             $cuenta = CuentaCobro::create([
-                'paciente_ci'      => (string)$pacienteCi,
+                'paciente_id'      => $pacienteId,
                 'tipo_atencion'    => 'multiple',
                 'estado'           => 'pendiente',
                 'total_calculado'  => 0,
@@ -78,7 +78,7 @@ class CuentaCobroService
             ]);
 
             \Log::info('[CuentaMaestra] Nueva cuenta creada', [
-                'paciente_ci'     => $pacienteCi,
+                'paciente_id'     => $pacienteId,
                 'cuenta_cobro_id' => $cuenta->id,
                 'area_origen'     => $areaOrigen,
                 'episodio'        => $cuenta->episodio_numero,
@@ -176,12 +176,12 @@ class CuentaCobroService
      * Flujo: Recepción → Caja cobra → Sistema habilita atención médica
      */
     public static function crearCuentaConsultaExterna(
-        int $pacienteCi,
+        int $pacienteId,
         string $consultaNro,
         int $especialidadCodigo,
         ?float $montoPersonalizado = null
     ): CuentaCobro {
-        return DB::transaction(function () use ($pacienteCi, $consultaNro, $especialidadCodigo, $montoPersonalizado) {
+        return DB::transaction(function () use ($pacienteId, $consultaNro, $especialidadCodigo, $montoPersonalizado) {
             // Buscar tarifa según especialidad
             $tarifa = Tarifa::where('codigo', 'CONS-' . $especialidadCodigo)
                 ->where('activo', true)
@@ -192,7 +192,7 @@ class CuentaCobroService
 
             // Crear cuenta
             $cuenta = CuentaCobro::create([
-                'paciente_ci' => $pacienteCi,
+                'paciente_id' => $pacienteId,
                 'tipo_atencion' => 'consulta_externa',
                 'referencia_id' => $consultaNro,
                 'referencia_type' => \App\Models\Consulta::class,
@@ -227,13 +227,13 @@ class CuentaCobroService
      * en la cuenta existente para evitar duplicados.
      */
     public static function crearCuentaEmergencia(
-        string $pacienteCi,
+        int $pacienteId,
         string $emergencyId,
         array $servicios = [],
         bool $esPostPago = true,
         ?int $seguroId = null
     ): CuentaCobro {
-        return DB::transaction(function () use ($pacienteCi, $emergencyId, $servicios, $esPostPago, $seguroId) {
+        return DB::transaction(function () use ($pacienteId, $emergencyId, $servicios, $esPostPago, $seguroId) {
             $total = 0;
 
             $tieneSeguroAplicable = false;
@@ -245,7 +245,7 @@ class CuentaCobroService
             }
 
             // Buscar cuenta existente no pagada del paciente (Master Account)
-            $cuentaExistente = self::obtenerCuentaPostPagoActiva((string)$pacienteCi);
+            $cuentaExistente = self::obtenerCuentaPostPagoActiva($pacienteId);
 
             if ($cuentaExistente) {
                 // Unificar en cuenta existente: agregar detalles de emergencia
@@ -287,7 +287,7 @@ class CuentaCobroService
                 ]);
 
                 \Log::info('Cuenta unificada: Emergencia agregada a cuenta existente', [
-                    'paciente_ci' => $pacienteCi,
+                    'paciente_id' => $pacienteId,
                     'cuenta_id' => $cuentaExistente->id,
                     'emergency_id' => $emergencyId,
                     'monto_agregado' => $total,
@@ -298,7 +298,7 @@ class CuentaCobroService
 
             // Crear cuenta nueva si no existe
             $cuenta = CuentaCobro::create([
-                'paciente_ci' => $pacienteCi,
+                'paciente_id' => $pacienteId,
                 'tipo_atencion' => 'emergencia',
                 'referencia_id' => $emergencyId,
                 'referencia_type' => \App\Models\Emergency::class,
@@ -360,13 +360,13 @@ class CuentaCobroService
      * en la cuenta existente para evitar duplicados.
      */
     public static function crearCuentaInternacion(
-        string $pacienteCi,
+        int $pacienteId,
         string $hospitalizacionId,
         array $servicios = [],
         bool $esPostPago = true,
         ?int $seguroId = null
     ): CuentaCobro {
-        return DB::transaction(function () use ($pacienteCi, $hospitalizacionId, $servicios, $esPostPago, $seguroId) {
+        return DB::transaction(function () use ($pacienteId, $hospitalizacionId, $servicios, $esPostPago, $seguroId) {
             $total = 0;
 
             $tieneSeguroAplicable = false;
@@ -378,7 +378,7 @@ class CuentaCobroService
             }
 
             // Buscar cuenta existente no pagada (Master Account)
-            $cuentaExistente = self::obtenerCuentaPostPagoActiva((string)$pacienteCi);
+            $cuentaExistente = self::obtenerCuentaPostPagoActiva($pacienteId);
 
             if ($cuentaExistente) {
                 // Unificar en cuenta existente: agregar detalles de internación
@@ -420,7 +420,7 @@ class CuentaCobroService
                 ]);
 
                 \Log::info('Cuenta unificada: Internación agregada a cuenta existente', [
-                    'paciente_ci' => $pacienteCi,
+                    'paciente_id' => $pacienteId,
                     'cuenta_id' => $cuentaExistente->id,
                     'hospitalizacion_id' => $hospitalizacionId,
                     'monto_agregado' => $total,
@@ -431,7 +431,7 @@ class CuentaCobroService
 
             // Crear cuenta nueva si no existe
             $cuenta = CuentaCobro::create([
-                'paciente_ci' => $pacienteCi,
+                'paciente_id' => $pacienteId,
                 'tipo_atencion' => 'internacion',
                 'referencia_id' => $hospitalizacionId,
                 'referencia_type' => \App\Models\Hospitalizacion::class,
@@ -625,9 +625,9 @@ class CuentaCobroService
     /**
      * Obtener cualquier cuenta activa pendiente del paciente (sin importar pre/post pago)
      */
-    public static function obtenerCuentaPostPagoActiva(string $pacienteCi): ?CuentaCobro
+    public static function obtenerCuentaPostPagoActiva(int $pacienteId): ?CuentaCobro
     {
-        return CuentaCobro::where('paciente_ci', (string) $pacienteCi)
+        return CuentaCobro::where('paciente_id', $pacienteId)
             ->whereIn('estado', ['pendiente', 'parcial'])
             ->orderBy('created_at', 'desc')
             ->first();
@@ -638,11 +638,11 @@ class CuentaCobroService
      * Usado durante el flujo de emergencia para ir acumulando cargos
      */
     public static function obtenerOCrearCuentaEmergencia(
-        string $pacienteCi,
+        int $pacienteId,
         string $emergencyId
     ): CuentaCobro {
         // Buscar cuenta existente no pagada (Master Account)
-        $cuenta = self::obtenerCuentaPostPagoActiva($pacienteCi);
+        $cuenta = self::obtenerCuentaPostPagoActiva($pacienteId);
 
         if ($cuenta) {
             // Si ya tiene una cuenta abierta, la reutilizamos para la emergencia
@@ -651,14 +651,14 @@ class CuentaCobroService
         }
 
         // Crear nueva cuenta si no hay ninguna abierta
-        return self::crearCuentaEmergencia($pacienteCi, $emergencyId, [], true);
+        return self::crearCuentaEmergencia($pacienteId, $emergencyId, [], true);
     }
 
     /**
      * Verificar si un paciente puede recibir atención médica
      * Según las reglas: debe estar pagado (excepto emergencias)
      */
-    public static function puedeRecibirAtencion(string $pacienteCi, string $tipoAtencion): bool
+    public static function puedeRecibirAtencion(int $pacienteId, string $tipoAtencion): bool
     {
         // Las emergencias siempre pueden recibir atención (post-pago)
         if ($tipoAtencion === 'emergencia') {
@@ -666,7 +666,7 @@ class CuentaCobroService
         }
 
         // Para otros tipos, verificar que tenga cuenta pagada
-        $cuentaPagada = CuentaCobro::where('paciente_ci', (string) $pacienteCi)
+        $cuentaPagada = CuentaCobro::where('paciente_id', $pacienteId)
             ->where('tipo_atencion', $tipoAtencion)
             ->where('estado', 'pagado')
             ->whereDate('created_at', today())
@@ -691,13 +691,13 @@ class CuentaCobroService
      * Usado durante la evaluación para agregar equipos médicos y medicamentos
      */
     public static function obtenerOCrearCuentaInternacion(
-        string $pacienteCi,
+        int $pacienteId,
         string $hospitalizacionId,
         ?int $seguroId = null
     ): CuentaCobro {
-        return DB::transaction(function () use ($pacienteCi, $hospitalizacionId, $seguroId) {
+        return DB::transaction(function () use ($pacienteId, $hospitalizacionId, $seguroId) {
             // Buscar cuenta existente no pagada (Master Account)
-            $cuenta = self::obtenerCuentaPostPagoActiva($pacienteCi);
+            $cuenta = self::obtenerCuentaPostPagoActiva($pacienteId);
 
             if ($cuenta) {
                 // Actualizar la referencia a la internación actual
@@ -710,7 +710,7 @@ class CuentaCobroService
             }
 
             // Crear cuenta nueva si no existe (con tarifa base)
-            return self::crearCuentaInternacion($pacienteCi, $hospitalizacionId, [], true, $seguroId);
+            return self::crearCuentaInternacion($pacienteId, $hospitalizacionId, [], true, $seguroId);
         });
     }
 
@@ -724,7 +724,7 @@ class CuentaCobroService
         return [
             'id' => $cuenta->id,
             'paciente' => [
-                'ci' => $cuenta->paciente_ci,
+                'ci' => $cuenta->paciente->ci ?? null,
                 'nombre' => $cuenta->paciente->nombre ?? 'N/A',
             ],
             'tipo_atencion' => $cuenta->tipo_atencion_label,

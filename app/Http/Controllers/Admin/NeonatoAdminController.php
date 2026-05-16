@@ -173,9 +173,7 @@ class NeonatoAdminController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('temp_id', 'like', "%{$search}%")
-                  ->orWhere('madre_nombre', 'like', "%{$search}%")
-                  ->orWhere('madre_ci', 'like', "%{$search}%");
+                  ->orWhere('madre_nombre', 'like', "%{$search}%");
             });
         }
 
@@ -193,12 +191,12 @@ class NeonatoAdminController extends Controller
         $neonato->load('user');
 
         $evaluaciones = Evaluacion::where('area', 'neonato')
-            ->where('temp_id', $neonato->temp_id)
+            ->where('paciente_id', $neonato->paciente_id)
             ->with(['user', 'items'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $usosCunas = CamillaUso::where('paciente_ci', $neonato->temp_id)
+        $usosCunas = CamillaUso::where('paciente_id', $neonato->paciente_id)
             ->whereHas('camilla', fn($q) => $q->where('area', 'neonato'))
             ->with('camilla')
             ->orderBy('fecha_inicio', 'desc')

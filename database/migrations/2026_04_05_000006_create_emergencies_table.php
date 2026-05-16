@@ -13,9 +13,7 @@ return new class extends Migration
     {
         Schema::create('emergencies', function (Blueprint $table) {
             $table->id();
-            $table->string('patient_id')->nullable();
-            $table->boolean('is_temp_id')->default(false);
-            $table->string('temp_id')->nullable();
+            $table->unsignedBigInteger('paciente_id')->nullable();
             $table->foreignId('user_id')->constrained('users');
             $table->string('code')->unique();
             $table->enum('status', ['recibido', 'en_evaluacion', 'estabilizado', 'uti', 'cirugia', 'hospitalizacion', 'alta', 'fallecido'])->default('recibido');
@@ -42,10 +40,10 @@ return new class extends Migration
             $table->timestamp('admission_date')->nullable();
             $table->timestamp('discharge_date')->nullable();
             $table->unsignedBigInteger('episodio_id')->nullable();
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->nullOnDelete();
             $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
+            $table->index('paciente_id');
             $table->timestamps();
-            
-            // Nota: patient_id es string para soportar CI de pacientes sin FK estricto
         });
     }
 

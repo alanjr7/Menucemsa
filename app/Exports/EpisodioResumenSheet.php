@@ -23,11 +23,11 @@ class EpisodioResumenSheet implements FromArray, WithTitle, WithStyles, WithColu
         $ep = $this->episodio;
         $rows = [];
 
-        $rows[] = ['EPISODIO #' . $ep->numero . ' — ' . strtoupper($ep->paciente?->nombre ?? $ep->paciente_ci)];
+        $rows[] = ['EPISODIO #' . $ep->numero . ' — ' . strtoupper($ep->paciente?->nombre ?? '—')];
         $rows[] = [];
         $rows[] = ['PACIENTE', ''];
         $rows[] = ['Nombre', $ep->paciente?->nombre ?? '—'];
-        $rows[] = ['CI', $ep->paciente_ci];
+        $rows[] = ['CI', $ep->paciente?->ci ?? $ep->paciente?->temp_code ?? '—'];
         $rows[] = ['Tipo ingreso', ucfirst($ep->tipo_ingreso ?? '—')];
         $rows[] = ['Estado', ucfirst($ep->estado)];
         $rows[] = ['Apertura', $ep->fecha_apertura->format('d/m/Y H:i')];

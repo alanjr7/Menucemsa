@@ -36,7 +36,7 @@ class EpisodioController extends Controller
     {
         $paciente = Paciente::where('ci', $ci)->firstOrFail();
 
-        $episodios = Episodio::where('paciente_ci', $ci)
+        $episodios = Episodio::where('paciente_id', $paciente->id)
             ->with(['creadoPor', 'cerradoPor'])
             ->withCount(['evaluaciones', 'historialMedico', 'cuentasCobro'])
             ->orderBy('numero', 'desc')
@@ -73,7 +73,7 @@ class EpisodioController extends Controller
             'cuentasCobro.detalles',
         ])->findOrFail($id);
 
-        $nombre = 'episodio-' . $episodio->numero . '-' . $episodio->paciente_ci . '.xlsx';
+        $nombre = 'episodio-' . $episodio->numero . '-' . ($episodio->paciente?->ci ?? $episodio->paciente?->temp_code ?? $episodio->paciente_id) . '.xlsx';
 
         return Excel::download(new EpisodioExport($episodio), $nombre);
     }

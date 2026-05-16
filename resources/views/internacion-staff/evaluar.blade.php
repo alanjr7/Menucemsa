@@ -34,7 +34,7 @@
             <div>
                 <p class="text-xs text-gray-500 uppercase tracking-wide">Paciente</p>
                 <p class="text-lg font-semibold text-gray-800">{{ $hospitalizacion->paciente?->nombre ?? 'Desconocido' }}</p>
-                <p class="text-sm text-gray-500">CI: {{ $hospitalizacion->ci_paciente }}</p>
+                <p class="text-sm text-gray-500">CI: {{ $hospitalizacion->paciente?->ci ?? $hospitalizacion->paciente?->temp_code ?? '—' }}</p>
             </div>
             <div>
                 <p class="text-xs text-gray-500 uppercase tracking-wide">Habitación</p>

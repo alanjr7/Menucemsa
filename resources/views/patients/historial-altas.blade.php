@@ -173,7 +173,7 @@
                                 <div class="text-sm font-medium text-gray-900">{{ $alta->paciente->nombre ?? '—' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                                {{ $alta->paciente_ci }}
+                                {{ $alta->paciente?->ci ?? $alta->paciente?->temp_code ?? '—' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $alta->paciente->seguro->nombre_empresa ?? 'Particular' }}
@@ -191,7 +191,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 @if($alta->paciente)
-                                    <a href="{{ route('patients.show', $alta->paciente_ci) }}"
+                                    <a href="{{ route('patients.show', $alta->paciente_id) }}"
                                        class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all">
                                         Ver Datos
                                     </a>

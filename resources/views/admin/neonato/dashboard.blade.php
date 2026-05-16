@@ -84,7 +84,7 @@
                 @forelse($evaluaciones as $ev)
                     <div class="px-6 py-3">
                         <p class="text-sm text-gray-700">
-                            <span class="font-medium">{{ $ev->temp_id }}</span>
+                            <span class="font-medium">{{ $ev->paciente?->temp_code ?? $ev->paciente?->ci ?? '—' }}</span>
                             <span class="text-gray-400 text-xs ml-2">por {{ $ev->user?->name }}</span>
                         </p>
                         <p class="text-xs text-gray-400">{{ $ev->created_at->setTimezone('America/La_Paz')->format('H:i') }}</p>

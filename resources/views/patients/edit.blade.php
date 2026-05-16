@@ -25,7 +25,7 @@
                 <h3 class="text-gray-800 font-bold text-sm">Información del Paciente</h3>
             </div>
 
-            <form action="{{ route('admin.patients.update', $paciente->ci) }}" method="POST" class="p-6">
+            <form action="{{ route('admin.patients.update', $paciente->id) }}" method="POST" class="p-6">
                 @csrf
                 @method('PUT')
 

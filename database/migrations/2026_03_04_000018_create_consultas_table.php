@@ -19,14 +19,14 @@ return new class extends Migration
             $table->string('motivo', 255);
             $table->text('observaciones')->nullable();
             $table->string('codigo_especialidad', 20);
-            $table->integer('ci_paciente')->nullable();
+            $table->unsignedBigInteger('paciente_id')->nullable();
             $table->integer('ci_medico')->nullable();
             $table->boolean('estado_pago')->default(false);
             $table->string('caja_id', 250)->nullable();
             $table->enum('estado', ['pendiente', 'en_atencion', 'atendido', 'cancelado'])->default('pendiente');
             $table->enum('tipo', ['consulta_externa', 'enfermeria'])->default('consulta_externa')->comment('Tipo de atención');
             $table->foreign('codigo_especialidad')->references('codigo')->on('especialidades');
-            $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('set null');
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->onDelete('set null');
             $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null');
             $table->timestamps();
         });

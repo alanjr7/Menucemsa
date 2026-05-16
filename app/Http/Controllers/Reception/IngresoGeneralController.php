@@ -59,15 +59,15 @@ class IngresoGeneralController extends Controller
             $request->validate(['nombre' => 'required|string|max:100']);
 
             $especialidad = Especialidad::create([
-                'nombre' => $request->nombre,
+                'nombre'      => $request->nombre,
                 'descripcion' => 'Creada desde ingreso general',
-                'estado' => 'activo',
+                'estado'      => 'activo',
             ]);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Especialidad creada exitosamente',
-                'especialidad' => $especialidad
+                'success'      => true,
+                'message'      => 'Especialidad creada exitosamente',
+                'especialidad' => $especialidad,
             ]);
         } catch (\Exception $e) {
             \Log::error('Error al crear especialidad: ' . $e->getMessage());
@@ -80,15 +80,14 @@ class IngresoGeneralController extends Controller
 
     public function buscarMedicos(Request $request)
     {
-        $q = $request->get('q', '');
+        $q            = $request->get('q', '');
         $especialidad = $request->get('especialidad');
 
         if (strlen($q) < 1) {
             return response()->json(['medicos' => []]);
         }
 
-        $query = Medico::with(['user', 'especialidad'])
-            ->where('estado', 'activo');
+        $query = Medico::with(['user', 'especialidad'])->where('estado', 'activo');
 
         if ($especialidad) {
             $query->where('codigo_especialidad', $especialidad);
@@ -103,8 +102,8 @@ class IngresoGeneralController extends Controller
 
         $medicosFormateados = $medicos->map(function ($medico) {
             return [
-                'ci' => $medico->ci,
-                'nombre' => $medico->user?->name ?? "Médico {$medico->ci}",
+                'ci'           => $medico->ci,
+                'nombre'       => $medico->user?->name ?? "Médico {$medico->ci}",
                 'especialidad' => $medico->especialidad?->nombre ?? 'Sin especialidad',
             ];
         })->toArray();
@@ -116,35 +115,30 @@ class IngresoGeneralController extends Controller
     {
         try {
             $request->validate([
-                'nombre' => 'required|string|max:255',
+                'nombre'              => 'required|string|max:255',
                 'codigo_especialidad' => 'required|exists:especialidades,codigo',
             ]);
 
-            // Generar CI temporal numérico para compatibilidad con columna integer
-            // time() retorna ~1.8B, dentro del rango de INTEGER (2.1B max)
             $ciTemporal = (int) (time() + random_int(1000, 9999));
 
             \DB::beginTransaction();
 
-            // Crear usuario para el médico
             $user = User::create([
-                'name' => $request->nombre,
-                'email' => 'medico.' . \Str::slug($request->nombre) . '.' . time() . '@hospital.local',
-                'password' => \Hash::make(\Str::random(20)),
-                'role' => 'doctor',
+                'name'      => $request->nombre,
+                'email'     => 'medico.' . \Str::slug($request->nombre) . '.' . time() . '@hospital.local',
+                'password'  => \Hash::make(\Str::random(20)),
+                'role'      => 'doctor',
                 'is_active' => true,
             ]);
 
-            // Crear registro de médico con CI temporal
             $medico = Medico::create([
-                'user_id' => $user->id,
-                'ci' => $ciTemporal,
+                'user_id'             => $user->id,
+                'ci'                  => $ciTemporal,
                 'codigo_especialidad' => $request->codigo_especialidad,
-                'estado' => 'activo',
-                'telefono' => null,
+                'estado'              => 'activo',
+                'telefono'            => null,
             ]);
 
-            // Recargar con relación para la respuesta
             $medico->load('especialidad');
 
             \DB::commit();
@@ -152,11 +146,11 @@ class IngresoGeneralController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Médico creado exitosamente con ID temporal',
-                'medico' => [
-                    'ci' => $medico->ci,
-                    'nombre' => $user->name,
+                'medico'  => [
+                    'ci'           => $medico->ci,
+                    'nombre'       => $user->name,
                     'especialidad' => $medico->especialidad?->nombre ?? 'Sin especialidad',
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             \DB::rollBack();
@@ -185,7 +179,7 @@ class IngresoGeneralController extends Controller
             ->get()
             ->map(function ($medico) {
                 return [
-                    'ci' => $medico->ci,
+                    'ci'     => $medico->ci,
                     'nombre' => $medico->user?->name ?? "Médico {$medico->ci}",
                 ];
             });
@@ -200,26 +194,26 @@ class IngresoGeneralController extends Controller
         if (empty($ci) || strlen($ci) < 3) {
             return response()->json([
                 'success' => false,
-                'message' => 'Ingrese al menos 3 caracteres para buscar'
+                'message' => 'Ingrese al menos 3 caracteres para buscar',
             ]);
         }
 
         $paciente = Paciente::with(['seguro', 'triage', 'registro'])
-                            ->where('ci', $ci)
-                            ->first();
+            ->where('ci', $ci)
+            ->first();
 
         if ($paciente) {
             return response()->json([
-                'success' => true,
+                'success'  => true,
                 'paciente' => $paciente,
-                'message' => 'Paciente encontrado'
+                'message'  => 'Paciente encontrado',
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Paciente no encontrado. Debe registrar sus datos.',
-            'show_form' => true
+            'success'   => false,
+            'message'   => 'Paciente no encontrado. Debe registrar sus datos.',
+            'show_form' => true,
         ]);
     }
 
@@ -234,16 +228,10 @@ class IngresoGeneralController extends Controller
         $garante = Paciente::where('ci', $ci)->first();
 
         if ($garante) {
-            return response()->json([
-                'success' => true,
-                'garante' => $garante
-            ]);
+            return response()->json(['success' => true, 'garante' => $garante]);
         }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Garante no encontrado'
-        ]);
+        return response()->json(['success' => false, 'message' => 'Garante no encontrado']);
     }
 
     public function procesarIngreso(Request $request)
@@ -251,10 +239,7 @@ class IngresoGeneralController extends Controller
         $tipoIngreso = $request->input('tipo_ingreso');
 
         if (!in_array($tipoIngreso, ['consulta_externa', 'enfermeria', 'emergencia', 'internacion'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tipo de ingreso no válido'
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Tipo de ingreso no válido'], 400);
         }
 
         try {
@@ -265,7 +250,7 @@ class IngresoGeneralController extends Controller
             if ($tipoIngreso === 'emergencia' && $usarTempId) {
                 $resultado = $this->procesarEmergenciaTemporal($request);
             } else {
-                $paciente = $this->crearOActualizarPaciente($request);
+                $paciente  = $this->crearOActualizarPaciente($request);
                 $resultado = match($tipoIngreso) {
                     'consulta_externa' => $this->procesarConsultaExterna($request, $paciente),
                     'enfermeria'       => $this->procesarEnfermeria($request, $paciente),
@@ -279,7 +264,7 @@ class IngresoGeneralController extends Controller
             return response()->json($resultado);
 
         } catch (\Exception $e) {
-            DB::rollback();
+            DB::rollBack();
             \Log::error('Error al procesar ingreso: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
@@ -290,24 +275,19 @@ class IngresoGeneralController extends Controller
 
     private function crearOActualizarPaciente(Request $request): Paciente
     {
-        $usarTempId = $request->boolean('usar_temp_id');
-        $ci = $usarTempId
-            ? ($request->temp_id ?? 'TEMP-' . now()->format('Ymd') . '-' . random_int(100, 999))
-            : $request->ci;
-
-        $paciente = Paciente::find($ci);
+        $ci       = $request->ci;
+        $paciente = Paciente::where('ci', $ci)->first();
 
         if (!$paciente) {
             $request->validate([
-                'nombres' => 'required|string|max:80',
-                'apellido_paterno' => 'required|string|max:80',
-                'apellido_materno' => 'required|string|max:80',
-                'sexo' => 'required|string|in:M,F,Masculino,Femenino',
+                'nombres'           => 'required|string|max:80',
+                'apellido_paterno'  => 'required|string|max:80',
+                'apellido_materno'  => 'required|string|max:80',
+                'sexo'              => 'required|string|in:M,F,Masculino,Femenino',
             ]);
 
             $seguroId = $request->seguro_id ?: $this->obtenerSeguroParticular();
 
-            // Construir nombre completo: Nombres + Apellido Paterno + Apellido Materno
             $nombreCompleto = trim(
                 $request->nombres . ' ' .
                 $request->apellido_paterno . ' ' .
@@ -315,38 +295,39 @@ class IngresoGeneralController extends Controller
             );
 
             $paciente = Paciente::create([
-                'ci' => $ci,
-                'nombre' => $nombreCompleto,
-                'sexo' => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',
+                'ci'               => (int) $ci,
+                'nombre'           => $nombreCompleto,
+                'sexo'             => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',
                 'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
                 'lugar_expedicion' => $request->lugar_expedicion ?? null,
-                'nacionalidad' => $request->nacionalidad ?? 'Boliviana',
-                'estado_civil' => $request->estado_civil ?? null,
-                'direccion' => $request->direccion ?? 'Sin especificar',
-                'telefono' => $request->telefono ?? 0,
-                'correo' => $request->correo ?? 'sin@email.com',
-                'profesion' => $request->profesion ?? null,
-                'empresa_trabajo' => $request->empresa_trabajo ?? null,
-                'seguro_id' => $seguroId,
-                'registro_codigo' => $this->crearRegistro('Registro desde Ingreso General', [
+                'nacionalidad'     => $request->nacionalidad ?? 'Boliviana',
+                'estado_civil'     => $request->estado_civil ?? null,
+                'direccion'        => $request->direccion ?? 'Sin especificar',
+                'telefono'         => $request->telefono ?? 0,
+                'correo'           => $request->correo ?? 'sin@email.com',
+                'profesion'        => $request->profesion ?? null,
+                'empresa_trabajo'  => $request->empresa_trabajo ?? null,
+                'seguro_id'        => $seguroId,
+                'registro_codigo'  => $this->crearRegistro('Registro desde Ingreso General', [
                     'fecha_nacimiento' => $request->fecha_nacimiento,
                     'sexo'             => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',
                     'apellido_paterno' => $request->apellido_paterno,
                     'apellido_materno' => $request->apellido_materno,
                     'nombres'          => $request->nombres,
                 ]),
+                'is_temp' => false,
             ]);
         } else {
             $paciente->update([
                 'fecha_nacimiento' => $request->fecha_nacimiento ?? $paciente->fecha_nacimiento,
                 'lugar_expedicion' => $request->lugar_expedicion ?? $paciente->lugar_expedicion,
-                'nacionalidad' => $request->nacionalidad ?? $paciente->nacionalidad,
-                'estado_civil' => $request->estado_civil ?? $paciente->estado_civil,
-                'direccion' => $request->direccion ?? $paciente->direccion,
-                'telefono' => $request->telefono ?? $paciente->telefono,
-                'correo' => $request->correo ?? $paciente->correo,
-                'profesion' => $request->profesion ?? $paciente->profesion,
-                'empresa_trabajo' => $request->empresa_trabajo ?? $paciente->empresa_trabajo,
+                'nacionalidad'     => $request->nacionalidad ?? $paciente->nacionalidad,
+                'estado_civil'     => $request->estado_civil ?? $paciente->estado_civil,
+                'direccion'        => $request->direccion ?? $paciente->direccion,
+                'telefono'         => $request->telefono ?? $paciente->telefono,
+                'correo'           => $request->correo ?? $paciente->correo,
+                'profesion'        => $request->profesion ?? $paciente->profesion,
+                'empresa_trabajo'  => $request->empresa_trabajo ?? $paciente->empresa_trabajo,
             ]);
         }
 
@@ -358,64 +339,56 @@ class IngresoGeneralController extends Controller
         $registroExistente = Caja::where('tipo', 'CONSULTA_EXTERNA')
             ->whereDate('fecha', today())
             ->whereNull('nro_factura')
-            ->whereHas('consulta', function($query) use ($paciente) {
-                $query->where('ci_paciente', $paciente->ci);
-            })
+            ->whereHas('consulta', fn($q) => $q->where('paciente_id', $paciente->id))
             ->first();
 
         if ($registroExistente) {
             return [
-                'success' => false,
-                'message' => 'Este paciente ya tiene una consulta registrada y pendiente de pago para hoy.',
-                'redirect_url' => route('reception.confirmacion-registro', ['id' => $registroExistente->id])
+                'success'      => false,
+                'message'      => 'Este paciente ya tiene una consulta registrada y pendiente de pago para hoy.',
+                'redirect_url' => route('reception.confirmacion-registro', ['id' => $registroExistente->id]),
             ];
         }
 
         $costoConsulta = $this->obtenerPrecioConsultaExterna();
 
-        // Agregar campos separados al paciente para generación de código
-        $paciente->nombres = $request->nombres;
-        $paciente->apellido_paterno = $request->apellido_paterno;
-        $paciente->apellido_materno = $request->apellido_materno;
+        $paciente->nombres           = $request->nombres;
+        $paciente->apellido_paterno  = $request->apellido_paterno;
+        $paciente->apellido_materno  = $request->apellido_materno;
 
         Caja::$patientContext = $paciente;
         try {
             $caja = Caja::create([
-                'fecha' => now(),
-                'total_dia' => $costoConsulta,
-                'tipo' => 'CONSULTA_EXTERNA',
-                'nro_factura' => null,
+                'fecha'        => now(),
+                'total_dia'    => $costoConsulta,
+                'tipo'         => 'CONSULTA_EXTERNA',
+                'nro_factura'  => null,
                 'monto_pagado' => $costoConsulta,
             ]);
         } finally {
             Caja::$patientContext = null;
         }
 
-        // Obtener médico y especialidad seleccionados
-        $medicoId = $request->medico_ci ? (int)$request->medico_ci : null;
+        $medicoId           = $request->medico_ci ? (int)$request->medico_ci : null;
         $especialidadCodigo = $request->especialidad_codigo ?: $this->obtenerEspecialidadPorDefecto();
 
         $consulta = Consulta::create([
-            'codigo' => 'CONS-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
-            'fecha' => now()->toDateString(),
-            'hora' => now()->toTimeString(),
-            'motivo' => $request->motivo ?? 'Consulta general',
-            'observaciones' => $request->observaciones ?? '',
+            'codigo'              => 'CONS-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
+            'fecha'               => now()->toDateString(),
+            'hora'                => now()->toTimeString(),
+            'motivo'              => $request->motivo ?? 'Consulta general',
+            'observaciones'       => $request->observaciones ?? '',
             'codigo_especialidad' => $especialidadCodigo,
-            'ci_paciente' => $paciente->ci,
-            'ci_medico' => $medicoId,
-            'estado_pago' => false,
-            'caja_id' => $caja->id,
-            'estado' => 'pendiente',
-            'tipo' => 'consulta_externa',
+            'paciente_id'         => $paciente->id,
+            'ci_medico'           => $medicoId,
+            'estado_pago'         => false,
+            'caja_id'             => $caja->id,
+            'estado'              => 'pendiente',
+            'tipo'                => 'consulta_externa',
         ]);
 
         $seguroId = $request->filled('seguro_id') ? (int) $request->seguro_id : null;
-        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
-            (string) $paciente->ci,
-            'consulta_externa',
-            $seguroId
-        );
+        $cuenta   = CuentaCobroService::obtenerOCrearCuentaMaestra($paciente->id, 'consulta_externa', $seguroId);
 
         CuentaCobroService::agregarCargoConDeduplicacion(
             $cuenta->id,
@@ -428,58 +401,62 @@ class IngresoGeneralController extends Controller
             $consulta->codigo
         );
 
-        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'consulta', Auth::id());
+        $episodio = EpisodioService::abrirEpisodio($paciente->id, 'consulta', Auth::id());
         $cuenta->update(['episodio_id' => $episodio->id]);
 
         return [
-            'success' => true,
-            'message' => 'Consulta externa registrada exitosamente.',
-            'tipo' => 'consulta_externa',
-            'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id])
+            'success'      => true,
+            'message'      => 'Consulta externa registrada exitosamente.',
+            'tipo'         => 'consulta_externa',
+            'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id]),
         ];
     }
 
     private function procesarEmergenciaTemporal(Request $request): array
     {
-        $tempId = $request->input('temp_id');
-        if (empty($tempId)) {
-            $tempId = 'TEMP-' . now()->format('Ymd') . '-' . random_int(100, 999);
-        }
+        $prefix   = 'TEMP-' . now()->format('Ymd');
+        $last     = Paciente::where('temp_code', 'like', $prefix . '-%')->orderBy('temp_code', 'desc')->value('temp_code');
+        $seq      = $last ? ((int) substr($last, -3)) + 1 : 1;
+        $tempCode = $prefix . '-' . str_pad($seq, 3, '0', STR_PAD_LEFT);
+
+        $paciente = Paciente::create([
+            'nombre'    => trim($request->nombres . ' ' . $request->apellidos),
+            'sexo'      => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',
+            'temp_code' => $tempCode,
+            'is_temp'   => true,
+        ]);
 
         $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-        $triage = $this->crearTriage('rojo', 'Emergencia - Ingreso General (Temp)', 'alta');
+        $triage        = $this->crearTriage('rojo', 'Emergencia - Ingreso General (Temp)', 'alta');
 
-        // Episodios no aplican a pacientes temporales (sin CI real)
         $emergencia = Emergency::create([
-            'patient_id'         => $tempId,
+            'paciente_id'        => $paciente->id,
             'user_id'            => Auth::id(),
             'code'               => $nroEmergencia,
             'status'             => 'recibido',
             'tipo_ingreso'       => 'general',
             'symptoms'           => $request->input('descripcion') ?? 'Ingreso por emergencia',
             'initial_assessment' => $request->input('tipo_emergencia') ?? 'Emergencia general',
-            'is_temp_id'         => true,
-            'temp_id'            => $tempId,
             'ubicacion_actual'   => 'emergencia',
         ]);
 
         CuentaCobroService::crearCuentaEmergencia(
-            $tempId,
+            $paciente->id,
             (string) $emergencia->id,
             [],
             true,
             $request->filled('seguro_id') ? (int) $request->input('seguro_id') : null
         );
 
-        NotificationService::notifyRole('emergencia', 'emergencia', 'Nueva Emergencia (ID Temporal)', "Paciente temporal {$tempId} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
-        NotificationService::notifyRole('enfermera-emergencia', 'emergencia', 'Nueva Emergencia (ID Temporal)', "Paciente temporal {$tempId} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
+        NotificationService::notifyRole('emergencia', 'emergencia', 'Nueva Emergencia (ID Temporal)', "Paciente temporal {$tempCode} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
+        NotificationService::notifyRole('enfermera-emergencia', 'emergencia', 'Nueva Emergencia (ID Temporal)', "Paciente temporal {$tempCode} registrado", route('emergency-staff.dashboard'), ['emergency_id' => $emergencia->id]);
 
         return [
             'success'        => true,
             'message'        => 'Emergencia registrada con ID temporal.',
             'tipo'           => 'emergencia',
             'emergency_code' => $nroEmergencia,
-            'temp_id'        => $tempId,
+            'temp_id'        => $tempCode,
             'redirect_url'   => route('reception.emergencia.comprobante', ['id' => $emergencia->id]),
         ];
     }
@@ -490,25 +467,22 @@ class IngresoGeneralController extends Controller
         $paciente->update(['triage_id' => $triage->id]);
 
         $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-
-        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'emergencia', Auth::id());
+        $episodio      = EpisodioService::abrirEpisodio($paciente->id, 'emergencia', Auth::id());
 
         $emergencia = Emergency::create([
-            'patient_id'         => $paciente->ci,
+            'paciente_id'        => $paciente->id,
             'user_id'            => Auth::id(),
             'code'               => $nroEmergencia,
             'status'             => 'recibido',
             'tipo_ingreso'       => 'general',
             'symptoms'           => $request->descripcion ?? 'Ingreso por emergencia',
             'initial_assessment' => $request->tipo_emergencia ?? 'Emergencia general',
-            'is_temp_id'         => false,
-            'temp_id'            => null,
             'ubicacion_actual'   => 'emergencia',
             'episodio_id'        => $episodio->id,
         ]);
 
         $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
-            (string) $paciente->ci,
+            $paciente->id,
             (string) $emergencia->id,
             [],
             true,
@@ -525,13 +499,13 @@ class IngresoGeneralController extends Controller
             'message'        => 'Emergencia registrada exitosamente.',
             'tipo'           => 'emergencia',
             'emergency_code' => $nroEmergencia,
-            'redirect_url'   => route('reception.emergencia.comprobante', ['id' => $emergencia->id])
+            'redirect_url'   => route('reception.emergencia.comprobante', ['id' => $emergencia->id]),
         ];
     }
 
     private function procesarInternacion(Request $request, Paciente $paciente): array
     {
-        $hospitalizacionActiva = Hospitalizacion::where('ci_paciente', $paciente->ci)
+        $hospitalizacionActiva = Hospitalizacion::where('paciente_id', $paciente->id)
             ->whereNull('fecha_alta')
             ->first();
 
@@ -545,34 +519,32 @@ class IngresoGeneralController extends Controller
         $garante = $this->procesarGarante($request);
 
         $triage = $this->crearTriage('amarillo', 'Hospitalización - Ingreso General', 'media');
-        
+
         $updateData = ['triage_id' => $triage->id];
         if ($garante) {
-            $updateData['id_garante_referencia'] = $garante->ci;
+            $updateData['garante_id'] = $garante->id;
         }
         $paciente->update($updateData);
 
         $idHospitalizacion = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-
-        $medicoId = $request->medico_ci ? (int)$request->medico_ci : null;
-
-        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'internacion', Auth::id());
+        $medicoId          = $request->medico_ci ? (int)$request->medico_ci : null;
+        $episodio          = EpisodioService::abrirEpisodio($paciente->id, 'internacion', Auth::id());
 
         $hospitalizacion = Hospitalizacion::create([
-            'id' => $idHospitalizacion,
-            'ci_paciente' => $paciente->ci,
-            'motivo' => $request->motivo ?? 'Por determinar',
-            'diagnostico' => $request->diagnostico ?? 'Por determinar',
-            'ci_medico' => $medicoId,
-            'fecha_ingreso' => now(),
-            'estado' => 'activo',
-            'contacto_nombre' => $garante ? $garante->nombre : null,
+            'id'                => $idHospitalizacion,
+            'paciente_id'       => $paciente->id,
+            'motivo'            => $request->motivo ?? 'Por determinar',
+            'diagnostico'       => $request->diagnostico ?? 'Por determinar',
+            'ci_medico'         => $medicoId,
+            'fecha_ingreso'     => now(),
+            'estado'            => 'activo',
+            'contacto_nombre'   => $garante ? $garante->nombre : null,
             'contacto_telefono' => $garante ? $garante->telefono : null,
-            'episodio_id' => $episodio->id,
+            'episodio_id'       => $episodio->id,
         ]);
 
         $cuentaCobro = CuentaCobroService::obtenerOCrearCuentaMaestra(
-            $paciente->ci,
+            $paciente->id,
             'internacion',
             $request->seguro_id
         );
@@ -590,66 +562,67 @@ class IngresoGeneralController extends Controller
         $cuentaCobro->update(['episodio_id' => $episodio->id]);
 
         return [
-            'success' => true,
-            'message' => 'Hospitalización registrada exitosamente.',
-            'tipo' => 'internacion',
-            'hospitalizacion_id' => $idHospitalizacion,
-            'redirect_url' => route('reception.hospitalizacion.comprobante', ['id' => $idHospitalizacion])
+            'success'           => true,
+            'message'           => 'Hospitalización registrada exitosamente.',
+            'tipo'              => 'internacion',
+            'hospitalizacion_id'=> $idHospitalizacion,
+            'redirect_url'      => route('reception.hospitalizacion.comprobante', ['id' => $idHospitalizacion]),
         ];
     }
 
     private function procesarGarante(Request $request): ?Paciente
     {
-        if ($request->filled('garante_ci')) {
-            $garante = Paciente::find($request->garante_ci);
+        if (!$request->filled('garante_ci')) {
+            return null;
+        }
 
-            if ($garante) {
-                // Actualizar garante existente con nuevos datos si se proporcionan
-                $garante->update([
-                    'fecha_nacimiento' => $request->garante_fecha_nacimiento ?? $garante->fecha_nacimiento,
-                    'lugar_expedicion' => $request->garante_lugar_expedicion ?? $garante->lugar_expedicion,
-                    'nacionalidad' => $request->garante_nacionalidad ?? $garante->nacionalidad,
-                    'estado_civil' => $request->garante_estado_civil ?? $garante->estado_civil,
-                    'telefono' => $request->garante_telefono ?? $garante->telefono,
-                    'correo' => $request->garante_correo ?? $garante->correo,
-                    'profesion' => $request->garante_profesion ?? $garante->profesion,
-                    'empresa_trabajo' => $request->garante_empresa_trabajo ?? $garante->empresa_trabajo,
-                    'direccion' => $request->garante_direccion ?? $garante->direccion,
-                ]);
-                return $garante;
-            }
+        $garante = Paciente::where('ci', $request->garante_ci)->first();
 
-            if ($request->filled(['garante_nombres', 'garante_apellido_paterno', 'garante_apellido_materno'])) {
-                // Construir nombre completo del garante: Nombres + Apellido Paterno + Apellido Materno
-                $nombreCompletoGarante = trim(
-                    $request->garante_nombres . ' ' .
-                    $request->garante_apellido_paterno . ' ' .
-                    $request->garante_apellido_materno
-                );
+        if ($garante) {
+            $garante->update([
+                'fecha_nacimiento' => $request->garante_fecha_nacimiento ?? $garante->fecha_nacimiento,
+                'lugar_expedicion' => $request->garante_lugar_expedicion ?? $garante->lugar_expedicion,
+                'nacionalidad'     => $request->garante_nacionalidad ?? $garante->nacionalidad,
+                'estado_civil'     => $request->garante_estado_civil ?? $garante->estado_civil,
+                'telefono'         => $request->garante_telefono ?? $garante->telefono,
+                'correo'           => $request->garante_correo ?? $garante->correo,
+                'profesion'        => $request->garante_profesion ?? $garante->profesion,
+                'empresa_trabajo'  => $request->garante_empresa_trabajo ?? $garante->empresa_trabajo,
+                'direccion'        => $request->garante_direccion ?? $garante->direccion,
+            ]);
+            return $garante;
+        }
 
-                return Paciente::create([
-                    'ci' => $request->garante_ci,
-                    'nombre' => $nombreCompletoGarante,
-                    'sexo' => in_array($request->garante_sexo, ['Femenino', 'F']) ? 'F' : ($request->garante_sexo ?? 'M'),
-                    'fecha_nacimiento' => $request->garante_fecha_nacimiento ?? null,
-                    'lugar_expedicion' => $request->garante_lugar_expedicion ?? null,
-                    'nacionalidad' => $request->garante_nacionalidad ?? 'Boliviana',
-                    'estado_civil' => $request->garante_estado_civil ?? null,
-                    'direccion' => $request->garante_direccion ?? 'Sin especificar',
-                    'telefono' => $request->garante_telefono ?? 0,
-                    'correo' => $request->garante_correo ?? 'sin@email.com',
-                    'profesion' => $request->garante_profesion ?? null,
-                    'empresa_trabajo' => $request->garante_empresa_trabajo ?? null,
-                    'seguro_id' => $this->obtenerSeguroParticular(),
-                    'registro_codigo' => $this->crearRegistro('Registro de Garante', [
-                        'fecha_nacimiento' => $request->garante_fecha_nacimiento,
-                        'sexo'             => in_array($request->garante_sexo, ['Femenino', 'F']) ? 'F' : 'M',
-                        'apellido_paterno' => $request->garante_apellido_paterno,
-                        'apellido_materno' => $request->garante_apellido_materno,
-                        'nombres'          => $request->garante_nombres,
-                    ]),
-                ]);
-            }
+        if ($request->filled(['garante_nombres', 'garante_apellido_paterno', 'garante_apellido_materno'])) {
+            $nombreCompletoGarante = trim(
+                $request->garante_nombres . ' ' .
+                $request->garante_apellido_paterno . ' ' .
+                $request->garante_apellido_materno
+            );
+
+            return Paciente::create([
+                'ci'               => (int) $request->garante_ci,
+                'nombre'           => $nombreCompletoGarante,
+                'sexo'             => in_array($request->garante_sexo, ['Femenino', 'F']) ? 'F' : ($request->garante_sexo ?? 'M'),
+                'fecha_nacimiento' => $request->garante_fecha_nacimiento ?? null,
+                'lugar_expedicion' => $request->garante_lugar_expedicion ?? null,
+                'nacionalidad'     => $request->garante_nacionalidad ?? 'Boliviana',
+                'estado_civil'     => $request->garante_estado_civil ?? null,
+                'direccion'        => $request->garante_direccion ?? 'Sin especificar',
+                'telefono'         => $request->garante_telefono ?? 0,
+                'correo'           => $request->garante_correo ?? 'sin@email.com',
+                'profesion'        => $request->garante_profesion ?? null,
+                'empresa_trabajo'  => $request->garante_empresa_trabajo ?? null,
+                'seguro_id'        => $this->obtenerSeguroParticular(),
+                'registro_codigo'  => $this->crearRegistro('Registro de Garante', [
+                    'fecha_nacimiento' => $request->garante_fecha_nacimiento,
+                    'sexo'             => in_array($request->garante_sexo, ['Femenino', 'F']) ? 'F' : 'M',
+                    'apellido_paterno' => $request->garante_apellido_paterno,
+                    'apellido_materno' => $request->garante_apellido_materno,
+                    'nombres'          => $request->garante_nombres,
+                ]),
+                'is_temp' => false,
+            ]);
         }
 
         return null;
@@ -658,11 +631,11 @@ class IngresoGeneralController extends Controller
     private function crearTriage(string $color, string $descripcion, string $prioridad): Triage
     {
         return Triage::create([
-            'id' => 'TRIAGE-' . strtoupper($color) . '-' . now()->format('YmdHis') . '-' . random_int(100, 999),
-            'color' => $color,
+            'id'          => 'TRIAGE-' . strtoupper($color) . '-' . now()->format('YmdHis') . '-' . random_int(100, 999),
+            'color'       => $color,
             'descripcion' => $descripcion,
-            'prioridad' => $prioridad,
-            'user_id' => Auth::id(),
+            'prioridad'   => $prioridad,
+            'user_id'     => Auth::id(),
         ]);
     }
 
@@ -671,11 +644,11 @@ class IngresoGeneralController extends Controller
         $codigo = Registro::generarCodigo($datosPaciente);
 
         Registro::create([
-            'codigo'   => $codigo,
-            'fecha'    => now()->toDateString(),
-            'hora'     => now()->toTimeString(),
-            'motivo'   => $motivo,
-            'user_id'  => Auth::id(),
+            'codigo'  => $codigo,
+            'fecha'   => now()->toDateString(),
+            'hora'    => now()->toTimeString(),
+            'motivo'  => $motivo,
+            'user_id' => Auth::id(),
         ]);
 
         return $codigo;
@@ -686,11 +659,11 @@ class IngresoGeneralController extends Controller
         $seguro = Seguro::firstOrCreate(
             ['nombre_empresa' => 'Particular'],
             [
-                'tipo' => 'Particular',
-                'cobertura' => 'Sin cobertura',
-                'telefono' => null,
+                'tipo'       => 'Particular',
+                'cobertura'  => 'Sin cobertura',
+                'telefono'   => null,
                 'formulario' => 'ESTANDAR',
-                'estado' => 'activo'
+                'estado'     => 'activo',
             ]
         );
 
@@ -712,32 +685,30 @@ class IngresoGeneralController extends Controller
         $registroExistente = Caja::where('tipo', 'ENFERMERIA')
             ->whereDate('fecha', today())
             ->whereNull('nro_factura')
-            ->whereHas('consulta', function($query) use ($paciente) {
-                $query->where('ci_paciente', $paciente->ci);
-            })
+            ->whereHas('consulta', fn($q) => $q->where('paciente_id', $paciente->id))
             ->first();
 
         if ($registroExistente) {
             return [
-                'success' => false,
-                'message' => 'Este paciente ya tiene un registro de enfermería pendiente de pago para hoy.',
-                'redirect_url' => route('reception.confirmacion-registro', ['id' => $registroExistente->id])
+                'success'      => false,
+                'message'      => 'Este paciente ya tiene un registro de enfermería pendiente de pago para hoy.',
+                'redirect_url' => route('reception.confirmacion-registro', ['id' => $registroExistente->id]),
             ];
         }
 
         $costoEnfermeria = $this->obtenerPrecioEnfermeria();
 
-        $paciente->nombres = $request->nombres;
+        $paciente->nombres          = $request->nombres;
         $paciente->apellido_paterno = $request->apellido_paterno;
         $paciente->apellido_materno = $request->apellido_materno;
 
         Caja::$patientContext = $paciente;
         try {
             $caja = Caja::create([
-                'fecha' => now(),
-                'total_dia' => $costoEnfermeria,
-                'tipo' => 'ENFERMERIA',
-                'nro_factura' => null,
+                'fecha'        => now(),
+                'total_dia'    => $costoEnfermeria,
+                'tipo'         => 'ENFERMERIA',
+                'nro_factura'  => null,
                 'monto_pagado' => $costoEnfermeria,
             ]);
         } finally {
@@ -745,26 +716,22 @@ class IngresoGeneralController extends Controller
         }
 
         $consulta = Consulta::create([
-            'codigo' => 'ENF-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
-            'fecha' => now()->toDateString(),
-            'hora' => now()->toTimeString(),
-            'motivo' => $request->motivo ?? 'Atención de enfermería',
-            'observaciones' => $request->observaciones ?? '',
+            'codigo'              => 'ENF-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
+            'fecha'               => now()->toDateString(),
+            'hora'                => now()->toTimeString(),
+            'motivo'              => $request->motivo ?? 'Atención de enfermería',
+            'observaciones'       => $request->observaciones ?? '',
             'codigo_especialidad' => $this->obtenerEspecialidadEnfermeria(),
-            'ci_paciente' => $paciente->ci,
-            'ci_medico' => null,
-            'estado_pago' => false,
-            'caja_id' => $caja->id,
-            'estado' => 'pendiente',
-            'tipo' => 'enfermeria',
+            'paciente_id'         => $paciente->id,
+            'ci_medico'           => null,
+            'estado_pago'         => false,
+            'caja_id'             => $caja->id,
+            'estado'              => 'pendiente',
+            'tipo'                => 'enfermeria',
         ]);
 
         $seguroId = $request->filled('seguro_id') ? (int) $request->seguro_id : null;
-        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
-            (string) $paciente->ci,
-            'enfermeria',
-            $seguroId
-        );
+        $cuenta   = CuentaCobroService::obtenerOCrearCuentaMaestra($paciente->id, 'enfermeria', $seguroId);
 
         CuentaCobroService::agregarCargoConDeduplicacion(
             $cuenta->id,
@@ -777,25 +744,23 @@ class IngresoGeneralController extends Controller
             $consulta->codigo
         );
 
-        $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'consulta', Auth::id());
+        $episodio = EpisodioService::abrirEpisodio($paciente->id, 'consulta', Auth::id());
         $cuenta->update(['episodio_id' => $episodio->id]);
 
         return [
-            'success' => true,
-            'message' => 'Ingreso a Enfermería registrado exitosamente.',
-            'tipo' => 'enfermeria',
-            'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id])
+            'success'      => true,
+            'message'      => 'Ingreso a Enfermería registrado exitosamente.',
+            'tipo'         => 'enfermeria',
+            'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id]),
         ];
     }
 
     private function obtenerPrecioEnfermeria(): float
     {
         $precio = \App\Models\IngresoPrecio::getPrecio('enfermeria');
-
         if ($precio !== null) {
             return (float) $precio;
         }
-
         $servicio = \App\Models\Servicio::getServicioPorTipo('ENFERMERIA');
         return $servicio ? (float) $servicio->precio : 30.00;
     }
@@ -813,11 +778,7 @@ class IngresoGeneralController extends Controller
 
         $nuevaEspecialidad = Especialidad::firstOrCreate(
             ['codigo' => 'ENFERMERIA'],
-            [
-                'nombre' => 'Enfermería',
-                'descripcion' => 'Atención de enfermería general',
-                'estado' => 'activo',
-            ]
+            ['nombre' => 'Enfermería', 'descripcion' => 'Atención de enfermería general', 'estado' => 'activo']
         );
 
         return $nuevaEspecialidad->codigo;
@@ -826,11 +787,9 @@ class IngresoGeneralController extends Controller
     private function obtenerPrecioConsultaExterna(): float
     {
         $precio = \App\Models\IngresoPrecio::getPrecio('consulta_externa');
-
         if ($precio !== null) {
             return (float) $precio;
         }
-
         $servicio = \App\Models\Servicio::getServicioPorTipo('CONSULTA_EXTERNA');
         return $servicio ? (float) $servicio->precio : 50.00;
     }
@@ -838,11 +797,9 @@ class IngresoGeneralController extends Controller
     private function obtenerPrecioInternacion(): float
     {
         $precio = \App\Models\IngresoPrecio::getPrecio('internacion');
-
         if ($precio !== null) {
             return (float) $precio;
         }
-
         return 150.00;
     }
 
@@ -856,11 +813,7 @@ class IngresoGeneralController extends Controller
 
         $nuevaEspecialidad = Especialidad::firstOrCreate(
             ['codigo' => 'ESP-GENERAL'],
-            [
-                'nombre' => 'Medicina General',
-                'descripcion' => 'Especialidad por defecto para consultas generales',
-                'estado' => 'activo',
-            ]
+            ['nombre' => 'Medicina General', 'descripcion' => 'Especialidad por defecto para consultas generales', 'estado' => 'activo']
         );
 
         return $nuevaEspecialidad->codigo;

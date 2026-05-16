@@ -19,11 +19,11 @@ class CerrarHospitalizacionesDuplicadas extends Command
 
         // Pacientes con más de 1 hospitalización sin fecha_alta
         $duplicados = DB::select("
-            SELECT ci_paciente, COUNT(*) as cnt
+            SELECT paciente_id, COUNT(*) as cnt
             FROM hospitalizaciones
             WHERE fecha_alta IS NULL
-              AND ci_paciente IS NOT NULL
-            GROUP BY ci_paciente
+              AND paciente_id IS NOT NULL
+            GROUP BY paciente_id
             HAVING cnt > 1
         ");
 
@@ -36,7 +36,7 @@ class CerrarHospitalizacionesDuplicadas extends Command
         $cerradas = 0;
 
         foreach ($duplicados as $dup) {
-            $hospitalizaciones = Hospitalizacion::where('ci_paciente', $dup->ci_paciente)
+            $hospitalizaciones = Hospitalizacion::where('paciente_id', $dup->paciente_id)
                 ->whereNull('fecha_alta')
                 ->orderBy('created_at', 'desc') // La más reciente es la activa
                 ->get();
@@ -46,7 +46,7 @@ class CerrarHospitalizacionesDuplicadas extends Command
 
             $this->line(sprintf(
                 '  Paciente CI %s → Activa: %s | A cerrar: %d',
-                $dup->ci_paciente,
+                $dup->paciente_id,
                 $activa->id,
                 $anteriores->count()
             ));

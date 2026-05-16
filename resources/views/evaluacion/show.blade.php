@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-slate-50" x-data="evaluacion('{{ $area }}', '{{ route('evaluacion.store', $paciente->ci) }}')">
+@php $pacienteIdentifier = $paciente->ci ?? $paciente->temp_code; @endphp
+<div class="min-h-screen bg-slate-50" x-data="evaluacion('{{ $area }}', '{{ route('evaluacion.store', $pacienteIdentifier) }}')">
 
     {{-- Encabezado --}}
     <div class="bg-white border-b border-slate-600 px-8 py-6">
@@ -13,7 +14,7 @@
                     </span>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900 leading-tight">{{ $paciente->nombre }}</h1>
-                <p class="mt-1 text-base text-slate-900">C.I. {{ $paciente->ci }}</p>
+                <p class="mt-1 text-base text-slate-900">{{ $paciente->ci ? 'C.I. ' . $paciente->ci : $paciente->temp_code }}</p>
             </div>
             <a href="{{ route('patients.index') }}"
                class="shrink-0 px-5 py-2.5 border-2 border-slate-300 rounded-lg text-base font-medium text-slate-800 hover:bg-slate-50 transition-colors">

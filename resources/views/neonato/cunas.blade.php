@@ -84,7 +84,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 <p class="text-sm font-semibold text-gray-800">{{ $rn->nombre_display }}</p>
-                                <p class="text-xs text-gray-400">{{ $rn->temp_id }}</p>
+                                <p class="text-xs text-gray-400">{{ $rn->identificador }}</p>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $rn->madre_nombre ?? '—' }}</td>
                             <td class="px-6 py-4 text-center">

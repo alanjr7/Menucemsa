@@ -13,7 +13,7 @@ class CitaQuirurgica extends Model
     protected $table = 'citas_quirurgicas';
 
     protected $fillable = [
-        'ci_paciente',
+        'paciente_id',
         'fecha',
         'hora_inicio_estimada',
         'hora_inicio_real',
@@ -53,7 +53,7 @@ class CitaQuirurgica extends Model
     // Relaciones
     public function paciente()
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function cirujano()

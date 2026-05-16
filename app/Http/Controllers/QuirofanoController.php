@@ -83,8 +83,8 @@ class QuirofanoController extends Controller
                     'id' => $emg->id,
                     'code' => $emg->code,
                     'nro_cirugia' => $emg->nro_cirugia,
-                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                    'paciente_ci' => $emg->patient_id,
+                    'paciente_nombre' => $emg->paciente?->is_temp ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                    'paciente_ci' => $emg->paciente?->ci ?? $emg->paciente?->temp_code,
                     'status' => $emg->status,
                     'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
                     'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
@@ -184,8 +184,8 @@ class QuirofanoController extends Controller
                     'id' => $emg->id,
                     'code' => $emg->code,
                     'nro_cirugia' => $emg->nro_cirugia,
-                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                    'paciente_ci' => $emg->patient_id,
+                    'paciente_nombre' => $emg->paciente?->is_temp ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                    'paciente_ci' => $emg->paciente?->ci ?? $emg->paciente?->temp_code,
                     'status' => $emg->status,
                     'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
                     'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
@@ -269,7 +269,7 @@ class QuirofanoController extends Controller
     public function getPaciente($ci): JsonResponse
     {
         try {
-            $paciente = Paciente::find($ci);
+            $paciente = Paciente::where('ci', (int) $ci)->first();
             if (!$paciente) {
                 return response()->json([
                     'success' => false,
@@ -317,7 +317,7 @@ class QuirofanoController extends Controller
         try {
             // Validación básica primero
             $validated = $request->validate([
-                'ci_paciente' => 'required|exists:pacientes,ci',
+                'paciente_id' => 'required|integer|exists:pacientes,id',
                 'ci_cirujano' => 'required|exists:medicos,ci',
                 'nro_quirofano' => 'required|exists:quirofanos,id',
                 'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
@@ -328,7 +328,7 @@ class QuirofanoController extends Controller
 
             // Crear cita sin validación de disponibilidad por ahora
             $cita = new CitaQuirurgica();
-            $cita->ci_paciente = $validated['ci_paciente'];
+            $cita->paciente_id = $validated['paciente_id'];
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->quirofano_id = $validated['nro_quirofano'];
             $cita->tipo_cirugia = $validated['tipo_cirugia'];
@@ -377,7 +377,7 @@ class QuirofanoController extends Controller
                 DB::commit();
 
                 // Notificar a cirujano y administración sobre cirugía programada
-                $paciente = Paciente::find($cita->ci_paciente);
+                $paciente = Paciente::find($cita->paciente_id);
                 $cirujano = Medico::find($cita->ci_cirujano);
 
                 // Registrar en bitácora
@@ -476,17 +476,9 @@ class QuirofanoController extends Controller
 
             $emergencia = \App\Models\Emergency::findOrFail($validated['emergency_id']);
 
-            // Si es paciente temporal, crear un paciente real primero
-            if ($emergencia->is_temp_id) {
-                $paciente = $this->crearPacienteDesdeTemporal($emergencia);
-                $ciPaciente = $paciente->ci;
-            } else {
-                $ciPaciente = $emergencia->patient_id;
-            }
-
             // Crear cita quirúrgica
             $cita = new CitaQuirurgica();
-            $cita->ci_paciente = (int) $ciPaciente;
+            $cita->paciente_id = $emergencia->paciente_id;
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->ci_instrumentista = null;
             $cita->ci_anestesiologo = null;
@@ -632,10 +624,7 @@ class QuirofanoController extends Controller
 
             // Crear cita quirúrgica para ahora
             $cita = new CitaQuirurgica();
-            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
-            $cita->ci_paciente = $emergencia->is_temp_id 
-                ? (int) $emergencia->id  // Usar ID de emergencia como identificador numérico
-                : (int) $emergencia->patient_id;
+            $cita->paciente_id = $emergencia->paciente_id;
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->quirofano_id = $quirofano->id;
             $cita->tipo_cirugia = 'mayor';
@@ -830,7 +819,7 @@ public function showDetails(CitaQuirurgica $cita): View
                 // No existe detalle previo (cirugía de emergencia sin pre-programación):
                 // obtener/crear cuenta maestra y usar agregarCargoConDeduplicacion para seguridad
                 $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
-                    $cita->ci_paciente,
+                    $cita->paciente_id,
                     'quirofano'
                 );
                 \App\Services\CuentaCobroService::agregarCargoConDeduplicacion(
@@ -970,7 +959,7 @@ public function showDetails(CitaQuirurgica $cita): View
             }
 
             // La cuenta maestra ya existe (se usó arriba)
-            \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra($cita->ci_paciente, 'quirofano');
+            \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra($cita->paciente_id, 'quirofano');
 
             DB::commit();
 
@@ -1152,13 +1141,13 @@ public function showDetails(CitaQuirurgica $cita): View
         \Log::info('[CuentaMaestra] Registrando cargo de cirugía', [
             'cita_id'   => $cita->id,
             'monto'     => $monto,
-            'paciente'  => $cita->ci_paciente,
+            'paciente'  => $cita->paciente_id,
         ]);
 
         try {
             // Obtener o crear la cuenta maestra del paciente (nunca duplica)
             $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
-                $cita->ci_paciente,
+                $cita->paciente_id,
                 'quirofano'
             );
 
@@ -1557,7 +1546,7 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
                 \Log::info('Buscando cuenta de cobro', [
                     'referencia_type' => $refType,
                     'referencia_id' => $cita->id,
-                    'paciente_ci' => $cita->ci_paciente
+                    'paciente_id' => $cita->paciente_id
                 ]);
                 
                 $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
@@ -1570,7 +1559,7 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
                 
                 // Si no existe por referencia, buscar por paciente y tipo
                 if (!$cuentaCobro) {
-                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
+                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_id', $cita->paciente_id)
                         ->where('tipo_atencion', 'cirugia')
                         ->where('estado', 'pendiente')
                         ->orderBy('created_at', 'desc')
@@ -1595,7 +1584,7 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
                 if (!$cuentaCobro) {
                     \Log::info('Creando cuenta de cobro automáticamente para cita existente', [
                         'cita_id' => $cita->id,
-                        'paciente_ci' => $cita->ci_paciente
+                        'paciente_id' => $cita->paciente_id
                     ]);
                     $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
                 }
@@ -1706,7 +1695,7 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
 
                 // Si no existe por referencia, buscar por paciente y tipo
                 if (!$cuentaCobro) {
-                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
+                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_id', $cita->paciente_id)
                         ->where('tipo_atencion', 'cirugia')
                         ->where('estado', 'pendiente')
                         ->orderBy('created_at', 'desc')
@@ -1862,55 +1851,9 @@ public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
         }
     }
 
-    /**
-     * Crear un paciente real desde datos de emergencia temporal
-     */
     private function crearPacienteDesdeTemporal($emergencia): Paciente
     {
-        // Generar un CI numérico único basado en el ID de emergencia (columna ci es integer)
-        $ci = (int)('9' . $emergencia->id . now()->format('is'));
-
-        // Crear registro
-        $registroCodigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-        Registro::create([
-            'codigo' => $registroCodigo,
-            'fecha' => now()->toDateString(),
-            'hora' => now()->toTimeString(),
-            'motivo' => 'Paciente temporal creado desde programación de cirugía de emergencia',
-            'user_id' => auth()->id()
-        ]);
-
-        // Obtener o crear seguro particular
-        $seguro = Seguro::firstOrCreate(
-            ['nombre_empresa' => 'Particular'],
-            [
-                'tipo' => 'Particular',
-                'telefono' => null,
-                'formulario' => 'PARTICULAR',
-                'estado' => 'activo'
-            ]
-        );
-
-        // Crear el paciente
-        $paciente = Paciente::create([
-            'ci' => $ci,
-            'nombre' => 'Paciente Temporal EMG-' . $emergencia->id,
-            'sexo' => 'M',
-            'direccion' => 'Sin especificar',
-            'telefono' => 0,
-            'correo' => 'sin@email.com',
-            'seguro_id' => $seguro->id,
-            'registro_codigo' => $registroCodigo,
-        ]);
-
-        // Actualizar la emergencia para referenciar al paciente creado
-        $emergencia->update([
-            'patient_id' => $ci,
-            'is_temp_id' => false,
-            'temp_id' => null,
-        ]);
-
-        return $paciente;
+        return $emergencia->paciente ?? Paciente::findOrFail($emergencia->paciente_id);
     }
 
     /**

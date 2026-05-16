@@ -178,8 +178,8 @@ class CajaGestionController extends Controller
                     $nombrePaciente = $cuenta->paciente?->nombre;
                     if (empty($nombrePaciente) && $cuenta->es_emergencia && $cuenta->referencia) {
                         $emergency = $cuenta->referencia;
-                        if ($emergency->patient_id) {
-                            $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                        if ($emergency->paciente_id) {
+                            $paciente = \App\Models\Paciente::find($emergency->paciente_id);
                             $nombrePaciente = $paciente?->nombre ?? 'Paciente Emergencia #' . $emergency->id;
                         } else {
                             $nombrePaciente = 'Paciente Emergencia #' . $emergency->id;
@@ -189,7 +189,7 @@ class CajaGestionController extends Controller
                     return [
                         'id' => $cuenta->id,
                         'paciente' => [
-                            'ci' => $cuenta->paciente_ci,
+                            'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                             'nombre' => $nombrePaciente ?? 'N/A',
                         ],
                         'tipo_flujo' => $cuenta->es_emergencia ? 'emergencia' : 'normal',
@@ -258,9 +258,9 @@ class CajaGestionController extends Controller
                 'transaccion' => [
                     'id' => $cuenta->id,
                     'paciente' => [
-                        'ci' => $cuenta->paciente_ci,
-                        'nombre' => $cuenta->paciente->nombre ?? 'N/A',
-                        'telefono' => $cuenta->paciente->telefono ?? 'N/A',
+                        'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
+                        'nombre' => $cuenta->paciente?->nombre ?? 'N/A',
+                        'telefono' => $cuenta->paciente?->telefono ?? 'N/A',
                     ],
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
                     'tipo_flujo' => $cuenta->es_emergencia ? 'emergencia' : 'normal',
@@ -593,7 +593,7 @@ class CajaGestionController extends Controller
                     return [
                         'id' => $cuenta->id,
                         'paciente' => [
-                            'ci' => $cuenta->paciente_ci,
+                            'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                             'nombre' => $cuenta->paciente->nombre ?? 'N/A',
                         ],
                         'total' => $cuenta->total_calculado,
@@ -738,7 +738,7 @@ class CajaGestionController extends Controller
                         'id' => $item->id,
                         'cuenta_cobro_id' => $item->cuenta_cobro_id,
                         'paciente' => [
-                            'ci' => $item->cuentaCobro?->paciente_ci ?? 'N/A',
+                            'ci' => $item->cuentaCobro?->paciente?->ci ?? $item->cuentaCobro?->paciente?->temp_code ?? 'N/A',
                             'nombre' => $item->cuentaCobro?->paciente?->nombre ?? 'N/A',
                         ],
                         'tipo_item' => $item->tipo_item_label,

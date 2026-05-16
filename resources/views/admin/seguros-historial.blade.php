@@ -145,7 +145,7 @@
                                 <td class="px-6 py-4 text-slate-500">{{ $registro->created_at->format('d/m/Y H:i') }}</td>
                                 <td class="px-6 py-4 text-slate-600 font-medium">
                                     {{ $registro->paciente?->nombre ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 text-slate-500">{{ $registro->paciente_ci }}</td>
+                                <td class="px-6 py-4 text-slate-500">{{ $registro->paciente?->ci ?? $registro->paciente?->temp_code ?? '—' }}</td>
                                 <td class="px-6 py-4 text-slate-600">{{ $registro->seguro?->nombre_empresa ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $registro->tipo_atencion_label }}</td>

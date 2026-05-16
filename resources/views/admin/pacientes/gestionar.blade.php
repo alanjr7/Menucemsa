@@ -221,7 +221,7 @@
                                     <div class="flex justify-end gap-1">
                                         <!-- Editar Información -->
                                         @if(!isset($paciente->is_temporal) || !$paciente->is_temporal)
-                                            <a href="{{ route('admin.patients.edit', $paciente->ci) }}" 
+                                            <a href="{{ route('admin.patients.edit', $paciente->id) }}"
                                                class="inline-flex items-center px-2 py-1.5 border border-blue-200 shadow-sm text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all"
                                                title="Editar Información">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,7 +240,7 @@
                                                 </svg>
                                             </a>
                                         @else
-                                            <a href="{{ route('evaluacion.historial', $paciente->ci) }}"
+                                            <a href="{{ route('evaluacion.historial', $paciente->ci ?? $paciente->temp_code) }}"
                                                class="inline-flex items-center px-2 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all"
                                                title="Ver Historial">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@
 
                                         <!-- Ver Cuenta -->
                                         @if(!isset($paciente->is_temporal) || !$paciente->is_temporal)
-                                            <a href="{{ route('admin.cuentas.show', $paciente->ci) }}" 
+                                            <a href="{{ route('admin.cuentas.show', $paciente->id) }}"
                                                class="inline-flex items-center px-2 py-1.5 border border-green-200 shadow-sm text-xs font-medium rounded-lg text-green-700 bg-green-50 hover:bg-green-100 transition-all"
                                                title="Ver Cuenta">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,7 +272,7 @@
                                             </a>
                                         @else
                                             @php
-                                                $datosRoute = route('patients.show', $paciente->ci);
+                                                $datosRoute = route('patients.show', $paciente->id);
                                                 if ($tipoIngreso === 'internacion' && $paciente->hospitalizaciones->isNotEmpty()) {
                                                     $datosRoute = route('reception.hospitalizacion.comprobante', $paciente->hospitalizaciones->first()->id);
                                                 } elseif ($tipoIngreso === 'emergencia' && $paciente->emergencias->isNotEmpty()) {

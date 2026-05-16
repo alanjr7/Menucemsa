@@ -12,7 +12,7 @@ class AltaPaciente extends Model
     protected $table = 'alta_pacientes';
 
     protected $fillable = [
-        'paciente_ci',
+        'paciente_id',
         'dado_de_alta_por',
         'motivo_alta',
         'observaciones',
@@ -25,7 +25,7 @@ class AltaPaciente extends Model
 
     public function paciente()
     {
-        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function usuario()

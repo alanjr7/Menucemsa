@@ -14,13 +14,11 @@ return new class extends Migration
             // Identificación del RN
             $table->string('nombre', 150)->nullable();
             $table->char('sexo', 1)->nullable();                   // M|F
-            $table->string('paciente_ci', 20)->nullable();         // CI real (cuando se registre)
-            $table->string('temp_id', 30)->nullable()->unique();   // RN-YYYYMMDD-###
-            $table->boolean('is_temp_id')->default(true);
+            $table->unsignedBigInteger('paciente_id')->nullable();  // FK a pacientes.id (temp o real)
             $table->string('code', 30)->unique();                  // NEO-YYYYMMDD-###
 
             // Vínculo materno
-            $table->string('madre_ci', 20)->nullable();
+            $table->unsignedBigInteger('madre_id')->nullable();
             $table->string('madre_nombre', 150)->nullable();
 
             // Datos clínicos del nacimiento
@@ -42,6 +40,8 @@ return new class extends Migration
             $table->dateTime('discharge_date')->nullable();
 
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->nullOnDelete();
+            $table->foreign('madre_id')->references('id')->on('pacientes')->nullOnDelete();
 
             $table->timestamps();
         });

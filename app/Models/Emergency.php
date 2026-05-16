@@ -8,14 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Emergency extends Model
 {
     protected $fillable = [
-        'patient_id',
+        'paciente_id',
         'user_id',
         'code',
         'status',
         'tipo_ingreso',
         'destino_inicial',
-        'is_temp_id',
-        'temp_id',
         'symptoms',
         'initial_assessment',
         'vital_signs',
@@ -45,7 +43,6 @@ class Emergency extends Model
         'discharge_date' => 'datetime',
         'cost' => 'decimal:2',
         'paid' => 'boolean',
-        'is_temp_id' => 'boolean',
         'es_parto' => 'boolean',
         'deuda' => 'decimal:2',
         'total_pagado' => 'decimal:2',
@@ -56,7 +53,7 @@ class Emergency extends Model
 
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'patient_id', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function episodio(): BelongsTo

@@ -205,7 +205,7 @@
                             <div class="space-y-2">
                                 @php
                                     $pacientesRecientes = DB::table('consultas')
-                                        ->join('pacientes', 'consultas.ci_paciente', '=', 'pacientes.ci')
+                                        ->join('pacientes', 'consultas.paciente_id', '=', 'pacientes.id')
                                         ->where('consultas.ci_medico', $medico->ci)
                                         ->where('consultas.estado', 'completada')
                                         ->orderBy('consultas.fecha', 'desc')
@@ -234,13 +234,13 @@
                                 @php
                                     $totalPacientes = DB::table('consultas')
                                         ->where('ci_medico', $medico->ci)
-                                        ->distinct('ci_paciente')
+                                        ->distinct('paciente_id')
                                         ->count();
                                     $pacientesMes = DB::table('consultas')
                                         ->where('ci_medico', $medico->ci)
                                         ->whereMonth('fecha', now()->month)
                                         ->whereYear('fecha', now()->year)
-                                        ->distinct('ci_paciente')
+                                        ->distinct('paciente_id')
                                         ->count();
                                 @endphp
                                 <div class="flex justify-between">

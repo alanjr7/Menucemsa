@@ -38,7 +38,7 @@ class SeguroController extends Controller
                     'numero' => $cuenta->id,
                     'fecha' => $cuenta->created_at->format('Y-m-d'),
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'seguro' => $cuenta->seguro?->nombre_empresa ?? 'Sin seguro',
                     'seguro_id' => $cuenta->seguro_id,
                     'tipo_cobertura' => $cuenta->seguro?->descripcion_cobertura ?? 'No definida',
@@ -235,7 +235,7 @@ class SeguroController extends Controller
                     'numero' => $cuenta->id,
                     'fecha' => $cuenta->created_at->format('Y-m-d'),
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'seguro' => $cuenta->paciente?->seguro?->nombre_empresa ?? 'Sin seguro',
                     'seguro_id' => $cuenta->paciente?->seguro_id,
                     'servicio' => $cuenta->tipo_atencion_label,
@@ -336,45 +336,16 @@ class SeguroController extends Controller
             $descripcion .= "Motivo: {$observaciones}. ";
         }
 
-        // Verificar y crear paciente temporal si no existe
-        $pacienteExiste = \App\Models\Paciente::where('ci', $cuenta->paciente_ci)->exists();
-
-        if (!$pacienteExiste) {
-            $nombre = 'Paciente Temporal';
-            $sexo = 'otro';
-            $telefono = '0000000000';
-
-            $referencia = $cuenta->referencia;
-            if ($referencia) {
-                if ($referencia instanceof \App\Models\Emergency) {
-                    $nombre = $referencia->is_temp_id
-                        ? 'Temporal-' . $referencia->temp_id
-                        : ($referencia->paciente?->nombre ?? 'Paciente Temporal');
-                    $telefono = $referencia->paciente?->telefono ?? '0000000000';
-                    $sexo = $referencia->paciente?->sexo ?? 'otro';
-                } else {
-                    $nombre = $referencia->paciente?->nombre ?? 'Paciente Temporal';
-                    $telefono = $referencia->paciente?->telefono ?? '0000000000';
-                    $sexo = $referencia->paciente?->sexo ?? 'otro';
-                }
-            }
-
-            \App\Models\Paciente::create([
-                'ci' => $cuenta->paciente_ci,
-                'nombre' => $nombre,
-                'sexo' => $sexo,
-                'telefono' => $telefono,
-                'seguro_id' => $cuenta->seguro_id,
+        // All patients are now in the pacientes table (including temp ones)
+        if ($cuenta->paciente_id) {
+            \App\Models\HistorialMedico::create([
+                'paciente_id'    => $cuenta->paciente_id,
+                'fecha'          => now()->toDateString(),
+                'detalle'        => $descripcion,
+                'observaciones'  => $observaciones,
+                'user_medico_id' => auth()->id(),
             ]);
         }
-
-        \App\Models\HistorialMedico::create([
-            'ci_paciente' => $cuenta->paciente_ci,
-            'fecha' => now()->toDateString(),
-            'detalle' => $descripcion,
-            'observaciones' => $observaciones,
-            'user_medico_id' => auth()->id(),
-        ]);
     }
 
     /**
@@ -517,7 +488,7 @@ class SeguroController extends Controller
                 fputcsv($file, [
                     $registro->created_at->format('d/m/Y H:i'),
                     $registro->paciente?->nombre ?? 'N/A',
-                    $registro->paciente_ci,
+                    $registro->paciente?->ci ?? $registro->paciente?->temp_code,
                     $registro->seguro?->nombre_empresa ?? 'N/A',
                     $registro->tipo_atencion_label,
                     number_format($registro->total_calculado, 2),

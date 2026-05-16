@@ -143,7 +143,7 @@
                             <p class="text-xs text-slate-500 truncate max-w-[200px]">{{ $hosp->diagnostico }}</p>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-slate-600">{{ $hosp->ci_paciente }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ $hosp->paciente?->ci ?? $hosp->paciente?->temp_code ?? '—' }}</td>
                         <td class="px-6 py-4">
                             <span class="inline-block px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs font-medium">
                                 {{ $hosp->habitacion_id ?? 'N/A' }}

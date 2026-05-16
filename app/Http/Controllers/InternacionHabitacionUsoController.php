@@ -35,30 +35,7 @@ class InternacionHabitacionUsoController extends Controller
 
         $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
 
-        $emergencyQuery = Emergency::where('is_temp_id', true)
-            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $emergencyQuery->where(fn($q) => $q
-                ->where('temp_id', 'LIKE', "%{$search}%")
-                ->orWhere('code', 'LIKE', "%{$search}%")
-            );
-        }
-
-        $pacientesTemporales = $emergencyQuery->orderBy('created_at', 'desc')->get()
-            ->map(fn($emergency) => (object)[
-                'ci'               => $emergency->temp_id,
-                'nombre'           => 'Paciente Temporal - Emergencia',
-                'is_temporal'      => true,
-                'emergency_id'     => $emergency->id,
-                'emergency_code'   => $emergency->code,
-                'emergency_status' => $emergency->status,
-                'created_at'       => $emergency->created_at,
-                'seguro'           => null,
-                'consultas'        => collect(),
-                'hospitalizaciones'=> collect(),
-            ]);
+        $pacientesTemporales = collect();
 
         $todosPacientes = collect($pacientes->items())->merge($pacientesTemporales)->sortByDesc('created_at');
 
@@ -90,7 +67,7 @@ class InternacionHabitacionUsoController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'paciente_ci'  => ['required'],
+            'paciente_id'  => ['required', 'integer', 'exists:pacientes,id'],
             'habitacion_id'=> ['required', 'exists:habitaciones,id'],
             'cama_id'      => ['required', 'exists:camas,id'],
             'fecha_inicio' => ['required', 'date'],
@@ -114,11 +91,11 @@ class InternacionHabitacionUsoController extends Controller
 
         $diasLabel = $dias === 1 ? '1 día' : "{$dias} días";
 
-        $paciente = Paciente::where('ci', $data['paciente_ci'])->first();
+        $paciente = Paciente::find($data['paciente_id']);
         $seguroId = $paciente?->seguro_id ?? null;
 
         $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
-            $data['paciente_ci'],
+            $data['paciente_id'],
             'internacion',
             $seguroId
         );

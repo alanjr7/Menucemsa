@@ -67,7 +67,7 @@ class HospitalizacionController extends Controller
             $paciente = $this->crearOActualizarPaciente($request);
 
             // 2. Verificar si ya tiene una hospitalización activa
-            $hospitalizacionActiva = Hospitalizacion::where('ci_paciente', $paciente->ci)
+            $hospitalizacionActiva = Hospitalizacion::where('paciente_id', $paciente->id)
                 ->whereNull('fecha_alta')
                 ->first();
 
@@ -83,14 +83,14 @@ class HospitalizacionController extends Controller
             $paciente->update(['triage_id' => $triage->id]);
 
             // 4. Abrir episodio
-            $episodio = EpisodioService::abrirEpisodio($paciente->ci, 'internacion', Auth::id());
+            $episodio = EpisodioService::abrirEpisodio($paciente->id, 'internacion', Auth::id());
 
             // 5. Crear registro de hospitalización
             $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage, $episodio->id);
 
             // 6. Obtener o crear cuenta maestra (reutiliza la de emergencia si ya existe)
             $cuentaCobro = CuentaCobroService::obtenerOCrearCuentaMaestra(
-                $paciente->ci,
+                $paciente->id,
                 'internacion',
                 $request->seguro_id
             );
@@ -180,7 +180,7 @@ class HospitalizacionController extends Controller
         $ci = $request->ci;
         
         // Buscar paciente existente
-        $paciente = Paciente::find($ci);
+        $paciente = Paciente::where('ci', (int) $ci)->first();
         
         if (!$paciente) {
             // Validar que todos los campos requeridos estén presentes
@@ -192,14 +192,15 @@ class HospitalizacionController extends Controller
 
             // Crear nuevo paciente
             $paciente = Paciente::create([
-                'ci' => $ci,
+                'ci' => (int) $ci,
+                'is_temp' => false,
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
                 'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
                 'seguro_id' => $request->seguro_id ?? $this->obtenerOCrearSeguro('particular'),
-                'id_triage' => null, // Se asignará después
+                'id_triage' => null,
                 'registro_codigo' => $this->obtenerOCrearRegistro([
                     'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
                     'sexo'             => $request->sexo === 'Femenino' ? 'F' : 'M',
@@ -236,7 +237,7 @@ class HospitalizacionController extends Controller
             'diagnostico' => $request->diagnostico,
             'estado' => 'activo',
             'ci_medico' => $request->medico_tratante,
-            'ci_paciente' => $paciente->ci,
+            'paciente_id' => $paciente->id,
             'contacto_nombre' => $request->contacto_nombre,
             'contacto_telefono' => $request->contacto_telefono,
             'contacto_parentesco' => $request->contacto_parentesco,
@@ -318,9 +319,9 @@ class HospitalizacionController extends Controller
                 'updated_at' => now(),
             ]);
 
-            if ($hospitalizacion->ci_paciente) {
+            if ($hospitalizacion->paciente_id) {
                 EpisodioService::cerrarEpisodioDelPaciente(
-                    $hospitalizacion->ci_paciente,
+                    $hospitalizacion->paciente_id,
                     Auth::id(),
                     $request->motivo_alta ?? 'alta_medica'
                 );

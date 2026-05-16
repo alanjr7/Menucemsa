@@ -747,7 +747,7 @@ $hasPermission = function($permission) use ($userPermissions) {
         const registros = [];
         for (const [tipo, estado] of Object.entries(cateringEstados)) {
             registros.push({
-                paciente_ci: internacionSeleccionada.paciente_id,
+                paciente_id: internacionSeleccionada.paciente_id,
                 tipo_comida: tipo,
                 estado: estado,
                 observaciones: null

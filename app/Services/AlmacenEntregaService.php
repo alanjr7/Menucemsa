@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class AlmacenEntregaService
 {
     public static function registrarEntrega(
-        int $pacienteCi,
+        int $pacienteId,
         int $catalogoId,
         int $cantidad,
         string $origen,
@@ -18,22 +18,22 @@ class AlmacenEntregaService
         ?string $observaciones = null
     ): AlmacenEntregaPaciente {
         $entrega = AlmacenEntregaPaciente::create([
-            'paciente_ci' => $pacienteCi,
-            'catalogo_id' => $catalogoId,
-            'cantidad' => $cantidad,
+            'paciente_id'   => $pacienteId,
+            'catalogo_id'   => $catalogoId,
+            'cantidad'      => $cantidad,
             'entregado_por' => Auth::id(),
-            'origen' => $origen,
+            'origen'        => $origen,
             'referencia_id' => $referenciaId,
             'observaciones' => $observaciones,
             'fecha_entrega' => now(),
         ]);
 
         Log::info('Medicamento entregado a paciente', [
-            'entrega_id' => $entrega->id,
-            'paciente_ci' => $pacienteCi,
+            'entrega_id'  => $entrega->id,
+            'paciente_id' => $pacienteId,
             'catalogo_id' => $catalogoId,
-            'cantidad' => $cantidad,
-            'origen' => $origen,
+            'cantidad'    => $cantidad,
+            'origen'      => $origen,
             'referencia_id' => $referenciaId,
             'entregado_por' => Auth::id(),
         ]);
@@ -42,7 +42,7 @@ class AlmacenEntregaService
     }
 
     public static function registrarEntregaMasiva(
-        int $pacienteCi,
+        int $pacienteId,
         array $medicamentos,
         string $origen,
         ?int $referenciaId = null,
@@ -50,10 +50,10 @@ class AlmacenEntregaService
     ): array {
         $entregas = [];
 
-        DB::transaction(function () use ($pacienteCi, $medicamentos, $origen, $referenciaId, $observaciones, &$entregas) {
+        DB::transaction(function () use ($pacienteId, $medicamentos, $origen, $referenciaId, $observaciones, &$entregas) {
             foreach ($medicamentos as $med) {
                 $entregas[] = self::registrarEntrega(
-                    $pacienteCi,
+                    $pacienteId,
                     $med['id'],
                     $med['cantidad'],
                     $origen,

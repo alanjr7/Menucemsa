@@ -54,7 +54,7 @@ class HabitacionApiController extends Controller
             ->with('paciente')
             ->orderBy('created_at', 'desc')
             ->get()
-            ->unique('ci_paciente')   // deduplicar: quedarse con el más reciente por CI
+            ->unique('paciente_id')
             ->values()
             ->map(fn($h) => [
                 'id' => $h->id,

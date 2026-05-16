@@ -31,7 +31,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-gray-600">Código de Emergencia: <span class="font-bold text-orange-700 text-lg">{{ $emergency->code }}</span></p>
-                    <p class="text-sm text-gray-600">ID Temporal: <span class="font-mono text-orange-700">{{ $emergency->temp_id ?? 'Sin ID temporal' }}</span></p>
+                    <p class="text-sm text-gray-600">ID Temporal: <span class="font-mono text-orange-700">{{ $emergency->paciente?->temp_code ?? 'Sin ID temporal' }}</span></p>
                     <p class="text-sm text-gray-500 mt-1">Tipo de ingreso: {{ $emergency->tipo_ingreso_label ?? 'General' }}</p>
                 </div>
             </div>

@@ -68,7 +68,7 @@ class HistorialSegurosExport implements FromCollection, WithHeadings, WithMappin
         return [
             $registro->created_at->format('d/m/Y H:i'),
             $registro->paciente?->nombre ?? 'N/A',
-            $registro->paciente_ci,
+            $registro->paciente?->ci ?? $registro->paciente?->temp_code ?? 'N/A',
             $registro->seguro?->nombre_empresa ?? 'N/A',
             $registro->tipo_atencion_label,
             number_format($registro->total_calculado, 2, '.', ''),

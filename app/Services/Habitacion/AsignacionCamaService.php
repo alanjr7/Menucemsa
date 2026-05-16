@@ -37,8 +37,8 @@ class AsignacionCamaService
 
     private function obtenerOCrearCuenta(Hospitalizacion $hospitalizacion): CuentaCobro
     {
-        $criteria = $hospitalizacion->ci_paciente
-            ? ['paciente_ci' => $hospitalizacion->ci_paciente, 'estado' => 'pendiente']
+        $criteria = $hospitalizacion->paciente_id
+            ? ['paciente_id' => $hospitalizacion->paciente_id, 'estado' => 'pendiente']
             : ['referencia_id' => $hospitalizacion->id, 'referencia_type' => Hospitalizacion::class, 'estado' => 'pendiente'];
 
         $paciente = $hospitalizacion->paciente;
@@ -48,7 +48,7 @@ class AsignacionCamaService
         return CuentaCobro::firstOrCreate(
             $criteria,
             [
-                'paciente_ci' => $hospitalizacion->ci_paciente,
+                'paciente_id' => $hospitalizacion->paciente_id,
                 'tipo_atencion' => 'internacion',
                 'referencia_id' => $hospitalizacion->id,
                 'referencia_type' => Hospitalizacion::class,

@@ -79,7 +79,7 @@ class ReceptionController extends Controller
                 ->whereDate('fecha', today())
                 ->whereNull('nro_factura') // Pendiente de pago
                 ->whereHas('consulta', function($query) use ($paciente) {
-                    $query->where('ci_paciente', $paciente->ci);
+                    $query->where('paciente_id', $paciente->id);
                 })
                 ->first();
 
@@ -131,7 +131,7 @@ class ReceptionController extends Controller
         $ci = $request->ci;
 
         // Buscar paciente existente
-        $paciente = Paciente::find($ci);
+        $paciente = Paciente::where('ci', (int) $ci)->first();
 
         if (!$paciente) {
             // Validar que todos los campos requeridos estén presentes
@@ -145,7 +145,8 @@ class ReceptionController extends Controller
             // Crear nuevo paciente con todos los campos requeridos
             $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
             $paciente = Paciente::create([
-                'ci' => $ci,
+                'ci' => (int) $ci,
+                'is_temp' => false,
                 'nombre' => $nombreCompleto,
                 'sexo' => $request->sexo,
                 'fecha_nacimiento' => $request->fecha_nacimiento,
@@ -212,7 +213,7 @@ class ReceptionController extends Controller
             'motivo' => $request->motivo,
             'observaciones' => $request->observaciones ?? '',
             'codigo_especialidad' => $this->obtenerEspecialidadCodigo($request->especialidad),
-            'ci_paciente' => $paciente->ci,
+            'paciente_id' => $paciente->id,
             'ci_medico' => $medicoId,
             'estado_pago' => false,
             'caja_id' => $caja->id,
@@ -614,6 +615,16 @@ class ReceptionController extends Controller
         try {
             DB::beginTransaction();
 
+            // Resolver paciente_id desde CI si se envía ci_paciente
+            $pacienteId = $request->paciente_id;
+            if (!$pacienteId && $request->ci_paciente) {
+                $p = \App\Models\Paciente::where('ci', (int) $request->ci_paciente)->first();
+                if (!$p) {
+                    return response()->json(['success' => false, 'message' => 'Paciente no encontrado con ese CI'], 422);
+                }
+                $pacienteId = $p->id;
+            }
+
             // Tipos de ingreso válidos
             $tiposValidos = ['consulta_externa', 'internacion', 'emergencia', 'enfermeria'];
             $tipoIngreso = in_array($request->tipo_ingreso, $tiposValidos)
@@ -645,7 +656,7 @@ class ReceptionController extends Controller
             // Solo crear la cita — NO asignar registro_codigo NI crear CuentaCobro todavía.
             // Esas acciones ocurren EXCLUSIVAMENTE cuando recepción marca "Asistió".
             $cita = Cita::create([
-                'ci_paciente'         => $request->ci_paciente,
+                'paciente_id'         => $pacienteId,
                 'ci_medico'           => $request->ci_medico,
                 'codigo_especialidad' => $request->codigo_especialidad,
                 'fecha'               => $request->fecha,
@@ -662,7 +673,7 @@ class ReceptionController extends Controller
             // Registrar en bitácora
             $this->logActivity(
                 'crear_cita',
-                'Recepción creó cita (' . $tipoIngreso . ') para paciente CI:' . $request->ci_paciente . ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora,
+                'Recepción creó cita (' . $tipoIngreso . ') para paciente ID:' . $request->paciente_id . ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora,
                 $cita
             );
 
@@ -1187,7 +1198,8 @@ class ReceptionController extends Controller
     public function getCitasPorPaciente($ci)
     {
         try {
-            $citas = Cita::where('ci_paciente', $ci)
+            $paciente = \App\Models\Paciente::where('ci', (int) $ci)->first();
+            $citas = Cita::where('paciente_id', $paciente?->id ?? 0)
                 ->with(['medico.user', 'especialidad'])
                 ->orderBy('fecha', 'desc')
                 ->orderBy('hora', 'desc')

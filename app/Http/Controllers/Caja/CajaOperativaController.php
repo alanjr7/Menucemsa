@@ -262,28 +262,28 @@ class CajaOperativaController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // Agrupar por paciente_ci para consolidar múltiples cuentas en una sola fila
-            $porPaciente = $cuentas->groupBy('paciente_ci');
+            // Agrupar por paciente_id para consolidar múltiples cuentas en una sola fila
+            $porPaciente = $cuentas->groupBy('paciente_id');
 
             $resultado = $porPaciente->map(function ($cuentasPaciente) {
                 // La más reciente es la principal (para cobrar primero)
                 $principal = $cuentasPaciente->first();
 
                 $pacienteNombre = 'N/A';
-                $pacienteCi = $principal->paciente_ci;
+                $pacienteCi = $principal->paciente?->ci ?? $principal->paciente?->temp_code;
 
                 if ($principal->paciente) {
                     $pacienteNombre = $principal->paciente->nombre;
                 } elseif ($principal->es_emergencia && $principal->referencia) {
                     $emergency = $principal->referencia;
-                    if ($emergency->patient_id) {
-                        $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                    if ($emergency->paciente_id) {
+                        $paciente = \App\Models\Paciente::find($emergency->paciente_id);
                         if ($paciente) {
                             $pacienteNombre = $paciente->nombre;
-                            $pacienteCi = $paciente->ci;
+                            $pacienteCi = $paciente->ci ?? $paciente->temp_code;
                         } else {
                             $pacienteNombre = 'Paciente Emergencia #' . $emergency->id;
-                            $pacienteCi = $emergency->patient_id;
+                            $pacienteCi = null;
                         }
                     }
                 }
@@ -355,7 +355,7 @@ class CajaOperativaController extends Controller
 
             // Todas las cuentas pendientes del mismo paciente
             $todasCuentas = CuentaCobro::with(['detalles.tarifa', 'pagos.user', 'seguro'])
-                ->where('paciente_ci', $cuentaPrincipal->paciente_ci)
+                ->where('paciente_id', $cuentaPrincipal->paciente_id)
                 ->whereIn('estado', ['pendiente', 'parcial'])
                 ->orderBy('created_at', 'asc')
                 ->get();
@@ -367,7 +367,7 @@ class CajaOperativaController extends Controller
 
             // Datos del paciente
             $pacienteNombre = 'N/A';
-            $pacienteCi = $cuentaPrincipal->paciente_ci;
+            $pacienteCi = $cuentaPrincipal->paciente?->ci ?? $cuentaPrincipal->paciente?->temp_code;
             $pacienteTelefono = 'N/A';
 
             if ($cuentaPrincipal->paciente) {
@@ -375,15 +375,15 @@ class CajaOperativaController extends Controller
                 $pacienteTelefono = $cuentaPrincipal->paciente->telefono ?? 'N/A';
             } elseif ($cuentaPrincipal->es_emergencia && $cuentaPrincipal->referencia) {
                 $emergency = $cuentaPrincipal->referencia;
-                if ($emergency->patient_id) {
-                    $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                if ($emergency->paciente_id) {
+                    $paciente = \App\Models\Paciente::find($emergency->paciente_id);
                     if ($paciente) {
                         $pacienteNombre  = $paciente->nombre;
-                        $pacienteCi      = $paciente->ci;
+                        $pacienteCi      = $paciente->ci ?? $paciente->temp_code;
                         $pacienteTelefono = $paciente->telefono ?? 'N/A';
                     } else {
                         $pacienteNombre = 'Paciente Emergencia #' . $emergency->id;
-                        $pacienteCi     = $emergency->patient_id;
+                        $pacienteCi     = null;
                     }
                 }
             }
@@ -592,7 +592,7 @@ class CajaOperativaController extends Controller
                 if ($cuentaItem->estado === 'pagado') {
                     if (!$facturaGenerada) {
                         $caja = \App\Models\Caja::whereHas('consulta', function($q) use ($cuentaItem) {
-                            $q->where('ci_paciente', $cuentaItem->paciente_ci);
+                            $q->where('paciente_id', $cuentaItem->paciente_id);
                         })->whereNull('nro_factura')->first();
                         if ($caja) {
                             $caja->update(['nro_factura' => $nroFactura]);
@@ -600,7 +600,7 @@ class CajaOperativaController extends Controller
                         }
                     }
 
-                    $consulta = \App\Models\Consulta::where('ci_paciente', $cuentaItem->paciente_ci)
+                    $consulta = \App\Models\Consulta::where('paciente_id', $cuentaItem->paciente_id)
                         ->where('estado_pago', false)
                         ->whereDate('fecha', today())
                         ->first();
@@ -623,8 +623,8 @@ class CajaOperativaController extends Controller
                 $nombrePaciente = $cuenta->paciente->nombre;
             } elseif ($cuenta->es_emergencia && $cuenta->referencia) {
                 $emergency = $cuenta->referencia;
-                if ($emergency->patient_id) {
-                    $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                if ($emergency->paciente_id) {
+                    $paciente = \App\Models\Paciente::find($emergency->paciente_id);
                     $nombrePaciente = $paciente?->nombre ?? 'Paciente Emergencia #' . $emergency->id;
                 }
             }

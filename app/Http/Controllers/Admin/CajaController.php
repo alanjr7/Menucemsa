@@ -144,7 +144,7 @@ class CajaController extends Controller
                     return [
                         'id' => $consulta->id,
                         'tipo' => 'consulta',
-                        'paciente_ci' => $consulta->ci_paciente,
+                        'paciente_ci' => $consulta->paciente?->ci ?? $consulta->paciente?->temp_code,
                         'paciente_nombre' => $consulta->paciente->nombre,
                         'concepto' => 'Consulta Externa',
                         'monto' => 150.00, // Valor por defecto
@@ -163,8 +163,8 @@ class CajaController extends Controller
                     return [
                         'id' => $emergency->id,
                         'tipo' => 'emergencia',
-                        'paciente_ci' => $emergency->patient->dni ?? 'N/A',
-                        'paciente_nombre' => $emergency->patient->name,
+                        'paciente_ci' => $emergency->paciente?->ci ?? $emergency->paciente?->temp_code ?? 'N/A',
+                        'paciente_nombre' => $emergency->paciente?->nombre ?? 'N/A',
                         'concepto' => 'Emergencia - ' . $emergency->code,
                         'monto' => $emergency->cost,
                         'fecha' => $emergency->created_at->format('Y-m-d H:i:s'),
@@ -215,7 +215,7 @@ class CajaController extends Controller
     {
         try {
             $request->validate([
-                'paciente_ci' => 'required|string',
+                'paciente_id' => 'required|integer|exists:pacientes,id',
                 'paciente_nombre' => 'required|string',
                 'concepto' => 'required|string',
                 'monto' => 'required|numeric|min:0',
@@ -226,7 +226,7 @@ class CajaController extends Controller
             ]);
 
             // Buscar paciente para generar código basado en sus datos
-            $paciente = \App\Models\Paciente::find($request->paciente_ci);
+            $paciente = \App\Models\Paciente::find($request->paciente_id);
             if ($paciente) {
                 \App\Models\Caja::$patientContext = $paciente;
             }
@@ -265,7 +265,7 @@ class CajaController extends Controller
                     'motivo' => $request->concepto,
                     'observaciones' => 'Cobro realizado en caja central - Médico: ' . $request->medico_ci,
                     'codigo_especialidad' => 'ESP001', // Especialidad por defecto (Medicina General)
-                    'ci_paciente' => $request->paciente_ci,
+                    'paciente_id' => $request->paciente_id,
                     'ci_medico' => $request->medico_ci,
                     'estado_pago' => true, // Pagado
                     'caja_id' => $movimiento->id,
@@ -285,7 +285,7 @@ class CajaController extends Controller
                     'movimiento_id' => $movimiento->id,
                     'consulta_nro' => $consulta->nro,
                     'monto' => $request->monto,
-                    'paciente_ci' => $request->paciente_ci,
+                    'paciente_id' => $request->paciente_id,
                     'medico_ci' => $request->medico_ci
                 ]);
 

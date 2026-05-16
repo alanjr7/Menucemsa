@@ -175,7 +175,7 @@
 
                                         <form method="POST" action="{{ route('internacion-staff.habitaciones.registro-uso.store') }}">
                                             @csrf
-                                            <input type="hidden" name="paciente_ci" value="{{ $paciente->ci }}">
+                                            <input type="hidden" name="paciente_id" value="{{ $paciente->id }}">
 
                                             <div class="space-y-4">
                                                 <div>

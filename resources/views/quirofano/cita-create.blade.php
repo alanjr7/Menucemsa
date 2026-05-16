@@ -54,7 +54,7 @@
                             </div>
 
                             <!-- CI del Paciente (oculto pero se envía) -->
-                            <input type="hidden" name="ci_paciente" id="ci_paciente">
+                            <input type="hidden" name="paciente_id" id="paciente_id">
 
                             <!-- Info del paciente seleccionado -->
                             <div id="info_paciente" class="hidden bg-blue-50 rounded-lg p-4 border border-blue-100">
@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = Object.fromEntries(formData.entries());
         
         // Validación básica
-        if (!data.ci_paciente || !data.ci_cirujano || !data.nro_quirofano || !data.tipo_cirugia || !data.fecha || !data.hora_inicio_estimada) {
+        if (!data.paciente_id || !data.ci_cirujano || !data.nro_quirofano || !data.tipo_cirugia || !data.fecha || !data.hora_inicio_estimada) {
             alert('Por favor completa todos los campos requeridos.\n\nBusque y seleccione un paciente y un cirujano.');
             return;
         }
@@ -433,9 +433,9 @@ function mostrarResultadosPacientes(resultados) {
     }
     
     container.innerHTML = resultados.map(p => `
-        <div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarPaciente(${p.ci}, '${p.nombre.replace(/'/g, "\\'")}')">
+        <div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarPaciente(${p.id}, ${p.ci ?? ''}, '${p.nombre.replace(/'/g, "\\'")}')">
             <div class="font-medium text-gray-900">${p.nombre}</div>
-            <div class="text-xs text-gray-500">CI: ${p.ci}${p.telefono ? ' - Tel: ' + p.telefono : ''}</div>
+            <div class="text-xs text-gray-500">CI: ${p.ci ?? p.temp_code ?? 'N/A'}${p.telefono ? ' - Tel: ' + p.telefono : ''}</div>
         </div>
     `).join('');
     
@@ -463,10 +463,10 @@ function mostrarResultadosCirujanos(resultados) {
 }
 
 // Seleccionar paciente
-function seleccionarPaciente(ci, nombre) {
-    document.getElementById('ci_paciente').value = ci;
+function seleccionarPaciente(id, ci, nombre) {
+    document.getElementById('paciente_id').value = id;
     document.getElementById('nombre_paciente').textContent = nombre;
-    document.getElementById('ci_paciente_display').textContent = 'CI: ' + ci;
+    document.getElementById('ci_paciente_display').textContent = ci ? 'CI: ' + ci : '';
     document.getElementById('info_paciente').classList.remove('hidden');
     document.getElementById('buscar_paciente').value = '';
     document.getElementById('resultados_paciente').classList.add('hidden');
@@ -484,7 +484,7 @@ function seleccionarCirujano(ci, nombre) {
 
 // Limpiar selección de paciente
 function limpiarPaciente() {
-    document.getElementById('ci_paciente').value = '';
+    document.getElementById('paciente_id').value = '';
     document.getElementById('info_paciente').classList.add('hidden');
     document.getElementById('buscar_paciente').value = '';
 }

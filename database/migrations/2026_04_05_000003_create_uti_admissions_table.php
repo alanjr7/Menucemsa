@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('uti_admissions', function (Blueprint $table) {
             $table->id();
-            $table->integer('patient_id');
+            $table->unsignedBigInteger('paciente_id');
             $table->unsignedBigInteger('bed_id')->nullable();
             $table->string('nro_ingreso', 20)->unique();
             $table->unsignedBigInteger('emergency_id')->nullable();
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('patient_id')->references('ci')->on('pacientes');
+            $table->foreign('paciente_id')->references('id')->on('pacientes');
             $table->foreign('bed_id')->references('id')->on('uti_beds');
             $table->foreign('seguro_id')->references('id')->on('seguros');
             $table->foreign('medico_responsable_ci')->references('ci')->on('medicos');

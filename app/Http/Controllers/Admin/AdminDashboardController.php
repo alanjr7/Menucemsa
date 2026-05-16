@@ -304,13 +304,13 @@ class AdminDashboardController extends Controller
             // Contar pacientes únicos atendidos (consultas + emergencias)
             $pacientesConsultas = Consulta::whereMonth('fecha', $fecha->month)
                 ->whereYear('fecha', $fecha->year)
-                ->distinct('ci_paciente')
-                ->count('ci_paciente');
+                ->distinct('paciente_id')
+                ->count('paciente_id');
 
             $pacientesEmergencias = Emergency::whereMonth('created_at', $fecha->month)
                 ->whereYear('created_at', $fecha->year)
-                ->distinct('patient_id')
-                ->count('patient_id');
+                ->distinct('paciente_id')
+                ->count('paciente_id');
 
             $pacientesPorMes[] = $pacientesConsultas + $pacientesEmergencias;
 

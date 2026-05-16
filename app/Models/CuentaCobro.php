@@ -19,7 +19,7 @@ class CuentaCobro extends Model
     protected $keyType = 'string';
     
     protected $fillable = [
-        'paciente_ci',
+        'paciente_id',
         'tipo_atencion',
         'referencia_id',
         'referencia_type',
@@ -73,7 +73,7 @@ class CuentaCobro extends Model
     // Relaciones
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function referencia(): MorphTo

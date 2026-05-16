@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('cuenta_cobros', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->string('paciente_ci', 50)->nullable();
+            $table->unsignedBigInteger('paciente_id')->nullable();
             $table->string('tipo_atencion');
             $table->string('referencia_id')->nullable();
             $table->string('referencia_type')->nullable();
@@ -38,7 +38,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['paciente_ci', 'estado']);
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->nullOnDelete();
+            $table->index(['paciente_id', 'estado']);
             $table->index(['estado', 'created_at']);
         });
     }

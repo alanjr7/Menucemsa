@@ -17,7 +17,7 @@ class Cita extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'ci_paciente',
+        'paciente_id',
         'ci_medico',
         'codigo_especialidad',
         'fecha',
@@ -57,7 +57,7 @@ class Cita extends Model
     // Relaciones
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function medico(): BelongsTo

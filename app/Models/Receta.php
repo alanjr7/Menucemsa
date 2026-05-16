@@ -47,9 +47,9 @@ class Receta extends Model
             \App\Models\Paciente::class,
             \App\Models\Consulta::class,
             'id',
-            'ci',
+            'id',
             'consulta_id',
-            'ci_paciente'
+            'paciente_id'
         );
     }
 }

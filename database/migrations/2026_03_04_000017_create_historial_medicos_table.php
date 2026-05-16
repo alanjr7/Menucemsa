@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('historial_medicos', function (Blueprint $table) {
             $table->id();
-            $table->integer('ci_paciente');
+            $table->unsignedBigInteger('paciente_id');
             $table->date('fecha');
             $table->text('detalle');
             $table->text('observaciones')->nullable();
             $table->string('alergias', 255)->nullable();
             $table->foreignId('user_medico_id')->constrained('users')->onDelete('cascade');
-            $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('cascade');
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->onDelete('cascade');
             $table->unsignedBigInteger('episodio_id')->nullable();
             $table->timestamps();
         });

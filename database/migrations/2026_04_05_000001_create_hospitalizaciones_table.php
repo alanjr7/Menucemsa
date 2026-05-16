@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('hospitalizaciones', function (Blueprint $table) {
             $table->string('id', 30)->primary();
-            $table->integer('ci_paciente')->nullable();
+            $table->unsignedBigInteger('paciente_id')->nullable();
             $table->integer('ci_medico')->nullable();
             $table->string('habitacion_id', 20)->nullable();
             $table->unsignedBigInteger('cama_id')->nullable();
@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('contacto_telefono', 20)->nullable();
             $table->string('contacto_parentesco', 50)->nullable();
             $table->string('contacto_relacion', 100)->nullable();
-            $table->foreign('ci_paciente')->references('ci')->on('pacientes')->onDelete('set null');
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->onDelete('set null');
             $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null');
             $table->foreign('habitacion_id')->references('id')->on('habitaciones')->onDelete('set null');
             $table->foreign('cama_id')->references('id')->on('camas')->onDelete('set null');

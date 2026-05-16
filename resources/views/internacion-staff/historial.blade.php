@@ -114,7 +114,7 @@
                     <div class="flex items-center gap-3 mt-1">
                         <span class="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{{ $hospitalizacion->id }}</span>
                         <span class="text-sm text-slate-400">|</span>
-                        <span class="text-sm text-slate-600">CI: {{ $hospitalizacion->ci_paciente }}</span>
+                        <span class="text-sm text-slate-600">CI: {{ $hospitalizacion->paciente?->ci ?? $hospitalizacion->paciente?->temp_code ?? '—' }}</span>
                     </div>
                 </div>
             </div>

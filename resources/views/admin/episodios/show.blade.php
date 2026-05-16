@@ -5,7 +5,7 @@
 
     {{-- Header --}}
     <div class="mb-5">
-        <a href="{{ route('admin.episodios.paciente', $episodio->paciente_ci) }}" class="text-sm text-blue-600 hover:underline">
+        <a href="{{ route('admin.episodios.paciente', $episodio->paciente?->ci ?? $episodio->paciente?->temp_code) }}" class="text-sm text-blue-600 hover:underline">
             &larr; Episodios de {{ $episodio->paciente?->nombre }}
         </a>
         <div class="flex items-center gap-3 mt-2 flex-wrap">
@@ -57,7 +57,7 @@
             <div class="bg-white rounded-lg border border-gray-800 p-4">
                 <p class="text-xs font-medium text-gray-800 uppercase tracking-wide mb-2">Paciente</p>
                 <p class="text-sm font-semibold text-gray-800">{{ $episodio->paciente?->nombre ?? '—' }}</p>
-                <p class="text-sm text-gray-500">CI: {{ $episodio->paciente_ci }}</p>
+                <p class="text-sm text-gray-500">CI: {{ $episodio->paciente?->ci ?? $episodio->paciente?->temp_code ?? '—' }}</p>
                 @if($episodio->tipo_ingreso)
                     <p class="text-sm text-gray-500 mt-0.5">Tipo: {{ ucfirst($episodio->tipo_ingreso) }}</p>
                 @endif

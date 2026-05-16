@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('almacen_entregas_paciente', function (Blueprint $table) {
             $table->id();
-            $table->integer('paciente_ci');
-            $table->foreign('paciente_ci')->references('ci')->on('pacientes')->restrictOnDelete();
+            $table->unsignedBigInteger('paciente_id');
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->restrictOnDelete();
             $table->foreignId('entregado_por')->constrained('users')->restrictOnDelete();
             $table->enum('origen', ['emergencia', 'internacion', 'uti', 'cirugia', 'almacen', 'neonato'])->default('almacen');
             $table->unsignedBigInteger('referencia_id')->nullable();
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('fecha_entrega')->useCurrent();
             $table->timestamps();
 
-            $table->index(['paciente_ci', 'fecha_entrega']);
+            $table->index(['paciente_id', 'fecha_entrega']);
         });
     }
 

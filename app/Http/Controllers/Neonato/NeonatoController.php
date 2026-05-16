@@ -33,16 +33,13 @@ class NeonatoController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('temp_id', 'like', "%{$search}%")
-                  ->orWhere('madre_nombre', 'like', "%{$search}%")
-                  ->orWhere('madre_ci', 'like', "%{$search}%");
+                  ->orWhere('madre_nombre', 'like', "%{$search}%");
             });
         }
 
         if ($status = $request->get('status')) {
             $query->where('status', $status);
         } else {
-            // Por defecto solo activos
             $query->whereNotIn('status', ['alta', 'fallecido']);
         }
 
@@ -88,16 +85,35 @@ class NeonatoController extends Controller
             $madre = Paciente::where('ci', $data['madre_ci'])->first();
         }
 
-        $neonato = Neonato::create([
-            ...$data,
-            'madre_nombre'  => $madre?->nombre,
-            'temp_id'       => Neonato::generateTempId(),
-            'is_temp_id'    => true,
-            'code'          => Neonato::generateCode(),
-            'status'        => 'recibido',
-            'admission_date'=> now(),
-            'user_id'       => auth()->id(),
-        ]);
+        $neonato = null;
+
+        DB::transaction(function () use ($data, $madre, &$neonato) {
+            $paciente = Paciente::create([
+                'nombre'    => $data['nombre'] ?: 'Recién Nacido',
+                'temp_code' => Neonato::generateTempCode(),
+                'is_temp'   => true,
+            ]);
+
+            $neonato = Neonato::create([
+                'nombre'               => $data['nombre'] ?? null,
+                'sexo'                 => $data['sexo'] ?? null,
+                'peso'                 => $data['peso'] ?? null,
+                'talla'                => $data['talla'] ?? null,
+                'perimetro_cefalico'   => $data['perimetro_cefalico'] ?? null,
+                'apgar1'               => $data['apgar1'] ?? null,
+                'apgar5'               => $data['apgar5'] ?? null,
+                'tipo_parto'           => $data['tipo_parto'] ?? null,
+                'fecha_hora_nacimiento'=> $data['fecha_hora_nacimiento'] ?? null,
+                'observaciones'        => $data['observaciones'] ?? null,
+                'madre_nombre'         => $madre?->nombre,
+                'madre_id'             => $madre?->id,
+                'paciente_id'          => $paciente->id,
+                'code'                 => Neonato::generateCode(),
+                'status'               => 'recibido',
+                'admission_date'       => now(),
+                'user_id'              => auth()->id(),
+            ]);
+        });
 
         return redirect()->route('neonato.show', $neonato->id)
             ->with('success', 'Recién nacido registrado. Código: ' . $neonato->code);
@@ -146,12 +162,12 @@ class NeonatoController extends Controller
     public function historial(Neonato $neonato): View
     {
         $evaluaciones = Evaluacion::where('area', 'neonato')
-            ->where('temp_id', $neonato->temp_id)
+            ->where('paciente_id', $neonato->paciente_id)
             ->with(['user', 'items'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
-        $usosCunas = CamillaUso::where('paciente_ci', $neonato->temp_id)
+        $usosCunas = CamillaUso::where('paciente_id', $neonato->paciente_id)
             ->whereHas('camilla', fn($q) => $q->where('area', 'neonato'))
             ->with('camilla')
             ->orderBy('fecha_inicio', 'desc')
@@ -193,31 +209,31 @@ class NeonatoController extends Controller
         DB::transaction(function () use ($request, $neonato) {
             $sv = $request->input('signos_vitales', []);
             $signosVitales = array_filter([
-                'temperatura'          => $sv['temperatura'] ?? null,
-                'frecuencia_cardiaca'  => $sv['frecuencia_cardiaca'] ?? null,
+                'temperatura'             => $sv['temperatura'] ?? null,
+                'frecuencia_cardiaca'     => $sv['frecuencia_cardiaca'] ?? null,
                 'frecuencia_respiratoria' => $sv['frecuencia_respiratoria'] ?? null,
-                'saturacion_o2'        => $sv['saturacion_o2'] ?? null,
-                'glucosa'              => $sv['glucosa'] ?? null,
-                'peso_actual'          => isset($sv['peso_actual']) && $sv['peso_actual'] > 0 ? (float)$sv['peso_actual'] : null,
-                'color_piel'           => $sv['color_piel'] ?? null,
-                'tono_muscular'        => $sv['tono_muscular'] ?? null,
+                'saturacion_o2'           => $sv['saturacion_o2'] ?? null,
+                'glucosa'                 => $sv['glucosa'] ?? null,
+                'peso_actual'             => isset($sv['peso_actual']) && $sv['peso_actual'] > 0 ? (float)$sv['peso_actual'] : null,
+                'color_piel'              => $sv['color_piel'] ?? null,
+                'tono_muscular'           => $sv['tono_muscular'] ?? null,
             ]);
 
             $evaluacion = Evaluacion::create([
-                'temp_id'        => $neonato->temp_id,
+                'paciente_id'    => $neonato->paciente_id,
                 'area'           => 'neonato',
                 'user_id'        => auth()->id(),
                 'observaciones'  => $request->observaciones,
                 'signos_vitales' => !empty($signosVitales) ? $signosVitales : null,
             ]);
 
-            $billingCi = $neonato->billing_ci;
-            $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($billingCi, 'neonato');
+            $billingPacienteId = $neonato->madre_id ?? $neonato->paciente_id;
+            $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($billingPacienteId, 'neonato');
 
             foreach ($request->input('items', []) as $item) {
-                $precio    = (float)($item['precio'] ?? 0);
-                $cantidad  = (int)$item['cantidad'];
-                $tipoItem  = $item['tipo'] === 'procedimiento' ? 'procedimiento' : 'medicamento';
+                $precio   = (float)($item['precio'] ?? 0);
+                $cantidad = (int)$item['cantidad'];
+                $tipoItem = $item['tipo'] === 'procedimiento' ? 'procedimiento' : 'medicamento';
 
                 $ei = EvaluacionItem::create([
                     'evaluacion_id'   => $evaluacion->id,
@@ -228,7 +244,6 @@ class NeonatoController extends Controller
                     'precio_snapshot' => $precio,
                 ]);
 
-                // Descontar stock
                 if ($item['tipo'] === 'medicamento' || $item['tipo'] === 'insumo') {
                     $stock = AlmacenStock::whereHas('lote', fn($q) => $q->where('catalogo_id', $item['item_id']))
                         ->where('ubicacion', 'neonato')
@@ -236,16 +251,13 @@ class NeonatoController extends Controller
                         ->first();
                     if ($stock) {
                         $stock->decrement('cantidad_actual', $cantidad);
-                        $pacienteCiInt = is_numeric($neonato->billing_ci) ? (int) $neonato->billing_ci : null;
-                        if ($pacienteCiInt) {
-                            AlmacenEntregaService::registrarEntrega(
-                                $pacienteCiInt,
-                                (int) $item['item_id'],
-                                $cantidad,
-                                'neonato',
-                                $neonato->id
-                            );
-                        }
+                        AlmacenEntregaService::registrarEntrega(
+                            $neonato->paciente_id,
+                            (int) $item['item_id'],
+                            $cantidad,
+                            'neonato',
+                            $neonato->id
+                        );
                     }
                 }
 
@@ -288,7 +300,6 @@ class NeonatoController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('temp_id', 'like', "%{$search}%")
                   ->orWhere('madre_nombre', 'like', "%{$search}%");
             });
         }
@@ -323,8 +334,8 @@ class NeonatoController extends Controller
         $mm = (int)bcround(bcmul(bcsub($horas, (string)$hh, 4), '60', 4), 0);
         $tiempoLabel = $mm > 0 ? "{$hh}h {$mm}min" : "{$hh}h";
 
-        $billingCi = $neonato->billing_ci;
-        $cuenta    = CuentaCobroService::obtenerOCrearCuentaMaestra($billingCi, 'neonato');
+        $billingPacienteId = $neonato->madre_id ?? $neonato->paciente_id;
+        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($billingPacienteId, 'neonato');
 
         $detalle = CuentaCobroDetalle::create([
             'cuenta_cobro_id' => $cuenta->id,
@@ -338,7 +349,7 @@ class NeonatoController extends Controller
 
         $uso = CamillaUso::create([
             'camilla_id'              => $cuna->id,
-            'paciente_ci'             => $neonato->temp_id,
+            'paciente_id'             => $neonato->paciente_id,
             'fecha_inicio'            => $inicio,
             'fecha_fin'               => $fin,
             'costo_calculado'         => $costo,
@@ -371,12 +382,10 @@ class NeonatoController extends Controller
         return view('admin.neonato.medicamentos', compact('stocks'));
     }
 
-    // -------------------------------------------------------------------------
-    // Procedimientos — solo lectura
     public function destroyEvaluacion(Neonato $neonato, Evaluacion $evaluacion): RedirectResponse
     {
         abort_unless(
-            $evaluacion->area === 'neonato' && $evaluacion->temp_id === $neonato->temp_id,
+            $evaluacion->area === 'neonato' && $evaluacion->paciente_id === $neonato->paciente_id,
             403
         );
 

@@ -43,15 +43,15 @@ class CuentaCobrarController extends Controller
                 $pacienteNombre = 'N/A';
                 if ($cuenta->paciente) {
                     $pacienteNombre = $cuenta->paciente->nombre;
-                } elseif ($emergency && $emergency->patient_id) {
-                    $paciente = Paciente::find($emergency->patient_id);
-                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->patient_id;
+                } elseif ($emergency && $emergency->paciente_id) {
+                    $paciente = Paciente::find($emergency->paciente_id);
+                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->paciente_id;
                 }
                 
                 return [
                     'id' => $cuenta->id,
                     'paciente_nombre' => $pacienteNombre,
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
                     'total_calculado' => $cuenta->total_calculado,
                     'total_pagado' => $cuenta->total_pagado,
@@ -83,16 +83,16 @@ class CuentaCobrarController extends Controller
                 $pacienteNombre = 'N/A';
                 if ($cuenta->paciente) {
                     $pacienteNombre = $cuenta->paciente->nombre;
-                } elseif ($emergency && $emergency->patient_id) {
+                } elseif ($emergency && $emergency->paciente_id) {
                     // Buscar paciente por patient_id de la emergencia
-                    $paciente = Paciente::find($emergency->patient_id);
-                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->patient_id;
+                    $paciente = Paciente::find($emergency->paciente_id);
+                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->paciente_id;
                 }
                 
                 return [
                     'id' => $cuenta->id,
                     'paciente' => $pacienteNombre,
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'emergency_code' => $emergency?->code,
                     'ubicacion_actual' => $emergency?->ubicacion_actual,
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
@@ -101,7 +101,7 @@ class CuentaCobrarController extends Controller
                     'saldo' => $cuenta->saldo_pendiente,
                     'estado' => $cuenta->estado,
                     'fecha' => $cuenta->created_at->format('Y-m-d'),
-                    'es_temporal' => $emergency?->is_temp_id ?? false,
+                    'es_temporal' => $emergency?->paciente?->is_temp ?? false,
                 ];
             });
 
@@ -130,7 +130,7 @@ class CuentaCobrarController extends Controller
                 return [
                     'id' => $cuenta->id,
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
                     'estado' => $cuenta->estado,
                     'estado_label' => $cuenta->estado_label,
@@ -170,7 +170,7 @@ class CuentaCobrarController extends Controller
             'cuenta' => [
                 'id' => $cuenta->id,
                 'paciente' => [
-                    'ci' => $cuenta->paciente_ci,
+                    'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'nombre' => $cuenta->paciente?->nombre ?? 'N/A',
                     'telefono' => $cuenta->paciente?->telefono,
                 ],
@@ -203,7 +203,7 @@ class CuentaCobrarController extends Controller
                     'code' => $emergency->code,
                     'status' => $emergency->status,
                     'ubicacion_actual' => $emergency->ubicacion_actual,
-                    'is_temp_id' => $emergency->is_temp_id,
+                    'is_temp_id' => $emergency->paciente?->is_temp ?? false,
                 ] : null,
             ],
         ]);
@@ -331,7 +331,7 @@ class CuentaCobrarController extends Controller
                 return [
                     'id' => $cuenta->id,
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'emergency_code' => $emergency?->code,
                     'emergency_status' => $emergency?->status,
                     'ubicacion_actual' => $emergency?->ubicacion_actual,
@@ -341,7 +341,7 @@ class CuentaCobrarController extends Controller
                     'saldo' => $cuenta->saldo_pendiente,
                     'estado' => $cuenta->estado,
                     'fecha' => $cuenta->created_at->format('Y-m-d H:i'),
-                    'es_temporal' => $emergency?->is_temp_id ?? false,
+                    'es_temporal' => $emergency?->paciente?->is_temp ?? false,
                 ];
             });
 

@@ -6,7 +6,7 @@
     <div class="flex justify-between items-start mb-8">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">{{ $neonato->nombre_display }}</h1>
-            <p class="text-sm text-gray-500">{{ $neonato->code }} · {{ $neonato->temp_id }}</p>
+            <p class="text-sm text-gray-500">{{ $neonato->code }} · {{ $neonato->paciente?->temp_code }}</p>
         </div>
         <a href="{{ route('admin.neonato.recien-nacidos') }}"
             class="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">← Volver</a>

@@ -82,7 +82,7 @@ class HospitalizacionController extends Controller
 
                         // Registrar entrega al paciente
                         AlmacenEntregaService::registrarEntrega(
-                            $hospitalizacion->ci_paciente,
+                            $hospitalizacion->paciente_id,
                             $catalogo->id,
                             $med['cantidad'],
                             'internacion',
@@ -111,10 +111,10 @@ class HospitalizacionController extends Controller
             }
 
             // 4. Obtener o crear cuenta de cobro (sin agregar tarifa base si ya existe)
-            $pacienteCi = $hospitalizacion->ci_paciente;
-            if ($pacienteCi) {
+            $pacienteId = $hospitalizacion->paciente_id;
+            if ($pacienteId) {
                 $cuenta = CuentaCobroService::obtenerOCrearCuentaInternacion(
-                    (string) $pacienteCi,
+                    $pacienteId,
                     $hospitalizacion->id,
                     $hospitalizacion->paciente?->seguro?->id
                 );

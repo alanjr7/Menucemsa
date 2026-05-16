@@ -8,13 +8,13 @@ class Evaluacion extends Model
 {
     protected $table = 'evaluaciones';
 
-    protected $fillable = ['paciente_ci', 'temp_id', 'area', 'user_id', 'observaciones', 'signos_vitales', 'episodio_id'];
+    protected $fillable = ['paciente_id', 'area', 'user_id', 'observaciones', 'signos_vitales', 'episodio_id'];
 
     protected $casts = ['signos_vitales' => 'array'];
 
     public function paciente()
     {
-        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function user()

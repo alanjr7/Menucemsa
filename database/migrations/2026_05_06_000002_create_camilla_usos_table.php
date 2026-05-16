@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('camilla_usos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('camilla_id')->constrained('camillas')->cascadeOnDelete();
-            $table->string('paciente_ci', 30)->index();
+            $table->unsignedBigInteger('paciente_id')->index();
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->restrictOnDelete();
             $table->dateTime('fecha_inicio');
             $table->dateTime('fecha_fin');
             $table->decimal('costo_calculado', 10, 2)->default(0);

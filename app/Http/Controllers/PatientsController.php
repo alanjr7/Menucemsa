@@ -30,8 +30,12 @@ class PatientsController extends Controller
                     $q->orderBy('created_at', 'desc')->limit(1);
                 }
             ])
-            ->whereHas('registro') // Solo pacientes con registro
-            ->whereHas('episodioAbierto'); // Solo pacientes con episodio activo
+            ->where(function($q) {
+                $q->whereHas('episodioAbierto')
+                  ->orWhereHas('emergencias', function($eq) {
+                      $eq->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
+                  });
+            });
 
         // Búsqueda
         if ($request->filled('search')) {
@@ -39,6 +43,7 @@ class PatientsController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('nombre', 'LIKE', "%{$search}%")
                   ->orWhere('ci', 'LIKE', "%{$search}%")
+                  ->orWhere('temp_code', 'LIKE', "%{$search}%")
                   ->orWhereHas('registro', function($rq) use ($search) {
                       $rq->where('codigo', 'LIKE', "%{$search}%");
                   });
@@ -61,39 +66,8 @@ class PatientsController extends Controller
 
         $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
 
-        // Obtener pacientes temporales de emergencias (que no están en tabla pacientes)
-        $emergencyQuery = Emergency::where('is_temp_id', true)
-            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
-
-        // Aplicar búsqueda también a emergencias temporales
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $emergencyQuery->where(function($q) use ($search) {
-                $q->where('temp_id', 'LIKE', "%{$search}%")
-                  ->orWhere('code', 'LIKE', "%{$search}%");
-            });
-        }
-
-        $pacientesTemporales = $emergencyQuery->orderBy('created_at', 'desc')->get()->map(function($emergency) {
-            return (object)[
-                'ci' => $emergency->temp_id,
-                'nombre' => 'Paciente Temporal - Emergencia',
-                'sexo' => null,
-                'direccion' => null,
-                'telefono' => null,
-                'correo' => null,
-                'codigo_registro' => null,
-                'codigo_seguro' => null,
-                'id_triage' => null,
-                'is_temporal' => true,
-                'emergency_id' => $emergency->id,
-                'emergency_code' => $emergency->code,
-                'emergency_status' => $emergency->status,
-                'created_at' => $emergency->created_at,
-                'tipo_ingreso' => $emergency->tipo_ingreso_label,
-                'ubicacion_actual' => $emergency->ubicacion_actual,
-            ];
-        });
+        // Temp patients are now real Paciente records with is_temp=true — no separate query needed
+        $pacientesTemporales = collect();
 
         // Combinar colecciones si no hay filtro de estado específico o si es 'emergencia'
         if (!$request->filled('estado') || $request->estado === 'emergencia') {
@@ -128,7 +102,11 @@ class PatientsController extends Controller
 
         // Estadísticas
         $stats = [
-            'total' => Paciente::whereHas('registro')->count() + $pacientesTemporales->count(),
+            'total' => Paciente::where(function($q) {
+                $q->whereHas('episodioAbierto')->orWhereHas('emergencias', function($eq) {
+                    $eq->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
+                });
+            })->count(),
             'hospitalizados' => Paciente::whereHas('hospitalizaciones', function($q) {
                 $q->where('estado', 'Activo');
             })->count(),
@@ -207,6 +185,7 @@ class PatientsController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('nombre', 'LIKE', "%{$search}%")
                   ->orWhere('ci', 'LIKE', "%{$search}%")
+                  ->orWhere('temp_code', 'LIKE', "%{$search}%")
                   ->orWhereHas('registro', function($rq) use ($search) {
                       $rq->where('codigo', 'LIKE', "%{$search}%");
                   });
@@ -229,56 +208,7 @@ class PatientsController extends Controller
 
         $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
 
-        // Obtener pacientes temporales de emergencias
-        $emergencyQuery = Emergency::where('is_temp_id', true)
-            ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
-
-        // Aplicar búsqueda también a emergencias temporales
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $emergencyQuery->where(function($q) use ($search) {
-                $q->where('temp_id', 'LIKE', "%{$search}%")
-                  ->orWhere('code', 'LIKE', "%{$search}%");
-            });
-        }
-
-        $pacientesTemporales = $emergencyQuery->orderBy('created_at', 'desc')->get()->map(function($emergency) {
-            return (object)[
-                'ci' => $emergency->temp_id,
-                'nombre' => 'Paciente Temporal - Emergencia',
-                'sexo' => null,
-                'direccion' => null,
-                'telefono' => null,
-                'correo' => null,
-                'codigo_registro' => null,
-                'codigo_seguro' => null,
-                'id_triage' => null,
-                'is_temporal' => true,
-                'emergency_id' => $emergency->id,
-                'emergency_code' => $emergency->code,
-                'emergency_status' => $emergency->status,
-                'created_at' => $emergency->created_at,
-                'tipo_ingreso' => $emergency->tipo_ingreso_label,
-                'ubicacion_actual' => $emergency->ubicacion_actual,
-            ];
-        });
-
-        // Combinar colecciones si no hay filtro de estado específico o si es 'emergencia'
-        if (!$request->filled('estado') || $request->estado === 'emergencia') {
-            $pacientesCollection = collect($pacientes->items());
-            $todosPacientes = $pacientesCollection->merge($pacientesTemporales)->sortByDesc('created_at');
-            
-            $page = $request->get('page', 1);
-            $perPage = 15;
-            $total = $todosPacientes->count();
-            $pacientes = new \Illuminate\Pagination\LengthAwarePaginator(
-                $todosPacientes->forPage($page, $perPage)->values(),
-                $total,
-                $perPage,
-                $page,
-                ['path' => $request->url(), 'query' => $request->query()]
-            );
-        }
+        $pacientesTemporales = collect();
 
         // Agregar información de tipo de ingreso
         $pacientes->getCollection()->transform(function($paciente) {
@@ -292,7 +222,11 @@ class PatientsController extends Controller
 
         // Estadísticas adicionales para admin
         $stats = [
-            'total' => Paciente::whereHas('registro')->count() + $pacientesTemporales->count(),
+            'total' => Paciente::where(function($q) {
+                $q->whereHas('episodioAbierto')->orWhereHas('emergencias', function($eq) {
+                    $eq->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
+                });
+            })->count(),
             'hospitalizados' => Paciente::whereHas('hospitalizaciones', function($q) {
                 $q->where('estado', 'Activo');
             })->count(),
@@ -308,11 +242,11 @@ class PatientsController extends Controller
         return view('admin.pacientes.gestionar', compact('pacientes', 'stats'));
     }
 
-    public function show($ci): View
+    public function show($id): View
     {
         $paciente = Paciente::with([
             'seguro',
-            'triage', 
+            'triage',
             'registro.user',
             'consultas' => function($q) {
                 $q->with(['medico.user', 'especialidad', 'caja'])
@@ -326,16 +260,16 @@ class PatientsController extends Controller
                 $q->with(['medico.user'])
                   ->orderBy('fecha_ingreso', 'desc');
             }
-        ])->findOrFail($ci);
+        ])->findOrFail($id);
 
         return view('patients.show', compact('paciente'));
     }
 
-    public function print($ci): View
+    public function print($id): View
     {
         $paciente = Paciente::with([
             'seguro',
-            'triage', 
+            'triage',
             'registro.user',
             'consultas' => function($q) {
                 $q->with(['medico.user', 'especialidad', 'caja'])
@@ -349,7 +283,7 @@ class PatientsController extends Controller
                 $q->with(['medico.user', 'medicamentos', 'equiposMedicos', 'habitacion'])
                   ->orderBy('fecha_ingreso', 'desc');
             }
-        ])->findOrFail($ci);
+        ])->findOrFail($id);
 
         // Obtener información del garante si existe
         $garante = null;
@@ -363,22 +297,22 @@ class PatientsController extends Controller
     /**
      * Mostrar formulario para editar paciente
      */
-    public function edit($ci): View
+    public function edit($id): View
     {
-        $paciente = Paciente::findOrFail($ci);
+        $paciente = Paciente::findOrFail($id);
         return view('patients.edit', compact('paciente'));
     }
 
     /**
      * Actualizar información del paciente
      */
-    public function update(Request $request, $ci)
+    public function update(Request $request, $id)
     {
-        $paciente = Paciente::findOrFail($ci);
-        
+        $paciente = Paciente::findOrFail($id);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'ci' => 'required|string|max:20|unique:pacientes,ci,' . $ci . ',ci',
+            'ci' => 'nullable|integer|unique:pacientes,ci,' . $id,
             'sexo' => 'required|in:M,F',
             'fecha_nacimiento' => 'nullable|date',
             'direccion' => 'nullable|string|max:255',
@@ -401,13 +335,12 @@ class PatientsController extends Controller
     /**
      * Mostrar cuenta del paciente con opción de eliminar items
      */
-    public function verCuenta($ci): View
+    public function verCuenta($id): View
     {
-        $paciente = Paciente::findOrFail($ci);
+        $paciente = Paciente::findOrFail($id);
         
-        // Obtener cuentas del paciente
         $cuentas = \App\Models\CuentaCobro::with(['detalles', 'pagos'])
-            ->where('paciente_ci', $paciente->ci)
+            ->where('paciente_id', $paciente->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -462,6 +395,7 @@ class PatientsController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('nombre', 'LIKE', "%{$search}%")
                   ->orWhere('ci', 'LIKE', "%{$search}%")
+                  ->orWhere('temp_code', 'LIKE', "%{$search}%")
                   ->orWhereHas('registro', function($rq) use ($search) {
                       $rq->where('codigo', 'LIKE', "%{$search}%");
                   });
@@ -505,9 +439,9 @@ class PatientsController extends Controller
     /**
      * Procesar el alta de un paciente
      */
-    public function darDeAlta(Request $request, $ci)
+    public function darDeAlta(Request $request, $id)
     {
-        $paciente = Paciente::with('cuentasPendientes')->whereHas('registro')->findOrFail($ci);
+        $paciente = Paciente::with('cuentasPendientes')->whereHas('registro')->findOrFail($id);
 
         // Verificar cuentas pendientes
         $cuentasPendientes = $paciente->cuentasPendientes()->count();
@@ -524,7 +458,7 @@ class PatientsController extends Controller
         ]);
 
         AltaPaciente::create([
-            'paciente_ci'       => $paciente->ci,
+            'paciente_id'       => $paciente->id,
             'dado_de_alta_por'  => auth()->id(),
             'motivo_alta'       => $validated['motivo_alta'],
             'observaciones'     => $validated['observaciones'] ?? null,
@@ -532,7 +466,7 @@ class PatientsController extends Controller
         ]);
 
         EpisodioService::cerrarEpisodioDelPaciente(
-            $paciente->ci,
+            $paciente->id,
             auth()->id(),
             $validated['motivo_alta']
         );

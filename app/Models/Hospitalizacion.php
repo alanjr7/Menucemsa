@@ -16,7 +16,7 @@ class Hospitalizacion extends Model
 
     protected $fillable = [
         'id',
-        'ci_paciente',
+        'paciente_id',
         'ci_medico',
         'habitacion_id',
         'cama_id',
@@ -41,7 +41,6 @@ class Hospitalizacion extends Model
     protected $casts = [
         'fecha_ingreso' => 'datetime',
         'fecha_alta' => 'datetime',
-        'ci_paciente' => 'integer',
         'ci_medico' => 'integer',
         'precio_cama_dia' => 'decimal:2',
         'total_estancia' => 'decimal:2',
@@ -50,7 +49,7 @@ class Hospitalizacion extends Model
 
     public function paciente()
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function medico()

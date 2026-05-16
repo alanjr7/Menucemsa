@@ -327,7 +327,7 @@
             }
 
             container.innerHTML = pacientes.map(paciente => `
-                <div class="bg-white border border-slate-200 rounded-xl p-4 mb-3 hover:bg-slate-50 transition-all cursor-pointer hover:shadow-md" onclick="seleccionarPaciente('${paciente.ci}', '${paciente.nombre}')">
+                <div class="bg-white border border-slate-200 rounded-xl p-4 mb-3 hover:bg-slate-50 transition-all cursor-pointer hover:shadow-md" onclick="seleccionarPaciente('${paciente.id}', '${paciente.ci}', '${paciente.nombre}')">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4">
                             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -367,15 +367,15 @@
             mostrarPacientes(filtered);
         }
 
-        function seleccionarPaciente(ci, nombre, servicio = 'Consulta Externa', medico = 'Dr. Ramírez', medicoCi = '12345678', monto = 150.00) {
+        function seleccionarPaciente(id, ci, nombre, servicio = 'Consulta Externa', medico = 'Dr. Ramírez', medicoCi = '12345678', monto = 150.00) {
             // Close the modal
             closeModal('nuevoCobroModal');
-            
+
             // Show payment modal with pre-filled data
-            mostrarModalCobro(ci, nombre, servicio, medico, medicoCi, monto);
+            mostrarModalCobro(id, ci, nombre, servicio, medico, medicoCi, monto);
         }
 
-        function mostrarModalCobro(ci, nombre, servicio, medico, medicoCi, monto) {
+        function mostrarModalCobro(id, ci, nombre, servicio, medico, medicoCi, monto) {
             // Create payment modal dynamically
             const modalHtml = `
                 <div id="cobroModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -419,7 +419,7 @@
                             <button onclick="cancelarCobro()" class="flex-1 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition">
                                 Cancelar
                             </button>
-                            <button onclick="procesarCobroDirecto('${ci}', '${nombre}')" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                            <button onclick="procesarCobroDirecto('${id}', '${nombre}')" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                                 Cobrar
                             </button>
                         </div>
@@ -437,7 +437,7 @@
             }
         }
 
-        function procesarCobroDirecto(ci, nombre) {
+        function procesarCobroDirecto(id, nombre) {
             const servicio = document.getElementById('servicio').value;
             const medicoCi = document.getElementById('medico-ci').value;
             const medicoNombre = document.getElementById('medico-nombre').value;
@@ -463,7 +463,7 @@
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
-                    paciente_ci: ci,
+                    paciente_id: id,
                     paciente_nombre: nombre,
                     concepto: servicio,
                     monto: monto,

@@ -15,40 +15,44 @@ $evalRouteName = $roleAreaRouteMap[$userRole] ?? null;
 $isAdmin = in_array($userRole, ['admin', 'administrador']);
 
 $pacientesData = $pacientes->map(function ($paciente) use ($evalRouteName) {
-    $isTemporal  = isset($paciente->is_temporal) && $paciente->is_temporal;
+    $isTemporal  = (bool) ($paciente->is_temp ?? false);
     $tipoIngreso = $paciente->tipo_ingreso ?? 'otro';
 
     if ($isTemporal) {
-        $codigoDisplay = $paciente->emergency_code;
-        $datosUrl      = route('reception.emergencia.comprobante', $paciente->emergency_id);
-        $seguroLabel   = 'Emergencia - ' . $tipoIngreso;
+        $codigoDisplay = $paciente->temp_code;
+        $seguroLabel   = 'Emergencia temporal';
+        $primeraEmg    = $paciente->emergencias->first();
+        $datosUrl      = $primeraEmg
+            ? route('reception.emergencia.comprobante', $primeraEmg->id)
+            : route('patients.show', $paciente->id);
     } else {
         $cajaId        = $paciente->consultas->first()?->caja?->id;
-        $codigoDisplay = $cajaId ?? $paciente->registro_codigo;
+        $codigoDisplay = $cajaId ?? $paciente->registro?->codigo;
         $seguroLabel   = $paciente->seguro->nombre_empresa ?? 'Particular';
 
         if ($tipoIngreso === 'internacion' && $paciente->hospitalizaciones->isNotEmpty()) {
             $datosUrl = route('reception.hospitalizacion.comprobante', $paciente->hospitalizaciones->first()->id);
         } elseif ($tipoIngreso === 'emergencia' && $paciente->emergencias->isNotEmpty()) {
             $datosUrl = route('reception.emergencia.comprobante', $paciente->emergencias->first()->id);
-        } elseif (in_array($tipoIngreso, ['consulta_externa', 'enfermeria', 'otro']) && $paciente->registro_codigo) {
-            $datosUrl = route('reception.confirmacion-registro', $paciente->registro_codigo);
+        } elseif (in_array($tipoIngreso, ['consulta_externa', 'enfermeria', 'otro']) && $paciente->registro?->codigo) {
+            $datosUrl = route('reception.confirmacion-registro', $paciente->registro->codigo);
         } else {
-            $datosUrl = route('patients.show', $paciente->ci);
+            $datosUrl = route('patients.show', $paciente->id);
         }
     }
 
+    $ciDisplay = $paciente->ci ?? $paciente->temp_code;
     return [
-        'ci'            => $paciente->ci,
+        'ci'            => $ciDisplay,
         'nombre'        => $paciente->nombre,
         'is_temporal'   => $isTemporal,
         'codigo'        => $codigoDisplay,
-        'emergency_code'=> $paciente->emergency_code ?? null,
+        'emergency_code'=> $paciente->temp_code ?? null,
         'seguro'        => $seguroLabel,
         'seguro_temp'   => $isTemporal,
         'tipo_ingreso'  => $tipoIngreso,
-        'historial_url' => route('evaluacion.historial', $paciente->ci),
-        'eval_url'      => $evalRouteName ? route($evalRouteName, $paciente->ci) : null,
+        'historial_url' => route('evaluacion.historial', $ciDisplay),
+        'eval_url'      => $evalRouteName ? route($evalRouteName, $ciDisplay) : null,
         'datos_url'     => $datosUrl,
     ];
 });

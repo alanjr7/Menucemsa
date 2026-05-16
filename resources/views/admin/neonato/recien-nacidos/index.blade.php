@@ -59,7 +59,7 @@
                             <td class="px-6 py-3 text-xs font-mono font-bold text-pink-700">{{ $rn->code }}</td>
                             <td class="px-6 py-3">
                                 <p class="text-sm font-medium text-gray-800">{{ $rn->nombre_display }}</p>
-                                <p class="text-xs text-gray-400">{{ $rn->temp_id }} · {{ $rn->sexo === 'M' ? 'Masculino' : ($rn->sexo === 'F' ? 'Femenino' : '—') }}</p>
+                                <p class="text-xs text-gray-400">{{ $rn->paciente?->temp_code }} · {{ $rn->sexo === 'M' ? 'Masculino' : ($rn->sexo === 'F' ? 'Femenino' : '—') }}</p>
                             </td>
                             <td class="px-6 py-3">
                                 <p class="text-sm text-gray-700">{{ $rn->madre_nombre ?? '—' }}</p>

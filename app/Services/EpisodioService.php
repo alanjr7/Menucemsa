@@ -6,13 +6,9 @@ use App\Models\Episodio;
 
 class EpisodioService
 {
-    /**
-     * Abre un episodio para el paciente.
-     * Si ya tiene uno abierto, lo devuelve sin crear uno nuevo.
-     */
-    public static function abrirEpisodio(int|string $pacienteCi, string $tipoIngreso, int $userId): Episodio
+    public static function abrirEpisodio(int $pacienteId, string $tipoIngreso, int $userId): Episodio
     {
-        $abierto = Episodio::where('paciente_ci', $pacienteCi)
+        $abierto = Episodio::where('paciente_id', $pacienteId)
             ->where('estado', 'abierto')
             ->first();
 
@@ -20,10 +16,10 @@ class EpisodioService
             return $abierto;
         }
 
-        $ultimo = Episodio::where('paciente_ci', $pacienteCi)->max('numero') ?? 0;
+        $ultimo = Episodio::where('paciente_id', $pacienteId)->max('numero') ?? 0;
 
         return Episodio::create([
-            'paciente_ci'    => $pacienteCi,
+            'paciente_id'    => $pacienteId,
             'numero'         => $ultimo + 1,
             'fecha_apertura' => now(),
             'estado'         => 'abierto',
@@ -32,27 +28,21 @@ class EpisodioService
         ]);
     }
 
-    /**
-     * Cierra el episodio abierto del paciente (si existe).
-     */
-    public static function cerrarEpisodioDelPaciente(int|string $pacienteCi, int $userId, string $motivo = 'alta_medica'): void
+    public static function cerrarEpisodioDelPaciente(int $pacienteId, int $userId, string $motivo = 'alta_medica'): void
     {
-        Episodio::where('paciente_ci', $pacienteCi)
+        Episodio::where('paciente_id', $pacienteId)
             ->where('estado', 'abierto')
             ->update([
-                'estado'       => 'cerrado',
-                'fecha_cierre' => now(),
+                'estado'        => 'cerrado',
+                'fecha_cierre'  => now(),
                 'motivo_cierre' => $motivo,
-                'closed_by'    => $userId,
+                'closed_by'     => $userId,
             ]);
     }
 
-    /**
-     * Devuelve el episodio abierto del paciente o null.
-     */
-    public static function getEpisodioAbierto(int|string $pacienteCi): ?Episodio
+    public static function getEpisodioAbierto(int $pacienteId): ?Episodio
     {
-        return Episodio::where('paciente_ci', $pacienteCi)
+        return Episodio::where('paciente_id', $pacienteId)
             ->where('estado', 'abierto')
             ->first();
     }

@@ -136,8 +136,9 @@
                     @forelse($todosPacientes as $paciente)
                         @php
                             $esTemporal = isset($paciente->is_temporal) && $paciente->is_temporal;
-                            $ci = $paciente->ci;
-                            $catHoy = $cateringHoy[$ci] ?? collect();
+                            $pacienteId = $paciente->id;
+                            $ci = $paciente->ci ?? $paciente->temp_code ?? '—';
+                            $catHoy = $cateringHoy[$pacienteId] ?? collect();
                             $estados = [
                                 'desayuno' => $catHoy->firstWhere('tipo_comida', 'desayuno')?->estado ?? 'no_dado',
                                 'almuerzo' => $catHoy->firstWhere('tipo_comida', 'almuerzo')?->estado ?? 'no_dado',
@@ -200,7 +201,7 @@
                             </td>
                             {{-- Acciones --}}
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <button @click="abrirModal('{{ $ci }}', '{{ $paciente->nombre }}', {{ json_encode($estados) }})"
+                                <button @click="abrirModal('{{ $pacienteId }}', '{{ $paciente->nombre }}', {{ json_encode($estados) }})"
                                     class="inline-flex items-center px-3 py-1.5 border border-orange-200 shadow-sm text-xs font-medium rounded-lg text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all">
                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -407,7 +408,7 @@
         return {
             modalOpen: false,
             guardando: false,
-            pacienteCi: '',
+            pacienteId: '',
             pacienteNombre: '',
             observaciones: '',
             estados: {
@@ -417,8 +418,8 @@
                 cena: 'no_dado'
             },
 
-            abrirModal(ci, nombre, estadosActuales) {
-                this.pacienteCi = ci;
+            abrirModal(id, nombre, estadosActuales) {
+                this.pacienteId = id;
                 this.pacienteNombre = nombre;
                 this.observaciones = '';
                 this.estados = {
@@ -432,7 +433,7 @@
 
             cerrarModal() {
                 this.modalOpen = false;
-                this.pacienteCi = '';
+                this.pacienteId = '';
                 this.pacienteNombre = '';
                 this.observaciones = '';
             },
@@ -447,14 +448,14 @@
             },
 
             async guardar() {
-                if (!this.pacienteCi) return;
+                if (!this.pacienteId) return;
 
                 this.guardando = true;
 
                 const registros = [];
                 for (const [tipo, estado] of Object.entries(this.estados)) {
                     registros.push({
-                        paciente_ci: this.pacienteCi,
+                        paciente_id: this.pacienteId,
                         tipo_comida: tipo,
                         estado: estado,
                         observaciones: this.observaciones

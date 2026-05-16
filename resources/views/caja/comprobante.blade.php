@@ -68,7 +68,7 @@
     <div class="meta-row"><span class="meta-label">N° Cuenta:</span><span class="meta-value">{{ $cuenta->id }}</span></div>
     <div class="meta-row"><span class="meta-label">Fecha emisión:</span><span class="meta-value">{{ now()->format('d/m/Y H:i') }}</span></div>
     <div class="meta-row"><span class="meta-label">Paciente:</span><span class="meta-value">{{ $cuenta->paciente?->nombre ?? 'N/A' }}</span></div>
-    <div class="meta-row"><span class="meta-label">CI:</span><span class="meta-value">{{ $cuenta->paciente_ci }}</span></div>
+    <div class="meta-row"><span class="meta-label">CI:</span><span class="meta-value">{{ $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code ?? 'N/A' }}</span></div>
     <div class="meta-row"><span class="meta-label">Tipo atención:</span><span class="meta-value">{{ $cuenta->tipo_atencion_label }}</span></div>
     @if($cuenta->cajaSession?->user)
     <div class="meta-row"><span class="meta-label">Cajero:</span><span class="meta-value">{{ $cuenta->cajaSession->user->name }}</span></div>

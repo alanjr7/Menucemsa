@@ -58,19 +58,19 @@ class EmergencyStaffController extends Controller
         }
 
         $emergencias = $query->get()->map(function($emg) {
+            $paciente = $emg->paciente;
             return [
-                'id' => $emg->id,
-                'code' => $emg->code,
-                'paciente_id' => $emg->patient_id,
-                'temp_id' => $emg->temp_id,
-                'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                'is_temp_id' => $emg->is_temp_id,
-                'tipo_ingreso' => $emg->tipo_ingreso,
+                'id'                 => $emg->id,
+                'code'               => $emg->code,
+                'paciente_id'        => $emg->paciente_id,
+                'paciente_nombre'    => $paciente?->is_temp ? 'Paciente Temporal' : ($paciente?->nombre ?? 'Desconocido'),
+                'is_temp'            => $paciente?->is_temp ?? false,
+                'tipo_ingreso'       => $emg->tipo_ingreso,
                 'tipo_ingreso_label' => $emg->tipo_ingreso_label,
-                'destino_inicial' => $emg->destino_inicial,
-                'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                'status' => $emg->status,
-                'status_label' => $this->getStatusLabel($emg->status),
+                'destino_inicial'    => $emg->destino_inicial,
+                'hora_ingreso'       => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                'status'             => $emg->status,
+                'status_label'       => $this->getStatusLabel($emg->status),
             ];
         });
 
@@ -178,29 +178,24 @@ class EmergencyStaffController extends Controller
                 case 'hospitalizacion':
                     $nroHosp = $this->generarNroHospitalizacion($emergency);
                     $emergency->update([
-                        'status'             => 'hospitalizacion',
-                        'ubicacion_actual'   => 'hospitalizacion',
-                        'nro_hospitalizacion'=> $nroHosp,
+                        'status'              => 'hospitalizacion',
+                        'ubicacion_actual'    => 'hospitalizacion',
+                        'nro_hospitalizacion' => $nroHosp,
                     ]);
 
-                    // Crear registro en hospitalizaciones
-                    $ciPaciente = $emergency->is_temp_id ? null : $emergency->patient_id;
                     Hospitalizacion::create([
-                        'id'           => $nroHosp,
-                        'ci_paciente'  => $ciPaciente,
-                        'fecha_ingreso'=> now(),
-                        'estado'       => 'activo',
-                        'diagnostico'  => $emergency->initial_assessment,
-                        'nro_emergencia'=> $emergency->id,
+                        'id'             => $nroHosp,
+                        'paciente_id'    => $emergency->paciente_id,
+                        'fecha_ingreso'  => now(),
+                        'estado'         => 'activo',
+                        'diagnostico'    => $emergency->initial_assessment,
+                        'nro_emergencia' => $emergency->id,
                     ]);
 
-                    // Vincular a cuenta maestra (reutiliza la de emergencia si existe)
-                    if ($ciPaciente) {
-                        \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
-                            $ciPaciente,
-                            'internacion'
-                        );
-                    }
+                    \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
+                        $emergency->paciente_id,
+                        'internacion'
+                    );
                     break;
 
             }
@@ -257,9 +252,9 @@ class EmergencyStaffController extends Controller
 
         $emergency->registrarMovimiento($ubicacionAnterior, 'alta', 'Paciente dado de alta');
 
-        if (!$emergency->is_temp_id && $emergency->patient_id) {
+        if ($emergency->paciente_id && !$emergency->paciente?->is_temp) {
             EpisodioService::cerrarEpisodioDelPaciente(
-                $emergency->patient_id,
+                $emergency->paciente_id,
                 auth()->id(),
                 'alta_medica'
             );
@@ -406,22 +401,23 @@ class EmergencyStaffController extends Controller
      */
     public function apiEmergenciasTemporales(): JsonResponse
     {
-        $emergencias = Emergency::where('is_temp_id', true)
+        $emergencias = Emergency::with('paciente')
+            ->whereHas('paciente', fn($q) => $q->where('is_temp', true))
             ->whereNotIn('status', ['alta', 'fallecido'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($emg) {
                 return [
-                    'id' => $emg->id,
-                    'code' => $emg->code,
-                    'temp_id' => $emg->temp_id,
-                    'tipo_ingreso' => $emg->tipo_ingreso,
+                    'id'                 => $emg->id,
+                    'code'               => $emg->code,
+                    'temp_code'          => $emg->paciente?->temp_code,
+                    'tipo_ingreso'       => $emg->tipo_ingreso,
                     'tipo_ingreso_label' => $emg->tipo_ingreso_label,
-                    'status' => $emg->status,
-                    'status_label' => $this->getStatusLabel($emg->status),
-                    'ubicacion_actual' => $emg->ubicacion_actual,
-                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                    'fecha_ingreso' => $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
+                    'status'             => $emg->status,
+                    'status_label'       => $this->getStatusLabel($emg->status),
+                    'ubicacion_actual'   => $emg->ubicacion_actual,
+                    'hora_ingreso'       => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                    'fecha_ingreso'      => $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
                 ];
             });
 
@@ -608,8 +604,8 @@ class EmergencyStaffController extends Controller
         foreach ($emergencias as $emg) {
             fputcsv($file, [
                 $emg->code,
-                $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                $emg->patient_id,
+                $emg->paciente?->is_temp ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                $emg->paciente?->ci ?? $emg->paciente?->temp_code,
                 $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
                 $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
                 $emg->tipo_ingreso_label,

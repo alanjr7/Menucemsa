@@ -53,7 +53,7 @@
 <h2>Paciente</h2>
 <div class="kv">
     <span class="label">Nombre</span><span class="val">{{ $episodio->paciente?->nombre ?? '—' }}</span>
-    <span class="label">CI</span><span class="val">{{ $episodio->paciente_ci }}</span>
+    <span class="label">CI</span><span class="val">{{ $episodio->paciente?->ci ?? $episodio->paciente?->temp_code ?? '—' }}</span>
     @if($episodio->tipo_ingreso)
     <span class="label">Tipo ingreso</span><span class="val">{{ ucfirst($episodio->tipo_ingreso) }}</span>
     @endif

@@ -196,7 +196,7 @@ function CamillaModal({ paciente, camillas, csrfToken, storeUrl, onClose }) {
 
                 <form method="POST" action={storeUrl}>
                     <input type="hidden" name="_token" value={csrfToken} />
-                    <input type="hidden" name="paciente_ci" value={paciente.ci} />
+                    <input type="hidden" name="paciente_id" value={paciente.id} />
 
                     <div className="space-y-4">
                         <div>
@@ -390,7 +390,7 @@ function CamillasIndex() {
                                     </td>
                                 </tr>
                             ) : pacientes.map(p => (
-                                <PatientRow key={p.ci} p={p} camillasVacias={camillasVacias}
+                                <PatientRow key={p.id} p={p} camillasVacias={camillasVacias}
                                             onOpenModal={setModalPaciente} />
                             ))}
                         </tbody>

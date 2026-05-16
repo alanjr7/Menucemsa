@@ -516,11 +516,11 @@ class AlmacenMedicamentosController extends Controller
             ->join('almacen_dispensacion_detalles as addet', 'aed.dispensacion_detalle_id', '=', 'addet.id')
             ->join('almacen_dispensaciones as ad', 'addet.dispensacion_id', '=', 'ad.id')
             ->join('almacen_lotes as al', 'addet.lote_id', '=', 'al.id')
-            ->join('pacientes as p', 'aep.paciente_ci', '=', 'p.ci')
+            ->join('pacientes as p', 'aep.paciente_id', '=', 'p.id')
             ->where('al.catalogo_id', $catalogo->id)
             ->where('ad.ubicacion_destino', $area)
-            ->selectRaw('p.ci, p.nombre, SUM(aed.cantidad) as total_cantidad')
-            ->groupBy('p.ci', 'p.nombre')
+            ->selectRaw('p.id, p.ci, p.nombre, SUM(aed.cantidad) as total_cantidad')
+            ->groupBy('p.id', 'p.ci', 'p.nombre')
             ->orderByDesc('total_cantidad')
             ->get();
 
@@ -696,7 +696,7 @@ class AlmacenMedicamentosController extends Controller
     public function registrarPaciente(Request $request, AlmacenDispensacion $dispensacion)
     {
         $request->validate([
-            'paciente_ci'              => 'required|integer|exists:pacientes,ci',
+            'paciente_id'              => 'required|integer|exists:pacientes,id',
             'observaciones'            => 'nullable|string|max:1000',
             'detalles'                 => 'required|array|min:1',
             'detalles.*.detalle_id'    => 'required|integer|exists:almacen_dispensacion_detalles,id',
@@ -705,7 +705,7 @@ class AlmacenMedicamentosController extends Controller
 
         DB::transaction(function () use ($request, $dispensacion) {
             $entrega = AlmacenEntregaPaciente::create([
-                'paciente_ci'   => $request->paciente_ci,
+                'paciente_id'   => $request->paciente_id,
                 'entregado_por' => Auth::id(),
                 'observaciones' => $request->observaciones,
                 'fecha_entrega' => now(),
@@ -719,7 +719,7 @@ class AlmacenMedicamentosController extends Controller
                 ]);
             }
 
-            Log::info('Almacén: entrega registrada a paciente CI:' . $request->paciente_ci, [
+            Log::info('Almacén: entrega registrada a paciente ID:' . $request->paciente_id, [
                 'user_id'        => Auth::id(),
                 'dispensacion_id' => $dispensacion->id,
                 'entrega_id'     => $entrega->id,

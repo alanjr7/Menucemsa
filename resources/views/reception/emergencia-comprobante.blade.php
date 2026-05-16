@@ -54,8 +54,8 @@
             <div>
                 <h2 class="text-xl font-bold text-gray-800">{{ $emergencia->paciente->nombre ?? 'Paciente Temporal' }}</h2>
                 <p class="text-sm text-gray-500">
-                    @if($emergencia->is_temp_id)
-                        ID Temporal: {{ $emergencia->temp_id }}
+                    @if($emergencia->paciente?->is_temp)
+                        ID Temporal: {{ $emergencia->paciente?->temp_code }}
                     @else
                         CI: {{ $emergencia->paciente->ci }}
                     @endif
@@ -71,7 +71,7 @@
                         <dt class="text-sm text-gray-500">Nombre:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ $emergencia->paciente->nombre ?? 'No registrado' }}</dd>
                     </div>
-                    @if(!$emergencia->is_temp_id)
+                    @if(!$emergencia->paciente?->is_temp)
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">CI:</dt>
                         <dd class="text-sm font-medium text-gray-900">{{ $emergencia->paciente->ci }}</dd>
@@ -253,8 +253,8 @@
 
             <div class="f-row">
                 <div class="f-field" style="flex: 1.5;">
-                    <span class="f-label">{{ $emergencia->is_temp_id ? 'ID Temp.' : 'C.I. Nº' }}</span>
-                    <span class="f-value font-bold">{{ $emergencia->is_temp_id ? $emergencia->temp_id : ($emergencia->paciente->ci ?? '') }}</span>
+                    <span class="f-label">{{ $emergencia->paciente?->is_temp ? 'ID Temp.' : 'C.I. Nº' }}</span>
+                    <span class="f-value font-bold">{{ $emergencia->paciente?->is_temp ? $emergencia->paciente?->temp_code : ($emergencia->paciente?->ci ?? '') }}</span>
                 </div>
                 <div class="f-field" style="flex: 1;">
                     <span class="f-label">Sexo</span>

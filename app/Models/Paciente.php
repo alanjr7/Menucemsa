@@ -10,12 +10,11 @@ class Paciente extends Model
     use HasFactory;
 
     protected $table = 'pacientes';
-    protected $primaryKey = 'ci';
-    public $incrementing = false;
-    protected $keyType = 'int';
 
     protected $fillable = [
         'ci',
+        'temp_code',
+        'is_temp',
         'nombre',
         'sexo',
         'fecha_nacimiento',
@@ -30,11 +29,12 @@ class Paciente extends Model
         'seguro_id',
         'triage_id',
         'registro_codigo',
-        'id_garante_referencia',
+        'garante_id',
     ];
 
     protected $casts = [
         'ci' => 'integer',
+        'is_temp' => 'boolean',
         'telefono' => 'string',
         'fecha_nacimiento' => 'date',
         'sexo' => 'string',
@@ -58,56 +58,56 @@ class Paciente extends Model
 
     public function consultas()
     {
-        return $this->hasMany(Consulta::class, 'ci_paciente', 'ci');
+        return $this->hasMany(Consulta::class, 'paciente_id');
     }
 
     public function historialMedico()
     {
-        return $this->hasMany(HistorialMedico::class, 'ci_paciente', 'ci')
+        return $this->hasMany(HistorialMedico::class, 'paciente_id')
                     ->orderBy('fecha', 'desc');
     }
 
     public function historialReciente()
     {
-        return $this->hasOne(HistorialMedico::class, 'ci_paciente', 'ci')
+        return $this->hasOne(HistorialMedico::class, 'paciente_id')
                     ->orderBy('fecha', 'desc');
     }
 
     public function emergencias()
     {
-        return $this->hasMany(Emergency::class, 'patient_id', 'ci');
+        return $this->hasMany(Emergency::class, 'paciente_id');
     }
 
     public function hospitalizaciones()
     {
-        return $this->hasMany(Hospitalizacion::class, 'ci_paciente', 'ci');
+        return $this->hasMany(Hospitalizacion::class, 'paciente_id');
     }
 
     public function cuentasCobro()
     {
-        return $this->hasMany(\App\Models\CuentaCobro::class, 'paciente_ci', 'ci');
+        return $this->hasMany(\App\Models\CuentaCobro::class, 'paciente_id');
     }
 
     public function cuentasPendientes()
     {
-        return $this->hasMany(\App\Models\CuentaCobro::class, 'paciente_ci', 'ci')
+        return $this->hasMany(\App\Models\CuentaCobro::class, 'paciente_id')
                     ->whereIn('estado', ['pendiente', 'parcial']);
     }
 
     public function altas()
     {
-        return $this->hasMany(\App\Models\AltaPaciente::class, 'paciente_ci', 'ci');
+        return $this->hasMany(\App\Models\AltaPaciente::class, 'paciente_id');
     }
 
     public function episodios()
     {
-        return $this->hasMany(\App\Models\Episodio::class, 'paciente_ci', 'ci')
+        return $this->hasMany(\App\Models\Episodio::class, 'paciente_id')
                     ->orderBy('numero', 'desc');
     }
 
     public function episodioAbierto()
     {
-        return $this->hasOne(\App\Models\Episodio::class, 'paciente_ci', 'ci')
+        return $this->hasOne(\App\Models\Episodio::class, 'paciente_id')
                     ->where('estado', 'abierto');
     }
 
@@ -118,12 +118,12 @@ class Paciente extends Model
 
     public function garante()
     {
-        return $this->belongsTo(Paciente::class, 'id_garante_referencia', 'ci');
+        return $this->belongsTo(Paciente::class, 'garante_id');
     }
 
     public function pacientesComoGarante()
     {
-        return $this->hasMany(Paciente::class, 'id_garante_referencia', 'ci');
+        return $this->hasMany(Paciente::class, 'garante_id');
     }
 
     public function esPaciente(): bool

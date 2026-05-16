@@ -165,10 +165,10 @@
                                 <button @click="open = !open" class="px-3 py-1 border rounded text-xs text-gray-700">
                                     Detalle
                                 </button>
-                                <a href="{{ route('evaluacion.print', [$paciente->ci, $ev->id]) }}" target="_blank"
+                                <a href="{{ route('evaluacion.print', [$paciente->id, $ev->id]) }}" target="_blank"
                                     class="px-3 py-1 bg-gray-100 rounded text-xs text-gray-700">Imprimir</a>
                                 @if(in_array(auth()->user()->role, ['admin', 'administrador']))
-                                <form method="POST" action="{{ route('evaluacion.destroy', [$paciente->ci, $ev->id]) }}"
+                                <form method="POST" action="{{ route('evaluacion.destroy', [$paciente->id, $ev->id]) }}"
                                     onsubmit="return confirm('¿Eliminar esta evaluación del {{ $ev->created_at->format('d/m/Y H:i') }}? Esta acción no se puede deshacer.')">
                                     @csrf
                                     @method('DELETE')

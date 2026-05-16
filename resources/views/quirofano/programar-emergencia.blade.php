@@ -31,14 +31,14 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Paciente *</label>
-                                <input type="hidden" name="ci_paciente" value="{{ $emergencia->patient_id }}">
+                                <input type="hidden" name="paciente_id" value="{{ $emergencia->paciente_id }}">
                                 <div class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
-                                    @if($emergencia->is_temp_id)
-                                        Paciente Temporal (ID: {{ $emergencia->patient_id }})
+                                    @if($emergencia->paciente?->is_temp)
+                                        Paciente Temporal ({{ $emergencia->paciente?->temp_code }})
                                     @elseif($emergencia->paciente)
-                                        {{ $emergencia->paciente->nombre }} (CI: {{ $emergencia->patient_id }})
+                                        {{ $emergencia->paciente->nombre }} (CI: {{ $emergencia->paciente->ci }})
                                     @else
-                                        Paciente (CI: {{ $emergencia->patient_id }})
+                                        Paciente (ID: {{ $emergencia->paciente_id }})
                                     @endif
                                 </div>
                             </div>
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         // Validación básica del lado del cliente
-        const requiredFields = ['ci_paciente', 'ci_cirujano', 'nro_quirofano', 'tipo_cirugia', 'fecha', 'hora_inicio_estimada', 'costo_base'];
+        const requiredFields = ['paciente_id', 'ci_cirujano', 'nro_quirofano', 'tipo_cirugia', 'fecha', 'hora_inicio_estimada', 'costo_base'];
         const missingFields = [];
         
         requiredFields.forEach(field => {

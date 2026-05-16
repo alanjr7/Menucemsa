@@ -185,13 +185,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     // Rutas para pacientes (acceso para todos los roles)
     Route::middleware(['auth'])->group(function () {
         Route::get('/patients', [\App\Http\Controllers\PatientsController::class, 'index'])->name('patients.index');
-        Route::get('/patients/{ci}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
-        Route::get('/patients/{ci}/print', [\App\Http\Controllers\PatientsController::class, 'print'])->name('patients.print');
+        Route::get('/patients/{id}', [\App\Http\Controllers\PatientsController::class, 'show'])->name('patients.show');
+        Route::get('/patients/{id}/print', [\App\Http\Controllers\PatientsController::class, 'print'])->name('patients.print');
 
         // Dar de Alta (roles autorizados)
         Route::middleware(['role:admin|administrador|cirujano|emergencia|internacion'])->group(function () {
             Route::get('/patients-dar-de-alta', [\App\Http\Controllers\PatientsController::class, 'darDeAltaIndex'])->name('patients.dar-de-alta.index');
-            Route::post('/patients/{ci}/dar-de-alta', [\App\Http\Controllers\PatientsController::class, 'darDeAlta'])->name('patients.dar-de-alta');
+            Route::post('/patients/{id}/dar-de-alta', [\App\Http\Controllers\PatientsController::class, 'darDeAlta'])->name('patients.dar-de-alta');
         });
 
         // Historial de Altas (solo admin y administrador)
@@ -435,9 +435,9 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/episodios/{id}/pdf', [\App\Http\Controllers\Admin\EpisodioController::class, 'exportPdf'])->name('episodios.pdf');
 
         // Edición y gestión de pacientes
-        Route::get('/pacientes/{ci}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');
-        Route::put('/pacientes/{ci}', [\App\Http\Controllers\PatientsController::class, 'update'])->name('patients.update');
-        Route::get('/pacientes/{ci}/cuenta', [\App\Http\Controllers\PatientsController::class, 'verCuenta'])->name('cuentas.show');
+        Route::get('/pacientes/{id}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');
+        Route::put('/pacientes/{id}', [\App\Http\Controllers\PatientsController::class, 'update'])->name('patients.update');
+        Route::get('/pacientes/{id}/cuenta', [\App\Http\Controllers\PatientsController::class, 'verCuenta'])->name('cuentas.show');
         Route::delete('/cuentas/{cuentaId}/detalles/{detalleId}', [\App\Http\Controllers\PatientsController::class, 'eliminarItemCuenta'])->name('cuentas.eliminar-item');
 
         Route::get('especialidades', [EspecialidadController::class, 'index'])->name('especialidades.index');
@@ -828,8 +828,8 @@ Route::middleware(['auth', 'role:uti|admin|administrador'])->get('/uti/procedimi
 // Rutas de evaluación clínica de pacientes
 Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|admin|administrador|dirmedico|reception'])->group(function () {
     Route::get('/evaluacion/{ci}/historial', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'historial'])->name('evaluacion.historial');
-    Route::get('/evaluacion/{ci}/print/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'print'])->name('evaluacion.print');
-    Route::delete('/evaluacion/{ci}/historial/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'destroy'])->name('evaluacion.destroy')->middleware('role:admin|administrador');
+    Route::get('/evaluacion/{pacienteId}/print/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'print'])->name('evaluacion.print');
+    Route::delete('/evaluacion/{pacienteId}/historial/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'destroy'])->name('evaluacion.destroy')->middleware('role:admin|administrador');
 });
 
 Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano'])->group(function () {

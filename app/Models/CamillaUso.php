@@ -11,7 +11,7 @@ class CamillaUso extends Model
 
     protected $fillable = [
         'camilla_id',
-        'paciente_ci',
+        'paciente_id',
         'fecha_inicio',
         'fecha_fin',
         'costo_calculado',
@@ -32,7 +32,7 @@ class CamillaUso extends Model
 
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id', 'id');
     }
 
     public function registradoPor(): BelongsTo

@@ -98,7 +98,7 @@ class InternacionStaffController extends Controller
             return [
                 'id' => $hosp->id,
                 'codigo' => $hosp->id,
-                'paciente_id' => $hosp->ci_paciente,
+                'paciente_id' => $hosp->paciente_id,
                 'paciente_nombre' => $hosp->paciente?->nombre ?? 'Desconocido',
                 'tipo' => strtolower($hosp->tipo),
                 'servicio' => $hosp->servicio,
@@ -174,7 +174,7 @@ class InternacionStaffController extends Controller
             $hospitalizacion = Hospitalizacion::with('paciente')->findOrFail($id);
 
             // Verificar si ya está en quirófano (buscar en emergencias)
-            $cirugiaActiva = Emergency::where('patient_id', $hospitalizacion->ci_paciente)
+            $cirugiaActiva = Emergency::where('paciente_id', $hospitalizacion->paciente_id)
                 ->where('ubicacion_actual', 'cirugia')
                 ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
                 ->first();
@@ -194,10 +194,9 @@ class InternacionStaffController extends Controller
 
             // Crear registro en emergencias como paciente en cirugía
             $emergency = Emergency::create([
-                'patient_id' => $hospitalizacion->ci_paciente,
+                'paciente_id' => $hospitalizacion->paciente_id,
                 'user_id' => auth()->id(),
                 'code' => Emergency::generateCode(),
-                'is_temp_id' => false,
                 'status' => 'cirugia',
                 'ubicacion_actual' => 'cirugia',
                 'nro_cirugia' => $nroCirugia,
@@ -322,9 +321,9 @@ class InternacionStaffController extends Controller
                 'estado' => 'alta',
             ]);
 
-            if ($hospitalizacion->ci_paciente) {
+            if ($hospitalizacion->paciente_id) {
                 EpisodioService::cerrarEpisodioDelPaciente(
-                    $hospitalizacion->ci_paciente,
+                    $hospitalizacion->paciente_id,
                     Auth::id(),
                     $validated['motivo_alta'] ?? 'alta_medica'
                 );
@@ -456,12 +455,10 @@ class InternacionStaffController extends Controller
 
             $stock->decrement('cantidad_actual', $validated['cantidad']);
 
-            $ciPaciente = $hospitalizacion->ci_paciente;
-            if (!$ciPaciente && $hospitalizacion->nro_emergencia) {
-                $emergencia = Emergency::where('code', $hospitalizacion->nro_emergencia)
-                    ->orWhere('id', $hospitalizacion->nro_emergencia)->first();
-                if ($emergencia) $ciPaciente = $emergencia->patient_id;
-            }
+            $pacienteId = $hospitalizacion->paciente_id
+                ?? Emergency::where('code', $hospitalizacion->nro_emergencia)
+                    ->orWhere('id', $hospitalizacion->nro_emergencia)
+                    ->value('paciente_id');
 
             $cuentaCobroDetalleId = null;
             $cargoGenerado = false;
@@ -469,9 +466,9 @@ class InternacionStaffController extends Controller
             $subtotal = $precio * $validated['cantidad'];
             $catalogo = $stock->lote->catalogo;
 
-            if ($subtotal > 0 && $ciPaciente) {
+            if ($subtotal > 0 && $pacienteId) {
                 $cuentaCobroDetalleId = $this->generarCargo(
-                    $hospitalizacion, $ciPaciente,
+                    $hospitalizacion, $pacienteId,
                     'Medicamento: ' . $catalogo->nombre,
                     $subtotal, 1, 'medicamento', $catalogo->id
                 );
@@ -593,17 +590,17 @@ class InternacionStaffController extends Controller
             $cargoGenerado = false;
 
             // Obtener CI del paciente (manejar pacientes temporales de emergencia)
-            $ciPaciente = $hospitalizacion->ci_paciente;
-            if (!$ciPaciente && $hospitalizacion->nro_emergencia) {
+            $pacienteId = $hospitalizacion->paciente_id;
+            if (!$pacienteId && $hospitalizacion->nro_emergencia) {
                 $emergencia = Emergency::where('code', $hospitalizacion->nro_emergencia)
                     ->orWhere('id', $hospitalizacion->nro_emergencia)
                     ->first();
                 if ($emergencia) {
-                    $ciPaciente = $emergencia->patient_id;
+                    $pacienteId = $emergencia->paciente_id;
                 }
             }
 
-            if ($validated['estado'] === 'dado' && $ciPaciente) {
+            if ($validated['estado'] === 'dado' && $pacienteId) {
                 $precio = CateringPrecio::getPrecio($validated['tipo_comida']);
 
                 // Si ya tenía un cargo anterior, no generar otro
@@ -613,7 +610,7 @@ class InternacionStaffController extends Controller
                 } elseif ($precio > 0) {
                     $cuentaCobroDetalleId = $this->generarCargo(
                         $hospitalizacion,
-                        $ciPaciente,
+                        $pacienteId,
                         'Catering: ' . ucfirst($validated['tipo_comida']),
                         $precio,
                         1,
@@ -713,13 +710,13 @@ class InternacionStaffController extends Controller
             ]);
 
             // Obtener CI del paciente (manejar pacientes temporales de emergencia)
-            $ciPaciente = $hospitalizacion->ci_paciente;
-            if (!$ciPaciente && $hospitalizacion->nro_emergencia) {
+            $pacienteId = $hospitalizacion->paciente_id;
+            if (!$pacienteId && $hospitalizacion->nro_emergencia) {
                 $emergencia = Emergency::where('code', $hospitalizacion->nro_emergencia)
                     ->orWhere('id', $hospitalizacion->nro_emergencia)
                     ->first();
                 if ($emergencia) {
-                    $ciPaciente = $emergencia->patient_id;
+                    $pacienteId = $emergencia->paciente_id;
                 }
             }
 
@@ -727,14 +724,14 @@ class InternacionStaffController extends Controller
             $cuentaCobroDetalleId = null;
             $cargoGenerado = false;
 
-            if ($validated['realizado'] && $ciPaciente) {
+            if ($validated['realizado'] && $pacienteId) {
                 $precios = config('hospitalizacion.drenajes.precios', []);
                 $precio = $precios[$validated['tipo_drenaje']] ?? config('hospitalizacion.drenajes.precio_default', 40);
 
                 if ($precio > 0) {
                     $cuentaCobroDetalleId = $this->generarCargo(
                         $hospitalizacion,
-                        $ciPaciente,
+                        $pacienteId,
                         'Drenaje: ' . ($validated['tipo_drenaje'] ?? 'General'),
                         $precio,
                         1,
@@ -777,15 +774,15 @@ class InternacionStaffController extends Controller
     /**
      * Helper: Generar cargo en cuenta de cobro
      */
-    private function generarCargo($hospitalizacion, $ciPaciente, $concepto, $precio, $cantidad = 1, $tipoItem = 'servicio', $origenId = null): ?int
+    private function generarCargo($hospitalizacion, $pacienteId, $concepto, $precio, $cantidad = 1, $tipoItem = 'servicio', $origenId = null): ?int
     {
         // Usar la cuenta principal del paciente (Master Account)
-        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva((string)$ciPaciente);
+        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva($pacienteId);
 
         // Si por alguna razón crítica no existe (no debería pasar), crear una de internación
         if (!$cuenta) {
             $cuenta = \App\Services\CuentaCobroService::crearCuentaInternacion(
-                (string)$ciPaciente,
+                (string)$pacienteId,
                 $hospitalizacion->id
             );
         }
@@ -1095,7 +1092,7 @@ class InternacionStaffController extends Controller
                 fputcsv($file, [
                     $hosp->id,
                     $hosp->paciente?->nombre ?? 'N/A',
-                    $hosp->ci_paciente,
+                    $hosp->paciente?->ci ?? $hosp->paciente?->temp_code ?? 'N/A',
                     $hosp->fecha_ingreso?->format('d/m/Y H:i'),
                     $hosp->fecha_alta?->format('d/m/Y H:i') ?? 'N/A',
                     $dias,
@@ -1243,28 +1240,29 @@ class InternacionStaffController extends Controller
         $pacientes = $query->orderBy('created_at', 'desc')->paginate(15);
 
         // Obtener pacientes temporales de emergencias
-        $emergencyQuery = Emergency::where('is_temp_id', true)
+        $emergencyQuery = Emergency::with('paciente')
+            ->whereHas('paciente', fn($q) => $q->where('is_temp', true))
             ->whereIn('status', ['recibido', 'en_evaluacion', 'estabilizado']);
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $emergencyQuery->where(function ($q) use ($search) {
-                $q->where('temp_id', 'LIKE', "%{$search}%")
-                    ->orWhere('code', 'LIKE', "%{$search}%");
-            });
+            $emergencyQuery->where(fn($q) => $q->where('code', 'LIKE', "%{$search}%")
+                ->orWhereHas('paciente', fn($q2) => $q2->where('temp_code', 'LIKE', "%{$search}%")));
         }
 
         $pacientesTemporales = $emergencyQuery->orderBy('created_at', 'desc')->get()
             ->map(fn($emergency) => (object)[
-                'ci' => $emergency->temp_id,
-                'nombre' => 'Paciente Temporal - Emergencia',
-                'is_temporal' => true,
-                'emergency_id' => $emergency->id,
-                'emergency_code' => $emergency->code,
+                'id'               => $emergency->paciente_id,
+                'ci'               => null,
+                'temp_code'        => $emergency->paciente?->temp_code,
+                'nombre'           => 'Paciente Temporal - Emergencia',
+                'is_temp'          => true,
+                'emergency_id'     => $emergency->id,
+                'emergency_code'   => $emergency->code,
                 'emergency_status' => $emergency->status,
-                'created_at' => $emergency->created_at,
-                'seguro' => null,
-                'area_actual' => 'emergencia',
+                'created_at'       => $emergency->created_at,
+                'seguro'           => null,
+                'area_actual'      => 'emergencia',
             ]);
 
         // Determinar área actual para cada paciente
@@ -1278,12 +1276,11 @@ class InternacionStaffController extends Controller
             ->sortByDesc('created_at')
             ->values();
 
-        // Cargar catering del día para todos los pacientes (por CI)
-        $cisPacientes = $todosPacientes->pluck('ci')->filter()->unique();
+        $pacienteIds = $todosPacientes->pluck('id')->filter()->unique();
         $cateringHoy = HospCatering::where('fecha', $fecha)
-            ->whereIn('paciente_ci', $cisPacientes)
+            ->whereIn('paciente_id', $pacienteIds)
             ->get()
-            ->groupBy('paciente_ci');
+            ->groupBy('paciente_id');
 
         // Obtener precios actuales
         $precios = CateringPrecio::getPreciosArray();
@@ -1349,7 +1346,7 @@ class InternacionStaffController extends Controller
 
             $validated = $request->validate([
                 'registros' => 'required|array',
-                'registros.*.paciente_ci' => 'required|string',
+                'registros.*.paciente_id' => 'required|integer|exists:pacientes,id',
                 'registros.*.tipo_comida' => 'required|in:desayuno,almuerzo,merienda,cena',
                 'registros.*.estado' => 'required|in:dado,no_dado,no_aplica',
                 'registros.*.observaciones' => 'nullable|string|max:255',
@@ -1362,19 +1359,17 @@ class InternacionStaffController extends Controller
 
             foreach ($validated['registros'] as $registroData) {
                 try {
-                    $ciPaciente = $registroData['paciente_ci'];
+                    $pacienteId = (int) $registroData['paciente_id'];
 
-                    // Buscar hospitalización activa opcionalmente
-                    $hospitalizacion = Hospitalizacion::where('ci_paciente', $ciPaciente)
+                    $hospitalizacion = Hospitalizacion::where('paciente_id', $pacienteId)
                         ->whereNull('fecha_alta')
                         ->where('estado', '!=', 'trasladado')
                         ->first();
 
-                    // Buscar registro existente por paciente_ci (prioridad) o hospitalizacion_id
                     $registro = HospCatering::where('fecha', $fecha)
                         ->where('tipo_comida', $registroData['tipo_comida'])
-                        ->where(function ($q) use ($ciPaciente, $hospitalizacion) {
-                            $q->where('paciente_ci', $ciPaciente);
+                        ->where(function ($q) use ($pacienteId, $hospitalizacion) {
+                            $q->where('paciente_id', $pacienteId);
                             if ($hospitalizacion) {
                                 $q->orWhere('hospitalizacion_id', $hospitalizacion->id);
                             }
@@ -1385,7 +1380,7 @@ class InternacionStaffController extends Controller
                     $cuentaCobroDetalleId = null;
                     $cargoGenerado = false;
 
-                    if ($registroData['estado'] === 'dado' && $ciPaciente) {
+                    if ($registroData['estado'] === 'dado' && $pacienteId) {
                         $precio = CateringPrecio::getPrecio($registroData['tipo_comida']);
 
                         // Si ya tenía un cargo anterior, no generar otro
@@ -1395,7 +1390,7 @@ class InternacionStaffController extends Controller
                         } elseif ($precio > 0) {
                             // Generar cargo usando paciente_ci directamente
                             $cuentaCobroDetalleId = $this->generarCargoPorPaciente(
-                                $ciPaciente,
+                                $pacienteId,
                                 'Catering: ' . ucfirst($registroData['tipo_comida']),
                                 $precio,
                                 1,
@@ -1407,7 +1402,7 @@ class InternacionStaffController extends Controller
                     }
 
                     $data = [
-                        'paciente_ci' => $ciPaciente,
+                        'paciente_id' => $pacienteId,
                         'hospitalizacion_id' => $hospitalizacion?->id,
                         'registered_by' => Auth::id(),
                         'fecha' => $fecha,
@@ -1437,8 +1432,8 @@ class InternacionStaffController extends Controller
 
                 } catch (\Exception $e) {
                     $errores[] = [
-                        'paciente_ci' => $registroData['paciente_ci'],
-                        'error' => $e->getMessage()
+                        'paciente_id' => $registroData['paciente_id'],
+                        'error' => $e->getMessage(),
                     ];
                 }
             }
@@ -1465,13 +1460,13 @@ class InternacionStaffController extends Controller
     /**
      * Helper: Generar cargo en cuenta de cobro por CI de paciente
      */
-    private function generarCargoPorPaciente(string $ciPaciente, string $concepto, float $precio, float $cantidad = 1, string $tipoItem = 'servicio'): ?int
+    private function generarCargoPorPaciente(int $pacienteId, string $concepto, float $precio, float $cantidad = 1, string $tipoItem = 'servicio'): ?int
     {
-        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva($ciPaciente);
+        $cuenta = \App\Services\CuentaCobroService::obtenerCuentaPostPagoActiva($pacienteId);
 
         if (!$cuenta) {
             $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
-                $ciPaciente,
+                $pacienteId,
                 'general',
                 null
             );

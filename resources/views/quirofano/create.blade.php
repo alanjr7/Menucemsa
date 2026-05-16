@@ -33,10 +33,10 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Paciente *</label>
-                                <select name="ci_paciente" id="pacienteSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                <select name="paciente_id" id="pacienteSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                     <option value="">Seleccionar paciente...</option>
                                     @foreach($pacientes as $paciente)
-                                        <option value="{{ $paciente->ci }}">{{ $paciente->nombre }} (CI: {{ $paciente->ci }})</option>
+                                        <option value="{{ $paciente->id }}">{{ $paciente->nombre }} (CI: {{ $paciente->ci }})</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         // Validación básica del lado del cliente
-        const requiredFields = ['ci_paciente', 'ci_cirujano', 'nro_quirofano', 'tipo_cirugia', 'fecha', 'hora_inicio_estimada'];
+        const requiredFields = ['paciente_id', 'ci_cirujano', 'nro_quirofano', 'tipo_cirugia', 'fecha', 'hora_inicio_estimada'];
         const missingFields = [];
         
         requiredFields.forEach(field => {

@@ -11,7 +11,7 @@ class Episodio extends Model
     protected $table = 'episodios';
 
     protected $fillable = [
-        'paciente_ci',
+        'paciente_id',
         'numero',
         'fecha_apertura',
         'fecha_cierre',
@@ -30,7 +30,7 @@ class Episodio extends Model
 
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function creadoPor(): BelongsTo

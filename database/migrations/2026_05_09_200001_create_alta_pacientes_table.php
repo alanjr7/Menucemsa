@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::create('alta_pacientes', function (Blueprint $table) {
             $table->id();
-            $table->integer('paciente_ci');
+            $table->unsignedBigInteger('paciente_id');
             $table->unsignedBigInteger('dado_de_alta_por'); // user_id
             $table->string('motivo_alta')->default('alta_medica'); // alta_medica, voluntaria, fallecimiento, traslado
             $table->text('observaciones')->nullable();
             $table->timestamp('fecha_alta');
             $table->timestamps();
 
-            $table->foreign('paciente_ci')->references('ci')->on('pacientes')->onDelete('cascade');
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->onDelete('cascade');
             $table->foreign('dado_de_alta_por')->references('id')->on('users')->onDelete('cascade');
         });
     }

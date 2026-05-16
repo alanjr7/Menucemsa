@@ -398,7 +398,7 @@
             }
 
             container.innerHTML += pacientes.map(paciente => `
-                <div class="bg-white border border-slate-200 rounded-xl p-4 mb-3 hover:bg-slate-50 transition-all cursor-pointer hover:shadow-md" onclick="seleccionarPaciente('${paciente.ci}', '${paciente.nombre}', '${paciente.telefono}', '${paciente.sexo}')">
+                <div class="bg-white border border-slate-200 rounded-xl p-4 mb-3 hover:bg-slate-50 transition-all cursor-pointer hover:shadow-md" onclick="seleccionarPaciente('${paciente.id}', '${paciente.ci}', '${paciente.nombre}', '${paciente.telefono}', '${paciente.sexo}')">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4">
                             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -473,7 +473,7 @@
                 ` : '';
 
                 return `
-                    <div class="${bgColor} border rounded-xl p-4 mb-3 hover:bg-opacity-80 transition-all cursor-pointer hover:shadow-md" onclick="seleccionarPacienteDirecto('${paciente.ci}', '${paciente.nombre}', '${paciente.telefono}', '${paciente.sexo}', ${isPendiente})">
+                    <div class="${bgColor} border rounded-xl p-4 mb-3 hover:bg-opacity-80 transition-all cursor-pointer hover:shadow-md" onclick="seleccionarPacienteDirecto('${paciente.id}', '${paciente.ci}', '${paciente.nombre}', '${paciente.telefono}', '${paciente.sexo}', ${isPendiente})">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-4">
                                 <div class="w-12 h-12 ${isPendiente ? 'bg-orange-100' : 'bg-blue-100'} rounded-full flex items-center justify-center">
@@ -502,8 +502,8 @@
             }).join('');
         }
 
-        function seleccionarPaciente(ci, nombre, telefono, sexo) {
-            selectedPatient = { ci, nombre, telefono, sexo };
+        function seleccionarPaciente(id, ci, nombre, telefono, sexo) {
+            selectedPatient = { id, ci, nombre, telefono, sexo };
             isFromReception = false;
             
             // Show patient info
@@ -543,7 +543,7 @@
             document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function seleccionarPacienteDirecto(ci, nombre, telefono, sexo, esPendiente) {
+        function seleccionarPacienteDirecto(id, ci, nombre, telefono, sexo, esPendiente) {
             if (esPendiente) {
                 // Find the pending patient and select with service
                 const pendiente = pacientesPendientes.find(p => p.ci === ci);
@@ -551,7 +551,7 @@
                     seleccionarPacientePendiente(pendiente.id, ci, nombre, telefono, sexo, pendiente.tipo_servicio, pendiente.monto, pendiente.motivo);
                 }
             } else {
-                seleccionarPaciente(ci, nombre, telefono, sexo);
+                seleccionarPaciente(id, ci, nombre, telefono, sexo);
             }
         }
 
@@ -633,7 +633,7 @@
             }
 
             const formData = {
-                ci_paciente: selectedPatient.ci,
+                paciente_id: selectedPatient.id,
                 tipo_servicio: document.getElementById('tipoServicio').value,
                 metodo_pago: selectedPaymentMethod,
                 referencia: document.getElementById('referencia').value

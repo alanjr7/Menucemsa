@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Reception;
 
 use App\Http\Controllers\Controller;
 use App\Models\AlmacenCatalogo;
-use App\Models\AlmacenLote;
 use App\Models\AlmacenStock;
 use App\Models\Evaluacion;
 use App\Models\EvaluacionItem;
-use App\Models\Emergency;
 use App\Models\Paciente;
 use App\Models\Procedimiento;
 use App\Services\AlmacenEntregaService;
@@ -23,13 +21,13 @@ use Illuminate\View\View;
 class EvaluacionPacienteController extends Controller
 {
     private static array $roleAreaMap = [
-        'emergencia'           => 'emergencia',
-        'enfermera-emergencia' => 'emergencia',
-        'uti'                  => 'uti',
-        'internacion'          => 'internacion',
-        'enfermera-internacion'=> 'internacion',
-        'cirujano'             => 'cirugia',
-        'neonato'              => 'neonato',
+        'emergencia'            => 'emergencia',
+        'enfermera-emergencia'  => 'emergencia',
+        'uti'                   => 'uti',
+        'internacion'           => 'internacion',
+        'enfermera-internacion' => 'internacion',
+        'cirujano'              => 'cirugia',
+        'neonato'               => 'neonato',
     ];
 
     private function areaFromRole(string $role): string
@@ -37,35 +35,19 @@ class EvaluacionPacienteController extends Controller
         return self::$roleAreaMap[$role] ?? 'emergencia';
     }
 
-    private function resolveIdentifier(string $ci): object
+    private function resolvePaciente(string $identifier): Paciente
     {
-        if (str_starts_with($ci, 'TEMP-')) {
-            $emergency = Emergency::where('temp_id', $ci)->firstOrFail();
-            return (object)[
-                'ci'         => $ci,
-                'nombre'     => 'Paciente Temporal - Emergencia',
-                'is_temporal'=> true,
-                'emergency'  => $emergency,
-            ];
+        if (str_starts_with($identifier, 'TEMP-') || str_starts_with($identifier, 'RN-')) {
+            return Paciente::where('temp_code', $identifier)->firstOrFail();
         }
 
-        if (str_starts_with($ci, 'RN-')) {
-            $neonato = \App\Models\Neonato::where('temp_id', $ci)->firstOrFail();
-            return (object)[
-                'ci'         => $ci,
-                'nombre'     => $neonato->nombre_display,
-                'is_temporal'=> true,
-                'neonato'    => $neonato,
-            ];
-        }
-
-        return Paciente::where('ci', $ci)->firstOrFail();
+        return Paciente::where('ci', (int) $identifier)->firstOrFail();
     }
 
     public function show(string $ci): View
     {
-        $paciente = $this->resolveIdentifier($ci);
-        $area = $this->areaFromRole(auth()->user()->role);
+        $paciente = $this->resolvePaciente($ci);
+        $area     = $this->areaFromRole(auth()->user()->role);
 
         return view('evaluacion.show', compact('paciente', 'area'));
     }
@@ -73,39 +55,31 @@ class EvaluacionPacienteController extends Controller
     public function store(Request $request, string $ci): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'observaciones'             => ['nullable', 'string'],
-            'signos_vitales'            => ['nullable', 'array'],
-            'signos_vitales.presion_arterial'       => ['nullable', 'string', 'max:20'],
-            'signos_vitales.frecuencia_cardiaca'    => ['nullable', 'string', 'max:20'],
-            'signos_vitales.frecuencia_respiratoria'=> ['nullable', 'string', 'max:20'],
-            'signos_vitales.temperatura'            => ['nullable', 'string', 'max:20'],
-            'signos_vitales.saturacion_o2'          => ['nullable', 'string', 'max:20'],
-            'signos_vitales.glucosa'                => ['nullable', 'string', 'max:20'],
-            'signos_vitales.peso'                   => ['nullable', 'numeric', 'min:0', 'max:500'],
-            'signos_vitales.altura'                 => ['nullable', 'numeric', 'min:0', 'max:300'],
-            'items'                => ['nullable', 'array'],
-            'items.*.tipo'         => ['required', 'in:medicamento,insumo,procedimiento'],
-            'items.*.item_id'      => ['required', 'integer'],
-            'items.*.nombre'       => ['required', 'string'],
-            'items.*.cantidad'     => ['required', 'integer', 'min:1'],
-            'items.*.precio'       => ['nullable', 'numeric', 'min:0'],
+            'observaciones'                          => ['nullable', 'string'],
+            'signos_vitales'                         => ['nullable', 'array'],
+            'signos_vitales.presion_arterial'        => ['nullable', 'string', 'max:20'],
+            'signos_vitales.frecuencia_cardiaca'     => ['nullable', 'string', 'max:20'],
+            'signos_vitales.frecuencia_respiratoria' => ['nullable', 'string', 'max:20'],
+            'signos_vitales.temperatura'             => ['nullable', 'string', 'max:20'],
+            'signos_vitales.saturacion_o2'           => ['nullable', 'string', 'max:20'],
+            'signos_vitales.glucosa'                 => ['nullable', 'string', 'max:20'],
+            'signos_vitales.peso'                    => ['nullable', 'numeric', 'min:0', 'max:500'],
+            'signos_vitales.altura'                  => ['nullable', 'numeric', 'min:0', 'max:300'],
+            'items'            => ['nullable', 'array'],
+            'items.*.tipo'     => ['required', 'in:medicamento,insumo,procedimiento'],
+            'items.*.item_id'  => ['required', 'integer'],
+            'items.*.nombre'   => ['required', 'string'],
+            'items.*.cantidad' => ['required', 'integer', 'min:1'],
+            'items.*.precio'   => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $area = $this->areaFromRole(auth()->user()->role);
+        $paciente = $this->resolvePaciente($ci);
+        $area     = $this->areaFromRole(auth()->user()->role);
 
-        // Para pacientes TEMP-, la cuenta se registró con el temp_id como string
-        $cuentaCi = $ci;
-
-        // Para registrar entregas en almacén necesitamos un int; en TEMP- usamos el emergency id
-        $emergencyForTemp = null;
-        if (str_starts_with($ci, 'TEMP-')) {
-            $emergencyForTemp = Emergency::where('temp_id', $ci)->first();
-        }
-
-        DB::transaction(function () use ($request, $ci, $area, $cuentaCi, $emergencyForTemp) {
+        DB::transaction(function () use ($request, $paciente, $area) {
             $signosVitales = null;
             if ($request->filled('signos_vitales')) {
-                $sv = $request->input('signos_vitales', []);
+                $sv     = $request->input('signos_vitales', []);
                 $peso   = isset($sv['peso'])   && $sv['peso']   > 0 ? (float) $sv['peso']   : null;
                 $altura = isset($sv['altura']) && $sv['altura'] > 0 ? (float) $sv['altura'] : null;
                 $signosVitales = array_filter([
@@ -123,70 +97,57 @@ class EvaluacionPacienteController extends Controller
                 if (empty($signosVitales)) $signosVitales = null;
             }
 
-            $esTemporal = str_starts_with($ci, 'TEMP-');
+            $episodioId = $paciente->is_temp
+                ? null
+                : EpisodioService::getEpisodioAbierto($paciente->id)?->id;
+
             $evaluacion = Evaluacion::create([
-                'paciente_ci'    => $esTemporal ? null : $ci,
-                'temp_id'        => $esTemporal ? $ci : null,
+                'paciente_id'    => $paciente->id,
                 'area'           => $area,
                 'user_id'        => auth()->id(),
                 'observaciones'  => $request->observaciones,
                 'signos_vitales' => $signosVitales,
-                'episodio_id'    => $esTemporal ? null : EpisodioService::getEpisodioAbierto((int) $ci)?->id,
+                'episodio_id'    => $episodioId,
             ]);
 
             $items = $request->input('items', []);
             if (empty($items)) return;
 
-            // Obtener o crear la cuenta maestra del paciente
-            $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($cuentaCi, $area);
+            $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($paciente->id, $area);
 
             foreach ($items as $item) {
                 $precio   = (float) ($item['precio'] ?? 0);
                 $cantidad = (int) $item['cantidad'];
                 $tipo     = $item['tipo'];
 
-                // Medicamentos e insumos requieren stock; si no hay, no se entrega ni cobra
                 if (in_array($tipo, ['medicamento', 'insumo'])) {
                     $stock = AlmacenStock::whereHas('lote', fn($q) => $q->where('catalogo_id', $item['item_id']))
                         ->where('ubicacion', $area)
                         ->where('cantidad_actual', '>=', $cantidad)
                         ->first();
 
-                    if (!$stock) {
-                        continue;
-                    }
+                    if (!$stock) continue;
 
                     $stock->decrement('cantidad_actual', $cantidad);
 
-                    // TEMP- no tiene FK en pacientes, se omite el registro de entrega
-                    $pacienteCiInt = str_starts_with($ci, 'TEMP-')
-                        ? null
-                        : (int) $ci;
-
-                    if ($pacienteCiInt) {
-                        AlmacenEntregaService::registrarEntrega(
-                            $pacienteCiInt,
-                            (int) $item['item_id'],
-                            $cantidad,
-                            $area,
-                            $emergencyForTemp?->id,
-                            'Aplicado en evaluación - ' . $area
-                        );
-                    }
+                    AlmacenEntregaService::registrarEntrega(
+                        $paciente->id,
+                        (int) $item['item_id'],
+                        $cantidad,
+                        $area,
+                        null,
+                        'Aplicado en evaluación - ' . $area
+                    );
                 }
 
-                // Guardar el item de evaluación (solo para pacientes registrados)
-                $evaluacionItem = null;
-                if ($evaluacion) {
-                    $evaluacionItem = EvaluacionItem::create([
-                        'evaluacion_id'   => $evaluacion->id,
-                        'tipo'            => $tipo,
-                        'item_id'         => $item['item_id'],
-                        'nombre_snapshot' => $item['nombre'],
-                        'cantidad'        => $cantidad,
-                        'precio_snapshot' => $precio ?: null,
-                    ]);
-                }
+                $evaluacionItem = EvaluacionItem::create([
+                    'evaluacion_id'   => $evaluacion->id,
+                    'tipo'            => $tipo,
+                    'item_id'         => $item['item_id'],
+                    'nombre_snapshot' => $item['nombre'],
+                    'cantidad'        => $cantidad,
+                    'precio_snapshot' => $precio ?: null,
+                ]);
 
                 if ($precio <= 0) continue;
 
@@ -196,10 +157,6 @@ class EvaluacionPacienteController extends Controller
                     default       => 'procedimiento',
                 };
 
-                $origenId = $evaluacionItem
-                    ? (string) $evaluacionItem->id
-                    : $cuentaCi . '-' . $item['item_id'] . '-' . now()->timestamp;
-
                 CuentaCobroService::agregarCargoConDeduplicacion(
                     $cuenta->id,
                     $tipoItem,
@@ -208,7 +165,7 @@ class EvaluacionPacienteController extends Controller
                     $cantidad,
                     $area,
                     EvaluacionItem::class,
-                    $origenId,
+                    (string) $evaluacionItem->id,
                 );
             }
         });
@@ -224,61 +181,50 @@ class EvaluacionPacienteController extends Controller
 
     public function historial(string $ci): View
     {
-        $esTemporal = str_starts_with($ci, 'TEMP-');
+        $paciente = $this->resolvePaciente($ci);
 
-        if ($esTemporal) {
-            $emergency = Emergency::where('temp_id', $ci)->firstOrFail();
-            $paciente = (object) [
-                'ci'     => $ci,
-                'nombre' => $emergency->patient_name ?? $ci,
-            ];
-            $episodio    = null;
-            $evaluaciones = Evaluacion::with(['user', 'items'])
-                ->where('temp_id', $ci)
-                ->orderByDesc('created_at')
-                ->paginate(15);
-            $camillaUsos = collect();
-        } else {
-            $paciente = Paciente::with('consultas.caja')->where('ci', $ci)->firstOrFail();
-            $episodio = EpisodioService::getEpisodioAbierto($ci);
+        $episodio = $paciente->is_temp
+            ? null
+            : EpisodioService::getEpisodioAbierto($paciente->id);
 
-            $evaluaciones = Evaluacion::with(['user', 'items'])
-                ->where('paciente_ci', $ci)
-                ->when($episodio, fn($q) => $q->where('episodio_id', $episodio->id))
-                ->when(!$episodio, fn($q) => $q->whereRaw('1=0'))
-                ->orderByDesc('created_at')
-                ->paginate(15);
+        $evaluaciones = Evaluacion::with(['user', 'items'])
+            ->where('paciente_id', $paciente->id)
+            ->when($episodio, fn($q) => $q->where('episodio_id', $episodio->id))
+            ->when(!$episodio && !$paciente->is_temp, fn($q) => $q->whereRaw('1=0'))
+            ->orderByDesc('created_at')
+            ->paginate(15);
 
-            $camillaUsos = \App\Models\CamillaUso::with('camilla', 'registradoPor')
-                ->where('paciente_ci', $ci)
-                ->when($episodio, fn($q) => $q->where('created_at', '>=', $episodio->fecha_apertura))
-                ->when(!$episodio, fn($q) => $q->whereRaw('1=0'))
-                ->orderByDesc('fecha_inicio')
-                ->get();
-        }
+        $camillaUsos = \App\Models\CamillaUso::with('camilla', 'registradoPor')
+            ->where('paciente_id', $paciente->id)
+            ->when($episodio, fn($q) => $q->where('created_at', '>=', $episodio->fecha_apertura))
+            ->when(!$episodio && !$paciente->is_temp, fn($q) => $q->whereRaw('1=0'))
+            ->orderByDesc('fecha_inicio')
+            ->get();
 
         return view('evaluacion.historial', compact('paciente', 'evaluaciones', 'camillaUsos', 'episodio'));
     }
 
-    public function destroy(int $ci, int $evaluacionId): RedirectResponse
+    public function destroy(int $pacienteId, int $evaluacionId): RedirectResponse
     {
+        $paciente   = Paciente::findOrFail($pacienteId);
         $evaluacion = Evaluacion::where('id', $evaluacionId)
-            ->where('paciente_ci', $ci)
+            ->where('paciente_id', $paciente->id)
             ->firstOrFail();
 
         $evaluacion->items()->delete();
         $evaluacion->delete();
 
-        return redirect()->route('evaluacion.historial', $ci)
+        $identifier = $paciente->ci ?? $paciente->temp_code;
+        return redirect()->route('evaluacion.historial', $identifier)
             ->with('success', 'Evaluación eliminada correctamente.');
     }
 
-    public function print(int $ci, int $evaluacionId): View
+    public function print(int $pacienteId, int $evaluacionId): View
     {
-        $paciente = Paciente::where('ci', $ci)->firstOrFail();
+        $paciente   = Paciente::findOrFail($pacienteId);
         $evaluacion = Evaluacion::with(['user', 'items'])
             ->where('id', $evaluacionId)
-            ->where('paciente_ci', $ci)
+            ->where('paciente_id', $paciente->id)
             ->firstOrFail();
 
         return view('evaluacion.print', compact('paciente', 'evaluacion'));
@@ -296,22 +242,22 @@ class EvaluacionPacienteController extends Controller
     public function buscarMedicamentos(Request $request): JsonResponse
     {
         $area = $this->resolveArea($request);
-        $q = $request->input('q', '');
+        $q    = $request->input('q', '');
 
         $items = AlmacenCatalogo::where('tipo', 'medicamento')
             ->where('activo', true)
             ->where('nombre', 'like', "%{$q}%")
             ->with(['lotes.stocks' => fn($query) => $query->where('ubicacion', $area)])
             ->get()
-            ->map(function ($catalogo) use ($area) {
+            ->map(function ($catalogo) {
                 $stock = $catalogo->lotes->flatMap->stocks->first();
-                if (! $stock) return null;
+                if (!$stock) return null;
                 return [
-                    'id'            => $catalogo->id,
-                    'nombre'        => $catalogo->nombre,
-                    'unidad_medida' => $catalogo->unidad_medida,
+                    'id'              => $catalogo->id,
+                    'nombre'          => $catalogo->nombre,
+                    'unidad_medida'   => $catalogo->unidad_medida,
                     'cantidad_actual' => $stock->cantidad_actual,
-                    'precio'        => $stock->lote->precio_venta ?? 0,
+                    'precio'          => $stock->lote->precio_venta ?? 0,
                 ];
             })
             ->filter()
@@ -323,22 +269,22 @@ class EvaluacionPacienteController extends Controller
     public function buscarInsumos(Request $request): JsonResponse
     {
         $area = $this->resolveArea($request);
-        $q = $request->input('q', '');
+        $q    = $request->input('q', '');
 
         $items = AlmacenCatalogo::where('tipo', 'insumo')
             ->where('activo', true)
             ->where('nombre', 'like', "%{$q}%")
             ->with(['lotes.stocks' => fn($query) => $query->where('ubicacion', $area)])
             ->get()
-            ->map(function ($catalogo) use ($area) {
+            ->map(function ($catalogo) {
                 $stock = $catalogo->lotes->flatMap->stocks->first();
-                if (! $stock) return null;
+                if (!$stock) return null;
                 return [
-                    'id'            => $catalogo->id,
-                    'nombre'        => $catalogo->nombre,
-                    'unidad_medida' => $catalogo->unidad_medida,
+                    'id'              => $catalogo->id,
+                    'nombre'          => $catalogo->nombre,
+                    'unidad_medida'   => $catalogo->unidad_medida,
                     'cantidad_actual' => $stock->cantidad_actual,
-                    'precio'        => $stock->lote->precio_venta ?? 0,
+                    'precio'          => $stock->lote->precio_venta ?? 0,
                 ];
             })
             ->filter()
@@ -350,7 +296,7 @@ class EvaluacionPacienteController extends Controller
     public function buscarProcedimientos(Request $request): JsonResponse
     {
         $area = $this->resolveArea($request);
-        $q = $request->input('q', '');
+        $q    = $request->input('q', '');
 
         $procedimientos = Procedimiento::activos()
             ->porArea($area)

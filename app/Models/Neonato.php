@@ -10,8 +10,8 @@ class Neonato extends Model
 {
     protected $fillable = [
         'nombre', 'sexo',
-        'paciente_ci', 'temp_id', 'is_temp_id', 'code',
-        'madre_ci', 'madre_nombre',
+        'paciente_id', 'code',
+        'madre_id', 'madre_nombre',
         'peso', 'talla', 'perimetro_cefalico',
         'apgar1', 'apgar5', 'tipo_parto', 'fecha_hora_nacimiento',
         'status', 'status_logs', 'observaciones',
@@ -23,7 +23,6 @@ class Neonato extends Model
         'fecha_hora_nacimiento' => 'datetime',
         'admission_date'        => 'datetime',
         'discharge_date'        => 'datetime',
-        'is_temp_id'            => 'boolean',
         'status_logs'           => 'array',
     ];
 
@@ -33,12 +32,12 @@ class Neonato extends Model
 
     public function madre(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'madre_ci', 'ci');
+        return $this->belongsTo(Paciente::class, 'madre_id');
     }
 
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'paciente_ci', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function user(): BelongsTo
@@ -48,12 +47,12 @@ class Neonato extends Model
 
     public function evaluaciones(): HasMany
     {
-        return $this->hasMany(Evaluacion::class, 'temp_id', 'temp_id');
+        return $this->hasMany(Evaluacion::class, 'paciente_id', 'paciente_id');
     }
 
     public function camillaUsos(): HasMany
     {
-        return $this->hasMany(CamillaUso::class, 'paciente_ci', 'temp_id');
+        return $this->hasMany(CamillaUso::class, 'paciente_id', 'paciente_id');
     }
 
     // -------------------------------------------------------------------------
@@ -71,12 +70,13 @@ class Neonato extends Model
         return $prefix . '-' . str_pad($seq, 3, '0', STR_PAD_LEFT);
     }
 
-    public static function generateTempId(): string
+    // Genera el temp_code que va en pacientes.temp_code al crear un neonato sin CI
+    public static function generateTempCode(): string
     {
         $prefix = 'RN-' . now()->format('Ymd');
-        $last = static::where('temp_id', 'like', $prefix . '-%')
-            ->orderBy('temp_id', 'desc')
-            ->value('temp_id');
+        $last = Paciente::where('temp_code', 'like', $prefix . '-%')
+            ->orderBy('temp_code', 'desc')
+            ->value('temp_code');
         $seq = $last ? ((int) substr($last, -3)) + 1 : 1;
 
         return $prefix . '-' . str_pad($seq, 3, '0', STR_PAD_LEFT);
@@ -88,13 +88,26 @@ class Neonato extends Model
 
     public function getIdentificadorAttribute(): string
     {
-        return $this->is_temp_id ? ($this->temp_id ?? '') : ($this->paciente_ci ?? '');
+        $paciente = $this->paciente;
+        if (!$paciente) {
+            return (string) $this->id;
+        }
+        return $paciente->is_temp
+            ? ($paciente->temp_code ?? '')
+            : ((string) $paciente->ci ?? '');
     }
 
-    /** CI de facturación: usa madre_ci si existe, sino el temp_id propio */
     public function getBillingCiAttribute(): string
     {
-        return $this->madre_ci ?? $this->temp_id ?? (string) $this->id;
+        $madre = $this->madre;
+        if ($madre) {
+            return (string) ($madre->ci ?? $madre->temp_code ?? $madre->id);
+        }
+        $paciente = $this->paciente;
+        if ($paciente) {
+            return (string) ($paciente->temp_code ?? $paciente->ci ?? $paciente->id);
+        }
+        return (string) $this->id;
     }
 
     public function getNombreDisplayAttribute(): string

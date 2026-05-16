@@ -92,7 +92,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 <p class="text-sm font-semibold text-gray-800">{{ $rn->nombre_display }}</p>
-                                <p class="text-xs text-gray-400">{{ $rn->temp_id }} · {{ $rn->sexo === 'M' ? 'Masculino' : ($rn->sexo === 'F' ? 'Femenino' : 'Sin definir') }}</p>
+                                <p class="text-xs text-gray-400">{{ $rn->identificador }} · {{ $rn->sexo === 'M' ? 'Masculino' : ($rn->sexo === 'F' ? 'Femenino' : 'Sin definir') }}</p>
                                 @if($rn->peso)
                                     <p class="text-xs text-gray-400">{{ $rn->peso }} g · {{ $rn->talla }} cm</p>
                                 @endif

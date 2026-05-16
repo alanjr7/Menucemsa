@@ -49,7 +49,7 @@ class HabitacionGestionController extends Controller
             ->with('paciente')
             ->orderBy('created_at', 'desc')
             ->get()
-            ->unique('ci_paciente')
+            ->unique('paciente_id')
             ->values();
 
         return view('internacion-staff.habitaciones.index', compact('stats', 'habitaciones', 'pacientesSinHabitacion'));

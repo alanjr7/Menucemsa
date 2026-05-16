@@ -918,12 +918,11 @@
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-gray-800 text-lg">${emp.code}</span>
+                                    <span class="font-bold text-gray-800 text-lg">${emp.temp_code || emp.code}</span>
                                     <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
                                         ID Temporal
                                     </span>
                                 </div>
-                                <p class="text-sm text-gray-600 font-mono">${emp.temp_id || 'Sin identificación'}</p>
                                 <div class="flex gap-3 mt-1 text-xs text-gray-500">
                                     <span><strong>Ingreso:</strong> ${emp.tipo_ingreso_label}</span>
                                     <span>|</span>

@@ -209,13 +209,13 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end gap-2">
-                                    <a href="{{ route('patients.show', $paciente->ci) }}"
+                                    <a href="{{ route('patients.show', $paciente->id) }}"
                                        class="inline-flex items-center px-3 py-1.5 border border-gray-200 shadow-sm text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all">
                                         Datos
                                     </a>
                                     @if(!$tienePendientes)
                                         <button type="button"
-                                                onclick="abrirModalAlta('{{ $paciente->ci }}', '{{ addslashes($paciente->nombre) }}')"
+                                                onclick="abrirModalAlta('{{ $paciente->id }}', '{{ addslashes($paciente->nombre) }}')"
                                                 class="inline-flex items-center px-3 py-1.5 border border-emerald-200 shadow-sm text-xs font-medium rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all">
                                             <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
