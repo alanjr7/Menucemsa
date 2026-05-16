@@ -89,6 +89,68 @@ window.__PATIENTS_DATA__ = @json($appData);
 <script type="text/babel">
 const { useState } = React;
 
+function Pagination({ pagination, total, baseUrl, currentSearch, currentEstado }) {
+    function pageUrl(n) {
+        const params = new URLSearchParams();
+        if (currentSearch) params.set('search', currentSearch);
+        if (currentEstado) params.set('estado', currentEstado);
+        if (n > 1) params.set('page', n);
+        const qs = params.toString();
+        return baseUrl + (qs ? '?' + qs : '');
+    }
+
+    function getPages(current, last) {
+        const delta = 2;
+        const range = [];
+        for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+            range.push(i);
+        }
+        if (current - delta > 2) range.unshift('…');
+        if (current + delta < last - 1) range.push('…');
+        if (last > 1) range.unshift(1);
+        if (last >= 1) range.push(last);
+        return [...new Set(range)];
+    }
+
+    const { currentPage, lastPage, from, to, prevUrl, nextUrl } = pagination;
+    const pages = getPages(currentPage, lastPage);
+    const btnBase = 'inline-flex items-center justify-center min-w-[2rem] h-8 px-2 text-sm rounded-lg border transition-colors';
+
+    return (
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">
+                Mostrando {from}–{to} de {total} pacientes
+            </p>
+            <div className="flex items-center gap-1">
+                <a href={prevUrl || '#'}
+                   onClick={!prevUrl ? e => e.preventDefault() : undefined}
+                   className={`${btnBase} ${prevUrl ? 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50' : 'border-gray-100 text-gray-300 bg-white cursor-not-allowed'}`}>
+                    ←
+                </a>
+
+                {pages.map((p, i) =>
+                    p === '…' ? (
+                        <span key={`ellipsis-${i}`} className="px-1 text-sm text-gray-400">…</span>
+                    ) : (
+                        <a key={p} href={pageUrl(p)}
+                           className={`${btnBase} ${p === currentPage
+                               ? 'border-blue-500 bg-blue-600 text-white'
+                               : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50'}`}>
+                            {p}
+                        </a>
+                    )
+                )}
+
+                <a href={nextUrl || '#'}
+                   onClick={!nextUrl ? e => e.preventDefault() : undefined}
+                   className={`${btnBase} ${nextUrl ? 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50' : 'border-gray-100 text-gray-300 bg-white cursor-not-allowed'}`}>
+                    →
+                </a>
+            </div>
+        </div>
+    );
+}
+
 const INGRESO_CONFIG = {
     enfermeria:       { badge: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500', label: 'Enfermería',  pulse: false },
     consulta_externa: { badge: 'bg-green-100 text-green-800 border-green-200',   dot: 'bg-green-500',  label: 'Consulta',    pulse: false },
@@ -317,28 +379,9 @@ function PatientsIndex() {
                 </div>
 
                 {pagination.hasPages && (
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between">
-                        <p className="text-sm text-gray-500">
-                            Mostrando {pagination.from}–{pagination.to} de {total} pacientes
-                        </p>
-                        <div className="flex gap-2 items-center">
-                            {pagination.prevUrl && (
-                                <a href={pagination.prevUrl}
-                                   className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition-colors">
-                                    ← Anterior
-                                </a>
-                            )}
-                            <span className="px-3 py-1.5 text-sm text-gray-600">
-                                Página {pagination.currentPage} de {pagination.lastPage}
-                            </span>
-                            {pagination.nextUrl && (
-                                <a href={pagination.nextUrl}
-                                   className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition-colors">
-                                    Siguiente →
-                                </a>
-                            )}
-                        </div>
-                    </div>
+                    <Pagination pagination={pagination} total={total}
+                                baseUrl={baseUrl} currentSearch={currentSearch}
+                                currentEstado={currentEstado} />
                 )}
             </div>
         </div>
