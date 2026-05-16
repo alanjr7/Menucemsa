@@ -97,17 +97,19 @@ class PatientsController extends Controller
 
         // Combinar colecciones si no hay filtro de estado específico o si es 'emergencia'
         if (!$request->filled('estado') || $request->estado === 'emergencia') {
-            // Convertir pacientes paginados a colección y combinar
-            $pacientesCollection = collect($pacientes->items());
-            $todosPacientes = $pacientesCollection->merge($pacientesTemporales)->sortByDesc('created_at');
-            
-            // Recrear paginador manualmente
-            $page = $request->get('page', 1);
-            $perPage = 15;
-            $total = $todosPacientes->count();
+            $dbTotal  = $pacientes->total();
+            $page     = $request->get('page', 1);
+            $perPage  = 15;
+
+            // Temporales solo se muestran en página 1 y se restan del cupo
+            $pageItems = collect($pacientes->items());
+            if ($page == 1) {
+                $pageItems = $pacientesTemporales->merge($pageItems)->sortByDesc('created_at')->values();
+            }
+
             $pacientes = new \Illuminate\Pagination\LengthAwarePaginator(
-                $todosPacientes->forPage($page, $perPage)->values(),
-                $total,
+                $pageItems,
+                $dbTotal + $pacientesTemporales->count(),
                 $perPage,
                 $page,
                 ['path' => $request->url(), 'query' => $request->query()]
