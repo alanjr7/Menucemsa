@@ -318,7 +318,7 @@ class PatientsController extends Controller
             'direccion' => 'nullable|string|max:255',
             'telefono' => 'nullable|string|max:20',
             'correo' => 'nullable|email|max:255',
-            'lugar_expedicion' => 'nullable|string|max:100',
+            'lugar_expedicion' => 'nullable|string|max:2',
             'nacionalidad' => 'nullable|string|max:100',
             'estado_civil' => 'nullable|string|max:50',
             'profesion' => 'nullable|string|max:100',

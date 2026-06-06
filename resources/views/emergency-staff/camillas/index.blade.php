@@ -25,6 +25,7 @@ $pacientesData = $pacientes->map(function($paciente) use ($INGRESO) {
     $cajaId      = !$esTemporal ? ($paciente->consultas->first()?->caja?->id) : null;
 
     return [
+        'id'            => $paciente->id,
         'ci'            => $paciente->ci,
         'nombre'        => $paciente->nombre,
         'is_temporal'   => $esTemporal,
@@ -57,8 +58,10 @@ $appData = [
         'info'    => session('info'),
     ],
     'csrfToken'    => csrf_token(),
-    'storeUrl'     => route('emergency-staff.camillas.store'),
-    'indexUrl'     => route('emergency-staff.camillas.index'),
+    'area'         => $area,
+    'areaLabel'    => $areaLabel,
+    'storeUrl'     => route('emergency-staff.camillas.store', $routeParams),
+    'indexUrl'     => route('emergency-staff.camillas.index', $routeParams),
     'dashboardUrl' => route('emergency-staff.dashboard'),
     'currentSearch'=> request('search', ''),
 ];
@@ -306,7 +309,7 @@ function CamillasIndex() {
         pacientes, total, camillas, camillasVacias,
         pagination, flash,
         csrfToken, storeUrl, indexUrl, dashboardUrl,
-        currentSearch,
+        currentSearch, areaLabel,
     } = window.__CAMILLAS_DATA__;
 
     const [search, setSearch]             = useState(currentSearch);
@@ -325,7 +328,7 @@ function CamillasIndex() {
             {/* Header */}
             <div className="flex justify-between items-end mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Camillas — Emergencia</h1>
+                    <h1 className="text-2xl font-bold text-gray-800">Camillas — {areaLabel}</h1>
                     <p className="text-sm text-gray-500">Registrar uso de camilla por paciente</p>
                 </div>
                 <a href={dashboardUrl}

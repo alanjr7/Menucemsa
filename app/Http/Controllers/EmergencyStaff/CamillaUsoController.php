@@ -81,9 +81,39 @@ class CamillaUsoController extends Controller
             return $paciente;
         });
 
-        $camillas = Camilla::where('area', 'emergencia')->where('activa', true)->orderBy('nombre')->get();
+        $area = $this->resolveCamillaArea($request);
+        $routeParams = $area === 'uti' ? ['area' => 'uti'] : [];
+        $areaLabel = $this->getAreaLabel($area);
 
-        return view('emergency-staff.camillas.index', compact('pacientes', 'camillas'));
+        $camillas = Camilla::where('area', $area)
+            ->where('activa', true)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('emergency-staff.camillas.index', compact('pacientes', 'camillas', 'area', 'routeParams', 'areaLabel'));
+    }
+
+    private function resolveCamillaArea(Request $request): string
+    {
+        $user = $request->user();
+        $requestedArea = $request->query('area');
+
+        if (in_array($requestedArea, ['uti', 'emergencia'], true)
+            && ($user->hasRole('admin') || $user->hasRole('administrador') || $user->hasRole('dirmedico'))
+        ) {
+            return $requestedArea;
+        }
+
+        if ($user->isUti()) {
+            return 'uti';
+        }
+
+        return 'emergencia';
+    }
+
+    private function getAreaLabel(string $area): string
+    {
+        return $area === 'uti' ? 'UTI' : 'Emergencia';
     }
 
     private function determinarTipoIngreso(Paciente $paciente): string
@@ -147,7 +177,10 @@ class CamillaUsoController extends Controller
         $mm          = (int) bcround(bcmul(bcsub($horas, (string) $hh, 4), '60', 4), 0);
         $tiempoLabel = $mm > 0 ? "{$hh}h {$mm}min" : "{$hh}h";
 
-        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($paciente->id, 'emergencia');
+        $areaOrigen = $camilla->area === 'uti' ? 'uti' : 'emergencia';
+        $routeParams = $areaOrigen === 'uti' ? ['area' => 'uti'] : [];
+
+        $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra($paciente->id, $areaOrigen);
 
         $detalle = CuentaCobroDetalle::create([
             'cuenta_cobro_id' => $cuenta->id,
@@ -155,7 +188,7 @@ class CamillaUsoController extends Controller
             'descripcion'     => 'Uso de Camilla: ' . $camilla->nombre . ' (' . $camilla->codigo . ') — ' . $tiempoLabel,
             'cantidad'        => $horas,
             'precio_unitario' => $camilla->precio_por_hora,
-            'area_origen'     => 'emergencia',
+            'area_origen'     => $areaOrigen,
             'user_id'         => auth()->id(),
         ]);
 
@@ -176,7 +209,7 @@ class CamillaUsoController extends Controller
 
         $cuenta->recalcularTotales();
 
-        return redirect()->route('emergency-staff.camillas.index')
+        return redirect()->route('emergency-staff.camillas.index', $routeParams)
             ->with('success', 'Uso de camilla registrado correctamente.');
     }
 }

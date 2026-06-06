@@ -105,16 +105,16 @@
                         <select name="lugar_expedicion" 
                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition-colors">
                             <option value="">Seleccionar...</option>
-                            <option value="La Paz" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'La Paz' ? 'selected' : '' }}>La Paz</option>
-                            <option value="Cochabamba" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Cochabamba' ? 'selected' : '' }}>Cochabamba</option>
-                            <option value="Santa Cruz" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Santa Cruz' ? 'selected' : '' }}>Santa Cruz</option>
-                            <option value="Sucre" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Sucre' ? 'selected' : '' }}>Sucre</option>
-                            <option value="Potosí" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Potosí' ? 'selected' : '' }}>Potosí</option>
-                            <option value="Oruro" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Oruro' ? 'selected' : '' }}>Oruro</option>
-                            <option value="Tarija" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Tarija' ? 'selected' : '' }}>Tarija</option>
-                            <option value="Chuquisaca" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Chuquisaca' ? 'selected' : '' }}>Chuquisaca</option>
-                            <option value="Beni" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Beni' ? 'selected' : '' }}>Beni</option>
-                            <option value="Pando" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'Pando' ? 'selected' : '' }}>Pando</option>
+                            <option value="LP" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'LP' ? 'selected' : '' }}>LP - La Paz</option>
+                            <option value="CB" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'CB' ? 'selected' : '' }}>CB - Cochabamba</option>
+                            <option value="SC" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'SC' ? 'selected' : '' }}>SC - Santa Cruz</option>
+                            <option value="SU" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'SU' ? 'selected' : '' }}>SU - Sucre</option>
+                            <option value="PT" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'PT' ? 'selected' : '' }}>PT - Potosí</option>
+                            <option value="OR" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'OR' ? 'selected' : '' }}>OR - Oruro</option>
+                            <option value="TJ" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'TJ' ? 'selected' : '' }}>TJ - Tarija</option>
+                            <option value="CH" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'CH' ? 'selected' : '' }}>CH - Chuquisaca</option>
+                            <option value="BN" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'BN' ? 'selected' : '' }}>BN - Beni</option>
+                            <option value="PD" {{ old('lugar_expedicion', $paciente->lugar_expedicion) == 'PD' ? 'selected' : '' }}>PD - Pando</option>
                         </select>
                         @error('lugar_expedicion')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
