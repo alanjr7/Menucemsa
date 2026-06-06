@@ -541,6 +541,18 @@ input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-a
             </div>
 
             <div class="form-group">
+                <label class="form-label" for="proveedor_{INDEX}">Proveedor</label>
+                <input type="text" id="proveedor_{INDEX}" name="lotes[{INDEX}][proveedor]" maxlength="150"
+                       placeholder="Distribuidora..." class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="laboratorio_{INDEX}">Laboratorio</label>
+                <input type="text" id="laboratorio_{INDEX}" name="lotes[{INDEX}][laboratorio]" maxlength="150"
+                       placeholder="Genérico, Bagó..." class="form-input">
+            </div>
+
+            <div class="form-group">
                 <label class="form-label" for="fecha_vencimiento_{INDEX}">Fecha Vencimiento</label>
                 <input type="date" id="fecha_vencimiento_{INDEX}" name="lotes[{INDEX}][fecha_vencimiento]"
                        class="form-input">
@@ -755,6 +767,18 @@ function crearLoteHtml(lote, index) {
                            value="${lote.codigo_lote || ''}"
                            class="form-input"
                            oninput="this.closest('.lote-item').querySelector('.lote-title').textContent = this.value || 'Nuevo Lote'">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="proveedor_${index}">Proveedor</label>
+                    <input type="text" id="proveedor_${index}" name="lotes[${index}][proveedor]" maxlength="150"
+                           value="${lote.proveedor || ''}" placeholder="Distribuidora..." class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="laboratorio_${index}">Laboratorio</label>
+                    <input type="text" id="laboratorio_${index}" name="lotes[${index}][laboratorio]" maxlength="150"
+                           value="${lote.laboratorio || ''}" placeholder="Genérico, Bagó..." class="form-input">
                 </div>
 
                 <div class="form-group">

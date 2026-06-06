@@ -7,8 +7,8 @@ use App\Models\AlmacenLote;
 use App\Models\AlmacenStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class InternacionMedicamentosController extends Controller
 {
@@ -23,12 +23,12 @@ class InternacionMedicamentosController extends Controller
     public function index(Request $request)
     {
         $query = AlmacenCatalogo::activos()
-            ->with(['lotes' => function($q) {
-                $q->with(['stocks' => function($sq) {
+            ->with(['lotes' => function ($q) {
+                $q->with(['stocks' => function ($sq) {
                     $sq->where('ubicacion', $this->ubicacion);
                 }]);
             }])
-            ->whereHas('stocks', function($q) {
+            ->whereHas('stocks', function ($q) {
                 $q->where('ubicacion', $this->ubicacion);
             });
 
@@ -37,21 +37,21 @@ class InternacionMedicamentosController extends Controller
         }
 
         if ($request->filled('buscar')) {
-            $query->where(function($q) use ($request) {
-                $q->where('nombre', 'like', '%' . $request->buscar . '%')
-                  ->orWhere('descripcion', 'like', '%' . $request->buscar . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('nombre', 'like', '%'.$request->buscar.'%')
+                    ->orWhere('descripcion', 'like', '%'.$request->buscar.'%');
             });
         }
 
         $medicamentos = $query->orderBy('nombre')->paginate(10);
 
         $stats = [
-            'total' => AlmacenCatalogo::activos()->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
-            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
-            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->whereHas('stocks', fn($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'total' => AlmacenCatalogo::activos()->whereHas('stocks', fn ($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'medicamentos' => AlmacenCatalogo::activos()->where('tipo', 'medicamento')->whereHas('stocks', fn ($q) => $q->where('ubicacion', $this->ubicacion))->count(),
+            'insumos' => AlmacenCatalogo::activos()->where('tipo', 'insumo')->whereHas('stocks', fn ($q) => $q->where('ubicacion', $this->ubicacion))->count(),
             'bajo_stock' => AlmacenStock::where('ubicacion', $this->ubicacion)->bajoStock()->count(),
             'agotados' => AlmacenStock::where('ubicacion', $this->ubicacion)->agotado()->count(),
-            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', function($q) {
+            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', function ($q) {
                 $q->where('ubicacion', $this->ubicacion);
             })->count(),
         ];
@@ -71,7 +71,7 @@ class InternacionMedicamentosController extends Controller
             'cm' => 'Centímetros (cm)',
             'cajas' => 'Cajas',
             'frascos' => 'Frascos',
-            'sobres' => 'Sobres'
+            'sobres' => 'Sobres',
         ];
 
         return view('internacion-staff.medicamentos.create', compact('catalogos', 'tipos', 'unidades'));
@@ -86,6 +86,8 @@ class InternacionMedicamentosController extends Controller
             'unidad_medida' => 'required_if:catalogo_id,null|nullable|string|max:50',
             'tipo' => 'required_if:catalogo_id,null|nullable|in:medicamento,insumo',
             'codigo_lote' => 'required|string|max:100',
+            'proveedor' => 'nullable|string|max:150',
+            'laboratorio' => 'nullable|string|max:150',
             'fecha_vencimiento' => 'nullable|date|after:today',
             'precio_compra' => 'required|numeric|min:0',
             'porcentaje_ganancia' => 'required|numeric|min:0|max:100',
@@ -112,6 +114,8 @@ class InternacionMedicamentosController extends Controller
             $lote = AlmacenLote::create([
                 'catalogo_id' => $catalogo->id,
                 'codigo_lote' => $request->codigo_lote,
+                'proveedor' => $request->proveedor,
+                'laboratorio' => $request->laboratorio,
                 'fecha_vencimiento' => $request->fecha_vencimiento,
                 'precio_compra' => $request->precio_compra,
                 'porcentaje_ganancia' => $request->porcentaje_ganancia,
@@ -128,27 +132,28 @@ class InternacionMedicamentosController extends Controller
 
             DB::commit();
 
-            Log::info('Usuario ' . Auth::user()->name . ' creó medicamento/insumo en internación: ' . $catalogo->nombre, [
+            Log::info('Usuario '.Auth::user()->name.' creó medicamento/insumo en internación: '.$catalogo->nombre, [
                 'user_id' => Auth::id(),
                 'catalogo_id' => $catalogo->id,
                 'lote_id' => $lote->id,
                 'action' => 'create',
-                'module' => 'internacion_medicamentos'
+                'module' => 'internacion_medicamentos',
             ]);
 
             return redirect()->route('internacion-staff.medicamentos.index')
                 ->with('success', 'Medicamento/Insumo agregado correctamente al inventario de internación.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear medicamento en internación: ' . $e->getMessage());
-            return back()->with('error', 'Error al crear medicamento: ' . $e->getMessage());
+            Log::error('Error al crear medicamento en internación: '.$e->getMessage());
+
+            return back()->with('error', 'Error al crear medicamento: '.$e->getMessage());
         }
     }
 
     public function show(AlmacenCatalogo $medicamento)
     {
-        $medicamento->load(['lotes' => function($q) {
-            $q->with(['stocks' => function($sq) {
+        $medicamento->load(['lotes' => function ($q) {
+            $q->with(['stocks' => function ($sq) {
                 $sq->where('ubicacion', $this->ubicacion);
             }]);
         }]);
@@ -158,8 +163,8 @@ class InternacionMedicamentosController extends Controller
 
     public function edit(AlmacenCatalogo $medicamento)
     {
-        $medicamento->load(['lotes' => function($q) {
-            $q->with(['stocks' => function($sq) {
+        $medicamento->load(['lotes' => function ($q) {
+            $q->with(['stocks' => function ($sq) {
                 $sq->where('ubicacion', $this->ubicacion);
             }]);
         }]);
@@ -173,7 +178,7 @@ class InternacionMedicamentosController extends Controller
             'cm' => 'Centímetros (cm)',
             'cajas' => 'Cajas',
             'frascos' => 'Frascos',
-            'sobres' => 'Sobres'
+            'sobres' => 'Sobres',
         ];
 
         return view('internacion-staff.medicamentos.edit', compact('medicamento', 'tipos', 'unidades'));
@@ -190,14 +195,14 @@ class InternacionMedicamentosController extends Controller
         ]);
 
         $medicamento->update($request->only([
-            'nombre', 'descripcion', 'unidad_medida', 'tipo', 'observaciones'
+            'nombre', 'descripcion', 'unidad_medida', 'tipo', 'observaciones',
         ]));
 
-        Log::info('Usuario ' . Auth::user()->name . ' actualizó medicamento/insumo en internación: ' . $medicamento->nombre, [
+        Log::info('Usuario '.Auth::user()->name.' actualizó medicamento/insumo en internación: '.$medicamento->nombre, [
             'user_id' => Auth::id(),
             'catalogo_id' => $medicamento->id,
             'action' => 'update',
-            'module' => 'internacion_medicamentos'
+            'module' => 'internacion_medicamentos',
         ]);
 
         return redirect()->route('internacion-staff.medicamentos.index')
@@ -209,11 +214,11 @@ class InternacionMedicamentosController extends Controller
         $nombre = $medicamento->nombre;
         $medicamento->update(['activo' => false]);
 
-        Log::info('Usuario ' . Auth::user()->name . ' desactivó medicamento/insumo en internación: ' . $nombre, [
+        Log::info('Usuario '.Auth::user()->name.' desactivó medicamento/insumo en internación: '.$nombre, [
             'user_id' => Auth::id(),
             'catalogo_id' => $medicamento->id,
             'action' => 'deactivate',
-            'module' => 'internacion_medicamentos'
+            'module' => 'internacion_medicamentos',
         ]);
 
         return redirect()->route('internacion-staff.medicamentos.index')
@@ -222,11 +227,11 @@ class InternacionMedicamentosController extends Controller
 
     public function actualizarStock(Request $request, AlmacenCatalogo $medicamento)
     {
-        $stock = AlmacenStock::whereHas('lote', function($q) use ($medicamento) {
+        $stock = AlmacenStock::whereHas('lote', function ($q) use ($medicamento) {
             $q->where('catalogo_id', $medicamento->id);
         })->where('ubicacion', $this->ubicacion)->first();
 
-        if (!$stock) {
+        if (! $stock) {
             return back()->with('error', 'No hay stock de este medicamento en esta ubicación.');
         }
 
@@ -238,14 +243,14 @@ class InternacionMedicamentosController extends Controller
         $cantidadAnterior = $stock->cantidad_actual;
         $stock->update(['cantidad_actual' => $request->cantidad]);
 
-        Log::info('Usuario ' . Auth::user()->name . ' actualizó stock en internación de ' . $medicamento->nombre . ': ' . $cantidadAnterior . ' → ' . $request->cantidad . '. Motivo: ' . $request->motivo, [
+        Log::info('Usuario '.Auth::user()->name.' actualizó stock en internación de '.$medicamento->nombre.': '.$cantidadAnterior.' → '.$request->cantidad.'. Motivo: '.$request->motivo, [
             'user_id' => Auth::id(),
             'stock_id' => $stock->id,
             'action' => 'update_stock',
             'cantidad_anterior' => $cantidadAnterior,
             'cantidad_nueva' => $request->cantidad,
             'motivo' => $request->motivo,
-            'module' => 'internacion_medicamentos'
+            'module' => 'internacion_medicamentos',
         ]);
 
         return redirect()->back()

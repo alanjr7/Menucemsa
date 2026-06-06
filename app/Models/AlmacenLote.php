@@ -11,7 +11,7 @@ class AlmacenLote extends Model
     protected $table = 'almacen_lotes';
 
     protected $fillable = [
-        'catalogo_id', 'codigo_lote', 'fecha_vencimiento',
+        'catalogo_id', 'codigo_lote', 'proveedor', 'laboratorio', 'fecha_vencimiento',
         'precio_compra', 'porcentaje_ganancia', 'precio_venta', 'cantidad_inicial',
     ];
 

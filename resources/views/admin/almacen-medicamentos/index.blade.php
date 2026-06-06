@@ -6,12 +6,19 @@
 <div class="min-h-screen bg-gray-50 p-6">
     <!-- Header -->
     <div class="mb-8">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">Almacén de Medicamentos e Insumos</h1>
                 <p class="text-gray-600 mt-1">Catálogo normalizado con trazabilidad por lote</p>
             </div>
-            <div class="flex gap-3">
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ route('admin.almacen-medicamentos.importar.form') }}"
+                   class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4 4m4-4v12"/>
+                    </svg>
+                    Importar Excel
+                </a>
                 <a href="{{ route('admin.almacen-medicamentos.agregar-stock.form') }}"
                    class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,6 +199,8 @@
                         $lotesParaJs = $item->lotes->map(fn($l) => [
                             'id' => $l->id,
                             'codigo' => $l->codigo_lote ?? 'Sin código',
+                            'laboratorio' => $l->laboratorio,
+                            'proveedor' => $l->proveedor,
                             'vencimiento' => $l->fecha_vencimiento?->format('d/m/Y') ?? 'Sin fecha',
                             'stock_central' => $l->stocks->where('ubicacion', 'central')->sum('cantidad_actual'),
                         ])->filter(fn($l) => $l['stock_central'] > 0)->values()->toJson();
@@ -364,7 +373,7 @@
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required>
                                 <option value="">Seleccione un lote</option>
                                 <template x-for="lote in lotes" :key="lote.id">
-                                    <option :value="lote.id" x-text="`Lote ${lote.codigo} — vence ${lote.vencimiento} — disponible: ${lote.stock_central}`"></option>
+                                    <option :value="lote.id" x-text="`Lote ${lote.codigo}${lote.laboratorio ? ' — ' + lote.laboratorio : ''} — vence ${lote.vencimiento} — disponible: ${lote.stock_central}`"></option>
                                 </template>
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Stock central disponible: <span x-text="stockDisponible" class="font-semibold"></span> <span x-text="item.unidad"></span></p>

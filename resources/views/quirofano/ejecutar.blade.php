@@ -447,34 +447,37 @@ function buscarMedicamentos(query) {
     }
     
     resultadosDiv.innerHTML = resultados.map(med => `
-        <div class="resultado-item p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50" 
-             data-id="${med.id}"
+        <div class="resultado-item p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50"
              data-stock-id="${med.stock_id}"
-             data-nombre="${med.nombre}"
-             data-precio="${med.precio}"
-             data-cantidad="${med.cantidad}"
-             onclick="seleccionarMedicamento(${med.id}, '${med.nombre.replace(/'/g, "\\'")}', ${med.precio}, ${med.cantidad})">
+             onclick="seleccionarMedicamentoPorStock(${med.stock_id})">
             <div class="font-medium text-gray-900">${highlightText(med.nombre, query)}</div>
-            <div class="text-xs text-gray-500 flex gap-3 mt-1">
+            <div class="text-xs text-gray-500 flex gap-3 mt-1 flex-wrap">
                 <span>📦 Stock: ${med.cantidad} ${med.unidad_medida}</span>
-                ${med.presentacion ? `<span>💊 ${med.presentacion}</span>` : ''}
-                ${med.concentracion ? `<span>⚖️ ${med.concentracion}</span>` : ''}
+                ${med.laboratorio ? `<span>🏭 ${med.laboratorio}</span>` : ''}
+                ${med.codigo_lote ? `<span>🔖 Lote ${med.codigo_lote}</span>` : ''}
                 <span>💰 Bs. ${med.precio.toFixed(2)}</span>
             </div>
         </div>
     `).join('');
-    
+
     resultadosDiv.classList.remove('hidden');
 }
 
-function seleccionarMedicamento(id, nombre, precio, stock) {
-    medicamentoSeleccionado = { id, nombre, precio, stock };
-    
-    document.getElementById('medicamentoSeleccionadoNombre').textContent = nombre;
-    document.getElementById('stockDisponible').textContent = stock;
-    document.getElementById('precioUnitario').textContent = precio.toFixed(2);
+function seleccionarMedicamentoPorStock(stockId) {
+    const med = todosLosMedicamentos.find(m => m.stock_id === stockId);
+    if (!med) return;
+    medicamentoSeleccionado = {
+        id: med.id, stock_id: med.stock_id, lote_id: med.lote_id,
+        nombre: med.nombre, precio: med.precio, stock: med.cantidad,
+        laboratorio: med.laboratorio || '',
+    };
+
+    const labTxt = med.laboratorio ? ` (${med.laboratorio})` : '';
+    document.getElementById('medicamentoSeleccionadoNombre').textContent = med.nombre + labTxt;
+    document.getElementById('stockDisponible').textContent = med.cantidad;
+    document.getElementById('precioUnitario').textContent = med.precio.toFixed(2);
     document.getElementById('medicamentoCantidad').value = 1;
-    document.getElementById('medicamentoCantidad').max = stock;
+    document.getElementById('medicamentoCantidad').max = med.cantidad;
     document.getElementById('seleccionContainer').classList.remove('hidden');
     
     // Limpiar buscador
@@ -507,17 +510,20 @@ function agregarMedicamentoSeleccionado() {
         return;
     }
     
-    const existente = medicamentosAgregados.find(m => m.id === medicamentoSeleccionado.id);
+    const existente = medicamentosAgregados.find(m => m.stock_id === medicamentoSeleccionado.stock_id);
     if (existente) {
         existente.cantidad += cantidad;
         existente.subtotal  = existente.precio * existente.cantidad;
     } else {
         medicamentosAgregados.push({
-            id:       medicamentoSeleccionado.id,
-            nombre:   medicamentoSeleccionado.nombre,
-            precio:   medicamentoSeleccionado.precio,
+            id:          medicamentoSeleccionado.id,
+            stock_id:    medicamentoSeleccionado.stock_id,
+            lote_id:     medicamentoSeleccionado.lote_id,
+            laboratorio: medicamentoSeleccionado.laboratorio,
+            nombre:      medicamentoSeleccionado.nombre,
+            precio:      medicamentoSeleccionado.precio,
             cantidad,
-            subtotal: medicamentoSeleccionado.precio * cantidad,
+            subtotal:    medicamentoSeleccionado.precio * cantidad,
         });
     }
     renderizarMedicamentos();
@@ -557,6 +563,7 @@ function renderizarMedicamentos() {
         <div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">
             <div class="flex-1">
                 <span class="font-medium text-gray-900">${med.nombre}</span>
+                ${med.laboratorio ? `<span class="text-xs text-indigo-600 ml-2">${med.laboratorio}</span>` : ''}
                 <span class="text-sm text-gray-500 ml-2">x${med.cantidad}</span>
                 <div class="text-xs text-gray-500">Bs. ${med.precio.toFixed(2)} c/u</div>
             </div>
@@ -793,6 +800,7 @@ document.getElementById('ejecutarCirugiaForm').addEventListener('submit', functi
         observaciones: document.getElementById('observaciones').value,
         medicamentos: medicamentosAgregados.map(m => ({
             id: m.id,
+            lote_id: m.lote_id,
             cantidad: m.cantidad
         })),
         equipos: equiposAgregados.map(e => ({

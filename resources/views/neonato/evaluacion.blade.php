@@ -119,7 +119,14 @@
                         <template x-for="item in medResultados" :key="item.id">
                             <li @click="agregar('medicamento', item)"
                                 class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-400 last:border-0">
-                                <span class="font-medium text-slate-900" x-text="item.nombre"></span>
+                                <span class="min-w-0">
+                                    <span class="font-medium text-slate-900 block truncate" x-text="item.nombre"></span>
+                                    <span class="text-xs text-slate-600" x-show="item.laboratorio || item.codigo_lote">
+                                        <span x-show="item.laboratorio" x-text="'Lab: ' + item.laboratorio"></span>
+                                        <span x-show="item.codigo_lote" x-text="' · Lote ' + item.codigo_lote"></span>
+                                        <span x-show="item.precio" x-text="' · Bs ' + item.precio"></span>
+                                    </span>
+                                </span>
                                 <span class="text-slate-900 text-sm ml-4 shrink-0" x-text="'Stock: ' + item.cantidad_actual + ' ' + item.unidad_medida"></span>
                             </li>
                         </template>
@@ -141,7 +148,10 @@
                     <tbody>
                         <template x-for="(item, i) in medicamentos" :key="item.id">
                             <tr class="border-b border-slate-400 last:border-0">
-                                <td class="py-3 text-base text-slate-900 font-medium" x-text="item.nombre"></td>
+                                <td class="py-3 text-base text-slate-900 font-medium">
+                                    <span x-text="item.nombre"></span>
+                                    <span class="block text-xs text-slate-600" x-show="item.laboratorio" x-text="'Lab: ' + item.laboratorio"></span>
+                                </td>
                                 <td class="py-3 text-center">
                                     <input type="number" x-model.number="item.cantidad" :max="item.cantidad_actual" min="1"
                                         @change="if(item.cantidad > item.cantidad_actual) item.cantidad = item.cantidad_actual"
@@ -178,7 +188,14 @@
                         <template x-for="item in insResultados" :key="item.id">
                             <li @click="agregar('insumo', item)"
                                 class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-400 last:border-0">
-                                <span class="font-medium text-slate-900" x-text="item.nombre"></span>
+                                <span class="min-w-0">
+                                    <span class="font-medium text-slate-900 block truncate" x-text="item.nombre"></span>
+                                    <span class="text-xs text-slate-600" x-show="item.laboratorio || item.codigo_lote">
+                                        <span x-show="item.laboratorio" x-text="'Lab: ' + item.laboratorio"></span>
+                                        <span x-show="item.codigo_lote" x-text="' · Lote ' + item.codigo_lote"></span>
+                                        <span x-show="item.precio" x-text="' · Bs ' + item.precio"></span>
+                                    </span>
+                                </span>
                                 <span class="text-slate-900 text-sm ml-4 shrink-0" x-text="'Stock: ' + item.cantidad_actual + ' ' + item.unidad_medida"></span>
                             </li>
                         </template>
@@ -200,7 +217,10 @@
                     <tbody>
                         <template x-for="(item, i) in insumos" :key="item.id">
                             <tr class="border-b border-slate-400 last:border-0">
-                                <td class="py-3 text-base text-slate-900 font-medium" x-text="item.nombre"></td>
+                                <td class="py-3 text-base text-slate-900 font-medium">
+                                    <span x-text="item.nombre"></span>
+                                    <span class="block text-xs text-slate-600" x-show="item.laboratorio" x-text="'Lab: ' + item.laboratorio"></span>
+                                </td>
                                 <td class="py-3 text-center">
                                     <input type="number" x-model.number="item.cantidad" :max="item.cantidad_actual" min="1"
                                         @change="if(item.cantidad > item.cantidad_actual) item.cantidad = item.cantidad_actual"
@@ -359,8 +379,8 @@ function evaluacionNeonato(storeUrl) {
             this.error = '';
             this.saving = true;
             const items = [
-                ...this.medicamentos.map(i => ({ tipo: 'medicamento', item_id: i.id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
-                ...this.insumos.map(i => ({ tipo: 'insumo', item_id: i.id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+                ...this.medicamentos.map(i => ({ tipo: 'medicamento', item_id: i.item_id, lote_id: i.lote_id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+                ...this.insumos.map(i => ({ tipo: 'insumo', item_id: i.item_id, lote_id: i.lote_id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
                 ...this.procedimientos.map(i => ({ tipo: 'procedimiento', item_id: i.id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
             ];
             try {

@@ -118,6 +118,18 @@
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                        <input type="text" name="proveedor" value="{{ old('proveedor') }}" maxlength="150"
+                               placeholder="Ej: Distribuidora ABC"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Laboratorio</label>
+                        <input type="text" name="laboratorio" value="{{ old('laboratorio') }}" maxlength="150"
+                               placeholder="Ej: Genérico, Bagó..."
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de vencimiento <span class="text-red-500">*</span></label>
                         <input type="date" name="fecha_vencimiento" value="{{ old('fecha_vencimiento') }}" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">

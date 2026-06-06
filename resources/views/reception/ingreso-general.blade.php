@@ -308,7 +308,7 @@
                     <div class="w-8 h-8 bg-amber-600 text-white rounded-full flex items-center justify-center font-bold text-sm mr-3" id="numero_garante">3</div>
                     <h2 class="text-lg font-bold text-gray-800">
                         Datos del Garante
-                        <span id="garante_obligatorio" class="text-sm font-normal text-red-600 ml-2">(Obligatorio para internación)</span>
+                        <span id="garante_obligatorio" class="text-sm font-normal text-gray-500 ml-2">(Opcional)</span>
                     </h2>
                 </div>
 
@@ -1029,19 +1029,7 @@ async function procesarIngreso(event) {
         return;
     }
 
-    // Validaciones específicas
-    if (tipoIngresoSeleccionado === 'internacion') {
-        const tieneGarante = garanteEncontrado || (
-            document.getElementById('garante_ci').value &&
-            document.getElementById('garante_nombres').value &&
-            document.getElementById('garante_apellido_paterno').value &&
-            document.getElementById('garante_apellido_materno').value
-        );
-        if (!tieneGarante) {
-            alert('La internación requiere garante obligatorio. Complete los datos del garante.');
-            return;
-        }
-    }
+    // Garante opcional para internación
 
     // Preparar datos
     const formData = new FormData(event.target);

@@ -18,7 +18,24 @@
       "Bash(grep -n '$request->ci\\\\|$request->medico\\\\|$request->especialidad' /c/Menucemsa/app/Http/Controllers/Reception/ConsultaExternaController.php)",
       "Bash(grep -rn 'where.*$request\\\\|whereRaw.*$' /c/Menucemsa/app/Http/Controllers/Reception/)",
       "Bash(grep -r \"reception\\\\\\\\.ingreso-general\\\\|reception\\\\\\\\.consulta-externa\\\\|reception\\\\\\\\.emergencia\\\\|reception\\\\\\\\.hospitalizacion\" /c/Menucemsa/resources/views/reception --include=\"*.blade.php\")",
-      "Bash(grep -r \"reception\\\\\\\\.ingreso-general\\\\|reception\\\\\\\\.consulta-externa\\\\|reception\\\\\\\\.emergencia\\\\|reception\\\\\\\\.hospitalizacion\" /c/Menucemsa/app/Http/Controllers --include=\"*.php\")"
+      "Bash(grep -r \"reception\\\\\\\\.ingreso-general\\\\|reception\\\\\\\\.consulta-externa\\\\|reception\\\\\\\\.emergencia\\\\|reception\\\\\\\\.hospitalizacion\" /c/Menucemsa/app/Http/Controllers --include=\"*.php\")",
+      "PowerShell($paths = @\\(\"C:\\\\xampp\\\\mysql\\\\bin\\\\mysqldump.exe\",\"C:\\\\wamp64\\\\bin\\\\mysql\",\"C:\\\\Program Files\\\\MySQL\"\\); foreach\\($p in $paths\\){ if\\(Test-Path $p\\){ Write-Output \"FOUND: $p\" } }; Get-ChildItem -Path C:\\\\ -Filter mysqldump.exe -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 5 FullName)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/Caja/ContabilidadController.php app/Models/Egreso.php app/Exports/ContabilidadExport.php database/migrations/2026_06_04_000001_create_egresos_table.php)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/Caja/ContabilidadController.php)",
+      "Bash(php -l app/Http/Controllers/Admin/AlmacenMedicamentosController.php)",
+      "Bash(php -l app/Imports/AlmacenStockImport.php)",
+      "Bash(php -l app/Exports/AlmacenPlantillaExport.php)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/Admin/AlmacenMedicamentosController.php app/Imports/AlmacenStockImport.php app/Exports/AlmacenPlantillaExport.php --quiet)",
+      "Bash(php -l app/Models/AlmacenLote.php)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/Admin/AlmacenMedicamentosController.php --quiet)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/Admin/AlmacenMedicamentosController.php app/Exports/AlmacenPlantillaExport.php --quiet)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/Reception/EvaluacionPacienteController.php --quiet)",
+      "Bash(php -l app/Http/Controllers/QuirofanoController.php)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/QuirofanoController.php app/Http/Controllers/Neonato/NeonatoController.php --quiet)",
+      "Bash(php -l app/Http/Controllers/EmergencyMedicamentosController.php)",
+      "Bash(php -l app/Http/Controllers/InternacionMedicamentosController.php)",
+      "Bash(php -l app/Http/Controllers/QuirofanoMedicamentosController.php)",
+      "Bash(./vendor/bin/pint app/Http/Controllers/EmergencyMedicamentosController.php app/Http/Controllers/InternacionMedicamentosController.php app/Http/Controllers/QuirofanoMedicamentosController.php --quiet)"
     ]
   }
 }

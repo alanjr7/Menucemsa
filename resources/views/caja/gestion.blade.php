@@ -8,6 +8,10 @@
                     <h1 class="text-2xl font-bold text-gray-800">Gestión de Caja</h1>
                     <p class="text-gray-500 text-sm">Panel administrativo - {{ now()->format('d/m/Y H:i') }}</p>
                 </div>
+                <a href="{{ route('caja.contabilidad.index') }}"
+                    class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-md">
+                    Contabilidad
+                </a>
             </div>
             <!-- Estadísticas principales -->
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">

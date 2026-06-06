@@ -7,8 +7,8 @@ use App\Models\AlmacenLote;
 use App\Models\AlmacenStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class EmergencyMedicamentosController extends Controller
 {
@@ -25,12 +25,12 @@ class EmergencyMedicamentosController extends Controller
         $ubicacion = $this->ubicacion;
 
         $query = AlmacenCatalogo::activos()
-            ->with(['lotes' => function($q) use ($ubicacion) {
-                $q->with(['stocks' => function($sq) use ($ubicacion) {
+            ->with(['lotes' => function ($q) use ($ubicacion) {
+                $q->with(['stocks' => function ($sq) use ($ubicacion) {
                     $sq->where('ubicacion', $ubicacion);
                 }]);
             }])
-            ->whereHas('lotes.stocks', function($q) use ($ubicacion) {
+            ->whereHas('lotes.stocks', function ($q) use ($ubicacion) {
                 $q->where('ubicacion', $ubicacion);
             });
 
@@ -40,19 +40,19 @@ class EmergencyMedicamentosController extends Controller
         }
 
         if ($request->filled('buscar')) {
-            $query->where(function($q) use ($request) {
-                $q->where('nombre', 'like', '%' . $request->buscar . '%')
-                  ->orWhere('descripcion', 'like', '%' . $request->buscar . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('nombre', 'like', '%'.$request->buscar.'%')
+                    ->orWhere('descripcion', 'like', '%'.$request->buscar.'%');
             });
         }
 
         $medicamentos = $query->orderBy('nombre')->paginate(10);
 
         $stats = [
-            'total' => AlmacenCatalogo::activos()->whereHas('lotes.stocks', fn($q) => $q->where('ubicacion', $ubicacion))->count(),
+            'total' => AlmacenCatalogo::activos()->whereHas('lotes.stocks', fn ($q) => $q->where('ubicacion', $ubicacion))->count(),
             'bajo_stock' => AlmacenStock::where('ubicacion', $ubicacion)->bajoStock()->count(),
             'agotados' => AlmacenStock::where('ubicacion', $ubicacion)->agotado()->count(),
-            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', fn($q) => $q->where('ubicacion', $ubicacion))->count(),
+            'vencidos' => AlmacenLote::vencidos()->whereHas('stocks', fn ($q) => $q->where('ubicacion', $ubicacion))->count(),
         ];
 
         return view('emergency-staff.medicamentos.index', compact('medicamentos', 'stats'));
@@ -70,7 +70,7 @@ class EmergencyMedicamentosController extends Controller
             'cm' => 'Centímetros (cm)',
             'cajas' => 'Cajas',
             'frascos' => 'Frascos',
-            'sobres' => 'Sobres'
+            'sobres' => 'Sobres',
         ];
 
         return view('emergency-staff.medicamentos.create', compact('catalogos', 'tipos', 'unidades'));
@@ -85,6 +85,8 @@ class EmergencyMedicamentosController extends Controller
             'unidad_medida' => 'required_if:catalogo_id,null|nullable|string|max:50',
             'tipo' => 'required_if:catalogo_id,null|nullable|in:medicamento,insumo',
             'codigo_lote' => 'required|string|max:100',
+            'proveedor' => 'nullable|string|max:150',
+            'laboratorio' => 'nullable|string|max:150',
             'fecha_vencimiento' => 'nullable|date|after:today',
             'precio_compra' => 'required|numeric|min:0',
             'porcentaje_ganancia' => 'required|numeric|min:0|max:100',
@@ -114,6 +116,8 @@ class EmergencyMedicamentosController extends Controller
             $lote = AlmacenLote::create([
                 'catalogo_id' => $catalogo->id,
                 'codigo_lote' => $request->codigo_lote,
+                'proveedor' => $request->proveedor,
+                'laboratorio' => $request->laboratorio,
                 'fecha_vencimiento' => $request->fecha_vencimiento,
                 'precio_compra' => $request->precio_compra,
                 'porcentaje_ganancia' => $request->porcentaje_ganancia,
@@ -131,27 +135,28 @@ class EmergencyMedicamentosController extends Controller
 
             DB::commit();
 
-            Log::info('Usuario ' . Auth::user()->name . ' creó medicamento/insumo en emergencia: ' . $catalogo->nombre, [
+            Log::info('Usuario '.Auth::user()->name.' creó medicamento/insumo en emergencia: '.$catalogo->nombre, [
                 'user_id' => Auth::id(),
                 'catalogo_id' => $catalogo->id,
                 'lote_id' => $lote->id,
                 'action' => 'create',
-                'module' => 'emergency_medicamentos'
+                'module' => 'emergency_medicamentos',
             ]);
 
             return redirect()->route('emergency-staff.medicamentos.index')
                 ->with('success', 'Medicamento/Insumo agregado correctamente al inventario de emergencia.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al crear medicamento en emergencia: ' . $e->getMessage());
-            return back()->with('error', 'Error al crear medicamento: ' . $e->getMessage());
+            Log::error('Error al crear medicamento en emergencia: '.$e->getMessage());
+
+            return back()->with('error', 'Error al crear medicamento: '.$e->getMessage());
         }
     }
 
     public function show(AlmacenCatalogo $medicamento)
     {
-        $medicamento->load(['lotes' => function($q) {
-            $q->with(['stocks' => function($sq) {
+        $medicamento->load(['lotes' => function ($q) {
+            $q->with(['stocks' => function ($sq) {
                 $sq->where('ubicacion', $this->ubicacion);
             }]);
         }]);
@@ -161,8 +166,8 @@ class EmergencyMedicamentosController extends Controller
 
     public function edit(AlmacenCatalogo $medicamento)
     {
-        $medicamento->load(['lotes' => function($q) {
-            $q->with(['stocks' => function($sq) {
+        $medicamento->load(['lotes' => function ($q) {
+            $q->with(['stocks' => function ($sq) {
                 $sq->where('ubicacion', $this->ubicacion);
             }]);
         }]);
@@ -176,7 +181,7 @@ class EmergencyMedicamentosController extends Controller
             'cm' => 'Centímetros (cm)',
             'cajas' => 'Cajas',
             'frascos' => 'Frascos',
-            'sobres' => 'Sobres'
+            'sobres' => 'Sobres',
         ];
 
         return view('emergency-staff.medicamentos.edit', compact('medicamento', 'tipos', 'unidades'));
@@ -193,14 +198,14 @@ class EmergencyMedicamentosController extends Controller
         ]);
 
         $medicamento->update($request->only([
-            'nombre', 'descripcion', 'unidad_medida', 'tipo', 'observaciones'
+            'nombre', 'descripcion', 'unidad_medida', 'tipo', 'observaciones',
         ]));
 
-        Log::info('Usuario ' . Auth::user()->name . ' actualizó medicamento/insumo en emergencia: ' . $medicamento->nombre, [
+        Log::info('Usuario '.Auth::user()->name.' actualizó medicamento/insumo en emergencia: '.$medicamento->nombre, [
             'user_id' => Auth::id(),
             'catalogo_id' => $medicamento->id,
             'action' => 'update',
-            'module' => 'emergency_medicamentos'
+            'module' => 'emergency_medicamentos',
         ]);
 
         return redirect()->route('emergency-staff.medicamentos.index')
@@ -212,11 +217,11 @@ class EmergencyMedicamentosController extends Controller
         $nombre = $medicamento->nombre;
         $medicamento->update(['activo' => false]);
 
-        Log::info('Usuario ' . Auth::user()->name . ' desactivó medicamento/insumo en emergencia: ' . $nombre, [
+        Log::info('Usuario '.Auth::user()->name.' desactivó medicamento/insumo en emergencia: '.$nombre, [
             'user_id' => Auth::id(),
             'catalogo_id' => $medicamento->id,
             'action' => 'deactivate',
-            'module' => 'emergency_medicamentos'
+            'module' => 'emergency_medicamentos',
         ]);
 
         return redirect()->route('emergency-staff.medicamentos.index')
@@ -225,11 +230,11 @@ class EmergencyMedicamentosController extends Controller
 
     public function actualizarStock(Request $request, AlmacenCatalogo $medicamento)
     {
-        $stock = AlmacenStock::whereHas('lote', function($q) use ($medicamento) {
+        $stock = AlmacenStock::whereHas('lote', function ($q) use ($medicamento) {
             $q->where('catalogo_id', $medicamento->id);
         })->where('ubicacion', $this->ubicacion)->first();
 
-        if (!$stock) {
+        if (! $stock) {
             return back()->with('error', 'No hay stock de este medicamento en esta ubicación.');
         }
 
@@ -241,14 +246,14 @@ class EmergencyMedicamentosController extends Controller
         $cantidadAnterior = $stock->cantidad_actual;
         $stock->update(['cantidad_actual' => $request->cantidad]);
 
-        Log::info('Usuario ' . Auth::user()->name . ' actualizó stock en emergencia de ' . $medicamento->nombre . ': ' . $cantidadAnterior . ' → ' . $request->cantidad . '. Motivo: ' . $request->motivo, [
+        Log::info('Usuario '.Auth::user()->name.' actualizó stock en emergencia de '.$medicamento->nombre.': '.$cantidadAnterior.' → '.$request->cantidad.'. Motivo: '.$request->motivo, [
             'user_id' => Auth::id(),
             'stock_id' => $stock->id,
             'action' => 'update_stock',
             'cantidad_anterior' => $cantidadAnterior,
             'cantidad_nueva' => $request->cantidad,
             'motivo' => $request->motivo,
-            'module' => 'emergency_medicamentos'
+            'module' => 'emergency_medicamentos',
         ]);
 
         return redirect()->back()

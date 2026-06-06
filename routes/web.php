@@ -305,6 +305,15 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/detalles-eliminados', [CajaGestionController::class, 'getDetallesEliminados'])->name('detalles-eliminados');
     });
 
+    // Contabilidad - Libro de caja (ingresos automáticos + egresos manuales)
+    Route::middleware(['auth', 'role:admin|administrador|gerente'])->prefix('contabilidad')->name('caja.contabilidad.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Caja\ContabilidadController::class, 'index'])->name('index');
+        Route::get('/resumen', [\App\Http\Controllers\Caja\ContabilidadController::class, 'resumen'])->name('resumen');
+        Route::post('/egresos', [\App\Http\Controllers\Caja\ContabilidadController::class, 'storeEgreso'])->name('egresos.store');
+        Route::delete('/egresos/{id}', [\App\Http\Controllers\Caja\ContabilidadController::class, 'destroyEgreso'])->name('egresos.destroy');
+        Route::get('/exportar', [\App\Http\Controllers\Caja\ContabilidadController::class, 'exportar'])->name('exportar');
+    });
+
 
     // Sistema antiguo de caja ELIMINADO - usar /caja-operativa o /caja-gestion
     // Route::middleware(['auth', 'role:admin|caja'])->prefix('caja')->name('caja.')->group(function () {
@@ -567,6 +576,12 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // Agregar stock masivo al almacén central
         Route::get('/almacen-medicamentos/agregar-stock', [AlmacenMedicamentosController::class, 'agregarStockForm'])->name('almacen-medicamentos.agregar-stock.form');
         Route::post('/almacen-medicamentos/agregar-stock', [AlmacenMedicamentosController::class, 'procesarAgregarStock'])->name('almacen-medicamentos.agregar-stock.procesar');
+
+        // Importación masiva por Excel (ANTES de las rutas con wildcard {id})
+        Route::get('/almacen-medicamentos/importar', [AlmacenMedicamentosController::class, 'importarForm'])->name('almacen-medicamentos.importar.form');
+        Route::get('/almacen-medicamentos/importar/plantilla', [AlmacenMedicamentosController::class, 'descargarPlantilla'])->name('almacen-medicamentos.importar.plantilla');
+        Route::post('/almacen-medicamentos/importar/previsualizar', [AlmacenMedicamentosController::class, 'previsualizarImportacion'])->name('almacen-medicamentos.importar.previsualizar');
+        Route::post('/almacen-medicamentos/importar/confirmar', [AlmacenMedicamentosController::class, 'confirmarImportacion'])->name('almacen-medicamentos.importar.confirmar');
 
         // Rutas de historial de dispensaciones (ANTES de las rutas con wildcard {id})
         Route::get('/almacen-medicamentos/historial/dispensaciones', [AlmacenMedicamentosController::class, 'historialDispensaciones'])->name('almacen-medicamentos.historial');

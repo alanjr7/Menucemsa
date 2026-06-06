@@ -48,6 +48,16 @@
                             Vence {{ $lote->fecha_vencimiento->format('d/m/Y') }}
                         </span>
                     @endif
+                    @if($lote->laboratorio || $lote->proveedor)
+                        <div class="flex items-center gap-2 mt-1">
+                            @if($lote->laboratorio)
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Lab: {{ $lote->laboratorio }}</span>
+                            @endif
+                            @if($lote->proveedor)
+                                <span class="text-xs text-gray-500">Prov: {{ $lote->proveedor }}</span>
+                            @endif
+                        </div>
+                    @endif
                 </div>
                 <div class="text-right text-xs text-gray-500">
                     @if($lote->precio_venta)

@@ -15,6 +15,7 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medicamento/Insumo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Laboratorio / Proveedor</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lote</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
@@ -25,6 +26,17 @@
                 @forelse($stocks as $stock)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium text-gray-900">{{ $stock->lote->catalogo->nombre ?? 'N/A' }}</td>
+                    <td class="px-4 py-3 text-xs">
+                        @if($stock->lote->laboratorio)
+                            <span class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">{{ $stock->lote->laboratorio }}</span>
+                        @endif
+                        @if($stock->lote->proveedor)
+                            <span class="block text-gray-500 mt-0.5">{{ $stock->lote->proveedor }}</span>
+                        @endif
+                        @if(!$stock->lote->laboratorio && !$stock->lote->proveedor)
+                            <span class="text-gray-300">—</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-gray-600 font-mono text-xs">{{ $stock->lote->codigo_lote ?? '-' }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $stock->lote->fecha_vencimiento?->format('d/m/Y') ?? '-' }}</td>
                     <td class="px-4 py-3 font-semibold">{{ $stock->cantidad_actual }} {{ $stock->lote->catalogo->unidad_medida ?? '' }}</td>
@@ -37,7 +49,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No hay stock en {{ ucfirst($area) }}</td></tr>
+                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay stock en {{ ucfirst($area) }}</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -894,8 +894,8 @@ function inicializarBuscadorMedicamentos() {
                 const div = document.createElement('div');
                 div.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm';
                 div.innerHTML = `
-                    <div class="font-medium">${med.nombre} (${med.tipo})</div>
-                    <div class="text-xs text-gray-500">Stock: ${med.cantidad} ${med.unidad_medida || 'unidades'} - $${med.precio || 0}</div>
+                    <div class="font-medium">${med.nombre}${med.laboratorio ? ' · <span class="text-indigo-600">' + med.laboratorio + '</span>' : ''}</div>
+                    <div class="text-xs text-gray-500">Stock: ${med.cantidad} ${med.unidad_medida || 'unidades'}${med.codigo_lote ? ' · Lote ' + med.codigo_lote : ''} - Bs ${med.precio || 0}</div>
                 `;
                 div.onclick = () => seleccionarMedicamento(med);
                 resultados.appendChild(div);
@@ -1083,8 +1083,8 @@ function inicializarBuscadorMedicamentosDesktop() {
                 const div = document.createElement('div');
                 div.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm';
                 div.innerHTML = `
-                    <div class="font-medium">${med.nombre} (${med.tipo})</div>
-                    <div class="text-xs text-gray-500">Stock: ${med.cantidad} ${med.unidad_medida || 'unidades'} - $${med.precio || 0}</div>
+                    <div class="font-medium">${med.nombre}${med.laboratorio ? ' · <span class="text-indigo-600">' + med.laboratorio + '</span>' : ''}</div>
+                    <div class="text-xs text-gray-500">Stock: ${med.cantidad} ${med.unidad_medida || 'unidades'}${med.codigo_lote ? ' · Lote ' + med.codigo_lote : ''} - Bs ${med.precio || 0}</div>
                 `;
                 div.onclick = () => seleccionarMedicamentoDesktop(med);
                 resultados.appendChild(div);

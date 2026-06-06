@@ -271,7 +271,7 @@ class MenuSeeder extends Seeder
         // 7. Administración (Financiera - admin y administrador)
         $admin = Menu::create([
             'name' => 'Administración',
-            'active_pattern' => 'caja.gestion*,admin.tarifarios*,admin.seguros*,admin.ingreso-precios*,admin.almacen-inventario*,admin.cuentas*',
+            'active_pattern' => 'caja.gestion*,caja.contabilidad*,admin.tarifarios*,admin.seguros*,admin.ingreso-precios*,admin.almacen-inventario*,admin.cuentas*',
             'icon_path' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
             'color' => 'purple',
             'roles' => 'admin,administrador',
@@ -288,6 +288,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Almacén Inventario', 'route' => 'admin.almacen-inventario.index', 'roles' => 'admin,administrador', 'order' => 10],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 11],
             ['name' => 'Cobro de Pacientes', 'route' => 'caja.operativa.index', 'order' => 12],
+            ['name' => 'Contabilidad', 'route' => 'caja.contabilidad.index', 'roles' => 'admin,administrador', 'order' => 13],
             // Gestión Financiera
             ['name' => 'Cuentas por Cobrar', 'route' => 'admin.cuentas', 'roles' => 'admin,administrador', 'order' => 20],
         ]);
