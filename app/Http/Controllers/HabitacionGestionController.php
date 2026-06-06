@@ -127,7 +127,7 @@ class HabitacionGestionController extends Controller
 
         $this->actualizarPreciosCamas($habitacion, $validated['camas'] ?? []);
 
-        return redirect()->route('internacion-staff.habitaciones.show', $habitacion)
+        return redirect()->route('internacion-staff.habitaciones.index')
             ->with('success', 'Habitación actualizada exitosamente.');
     }
 

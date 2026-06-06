@@ -188,8 +188,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Especialidades', 'route' => 'admin.especialidades.index', 'roles' => 'admin,administrador', 'order' => 1],
             ['name' => 'Doctores', 'route' => 'admin.doctors.index', 'roles' => 'admin,administrador', 'order' => 2],
             ['name' => 'Almacén Medicamentos', 'route' => 'admin.almacen-medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Consulta Externa', 'route' => 'admin.consulta-externa-gestion', 'roles' => 'admin,administrador', 'order' => 4],
-            ['name' => 'Procedimientos', 'route' => 'admin.procedimientos.index', 'roles' => 'admin,administrador', 'order' => 5],
+             ['name' => 'Procedimientos', 'route' => 'admin.procedimientos.index', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
 
         // 2. Emergencias (Nivel 2)
@@ -280,18 +279,16 @@ class MenuSeeder extends Seeder
 
         $admin->children()->createMany([
             // Configuración Financiera
-            ['name' => 'Tarifarios', 'route' => 'admin.tarifarios', 'roles' => 'admin,administrador', 'order' => 1],
             ['name' => 'Seguros', 'route' => 'admin.seguros', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Precios de Ingresos', 'route' => 'admin.ingreso-precios.index', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Precio al Ingreso', 'route' => 'admin.ingreso-precios.index', 'roles' => 'admin,administrador', 'order' => 3],
 
             // Inventario y Caja
             ['name' => 'Almacén Inventario', 'route' => 'admin.almacen-inventario.index', 'roles' => 'admin,administrador', 'order' => 10],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 11],
             ['name' => 'Cobro de Pacientes', 'route' => 'caja.operativa.index', 'order' => 12],
             ['name' => 'Contabilidad', 'route' => 'caja.contabilidad.index', 'roles' => 'admin,administrador', 'order' => 13],
-            // Gestión Financiera
-            ['name' => 'Cuentas por Cobrar', 'route' => 'admin.cuentas', 'roles' => 'admin,administrador', 'order' => 20],
-        ]);
+           
+            ]);
 
         // 8. Farmacia (Operativo - rol farmacia/admin/administrador)
         $farmacia = Menu::create([
