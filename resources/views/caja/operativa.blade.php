@@ -10,12 +10,14 @@
                 <p class="text-gray-500 text-sm">Gestión de cobros y pagos</p>
             </div>
             <div class="flex items-center space-x-4">
-                <a href="{{ route('caja.gestion.index') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                    Historial y Gestión
-                </a>
+                @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('administrador'))
+                    <a href="{{ route('caja.gestion.index') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Historial y Gestión
+                    </a>
+                @endif
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                     <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                     Caja Abierta
@@ -178,9 +180,10 @@
                     </label>
                 </form>
             </div>
-            <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3">
+            <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 items-center">
                 <button onclick="procesarCobro()" id="btnConfirmarCobro" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition shadow-md">CONFIRMAR COBRO</button>
                 <button onclick="cerrarModalCobro()" class="px-6 py-2 bg-white border border-gray-300 rounded-md font-medium text-gray-700 hover:bg-gray-50">CANCELAR</button>
+                <button id="btnImprimirPendiente" onclick="imprimirPagoPendiente()" class="px-4 py-2 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-md font-medium hover:bg-yellow-200" title="Imprimir ticket sin registrar pago">Pago pendiente</button>
             </div>
         </div>
     </div>
@@ -409,7 +412,11 @@
             return;
         }
 
+        let printWindow = null;
         try {
+            // Abrir ventana en el evento de clic para evitar bloqueador de ventanas emergentes.
+            printWindow = window.open('about:blank', '_blank');
+
             const response = await fetch('{{ route("caja.operativa.procesar-cobro") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
@@ -417,12 +424,36 @@
             });
             const data = await response.json();
             if (data.success) {
-                if (data.print_url) window.open(data.print_url, '_blank');
+                if (data.print_url) {
+                    if (printWindow) {
+                        printWindow.location.href = data.print_url;
+                    } else {
+                        window.open(data.print_url, '_blank');
+                    }
+                }
                 cerrarModalCobro();
                 await recargarTodo();
-            } else { alert(data.message); }
-        } catch (e) { alert("Error al procesar el pago"); }
-        finally { btn.disabled = false; btn.innerText = 'CONFIRMAR COBRO'; }
+            } else {
+                alert(data.message);
+                if (printWindow) {
+                    printWindow.close();
+                }
+            }
+        } catch (e) {
+            alert("Error al procesar el pago");
+            if (printWindow) {
+                printWindow.close();
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'CONFIRMAR COBRO';
+        }
+    }
+
+    function imprimirPagoPendiente() {
+        if (!cuentaActual) return alert('No hay cuenta seleccionada para imprimir');
+        const url = '{{ url('/caja-operativa/comprobante') }}' + '/' + cuentaActual.id;
+        window.open(url, '_blank');
     }
 
     function cerrarModalCobro() {

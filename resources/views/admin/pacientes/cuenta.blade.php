@@ -62,7 +62,7 @@
                         <div class="text-right">
                             <p class="text-sm text-gray-500">Estado</p>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                @if($cuenta->estado === 'pagada') bg-green-100 text-green-800 border border-green-200
+                                @if($cuenta->estado === 'pagado') bg-green-100 text-green-800 border border-green-200
                                 @elseif($cuenta->estado === 'parcial') bg-yellow-100 text-yellow-800 border border-yellow-200
                                 @else bg-red-100 text-red-800 border border-red-200 @endif">
                                 {{ ucfirst($cuenta->estado) }}
@@ -77,7 +77,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                         <div class="bg-gray-50 p-4 rounded-xl">
                             <p class="text-sm text-gray-500">Total</p>
-                            <p class="text-xl font-bold text-gray-800">Bs. {{ number_format($cuenta->total, 2) }}</p>
+                            <p class="text-xl font-bold text-gray-800">Bs. {{ number_format($cuenta->total_calculado, 2) }}</p>
                         </div>
                         <div class="bg-green-50 p-4 rounded-xl">
                             <p class="text-sm text-gray-500">Pagado</p>
@@ -85,7 +85,7 @@
                         </div>
                         <div class="bg-red-50 p-4 rounded-xl">
                             <p class="text-sm text-gray-500">Pendiente</p>
-                            <p class="text-xl font-bold text-red-600">Bs. {{ number_format($cuenta->total - $cuenta->pagos->sum('monto'), 2) }}</p>
+                            <p class="text-xl font-bold text-red-600">Bs. {{ number_format($cuenta->saldo_pendiente, 2) }}</p>
                         </div>
                         <div class="bg-blue-50 p-4 rounded-xl">
                             <p class="text-sm text-gray-500">Items</p>
