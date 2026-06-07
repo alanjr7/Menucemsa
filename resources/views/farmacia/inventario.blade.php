@@ -59,7 +59,7 @@
                                 </template>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500" x-text="p.categoria"></td>
-                            <td class="px-6 py-4 text-sm font-bold text-gray-800 text-center" x-text="'$' + parseFloat(p.precio).toFixed(2)"></td>
+                            <td class="px-6 py-4 text-sm font-bold text-gray-800 text-center" x-text="'Bs' + parseFloat(p.precio).toFixed(2)"></td>
                             <td class="px-6 py-4 text-center">
                                 <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-700"
                                       x-text="p.stock"></span>
@@ -92,26 +92,26 @@
 
         <div x-show="showEditModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-cloak>
             <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
-            <div class="relative min-h-screen flex items-center justify-center p-4">
-                <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden" @click.away="showEditModal = false">
+            <div class="relative min-h-screen flex items-center justify-center p-2 sm:p-4">
+                <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-2xl md:max-w-5xl overflow-hidden" @click.away="showEditModal = false">
 
-                    <div class="flex justify-between items-center px-8 py-6 border-b border-gray-100">
-                        <h3 class="text-xl font-bold text-gray-800" x-text="isEdit ? 'Editar Producto' : 'Nuevo Producto'"></h3>
+                    <div class="flex justify-between items-center px-4 sm:px-6 md:px-8 py-4 sm:py-6 border-b border-gray-100">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800" x-text="isEdit ? 'Editar Producto' : 'Nuevo Producto'"></h3>
                         <button @click="showEditModal = false" class="text-gray-400 hover:text-gray-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
 
-                    <div class="p-8 space-y-6">
+                    <div class="p-4 sm:p-6 md:p-8 space-y-3">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre del Producto *</label>
                             <input type="text" x-model="editingProduct.nombre" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
-                                <select x-model="editingProduct.categoria" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <select x-model="editingProduct.categoria" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                                     <option value="Medicamento">Medicamento</option>
                                     <option value="Receta">Receta</option>
                                     <option value="Cuidado Personal">Cuidado Personal</option>
@@ -122,59 +122,56 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Precio</label>
-                                <input type="number" step="0.01" x-model="editingProduct.precio" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <input type="number" step="0.01" x-model="editingProduct.precio" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
-                        </div>
-
-                        <div class="flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
-                            <input type="checkbox" x-model="editingProduct.requiere_receta" id="receta-medica" class="w-5 h-5 text-red-600 rounded focus:ring-red-500">
-                            <label for="receta-medica" class="text-sm font-semibold text-red-700 cursor-pointer">
-                                ⚠️ Requiere Receta Médica
-                            </label>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Stock Actual</label>
-                                <input type="number" x-model="editingProduct.stock" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <input type="number" x-model="editingProduct.stock" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Stock Mínimo</label>
-                                <input type="number" x-model="editingProduct.stockMinimo" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Stock Mín.</label>
+                                <input type="number" x-model="editingProduct.stockMinimo" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                            <div class="col-span-2 sm:col-span-2">
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Código de Barras *</label>
-                                <input type="text" x-model="editingProduct.codigo_barras" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <input type="text" x-model="editingProduct.codigo_barras" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
-                            <div>
+                            <div class="col-span-2 sm:col-span-1">
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Proveedor</label>
-                                <input type="text" x-model="editingProduct.proveedor" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <input type="text" x-model="editingProduct.proveedor" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">📅 Fecha de Vencimiento</label>
-                                <input type="date" x-model="editingProduct.vencimiento" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">📅 Vencimiento</label>
+                                <input type="date" x-model="editingProduct.vencimiento" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
-                            <div>
+                            <div class="col-span-1 sm:col-span-2">
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Número de Lote</label>
-                                <input type="text" x-model="editingProduct.lote" placeholder="Ej: PAR-2024-001" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
+                                <input type="text" x-model="editingProduct.lote" placeholder="Ej: PAR-2024-001" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                             </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                            <input type="checkbox" x-model="editingProduct.requiere_receta" id="receta-medica" class="w-5 h-5 text-red-600 rounded focus:ring-red-500">
+                            <label for="receta-medica" class="text-sm font-semibold text-red-700 cursor-pointer">
+                                Requiere Receta Médica
+                            </label>
                         </div>
 
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
-                            <textarea x-model="editingProduct.descripcion" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500" rows="2"></textarea>
+                            <textarea x-model="editingProduct.descripcion" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500" rows="2"></textarea>
                         </div>
                     </div>
 
-                    <div class="px-8 py-6 bg-gray-50 flex justify-end gap-3">
-                        <button @click="showEditModal = false" class="px-6 py-2.5 text-gray-600 font-semibold hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
-                        <button @click="saveProduct()" class="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">
+                    <div class="px-4 sm:px-6 md:px-8 py-4 sm:py-6 bg-gray-50 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                        <button @click="showEditModal = false" class="px-4 sm:px-6 py-2 sm:py-2.5 text-gray-600 font-semibold hover:bg-gray-100 rounded-xl transition-all text-sm sm:text-base">Cancelar</button>
+                        <button @click="saveProduct()" class="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all text-sm sm:text-base">
                             <span x-text="isEdit ? 'Guardar Cambios' : 'Crear Producto'"></span>
                         </button>
                     </div>

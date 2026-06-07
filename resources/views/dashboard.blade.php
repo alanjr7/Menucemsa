@@ -67,7 +67,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-gray-800">${{ number_format($stats['facturacion']['hoy'], 0) }}</div>
+                    <div class="text-2xl font-bold text-gray-800">Bs{{ number_format($stats['facturacion']['hoy'], 0) }}</div>
                     <div class="text-xs text-{{ $stats['facturacion']['cambio_porcentaje'] >= 0 ? 'green' : 'red' }}-500 font-bold flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                         {{ $stats['facturacion']['cambio_porcentaje'] >= 0 ? '+' : '' }}{{ $stats['facturacion']['cambio_porcentaje'] }}% vs. mes anterior

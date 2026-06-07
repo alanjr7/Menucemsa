@@ -368,7 +368,7 @@
                                 const mm = Math.round((parseFloat(h) - hh) * 60);
                                 return mm > 0 ? `${hh}h ${mm}min` : `${hh}h`;
                             });
-                            return `<div class="flex justify-between"><span>${desc}</span><span class="font-mono">Bs ${parseFloat(d.subtotal).toFixed(2)}</span></div>`;
+                            return `<div class="flex justify-between"><span>${d.cantidad}x ${desc}</span><span class="font-mono">Bs ${parseFloat(d.subtotal).toFixed(2)}</span></div>`;
                         }).join('')}
                     </div>
                     <div class="border-t mt-2 pt-3 flex justify-between font-black text-xl text-gray-900">
