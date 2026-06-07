@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Egreso;
 use App\Models\PagoCuenta;
+use App\Models\VentaFarmacia;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -39,6 +40,21 @@ class ContabilidadExport implements FromCollection, ShouldAutoSize, WithHeadings
                 'monto' => $p->monto,
             ]);
 
+        $farmacia = VentaFarmacia::with('usuario')
+            ->where('estado', 'COMPLETADA')
+            ->whereBetween('fecha_venta', [$this->inicio, $this->fin])
+            ->get()
+            ->map(fn ($v) => [
+                'fecha' => $v->fecha_venta,
+                'tipo' => 'Ingreso',
+                'categoria' => 'Venta farmacia',
+                'descripcion' => 'Venta '.$v->codigo_venta.' - '.($v->cliente ?: 'Consumidor final'),
+                'metodo_pago' => ucfirst($v->metodo_pago),
+                'comprobante' => $v->codigo_venta,
+                'usuario' => $v->usuario->name ?? 'N/A',
+                'monto' => $v->total,
+            ]);
+
         $egresos = Egreso::with('user')
             ->entreFechas($this->inicio->toDateString(), $this->fin->toDateString())
             ->get()
@@ -53,7 +69,7 @@ class ContabilidadExport implements FromCollection, ShouldAutoSize, WithHeadings
                 'monto' => $e->monto,
             ]);
 
-        return $ingresos->concat($egresos)->sortBy('fecha')->values();
+        return $ingresos->concat($farmacia)->concat($egresos)->sortBy('fecha')->values();
     }
 
     public function headings(): array

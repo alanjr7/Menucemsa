@@ -11,11 +11,12 @@ class AlmacenCatalogo extends Model
     protected $table = 'almacen_catalogo';
 
     protected $fillable = [
-        'nombre', 'descripcion', 'unidad_medida', 'tipo', 'activo', 'observaciones',
+        'nombre', 'codigo_barras', 'nombre_generico', 'concentracion', 'forma_farmaceutica', 'categoria', 'descripcion', 'unidad_medida', 'tipo', 'activo', 'observaciones', 'requiere_receta',
     ];
 
     protected $casts = [
         'activo' => 'boolean',
+        'requiere_receta' => 'boolean',
     ];
 
     public function lotes(): HasMany

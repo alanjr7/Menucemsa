@@ -138,7 +138,7 @@ class CajaGestionController extends Controller
                 'metodo_pago' => 'nullable|in:efectivo,transferencia,tarjeta,qr,todos',
             ]);
 
-            $query = CuentaCobro::with(['paciente', 'referencia', 'pagos.user', 'cajaSession.user']);
+            $query = CuentaCobro::with(['paciente', 'referencia', 'pagos.user', 'cajaSession.user', 'seguro']);
 
             // Filtro por fecha
             if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
@@ -202,6 +202,13 @@ class CajaGestionController extends Controller
                         'estado_label' => $cuenta->estado_label,
                         'estado_color' => $cuenta->estado_color,
                         'metodos_pago' => $cuenta->pagos->pluck('metodo_pago')->unique()->values(),
+                        'seguro_aplicado' => $cuenta->seguro_estado === 'autorizado',
+                        'seguro_nombre' => $cuenta->seguro_estado === 'autorizado'
+                            ? ($cuenta->seguro?->nombre_empresa ?? 'Seguro')
+                            : null,
+                        'seguro_monto_cobertura' => $cuenta->seguro_estado === 'autorizado'
+                            ? (float) $cuenta->seguro_monto_cobertura
+                            : 0,
                         'usuario_caja' => $cuenta->cajaSession?->user?->name ?? 'N/A',
                         'fecha' => $cuenta->created_at->format('d/m/Y H:i'),
                         'fecha_pago' => $cuenta->pagos->last()?->created_at?->format('d/m/Y H:i'),

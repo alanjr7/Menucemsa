@@ -88,6 +88,11 @@ class AlmacenMedicamentosController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:255',
+            'nombre_generico' => 'nullable|string|max:255',
+            'concentracion' => 'nullable|string|max:100',
+            'forma_farmaceutica' => 'nullable|string|max:100',
+            'requiere_receta' => 'nullable|boolean',
+            'categoria' => 'nullable|string|max:100',
             'descripcion' => 'nullable|string',
             'unidad_medida' => 'required|string|max:50',
             'tipo' => 'required|in:medicamento,insumo',
@@ -97,16 +102,23 @@ class AlmacenMedicamentosController extends Controller
             'proveedor' => 'nullable|string|max:150',
             'laboratorio' => 'nullable|string|max:150',
             'fecha_vencimiento' => 'nullable|date|after:today',
+            'numero_lote_fabricante' => 'nullable|string|max:150',
             'precio_compra' => 'nullable|numeric|min:0',
             'porcentaje_ganancia' => 'nullable|numeric|min:0|max:999',
             'precio_venta' => 'nullable|numeric|min:0',
             'cantidad_inicial' => 'required|integer|min:0',
+            'cantidad_recibida' => 'nullable|integer|min:0',
             'stock_minimo' => 'required|integer|min:0',
         ]);
 
         DB::transaction(function () use ($request) {
             $catalogo = AlmacenCatalogo::create([
                 'nombre' => $request->nombre,
+                'nombre_generico' => $request->nombre_generico,
+                'concentracion' => $request->concentracion,
+                'forma_farmaceutica' => $request->forma_farmaceutica,
+                'requiere_receta' => $request->has('requiere_receta') ? (bool) $request->requiere_receta : false,
+                'categoria' => $request->categoria,
                 'descripcion' => $request->descripcion,
                 'unidad_medida' => $request->unidad_medida,
                 'tipo' => $request->tipo,
@@ -117,6 +129,7 @@ class AlmacenMedicamentosController extends Controller
             $lote = AlmacenLote::create([
                 'catalogo_id' => $catalogo->id,
                 'codigo_lote' => $request->codigo_lote,
+                'numero_lote_fabricante' => $request->numero_lote_fabricante,
                 'proveedor' => $request->proveedor,
                 'laboratorio' => $request->laboratorio,
                 'fecha_vencimiento' => $request->fecha_vencimiento,
@@ -124,6 +137,7 @@ class AlmacenMedicamentosController extends Controller
                 'porcentaje_ganancia' => $request->porcentaje_ganancia,
                 'precio_venta' => $request->precio_venta,
                 'cantidad_inicial' => $request->cantidad_inicial,
+                'cantidad_recibida' => $request->cantidad_recibida ?? $request->cantidad_inicial,
             ]);
 
             AlmacenStock::create([
@@ -196,6 +210,7 @@ class AlmacenMedicamentosController extends Controller
             'lotes' => 'nullable|array',
             'lotes.*.id' => 'nullable|integer|exists:almacen_lotes,id',
             'lotes.*.codigo_lote' => 'nullable|string|max:100',
+            'lotes.*.numero_lote_fabricante' => 'nullable|string|max:150',
             'lotes.*.proveedor' => 'nullable|string|max:150',
             'lotes.*.laboratorio' => 'nullable|string|max:150',
             'lotes.*.fecha_vencimiento' => 'nullable|date|after:today',
@@ -203,6 +218,7 @@ class AlmacenMedicamentosController extends Controller
             'lotes.*.porcentaje_ganancia' => 'nullable|numeric|min:0|max:999',
             'lotes.*.precio_venta' => 'nullable|numeric|min:0',
             'lotes.*.cantidad_inicial' => 'required|integer|min:0',
+            'lotes.*.cantidad_recibida' => 'nullable|integer|min:0',
             'lotes.*.stocks' => 'nullable|array',
             'lotes.*.stocks.*.ubicacion' => 'required|string|in:central,emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
             'lotes.*.stocks.*.stock_minimo' => 'required|integer|min:0',
@@ -225,6 +241,7 @@ class AlmacenMedicamentosController extends Controller
                                 ->findOrFail($loteData['id']);
                             $lote->update([
                                 'codigo_lote' => $loteData['codigo_lote'],
+                                'numero_lote_fabricante' => $loteData['numero_lote_fabricante'] ?? null,
                                 'proveedor' => $loteData['proveedor'] ?? null,
                                 'laboratorio' => $loteData['laboratorio'] ?? null,
                                 'fecha_vencimiento' => $loteData['fecha_vencimiento'],
@@ -232,11 +249,13 @@ class AlmacenMedicamentosController extends Controller
                                 'porcentaje_ganancia' => $loteData['porcentaje_ganancia'],
                                 'precio_venta' => $loteData['precio_venta'],
                                 'cantidad_inicial' => $loteData['cantidad_inicial'],
+                                'cantidad_recibida' => $loteData['cantidad_recibida'] ?? $loteData['cantidad_inicial'],
                             ]);
                         } else {
                             $lote = AlmacenLote::create([
                                 'catalogo_id' => $almacenMedicamento->id,
                                 'codigo_lote' => $loteData['codigo_lote'],
+                                'numero_lote_fabricante' => $loteData['numero_lote_fabricante'] ?? null,
                                 'proveedor' => $loteData['proveedor'] ?? null,
                                 'laboratorio' => $loteData['laboratorio'] ?? null,
                                 'fecha_vencimiento' => $loteData['fecha_vencimiento'],
@@ -244,6 +263,7 @@ class AlmacenMedicamentosController extends Controller
                                 'porcentaje_ganancia' => $loteData['porcentaje_ganancia'],
                                 'precio_venta' => $loteData['precio_venta'],
                                 'cantidad_inicial' => $loteData['cantidad_inicial'],
+                                'cantidad_recibida' => $loteData['cantidad_recibida'] ?? $loteData['cantidad_inicial'],
                             ]);
                         }
 
@@ -832,6 +852,7 @@ class AlmacenMedicamentosController extends Controller
                         $lote = AlmacenLote::create([
                             'catalogo_id' => $catalogoId,
                             'cantidad_inicial' => $cantidad,
+                            'cantidad_recibida' => $cantidad,
                         ]);
                     }
 
@@ -871,6 +892,7 @@ class AlmacenMedicamentosController extends Controller
 
     private const AREAS_IMPORT = [
         'central' => 'Central',
+        'farmacia' => 'Farmacia',
         'emergencia' => 'Emergencia',
         'cirugia' => 'Cirugía',
         'hospitalizacion' => 'Hospitalización',
@@ -982,10 +1004,17 @@ class AlmacenMedicamentosController extends Controller
                 'laboratorio' => trim((string) ($row['laboratorio'] ?? '')) ?: null,
                 'stock_minimo' => is_numeric($row['stock_minimo'] ?? null) ? (int) $row['stock_minimo'] : null,
                 'codigo_lote' => trim((string) ($row['codigo_lote'] ?? '')) ?: null,
+                'numero_lote_fabricante' => trim((string) ($row['numero_lote_fabricante'] ?? '')) ?: null,
+                'cantidad_recibida' => is_numeric($row['cantidad_recibida'] ?? null) ? (int) $row['cantidad_recibida'] : null,
                 'fecha_vencimiento' => $this->parseFechaExcel($row['fecha_vencimiento'] ?? null),
                 'precio_compra' => is_numeric($row['precio_compra'] ?? null) ? (float) $row['precio_compra'] : null,
                 'precio_venta' => is_numeric($row['precio_venta'] ?? null) ? (float) $row['precio_venta'] : null,
                 'descripcion' => trim((string) ($row['descripcion'] ?? '')) ?: null,
+                'nombre_generico' => trim((string) ($row['nombre_generico'] ?? '')) ?: null,
+                'concentracion' => trim((string) ($row['concentracion'] ?? '')) ?: null,
+                'forma_farmaceutica' => trim((string) ($row['forma_farmaceutica'] ?? '')) ?: null,
+                'categoria' => trim((string) ($row['categoria'] ?? '')) ?: null,
+                'requiere_receta' => in_array(strtolower(trim((string) ($row['requiere_receta'] ?? ''))), ['1', 'si', 'sí', 'true', 's'], true) ? 1 : 0,
             ];
         }
 
@@ -1073,27 +1102,27 @@ class AlmacenMedicamentosController extends Controller
                                 'descripcion' => $item['descripcion'] ?? null,
                                 'unidad_medida' => $item['unidad'] ?? 'unidades',
                                 'tipo' => ($item['tipo'] ?? 'medicamento') === 'insumo' ? 'insumo' : 'medicamento',
+                                'nombre_generico' => $item['nombre_generico'] ?? null,
+                                'concentracion' => $item['concentracion'] ?? null,
+                                'forma_farmaceutica' => $item['forma_farmaceutica'] ?? null,
+                                'categoria' => $item['categoria'] ?? null,
+                                'requiere_receta' => $item['requiere_receta'] ?? 0,
                             ]);
                             $creados++;
                         } else {
-                            $actualizados++;
+                            $cat->fill([
+                                'descripcion' => $item['descripcion'] ?? $cat->descripcion,
+                                'unidad_medida' => $item['unidad'] ?? $cat->unidad_medida,
+                                'tipo' => ($item['tipo'] ?? $cat->tipo) === 'insumo' ? 'insumo' : 'medicamento',
+                                'nombre_generico' => $item['nombre_generico'] ?? $cat->nombre_generico,
+                                'concentracion' => $item['concentracion'] ?? $cat->concentracion,
+                                'forma_farmaceutica' => $item['forma_farmaceutica'] ?? $cat->forma_farmaceutica,
+                                'categoria' => $item['categoria'] ?? $cat->categoria,
+                                'requiere_receta' => $item['requiere_receta'] ?? $cat->requiere_receta,
+                            ]);
+                            $cat->save();
                         }
-                    } else {
-                        $actualizados++;
                     }
-
-                    $cacheNombre[$nkey] = $cat;
-
-                    $prov = $item['proveedor'] ?? null;
-                    $lab = $item['laboratorio'] ?? null;
-                    $codigo = $item['codigo_lote'] ?? null;
-
-                    // Lote por proveedor+laboratorio (+código si viene): mismo lab = mismo lote, distinto lab = lote nuevo
-                    $lote = AlmacenLote::where('catalogo_id', $cat->id)
-                        ->where(fn ($q) => $prov === null ? $q->whereNull('proveedor') : $q->where('proveedor', $prov))
-                        ->where(fn ($q) => $lab === null ? $q->whereNull('laboratorio') : $q->where('laboratorio', $lab))
-                        ->when($codigo, fn ($q) => $q->where('codigo_lote', $codigo))
-                        ->first();
 
                     if (! $lote) {
                         $lote = AlmacenLote::create([
@@ -1101,6 +1130,8 @@ class AlmacenMedicamentosController extends Controller
                             'codigo_lote' => $codigo,
                             'proveedor' => $prov,
                             'laboratorio' => $lab,
+                            'numero_lote_fabricante' => $item['numero_lote_fabricante'] ?? null,
+                            'cantidad_recibida' => $item['cantidad_recibida'] ?? $cantidad,
                             'fecha_vencimiento' => $item['fecha_vencimiento'] ?? null,
                             'precio_compra' => $item['precio_compra'] ?? null,
                             'precio_venta' => $item['precio_venta'] ?? null,
@@ -1238,7 +1269,7 @@ class AlmacenMedicamentosController extends Controller
             'data' => 'required|string',
         ]);
 
-        $areasValidas = ['emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato', 'internacion'];
+        $areasValidas = ['farmacia', 'emergencia', 'cirugia', 'hospitalizacion', 'uti', 'usi', 'neonato', 'internacion'];
         $data = json_decode($request->data, true);
 
         if (! is_array($data) || count($data) === 0) {

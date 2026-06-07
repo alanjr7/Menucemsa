@@ -804,7 +804,7 @@ class ReceptionController extends Controller
         $citas = Cita::where('fecha', '>=', Carbon::today())
             ->whereNotIn('estado', ['cancelado', 'atendido', 'no_asistio'])
             ->with(['paciente' => function ($query) {
-                $query->select('ci', 'nombre', 'telefono', 'fecha_nacimiento');
+                $query->select('id', 'ci', 'nombre', 'telefono', 'fecha_nacimiento');
             }, 'medico' => function ($query) {
                 $query->with('user');
             }, 'especialidad'])
@@ -867,7 +867,9 @@ class ReceptionController extends Controller
             ->count();
         
         $stats = [
-            'citas_programadas' => Cita::delDia()->count(),
+            'citas_programadas' => Cita::where('fecha', '>=', $hoy)
+                ->whereNotIn('estado', ['cancelado', 'atendido', 'no_asistio'])
+                ->count(),
             'en_atencion' => Cita::enAtencion()->count() + $emergenciasActivas,
             'en_espera' => Cita::enEspera()->count(),
             'admisiones' => Caja::whereDate('fecha', $hoy)
@@ -1082,7 +1084,7 @@ class ReceptionController extends Controller
 
             // Abrir episodio — esto hace que el paciente aparezca en /patients
             $episodio = EpisodioService::abrirEpisodio(
-                $cita->paciente->ci,
+                $cita->paciente->id,
                 $tipoEpisodio,
                 Auth::id()
             );
@@ -1092,7 +1094,7 @@ class ReceptionController extends Controller
                 $tiposValidos = ['consulta_externa', 'internacion', 'emergencia', 'enfermeria'];
                 if (in_array($cita->tipo_ingreso, $tiposValidos)) {
                     $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
-                        (string) $cita->paciente->ci,
+                        $cita->paciente->id,
                         $cita->tipo_ingreso,
                         null
                     );

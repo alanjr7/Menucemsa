@@ -18,6 +18,7 @@ document.addEventListener('alpine:init', () => {
         areasActivas: [],
 
         todasLasAreas: [
+            { value: 'farmacia',        label: 'Farmacia' },
             { value: 'emergencia',      label: 'Emergencia' },
             { value: 'cirugia',         label: 'Cirugía' },
             { value: 'hospitalizacion', label: 'Hospitalización' },

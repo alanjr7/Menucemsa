@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Farmacia;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\AlmacenStock;
 use App\Models\Medicamentos;
-use App\Models\InventarioFarmacia;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
 use App\Models\Cliente;
@@ -30,23 +30,26 @@ class PuntoVentaController extends Controller
 
     public function index()
     {
-        // Obtener productos para el punto de venta desde inventario_farmacia
-        $items = InventarioFarmacia::with('medicamento')
-            ->where('tipo_item', 'medicamento')
+        // Obtener productos para el punto de venta desde el stock de farmacia
+        $items = AlmacenStock::with('lote.catalogo')
+            ->where('ubicacion', 'farmacia')
+            ->where('cantidad_actual', '>', 0)
             ->get();
             
         $productos = $items->map(function ($item) {
+            $catalogo = $item->lote?->catalogo;
             return [
-                'id' => $item->codigo_item,
-                'nombre' => $item->medicamento->descripcion ?? 'Producto desconocido',
-                'precio' => $item->medicamento->precio ?? 0,
-                'categoria' => $item->tipo ?? 'Medicamento',
-                'laboratorio' => $item->laboratorio ?? 'N/A',
-                'vencimiento' => $item->fecha_vencimiento ?? 'N/A',
-                'stock' => $item->stock_disponible,
-                'codigo_barras' => $item->codigo_item,
-                'lote' => $item->lote ?? 'LOT-' . $item->codigo_item,
-                'requerimiento' => $item->requerimiento ?? 'Normal'
+                'id' => $item->id,
+                'nombre' => $catalogo->nombre ?? 'Producto desconocido',
+                'precio' => $item->precio,
+                'categoria' => $catalogo->categoria ?: ($catalogo?->tipo_label ?? 'Medicamento'),
+                'laboratorio' => $item->lote->laboratorio ?? 'N/A',
+                'vencimiento' => $item->lote->fecha_vencimiento?->format('Y-m-d') ?? 'N/A',
+                'stock' => $item->cantidad_actual,
+                'codigo_barras' => $catalogo->codigo_barras ?? (string) ($catalogo->id ?? $item->id),
+                'lote' => $item->lote->codigo_lote ?? 'LOT-' . ($item->lote_id ?? $item->id),
+                'requerimiento' => $catalogo->requiere_receta ? 'Receta' : 'Normal',
+                'requiere_receta' => (bool) ($catalogo->requiere_receta ?? false),
             ];
         });
 
@@ -61,7 +64,7 @@ class PuntoVentaController extends Controller
         try {
             $validated = $request->validate([
                 'items' => 'required|array|min:1',
-                'items.*.id' => 'required|string',
+                'items.*.id' => 'required|integer',
                 'items.*.cantidad' => 'required|integer|min:1',
                 'items.*.precio' => 'required|numeric|min:0',
                 'cliente_id' => 'nullable|exists:clientes,id',
@@ -75,12 +78,12 @@ class PuntoVentaController extends Controller
             $ids = collect($validated['items'])->pluck('id');
 
             // Lock rows for update to prevent race conditions on stock
-            $inventarios = InventarioFarmacia::with('medicamento')
-                ->where('tipo_item', 'medicamento')
-                ->whereIn('codigo_item', $ids)
+            $inventarios = AlmacenStock::with('lote.catalogo')
+                ->where('ubicacion', 'farmacia')
+                ->whereIn('id', $ids)
                 ->lockForUpdate()
                 ->get()
-                ->keyBy('codigo_item');
+                ->keyBy('id');
 
             $productosRequierenReceta = [];
             foreach ($validated['items'] as $item) {
@@ -94,16 +97,16 @@ class PuntoVentaController extends Controller
                     ], 400);
                 }
 
-                if ($inventario->stock_disponible < $item['cantidad']) {
+                if ($inventario->cantidad_actual < $item['cantidad']) {
                     DB::rollBack();
                     return response()->json([
                         'success' => false,
-                        'message' => 'Stock insuficiente para "' . ($inventario->medicamento->descripcion ?? $item['id']) . '". Disponible: ' . $inventario->stock_disponible . ', Solicitado: ' . $item['cantidad']
+                        'message' => 'Stock insuficiente para "' . ($inventario->lote?->catalogo->nombre ?? $item['id']) . '". Disponible: ' . $inventario->cantidad_actual . ', Solicitado: ' . $item['cantidad']
                     ], 400);
                 }
 
-                if ($inventario->requerimiento === 'Receta') {
-                    $productosRequierenReceta[] = $inventario->medicamento->descripcion ?? $item['id'];
+                if (($inventario->lote?->catalogo->requiere_receta ?? false) && $inventario->lote->catalogo->requiere_receta) {
+                    $productosRequierenReceta[] = $inventario->lote?->catalogo->nombre ?? $item['id'];
                 }
             }
 
@@ -148,23 +151,19 @@ class PuntoVentaController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $inventario = $inventarios->get($item['id']);
-                $medicamento = $inventario->medicamento;
+                $catalogo = $inventario->lote?->catalogo;
 
                 DetalleVentaFarmacia::create([
                     'codigo_venta' => $codigoVenta,
-                    'codigo_producto' => $item['id'],
-                    'tipo_producto' => 'medicamento',
-                    'nombre_producto' => $medicamento->descripcion ?? $item['id'],
+                    'codigo_producto' => $catalogo->codigo_barras ?? (string) ($catalogo->id ?? $item['id']),
+                    'tipo_producto' => $catalogo->tipo ?? 'medicamento',
+                    'nombre_producto' => $catalogo->nombre ?? $item['id'],
                     'cantidad' => $item['cantidad'],
                     'precio_unitario' => $item['precio'],
                     'subtotal' => $item['cantidad'] * $item['precio'],
                 ]);
 
-                $nuevoStock = $inventario->stock_disponible - $item['cantidad'];
-                $inventario->update([
-                    'stock_disponible' => $nuevoStock,
-                    'reposicion' => $nuevoStock <= $inventario->stock_minimo ? 1 : 0
-                ]);
+                $inventario->decrement('cantidad_actual', $item['cantidad']);
             }
 
             DB::commit();

@@ -42,11 +42,18 @@ class MedicamentosGeneralesSeeder extends Seeder
                     'tipo' => 'medicamento',
                     'activo' => true,
                     'observaciones' => $med['observaciones'],
+                    'nombre_generico' => $med['nombre_generico'] ?? null,
+                    'concentracion' => $med['concentracion'] ?? null,
+                    'forma_farmaceutica' => $med['forma_farmaceutica'] ?? null,
+                    'categoria' => $med['categoria'] ?? null,
+                    'requiere_receta' => $med['requiere_receta'] ?? 0,
                 ]);
 
                 $lote = AlmacenLote::create([
                     'catalogo_id' => $catalogo->id,
                     'codigo_lote' => null,
+                    'numero_lote_fabricante' => null,
+                    'cantidad_recibida' => 0,
                     'fecha_vencimiento' => $fechaVencimiento,
                     'precio_compra' => 0,
                     'porcentaje_ganancia' => 0,

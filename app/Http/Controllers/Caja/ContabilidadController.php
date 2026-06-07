@@ -6,6 +6,7 @@ use App\Exports\ContabilidadExport;
 use App\Http\Controllers\Controller;
 use App\Models\Egreso;
 use App\Models\PagoCuenta;
+use App\Models\VentaFarmacia;
 use App\Traits\AuditLoggable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,12 +40,28 @@ class ContabilidadController extends Controller
             [$inicio, $fin] = $this->rango($request);
 
             // Ingresos: dinero realmente cobrado (excluye fondo de apertura)
-            $pagos = PagoCuenta::whereBetween('created_at', [$inicio, $fin])->get();
-            $totalIngresos = $pagos->reduce(fn ($acc, $p) => bcadd($acc, $p->monto, 2), '0');
+            $pagos = PagoCuenta::with(['cuentaCobro.paciente', 'user'])
+                ->whereBetween('created_at', [$inicio, $fin])
+                ->orderBy('created_at', 'desc')->get();
+            $totalCaja = $pagos->reduce(fn ($acc, $p) => bcadd($acc, $p->monto, 2), '0');
 
+            // Ingresos de farmacia (ventas completadas)
+            $ventasFarmacia = VentaFarmacia::with('usuario')
+                ->where('estado', 'COMPLETADA')
+                ->whereBetween('fecha_venta', [$inicio, $fin])
+                ->orderBy('fecha_venta', 'desc')->get();
+            $totalFarmacia = $ventasFarmacia->reduce(fn ($acc, $v) => bcadd($acc, $v->total, 2), '0');
+
+            $totalIngresos = bcadd($totalCaja, $totalFarmacia, 2);
+
+            // Ingresos por método: combina caja + farmacia
             $ingresosPorMetodo = $pagos->groupBy('metodo_pago')->map(
                 fn ($g) => $g->reduce(fn ($acc, $p) => bcadd($acc, $p->monto, 2), '0')
-            );
+            )->toArray();
+            foreach ($ventasFarmacia->groupBy('metodo_pago') as $metodo => $g) {
+                $sumF = $g->reduce(fn ($acc, $v) => bcadd($acc, $v->total, 2), '0');
+                $ingresosPorMetodo[$metodo] = bcadd($ingresosPorMetodo[$metodo] ?? '0', $sumF, 2);
+            }
 
             // Egresos manuales
             $egresos = Egreso::with('user')->entreFechas($inicio->toDateString(), $fin->toDateString())
@@ -56,17 +73,20 @@ class ContabilidadController extends Controller
                 'total' => $g->reduce(fn ($acc, $e) => bcadd($acc, $e->monto, 2), '0'),
             ])->values();
 
-            // Serie diaria para el gráfico (ingresos vs egresos por día)
+            // Serie diaria para el gráfico (ingresos caja vs farmacia vs egresos por día)
             $ingresosPorDia = $pagos->groupBy(fn ($p) => $p->created_at->toDateString())
                 ->map(fn ($g) => $g->reduce(fn ($acc, $p) => bcadd($acc, $p->monto, 2), '0'));
+            $farmaciaPorDia = $ventasFarmacia->groupBy(fn ($v) => $v->fecha_venta->toDateString())
+                ->map(fn ($g) => $g->reduce(fn ($acc, $v) => bcadd($acc, $v->total, 2), '0'));
             $egresosPorDia = $egresos->groupBy(fn ($e) => $e->fecha->toDateString())
                 ->map(fn ($g) => $g->reduce(fn ($acc, $e) => bcadd($acc, $e->monto, 2), '0'));
 
-            $serie = ['labels' => [], 'ingresos' => [], 'egresos' => []];
+            $serie = ['labels' => [], 'ingresos' => [], 'farmacia' => [], 'egresos' => []];
             for ($cursor = $inicio->copy()->startOfDay(); $cursor <= $fin; $cursor->addDay()) {
                 $key = $cursor->toDateString();
                 $serie['labels'][] = $cursor->format('d/m');
                 $serie['ingresos'][] = $ingresosPorDia[$key] ?? '0';
+                $serie['farmacia'][] = $farmaciaPorDia[$key] ?? '0';
                 $serie['egresos'][] = $egresosPorDia[$key] ?? '0';
             }
 
@@ -74,11 +94,45 @@ class ContabilidadController extends Controller
                 'success' => true,
                 'totales' => [
                     'ingresos' => $totalIngresos,
+                    'ingresos_caja' => $totalCaja,
+                    'ingresos_farmacia' => $totalFarmacia,
                     'egresos' => $totalEgresos,
                     'saldo' => bcsub($totalIngresos, $totalEgresos, 2),
                 ],
                 'serie' => $serie,
                 'ingresos_por_metodo' => $ingresosPorMetodo,
+                'ingresos' => $pagos->map(function ($p) {
+                    $cuenta = $p->cuentaCobro;
+                    $paciente = $cuenta?->paciente?->nombre ?? 'N/A';
+                    $atencion = $cuenta?->tipo_atencion_label ?? 'Cobro';
+                    return [
+                        'id' => 'P-'.$p->id,
+                        'origen' => 'Caja',
+                        'fecha_orden' => $p->created_at->toDateTimeString(),
+                        'fecha' => $p->created_at->format('d/m/Y H:i'),
+                        'paciente' => $paciente,
+                        'descripcion' => $atencion,
+                        'cuenta_id' => $p->cuenta_cobro_id,
+                        'metodo_pago' => $p->metodo_pago_label,
+                        'referencia' => $p->referencia,
+                        'monto' => $p->monto,
+                        'usuario' => $p->user->name ?? 'N/A',
+                    ];
+                })->concat($ventasFarmacia->map(function ($v) {
+                    return [
+                        'id' => 'F-'.$v->id,
+                        'origen' => 'Farmacia',
+                        'fecha_orden' => $v->fecha_venta->toDateTimeString(),
+                        'fecha' => $v->fecha_venta->format('d/m/Y H:i'),
+                        'paciente' => $v->cliente ?: 'Consumidor final',
+                        'descripcion' => 'Venta farmacia',
+                        'cuenta_id' => $v->codigo_venta,
+                        'metodo_pago' => ucfirst($v->metodo_pago),
+                        'referencia' => null,
+                        'monto' => $v->total,
+                        'usuario' => $v->usuario->name ?? 'N/A',
+                    ];
+                }))->sortByDesc('fecha_orden')->values(),
                 'egresos_por_categoria' => $egresosPorCategoria,
                 'egresos' => $egresos->map(fn ($e) => [
                     'id' => $e->id,

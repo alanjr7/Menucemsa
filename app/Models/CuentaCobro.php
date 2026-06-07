@@ -275,9 +275,17 @@ class CuentaCobro extends Model
     // Registrar un pago
     public function registrarPago(float $monto, string $metodoPago, ?string $referencia = null, ?int $usuarioId = null): void
     {
+        // Normalizar metodo de pago y validar valores permitidos
+        $metodo = strtolower(trim((string) $metodoPago));
+        $permitidos = ['efectivo', 'transferencia', 'tarjeta', 'qr'];
+        if (!in_array($metodo, $permitidos, true)) {
+            // Si viene un valor inesperado, registrar como 'efectivo' por compatibilidad
+            $metodo = 'efectivo';
+        }
+
         $this->pagos()->create([
             'monto' => $monto,
-            'metodo_pago' => $metodoPago,
+            'metodo_pago' => $metodo,
             'referencia' => $referencia,
             'user_id' => $usuarioId ?? auth()->id(),
             'caja_session_id' => $this->caja_session_id,

@@ -17,19 +17,20 @@ class AlmacenPlantillaExport implements FromArray, ShouldAutoSize, WithHeadings,
     public function headings(): array
     {
         return [
-            'nombre', 'cantidad', 'tipo', 'unidad', 'stock_minimo',
-            'proveedor', 'laboratorio', 'codigo_lote', 'fecha_vencimiento',
-            'precio_compra', 'precio_venta', 'descripcion',
+            'nombre', 'nombre_generico', 'concentracion', 'forma_farmaceutica', 'categoria', 'requiere_receta',
+            'cantidad', 'tipo', 'unidad', 'stock_minimo',
+            'proveedor', 'laboratorio', 'codigo_lote', 'numero_lote_fabricante', 'cantidad_recibida',
+            'fecha_vencimiento', 'precio_compra', 'precio_venta', 'descripcion',
         ];
     }
 
     public function array(): array
     {
         return [
-            ['Omeprazol 20mg cápsula', 100, 'medicamento', 'unidades', 20, 'Distribuidora ABC', 'Genérico', 'L-2026-001', '2027-12-31', 0.50, 1.00, 'Antiácido'],
-            ['Omeprazol 20mg cápsula', 50, 'medicamento', 'unidades', 20, 'Farma SRL', 'Bagó', 'L-2026-002', '2026-10-31', 0.80, 1.50, ''],
-            ['Omeprazol jarabe 40mg/5ml', 30, 'medicamento', 'frascos', 5, 'Farma SRL', 'Bagó', 'JBE-2026-01', '2026-09-30', 8.00, 14.00, 'Presentación líquida'],
-            ['Gasa estéril', 50, 'insumo', 'unidades', 10, 'Insumos Médicos SA', '', '', '', 1.20, 2.00, ''],
+            ['Omeprazol 20mg cápsula', 'Omeprazol', '20mg', 'cápsula', 'Gastrointestinal', 0, 100, 'medicamento', 'unidades', 20, 'Distribuidora ABC', 'Genérico', 'L-2026-001', 'F-12345', 100, '2027-12-31', 0.50, 1.00, 'Antiácido'],
+            ['Omeprazol 20mg cápsula', 'Omeprazol', '20mg', 'cápsula', 'Gastrointestinal', 0, 50, 'medicamento', 'unidades', 20, 'Farma SRL', 'Bagó', 'L-2026-002', 'F-12346', 50, '2026-10-31', 0.80, 1.50, ''],
+            ['Omeprazol jarabe 40mg/5ml', 'Omeprazol', '40mg/5ml', 'jarabe', 'Gastrointestinal', 0, 30, 'medicamento', 'frascos', 5, 'Farma SRL', 'Bagó', 'JBE-2026-01', 'F-12347', 30, '2026-09-30', 8.00, 14.00, 'Presentación líquida'],
+            ['Gasa estéril', null, null, null, 'Insumos', 0, 50, 'insumo', 'unidades', 10, 'Insumos Médicos SA', '', '', '', 50, '', 1.20, 2.00, ''],
         ];
     }
 }

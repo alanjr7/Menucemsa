@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Farmacia;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Medicamentos;
-use App\Models\InventarioFarmacia;
+use App\Models\AlmacenCatalogo;
+use App\Models\AlmacenLote;
+use App\Models\AlmacenStock;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -25,44 +26,50 @@ class InventarioController extends Controller
 
     public function index()
     {
-        // Obtener todos los items del inventario_farmacia con sus medicamentos
-        $productos = InventarioFarmacia::with('medicamento')
-            ->where('tipo_item', 'medicamento')
-            ->get()
-            ->map(function ($item) {
+        $stocks = AlmacenStock::with('lote.catalogo')
+            ->where('ubicacion', 'farmacia')
+            ->get();
+
+        $productos = $stocks->groupBy(fn ($stock) => $stock->lote->catalogo->id)
+            ->map(function ($stocks) {
+                $catalogo = $stocks->first()->lote->catalogo;
+                $primaryLote = $stocks->sortBy('fecha_vencimiento')->first()->lote;
+
                 return [
-                    'id' => $item->codigo_item,
-                    'nombre' => $item->medicamento->descripcion ?? 'Producto desconocido',
-                    'precio' => $item->medicamento->precio ?? 0,
-                    'categoria' => $item->tipo ?? 'Medicamento',
-                    'laboratorio' => $item->laboratorio ?? 'N/A',
-                    'vencimiento' => $item->fecha_vencimiento ?? 'N/A',
-                    'stock' => $item->stock_disponible,
-                    'stockMinimo' => $item->stock_minimo,
-                    'requerimiento' => $item->requerimiento ?? 'Normal',
-                    'requiere_receta' => $item->requerimiento === 'Receta',
-                    'codigo_barras' => $item->codigo_item,
-                    'proveedor' => $item->laboratorio ?? 'N/A',
-                    'reposicion' => $item->reposicion ? 'Si' : 'No'
+                    'id' => $catalogo->id,
+                    'nombre' => $catalogo->nombre,
+                    'precio' => (float) ($primaryLote->precio_venta ?? 0),
+                    'categoria' => $catalogo->categoria ?: ($catalogo->tipo_label ?? 'Medicamento'),
+                    'tipo' => $catalogo->tipo_label ?? 'Medicamento',
+                    'laboratorio' => $primaryLote->laboratorio ?? 'N/A',
+                    'vencimiento' => $primaryLote->fecha_vencimiento?->format('Y-m-d') ?? 'N/A',
+                    'stock' => $stocks->sum('cantidad_actual'),
+                    'stockMinimo' => $stocks->min('stock_minimo') ?? 0,
+                    'requerimiento' => $catalogo->requiere_receta ? 'Receta' : 'Normal',
+                    'requiere_receta' => (bool) $catalogo->requiere_receta,
+                    'codigo_barras' => $catalogo->codigo_barras ?? (string) $catalogo->id,
+                    'proveedor' => $primaryLote->proveedor ?? 'N/A',
+                    'descripcion' => $catalogo->descripcion ?? '',
+                    'lote' => $primaryLote->codigo_lote ?? '',
                 ];
-            });
+            })
+            ->values();
 
         return view('farmacia.inventario', compact('productos'));
     }
 
     public function store(Request $request)
     {
-        // Lógica para crear nuevo producto
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'precio' => 'required|numeric|min:0',
             'categoria' => 'required|string',
             'stock' => 'required|integer|min:0',
             'stockMinimo' => 'required|integer|min:0',
-            'codigo_barras' => 'required|string|unique:medicamentos,codigo',
+            'codigo_barras' => 'required|string|max:50|unique:almacen_catalogo,codigo_barras',
             'proveedor' => 'nullable|string',
             'vencimiento' => 'nullable|date',
-            'lote' => 'nullable|string',
+            'lote' => 'nullable|string|max:100',
             'descripcion' => 'nullable|string',
             'requiere_receta' => 'boolean'
         ]);
@@ -70,38 +77,42 @@ class InventarioController extends Controller
         try {
             DB::beginTransaction();
 
-            $farmacia = \App\Models\Farmacia::first();
-            if (!$farmacia) {
-                $farmacia = \App\Models\Farmacia::create([
-                    'id' => 'FARM001',
-                    'detalle' => 'Farmacia Principal'
-                ]);
-            }
+            $tipo = strtolower($validated['categoria']) === 'insumo' ? 'insumo' : 'medicamento';
 
-            $medicamento = Medicamentos::create([
-                'codigo' => $validated['codigo_barras'],
-                'descripcion' => $validated['nombre'],
-                'precio' => $validated['precio']
+            $catalogo = AlmacenCatalogo::create([
+                'nombre' => $validated['nombre'],
+                'codigo_barras' => $validated['codigo_barras'],
+                'descripcion' => $validated['descripcion'] ?? null,
+                'unidad_medida' => 'unidades',
+                'tipo' => $tipo,
+                'activo' => true,
+                'requiere_receta' => $validated['requiere_receta'] ?? false,
+                'categoria' => $validated['categoria'],
             ]);
 
-            InventarioFarmacia::create([
-                'farmacia_id' => $farmacia->id,
-                'tipo_item' => 'medicamento',
-                'codigo_item' => $medicamento->codigo,
+            $lote = AlmacenLote::create([
+                'catalogo_id' => $catalogo->id,
+                'codigo_lote' => $validated['lote'] ?? null,
                 'laboratorio' => $validated['proveedor'] ?? null,
-                'fecha_vencimiento' => $validated['vencimiento'],
-                'tipo' => $validated['categoria'],
-                'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
+                'fecha_vencimiento' => $validated['vencimiento'] ?? null,
+                'precio_venta' => $validated['precio'],
+                'cantidad_inicial' => $validated['stock'],
+                'cantidad_recibida' => $validated['stock'],
+            ]);
+
+            AlmacenStock::create([
+                'lote_id' => $lote->id,
+                'ubicacion' => 'farmacia',
+                'cantidad_actual' => $validated['stock'],
                 'stock_minimo' => $validated['stockMinimo'],
-                'stock_disponible' => $validated['stock'],
-                'precio_unitario' => $validated['precio'],
-                'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,
-                'fecha_ingreso' => now()
             ]);
 
             DB::commit();
 
-            return response()->json(['success' => true, 'message' => 'Producto creado exitosamente', 'producto' => array_merge($medicamento->toArray(), ['id' => $medicamento->codigo])]);
+            return response()->json(['success' => true, 'message' => 'Producto creado exitosamente', 'producto' => [
+                'id' => $catalogo->id,
+                'codigo_barras' => $catalogo->codigo_barras,
+            ]]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -111,59 +122,76 @@ class InventarioController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Lógica para actualizar producto
-        $medicamento = Medicamentos::findOrFail($id);
-        
+        $catalogo = AlmacenCatalogo::findOrFail($id);
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'precio' => 'required|numeric|min:0',
             'categoria' => 'required|string',
             'stock' => 'required|integer|min:0',
             'stockMinimo' => 'required|integer|min:0',
+            'codigo_barras' => 'required|string|max:50|unique:almacen_catalogo,codigo_barras,'.$catalogo->id,
             'proveedor' => 'nullable|string',
-            'vencimiento' => 'nullable|string',
-            'lote' => 'nullable|string',
+            'vencimiento' => 'nullable|date',
+            'lote' => 'nullable|string|max:100',
             'descripcion' => 'nullable|string',
             'requiere_receta' => 'boolean'
         ]);
 
         try {
-            $medicamento->update([
-                'descripcion' => $validated['nombre'],
-                'precio' => $validated['precio']
-            ]);
+            DB::transaction(function () use ($catalogo, $validated) {
+                $tipo = strtolower($validated['categoria']) === 'insumo' ? 'insumo' : 'medicamento';
 
-            $item = InventarioFarmacia::where('codigo_item', $id)->first();
-            if ($item) {
-                $item->update([
-                    'laboratorio' => $validated['proveedor'],
-                    'fecha_vencimiento' => $validated['vencimiento'],
-                    'tipo' => $validated['categoria'],
-                    'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
-                    'stock_disponible' => $validated['stock'],
-                    'stock_minimo' => $validated['stockMinimo'],
-                    'precio_unitario' => $validated['precio'],
-                    'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0
+                $catalogo->update([
+                    'nombre' => $validated['nombre'],
+                    'codigo_barras' => $validated['codigo_barras'],
+                    'descripcion' => $validated['descripcion'] ?? $catalogo->descripcion,
+                    'tipo' => $tipo,
+                    'categoria' => $validated['categoria'],
+                    'requiere_receta' => $validated['requiere_receta'] ?? false,
                 ]);
-            } else {
-                $farmacia = \App\Models\Farmacia::first();
-                InventarioFarmacia::create([
-                    'farmacia_id' => $farmacia->id,
-                    'tipo_item' => 'medicamento',
-                    'codigo_item' => $id,
-                    'laboratorio' => $validated['proveedor'] ?? null,
-                    'fecha_vencimiento' => $validated['vencimiento'] ?? null,
-                    'tipo' => $validated['categoria'],
-                    'requerimiento' => ($validated['requiere_receta'] ?? false) ? 'Receta' : 'Normal',
-                    'stock_minimo' => $validated['stockMinimo'],
-                    'stock_disponible' => $validated['stock'],
-                    'precio_unitario' => $validated['precio'],
-                    'reposicion' => $validated['stock'] <= $validated['stockMinimo'] ? 1 : 0,
-                    'fecha_ingreso' => now()
-                ]);
-            }
 
-            return response()->json(['success' => true, 'message' => 'Producto actualizado exitosamente', 'producto' => array_merge($medicamento->toArray(), ['id' => $medicamento->codigo])]);
+                $stock = AlmacenStock::where('ubicacion', 'farmacia')
+                    ->whereHas('lote', fn ($q) => $q->where('catalogo_id', $catalogo->id))
+                    ->orderByDesc('cantidad_actual')
+                    ->first();
+
+                if (! $stock) {
+                    $lote = AlmacenLote::create([
+                        'catalogo_id' => $catalogo->id,
+                        'codigo_lote' => $validated['lote'] ?? null,
+                        'laboratorio' => $validated['proveedor'] ?? null,
+                        'fecha_vencimiento' => $validated['vencimiento'] ?? null,
+                        'precio_venta' => $validated['precio'],
+                        'cantidad_inicial' => $validated['stock'],
+                        'cantidad_recibida' => $validated['stock'],
+                    ]);
+
+                    AlmacenStock::create([
+                        'lote_id' => $lote->id,
+                        'ubicacion' => 'farmacia',
+                        'cantidad_actual' => $validated['stock'],
+                        'stock_minimo' => $validated['stockMinimo'],
+                    ]);
+                } else {
+                    $stock->update([
+                        'cantidad_actual' => $validated['stock'],
+                        'stock_minimo' => $validated['stockMinimo'],
+                    ]);
+
+                    $stock->lote->update([
+                        'codigo_lote' => $validated['lote'] ?? $stock->lote->codigo_lote,
+                        'laboratorio' => $validated['proveedor'] ?? $stock->lote->laboratorio,
+                        'fecha_vencimiento' => $validated['vencimiento'] ?? $stock->lote->fecha_vencimiento,
+                        'precio_venta' => $validated['precio'],
+                    ]);
+                }
+            });
+
+            return response()->json(['success' => true, 'message' => 'Producto actualizado exitosamente', 'producto' => [
+                'id' => $catalogo->id,
+                'codigo_barras' => $validated['codigo_barras'],
+            ]]);
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al actualizar el producto: ' . $e->getMessage()], 500);
@@ -173,14 +201,15 @@ class InventarioController extends Controller
     public function destroy($id)
     {
         try {
-            // Lógica para eliminar producto
-            $medicamento = Medicamentos::findOrFail($id);
-            
-            // Eliminar del inventario_farmacia primero
-            InventarioFarmacia::where('codigo_item', $id)->delete();
-            
-            // Eliminar medicamento
-            $medicamento->delete();
+            DB::transaction(function () use ($id) {
+                $catalogo = AlmacenCatalogo::findOrFail($id);
+
+                AlmacenStock::where('ubicacion', 'farmacia')
+                    ->whereHas('lote', fn ($q) => $q->where('catalogo_id', $catalogo->id))
+                    ->delete();
+
+                $catalogo->update(['activo' => false]);
+            });
 
             return response()->json(['success' => true, 'message' => 'Producto eliminado exitosamente']);
         } catch (\Exception $e) {

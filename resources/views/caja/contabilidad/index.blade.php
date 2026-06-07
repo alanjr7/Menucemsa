@@ -55,7 +55,8 @@
             <div class="p-4 border-b border-gray-200 flex items-center gap-4">
                 <h3 class="text-lg font-medium text-gray-900">Ingresos vs Egresos por día</h3>
                 <div class="flex items-center gap-3 text-xs text-gray-500">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-green-500"></span>Ingresos</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-green-500"></span>Ingresos caja</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-blue-500"></span>Ingresos farmacia</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500"></span>Egresos</span>
                 </div>
             </div>
@@ -206,6 +207,55 @@
                         </p>
                     </div>
                 </div>
+
+                <!-- Detalle de ingresos -->
+                <div class="bg-white shadow-sm rounded-lg mt-6">
+                    <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-lg font-medium text-gray-900">Ingresos del período</h3>
+                        <span class="text-sm text-gray-500" x-text="ingresos.length + ' registros'"></span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Origen</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cajero</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <template x-for="i in ingresos" :key="i.id">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-2 whitespace-nowrap text-gray-600" x-text="i.fecha"></td>
+                                        <td class="px-4 py-2 whitespace-nowrap">
+                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                                :class="i.origen === 'Farmacia' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'"
+                                                x-text="i.origen"></span>
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-900" x-text="i.paciente"></td>
+                                        <td class="px-4 py-2">
+                                            <span x-text="i.descripcion"></span>
+                                            <span class="block text-xs text-gray-400" x-text="i.cuenta_id"></span>
+                                            <span class="block text-xs text-gray-400" x-show="i.referencia" x-text="'Ref: ' + i.referencia"></span>
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-gray-600" x-text="i.metodo_pago"></td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-gray-600" x-text="i.usuario"></td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-right font-medium text-green-600">
+                                            Bs. <span x-text="fmt(i.monto)"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="!ingresos.length">
+                                    <td colspan="7" class="px-4 py-8 text-center text-gray-400">Sin ingresos en el período</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -224,6 +274,7 @@ function contabilidad() {
         filtros: { fecha_inicio: iso(primerDia), fecha_fin: iso(hoy) },
         totales: { ingresos: '0', egresos: '0', saldo: '0' },
         ingresosPorMetodo: {},
+        ingresos: [],
         egresosPorCategoria: [],
         egresos: [],
         guardando: false,
@@ -258,6 +309,7 @@ function contabilidad() {
             if (!data.success) { alert(data.message); return; }
             this.totales = data.totales;
             this.ingresosPorMetodo = data.ingresos_por_metodo;
+            this.ingresos = data.ingresos ?? [];
             this.egresosPorCategoria = data.egresos_por_categoria;
             this.egresos = data.egresos;
             this.renderChart(data.serie);
@@ -268,7 +320,8 @@ function contabilidad() {
             if (this.chart) {
                 this.chart.data.labels = serie.labels;
                 this.chart.data.datasets[0].data = serie.ingresos;
-                this.chart.data.datasets[1].data = serie.egresos;
+                this.chart.data.datasets[1].data = serie.farmacia;
+                this.chart.data.datasets[2].data = serie.egresos;
                 this.chart.update();
                 return;
             }
@@ -277,7 +330,8 @@ function contabilidad() {
                 data: {
                     labels: serie.labels,
                     datasets: [
-                        { label: 'Ingresos', data: serie.ingresos, backgroundColor: '#22c55e', borderRadius: 4 },
+                        { label: 'Ingresos caja', data: serie.ingresos, backgroundColor: '#22c55e', borderRadius: 4 },
+                        { label: 'Ingresos farmacia', data: serie.farmacia, backgroundColor: '#3b82f6', borderRadius: 4 },
                         { label: 'Egresos', data: serie.egresos, backgroundColor: '#ef4444', borderRadius: 4 },
                     ],
                 },

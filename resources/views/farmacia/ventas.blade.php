@@ -24,7 +24,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
                 <div>
                     <p class="text-gray-400 text-xs font-medium uppercase mb-1">Ingresos Totales</p>
-                    <p class="text-2xl font-bold text-green-600">${{ number_format($ingresosTotales, 2) }}</p>
+                    <p class="text-2xl font-bold text-green-600">Bs: {{ number_format($ingresosTotales, 2) }}</p>
                 </div>
                 <div class="bg-green-500 p-3 rounded-xl shadow-lg shadow-green-200 text-white">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +36,7 @@
             <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
                 <div>
                     <p class="text-gray-400 text-xs font-medium uppercase mb-1">Promedio por Venta</p>
-                    <p class="text-2xl font-bold text-gray-800">${{ number_format($promedioPorVenta, 2) }}</p>
+                    <p class="text-2xl font-bold text-gray-800">Bs: {{ number_format($promedioPorVenta, 2) }}</p>
                 </div>
                 <div class="bg-purple-500 p-3 rounded-xl shadow-lg shadow-purple-200 text-white">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +85,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="venta.codigo_venta"></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="venta.fecha_venta ? new Date(venta.fecha_venta).toLocaleString('es-PE') : 'N/A'"></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="venta.cliente || 'Cliente General'"></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold" x-text="'$' + parseFloat(venta.total || 0).toFixed(2)"></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold" x-text="'Bs' + parseFloat(venta.total || 0).toFixed(2)"></td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800" x-text="venta.estado"></span>
                                         </td>
@@ -164,7 +164,7 @@ function verDetalle(codigoVenta) {
                                         <p class="font-medium">${item.nombre_producto}</p>
                                         <p class="text-sm text-gray-500">${item.cantidad} x $${parseFloat(item.precio_unitario).toFixed(2)}</p>
                                     </div>
-                                    <p class="font-bold">$${parseFloat(item.subtotal).toFixed(2)}</p>
+                                    <p class="font-bold">Bs: ${parseFloat(item.subtotal).toFixed(2)}</p>
                                 </div>
                             `).join('') : '<p class="text-gray-400">Sin detalles</p>'}
                         </div>
@@ -173,7 +173,7 @@ function verDetalle(codigoVenta) {
                     <div class="border-t pt-4 mt-4">
                         <div class="flex justify-between items-center">
                             <p class="text-lg font-bold text-gray-800">Total:</p>
-                            <p class="text-xl font-bold text-green-600">$${parseFloat(data.total || 0).toFixed(2)}</p>
+                            <p class="text-xl font-bold text-green-600">Bs: ${parseFloat(data.total || 0).toFixed(2)}</p>
                         </div>
                     </div>
                 </div>

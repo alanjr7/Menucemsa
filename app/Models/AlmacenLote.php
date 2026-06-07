@@ -11,8 +11,8 @@ class AlmacenLote extends Model
     protected $table = 'almacen_lotes';
 
     protected $fillable = [
-        'catalogo_id', 'codigo_lote', 'proveedor', 'laboratorio', 'fecha_vencimiento',
-        'precio_compra', 'porcentaje_ganancia', 'precio_venta', 'cantidad_inicial',
+        'catalogo_id', 'codigo_lote', 'numero_lote_fabricante', 'proveedor', 'laboratorio', 'fecha_vencimiento',
+        'precio_compra', 'porcentaje_ganancia', 'precio_venta', 'cantidad_inicial', 'cantidad_recibida',
     ];
 
     protected $casts = [
@@ -21,6 +21,7 @@ class AlmacenLote extends Model
         'porcentaje_ganancia' => 'decimal:2',
         'precio_venta'      => 'decimal:2',
         'cantidad_inicial'  => 'integer',
+        'cantidad_recibida' => 'integer',
     ];
 
     public function catalogo(): BelongsTo

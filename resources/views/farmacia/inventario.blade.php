@@ -8,10 +8,7 @@
                 <h1 class="text-2xl font-bold text-gray-800">Inventario</h1>
                 <p class="text-gray-500 text-sm" x-text="productos.length + ' productos en total'"></p>
             </div>
-            <button @click="openCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-100 transition-all">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Nuevo Producto
-            </button>
+            
         </div>
 
         <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-6 flex gap-4">
@@ -27,6 +24,7 @@
                 class="border-gray-200 rounded-xl text-sm focus:ring-blue-500 focus:border-blue-500 py-2.5 px-4 bg-white">
                 <option value="Todas">Todas</option>
                 <option value="Medicamento">Medicamento</option>
+                <option value="Insumo">Insumo</option>
                 <option value="Receta">Receta</option>
                 <option value="Cuidado Personal">Cuidado Personal</option>
                 <option value="Vitaminas">Vitaminas</option>
@@ -113,6 +111,7 @@
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
                                 <select x-model="editingProduct.categoria" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
                                     <option value="Medicamento">Medicamento</option>
+                                    <option value="Insumo">Insumo</option>
                                     <option value="Receta">Receta</option>
                                     <option value="Cuidado Personal">Cuidado Personal</option>
                                     <option value="Vitaminas">Vitaminas</option>

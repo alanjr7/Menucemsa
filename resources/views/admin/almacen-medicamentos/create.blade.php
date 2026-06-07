@@ -69,6 +69,40 @@
                             @error('unidad_medida')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre genérico</label>
+                                <input type="text" name="nombre_generico" value="{{ old('nombre_generico') }}" maxlength="255"
+                                       placeholder="Ej: Paracetamol"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Concentración</label>
+                                <input type="text" name="concentracion" value="{{ old('concentracion') }}" maxlength="100"
+                                       placeholder="Ej: 500mg"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Forma farmacéutica</label>
+                                <input type="text" name="forma_farmaceutica" value="{{ old('forma_farmaceutica') }}" maxlength="100"
+                                       placeholder="Ej: cápsula, jarabe"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            <div>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="requiere_receta" value="1" class="form-checkbox" {{ old('requiere_receta') ? 'checked' : '' }}>
+                                    <span class="ml-2 text-sm text-gray-700">Requiere receta médica</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                <input type="text" name="categoria" value="{{ old('categoria') }}" maxlength="100"
+                                       placeholder="Ej: Analgésico"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                        </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                         <textarea name="descripcion" rows="2" placeholder="Descripción opcional del medicamento o insumo"
@@ -82,10 +116,18 @@
                 </div>
             </div>
 
-            <!-- Sección 2: Precios -->
+            <!-- Sección 2: (Se integró en Lote) Precios se administran por lote -->
+
+            <!-- Sección 3: Stock Inicial -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <h3 class="text-base font-semibold text-gray-900 mb-5">2. Configuración de Precios</h3>
+                <h3 class="text-base font-semibold text-gray-900 mb-5">3. Stock Inicial (Primer Lote)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Número de lote (fabricante)</label>
+                        <input type="text" name="numero_lote_fabricante" value="{{ old('numero_lote_fabricante') }}" maxlength="150"
+                               placeholder="Código del fabricante"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Precio de compra (Bs) <span class="text-red-500">*</span></label>
                         <input type="number" name="precio_compra" x-model="precioCompra" step="0.01" min="0" required
@@ -104,17 +146,15 @@
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
                         <p class="text-xs text-gray-500 mt-1">Calculado automáticamente</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- Sección 3: Stock Inicial -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <h3 class="text-base font-semibold text-gray-900 mb-5">3. Stock Inicial (Primer Lote)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Código de lote</label>
                         <input type="text" name="codigo_lote" value="{{ old('codigo_lote') }}" maxlength="100"
                                placeholder="Ej: L-2026-001"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad recibida</label>
+                        <input type="number" name="cantidad_recibida" value="{{ old('cantidad_recibida', old('cantidad_inicial',0)) }}" min="0"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>

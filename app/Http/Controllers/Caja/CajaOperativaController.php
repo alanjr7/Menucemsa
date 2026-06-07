@@ -21,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CajaOperativaController extends Controller
 {
@@ -482,6 +483,19 @@ class CajaOperativaController extends Controller
                     'monto' => str_replace(',', '.', (string) $request->monto)
                 ]);
             }
+
+            // Normalizar metodo_pago (aceptar mayúsculas por si viene de otras vistas)
+            if ($request->has('metodo_pago')) {
+                $request->merge(['metodo_pago' => strtolower(trim((string) $request->metodo_pago))]);
+            }
+
+            // Log para depuración: registrar payload entrante mínimo
+            Log::debug('CajaOperativa::procesarCobro payload', [
+                'user_id' => Auth::id(),
+                'cuenta_cobro_id' => $request->cuenta_cobro_id ?? null,
+                'monto' => $request->monto ?? null,
+                'metodo_pago' => $request->metodo_pago ?? null,
+            ]);
 
             $request->validate([
                 'cuenta_cobro_id' => 'required|string|exists:cuenta_cobros,id',

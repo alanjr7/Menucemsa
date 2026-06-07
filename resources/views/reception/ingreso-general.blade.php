@@ -17,7 +17,7 @@
 
     <!-- Formulario General -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <form id="formIngresoGeneral" onsubmit="procesarIngreso(event); return false;" autocomplete="off">
+        <form id="formIngresoGeneral" onsubmit="procesarIngreso(event); return false;" autocomplete="off" novalidate>
             @csrf
 
             <!-- PASO 1: DATOS DEL PACIENTE -->
@@ -32,6 +32,9 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">C.I. Paciente *</label>
                     <div class="flex gap-3">
                         <input type="text" id="paciente_ci" name="ci" placeholder="Número de CI del paciente"
+                               inputmode="numeric" pattern="[0-9]*"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               onkeypress="return /[0-9]/.test(event.key)"
                                class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" autocomplete="off" >
                         <button type="button" onclick="buscarPaciente()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-xl transition-colors text-sm">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1014,7 +1017,8 @@ async function procesarIngreso(event) {
     const tempId = document.getElementById('temp_id')?.value;
 
     if (!usarTempId && !ci) {
-        alert('Ingrese el CI del paciente o use ID temporal');
+        alert('Debes ingresar un CI primero');
+        document.getElementById('paciente_ci').focus();
         return;
     }
 

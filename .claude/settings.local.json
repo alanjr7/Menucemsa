@@ -35,7 +35,11 @@
       "Bash(php -l app/Http/Controllers/EmergencyMedicamentosController.php)",
       "Bash(php -l app/Http/Controllers/InternacionMedicamentosController.php)",
       "Bash(php -l app/Http/Controllers/QuirofanoMedicamentosController.php)",
-      "Bash(./vendor/bin/pint app/Http/Controllers/EmergencyMedicamentosController.php app/Http/Controllers/InternacionMedicamentosController.php app/Http/Controllers/QuirofanoMedicamentosController.php --quiet)"
+      "Bash(./vendor/bin/pint app/Http/Controllers/EmergencyMedicamentosController.php app/Http/Controllers/InternacionMedicamentosController.php app/Http/Controllers/QuirofanoMedicamentosController.php --quiet)",
+      "Bash(grep -n 'function paciente\\\\|paciente_ci\\\\|protected $primaryKey\\\\|protected $keyType\\\\|public $incrementing\\\\|protected $table' app/Models/Cita.php app/Models/Paciente.php)",
+      "Bash(grep -rn 'primaryKey\\\\|incrementing\\\\|protected $keyType' app/Models/Paciente.php)",
+      "Bash(php -l app/Http/Controllers/Caja/ContabilidadController.php)",
+      "Bash(php -l app/Exports/ContabilidadExport.php)"
     ]
   }
 }

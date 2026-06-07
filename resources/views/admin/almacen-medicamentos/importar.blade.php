@@ -35,7 +35,7 @@
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5">
             <h3 class="text-sm font-semibold text-blue-900 mb-2">Cómo funciona</h3>
             <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Descarga la plantilla y completá las columnas <span class="font-mono text-xs bg-white px-1 rounded">nombre</span> y <span class="font-mono text-xs bg-white px-1 rounded">cantidad</span> (las demás son opcionales).</li>
+                <li>Descarga la plantilla. Completá <span class="font-mono text-xs bg-white px-1 rounded">nombre</span> y <span class="font-mono text-xs bg-white px-1 rounded">cantidad</span>. También podés llenar campos de lote como <span class="font-mono text-xs bg-white px-1 rounded">proveedor</span>, <span class="font-mono text-xs bg-white px-1 rounded">codigo_lote</span>, <span class="font-mono text-xs bg-white px-1 rounded">fecha_vencimiento</span> y <span class="font-mono text-xs bg-white px-1 rounded">precio_compra</span>.</li>
                 <li>Si el nombre <strong>coincide</strong> con un ítem existente, se ajusta su stock. Si <strong>no existe</strong>, se crea (si está activada la opción).</li>
                 <li>Subí el archivo, revisá la <strong>previsualización</strong> y confirmá. Ahí elegís si <strong>sumar</strong> o <strong>reemplazar</strong> las cantidades.</li>
             </ol>

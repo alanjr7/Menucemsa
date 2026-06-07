@@ -253,20 +253,22 @@ class EvaluacionPacienteController extends Controller
 
     public function buscarMedicamentos(Request $request): JsonResponse
     {
-        return response()->json($this->buscarStockPorTipo('medicamento', $this->resolveArea($request), $request->input('q', '')));
+        return response()->json($this->buscarStockPorTipo('medicamento', $this->resolveArea($request), $request->input('q') ?? ''));
     }
 
     public function buscarInsumos(Request $request): JsonResponse
     {
-        return response()->json($this->buscarStockPorTipo('insumo', $this->resolveArea($request), $request->input('q', '')));
+        return response()->json($this->buscarStockPorTipo('insumo', $this->resolveArea($request), $request->input('q') ?? ''));
     }
 
     /**
      * Devuelve un resultado por lote con stock en el área (no por catálogo), con su laboratorio y precio,
      * para que se pueda distinguir y cobrar el lote correcto cuando un mismo producto tiene varios laboratorios.
      */
-    private function buscarStockPorTipo(string $tipo, string $area, string $q): array
+    private function buscarStockPorTipo(string $tipo, string $area, ?string $q): array
     {
+        $q = $q ?? '';
+
         return AlmacenStock::where('ubicacion', $area)
             ->where('cantidad_actual', '>', 0)
             ->whereHas('lote.catalogo', fn ($qq) => $qq->where('tipo', $tipo)->where('activo', true)->where('nombre', 'like', "%{$q}%"))

@@ -539,17 +539,67 @@ class CuentaCobroService
     ): void {
         DB::transaction(function () use ($cuentaCobroId, $medicamentos) {
             $cuenta = CuentaCobro::findOrFail($cuentaCobroId);
-
+            // Consumir stock por lote (FIFO). Espera que exista relación lote->stocks
             foreach ($medicamentos as $med) {
-                $cuenta->detalles()->create([
-                    'tipo_item' => 'medicamento',
-                    'descripcion' => $med['descripcion'],
-                    'cantidad' => $med['cantidad'],
-                    'precio_unitario' => $med['precio_unitario'],
-                    'subtotal' => $med['cantidad'] * $med['precio_unitario'],
-                    'origen_type' => \App\Models\AlmacenCatalogo::class,
-                    'origen_id' => $med['medicamento_id'],
-                ]);
+                $cantidadNecesaria = (int) ($med['cantidad'] ?? 0);
+                if ($cantidadNecesaria <= 0) {
+                    continue;
+                }
+
+                // Buscar lotes con stock en central, orden FIFO (por created_at asc)
+                $lotes = \App\Models\AlmacenLote::where('catalogo_id', $med['medicamento_id'])
+                    ->whereHas('stocks', fn($q) => $q->where('ubicacion', 'central')->where('cantidad_actual', '>', 0))
+                    ->with(['stocks' => fn($q) => $q->where('ubicacion', 'central')])
+                    ->orderBy('created_at', 'asc')
+                    ->get();
+
+                foreach ($lotes as $lote) {
+                    if ($cantidadNecesaria <= 0) break;
+
+                    $stockCentral = $lote->stocks->first();
+                    $disponible = $stockCentral?->cantidad_actual ?? 0;
+                    if ($disponible <= 0) {
+                        continue;
+                    }
+
+                    $aConsumir = min($disponible, $cantidadNecesaria);
+
+                    // Calcular precio unitario desde lote (preferir precio_venta si está, sino calcular)
+                    if ($lote->precio_venta && $lote->precio_venta > 0) {
+                        $precioUnitario = (float) $lote->precio_venta;
+                    } elseif ($lote->precio_compra !== null) {
+                        $g = (float) ($lote->porcentaje_ganancia ?? 0);
+                        $precioUnitario = round((float) $lote->precio_compra * (1 + $g / 100), 2);
+                    } else {
+                        // fallback al precio_unitario pasado por quien llamó
+                        $precioUnitario = (float) ($med['precio_unitario'] ?? 0);
+                    }
+
+                    // Decrementar stock central
+                    $stockCentral->decrement('cantidad_actual', $aConsumir);
+
+                    // Crear detalle por lote (trazabilidad) referenciando el lote
+                    $descripcion = $med['descripcion'];
+                    if ($lote->codigo_lote || $lote->numero_lote_fabricante) {
+                        $descripcion .= ' (Lote: ' . ($lote->numero_lote_fabricante ?? $lote->codigo_lote) . ')';
+                    }
+
+                    $cuenta->detalles()->create([
+                        'tipo_item' => 'medicamento',
+                        'descripcion' => $descripcion,
+                        'cantidad' => $aConsumir,
+                        'precio_unitario' => $precioUnitario,
+                        'subtotal' => round($aConsumir * $precioUnitario, 2),
+                        'origen_type' => \App\Models\AlmacenLote::class,
+                        'origen_id' => $lote->id,
+                    ]);
+
+                    $cantidadNecesaria -= $aConsumir;
+                }
+
+                if ($cantidadNecesaria > 0) {
+                    throw new \Exception("Stock insuficiente para el medicamento ID {$med['medicamento_id']}. Faltante: {$cantidadNecesaria}.");
+                }
             }
 
             $cuenta->recalcularTotales();

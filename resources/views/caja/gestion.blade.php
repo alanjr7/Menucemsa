@@ -559,7 +559,17 @@
                     <td class="px-4 py-3 whitespace-nowrap text-center">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${t.estado_color}-100 text-${t.estado_color}-800">${t.estado_label}</span>
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${t.metodos_pago.join(', ')}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        ${(() => {
+                            const badges = t.metodos_pago.map(m =>
+                                `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 capitalize">${m}</span>`
+                            );
+                            if (t.seguro_aplicado) {
+                                badges.push(`<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800" title="Cubierto por seguro: Bs ${parseFloat(t.seguro_monto_cobertura).toFixed(2)}"> Seguro: ${t.seguro_nombre}</span>`);
+                            }
+                            return badges.length ? `<div class="flex flex-wrap gap-1">${badges.join('')}</div>` : '<span class="text-gray-400">-</span>';
+                        })()}
+                    </td>
                     <td class="px-4 py-3 whitespace-nowrap text-center">
                         <button onclick="verDetalleTransaccion('${t.id}')" class="text-blue-600 hover:text-blue-900">
                             Ver

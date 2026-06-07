@@ -55,6 +55,7 @@ class AlmacenStock extends Model
     {
         return match ($this->ubicacion) {
             'central'         => 'Central',
+            'farmacia'        => 'Farmacia',
             'emergencia'      => 'Emergencia',
             'cirugia'         => 'Cirugía',
             'hospitalizacion' => 'Hospitalización',

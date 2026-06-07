@@ -4,12 +4,8 @@
     <div class="h-16 shrink-0 flex items-center bg-slate-100 border-b border-slate-200 transition-all duration-300"
         :class="sidebarOpen ? 'px-6 justify-start' : 'px-0 justify-center'">
         <div class="flex items-center gap-3">
-            <div
-                class="p-2 bg-gradient-to-br from-[#3B82F6] to-[#2563EB] rounded-xl shadow-lg shadow-blue-200 shrink-0">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                        d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+            <div class="rounded-xl shrink-0 overflow-hidden">
+                <img src="{{ asset('images/logocelular.png') }}" alt="HIS / CEMSA" class="w-10 h-10 object-contain">
             </div>
             <div x-show="sidebarOpen" x-transition.opacity.duration.200ms class="whitespace-nowrap">
                 <h1 class="font-bold text-lg leading-tight uppercase tracking-wide text-slate-800">HIS / CEMSA</h1>

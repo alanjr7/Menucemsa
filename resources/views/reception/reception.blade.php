@@ -515,10 +515,11 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('stat-citas-programadas').textContent = data.stats.citas_programadas;
-                    document.getElementById('stat-en-atencion').textContent = data.stats.en_atencion;
-                    document.getElementById('stat-en-espera').textContent = data.stats.en_espera;
-                    document.getElementById('stat-admisiones').textContent = data.stats.admisiones;
+                    const setStat = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+                    setStat('stat-citas-programadas', data.stats.citas_programadas);
+                    setStat('stat-en-atencion', data.stats.en_atencion);
+                    setStat('stat-en-espera', data.stats.en_espera);
+                    setStat('stat-admisiones', data.stats.admisiones);
                 }
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
@@ -659,7 +660,7 @@
                             <div class="flex flex-wrap items-center text-sm text-gray-600 mb-3 gap-y-1 gap-x-4">
                                 <div class="flex items-center gap-1.5">
                                     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                    <span class="font-medium">Dr. ${cita.medico?.usuario?.name || cita.medico?.user?.name || 'N/A'}</span>
+                                    <span class="font-medium">${cita.medico?.usuario?.name || cita.medico?.user?.name || 'N/A'}</span>
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
