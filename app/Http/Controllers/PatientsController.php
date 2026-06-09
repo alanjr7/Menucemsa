@@ -352,15 +352,23 @@ class PatientsController extends Controller
      */
     public function eliminarItemCuenta($cuentaId, $detalleId)
     {
-        $detalle = \App\Models\CuentaCobroDetalle::findOrFail($detalleId);
-        $cuenta = $detalle->cuenta;
-        
+        $detalle = \App\Models\CuentaCobroDetalle::find($detalleId);
+
+        if (!$detalle) {
+            return redirect()->back()
+                ->with('warning', 'El item ya no existe o fue eliminado previamente.');
+        }
+
+        $cuenta = $detalle->cuentaCobro;
+
         // Eliminar el detalle
         $detalle->delete();
-        
+
         // Recalcular total de la cuenta
-        $nuevoTotal = $cuenta->detalles()->sum('subtotal');
-        $cuenta->update(['total' => $nuevoTotal]);
+        if ($cuenta) {
+            $nuevoTotal = $cuenta->detalles()->sum('subtotal');
+            $cuenta->update(['total' => $nuevoTotal]);
+        }
         
         return redirect()->back()
             ->with('success', 'Item eliminado correctamente.');

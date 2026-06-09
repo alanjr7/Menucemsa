@@ -48,8 +48,8 @@ return new class extends Migration
             ],
             [
                 'nombre' => 'mayor',
-                'descripcion' => 'Cirugía mayor - 80 minutos',
-                'duracion_minutos' => 80,
+                'descripcion' => 'Cirugía mayor - 120 minutos',
+                'duracion_minutos' => 120,
                 'costo_base' => 1200.00,
                 'costo_minuto_extra' => 20.00,
                 'activo' => true,

@@ -200,7 +200,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         });
 
         // Ruta para listado de pacientes en recepción (área clínica excepto caja)
-        Route::middleware(['role:admin|reception|dirmedico|emergencia|uti|internacion|cirujano|doctor|enfermera-emergencia|enfermera-internacion|administrador|farmacia|gerente'])->group(function () {
+        Route::middleware(['role:admin|reception|dirmedico|emergencia|uti|internacion|cirujano|doctor|enfermera-emergencia|enfermera-internacion|administrador|farmacia|gerente|neonato'])->group(function () {
             Route::get('/reception/pacientes', [\App\Http\Controllers\ReceptionController::class, 'pacientesIndex'])->name('reception.pacientes.index');
 
             Route::get('/reception/confirmacion-registro/{id}', [ReceptionController::class, 'confirmacionRegistro'])->name('reception.confirmacion-registro');
@@ -315,10 +315,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     });
 
 
-    // Sistema antiguo de caja ELIMINADO - usar /caja-operativa o /caja-gestion
-    // Route::middleware(['auth', 'role:admin|caja'])->prefix('caja')->name('caja.')->group(function () {
-    //     Route::get('/', [\App\Http\Controllers\CajaController::class, 'index'])->name('dashboard');
-    // });
+   
 
     // Rutas médicas (admin, dirmedico, doctor y administrador) - SIN duplicar rutas de quirofano
     Route::middleware(['role:admin|dirmedico|doctor|administrador'])->group(function () {
@@ -333,20 +330,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/medico/dashboard', [\App\Http\Controllers\Medical\DoctorDashboardController::class, 'index'])->name('medico.dashboard');
         Route::post('/medico/atender-paciente', [\App\Http\Controllers\Medical\DoctorDashboardController::class, 'atenderPaciente'])->name('medico.atender-paciente');
 
-        // Test route
-        // Route::get('/test-doctor', function() {
-        //     return 'DoctorController works!';
-        // });
-
-        // Test DoctorController directly
-        // Route::get('/test-doctor-class', function() {
-        //     try {
-        //         $controller = new \App\Http\Controllers\DoctorController();
-        //         return 'DoctorController class loaded successfully';
-        //     } catch (\Exception $e) {
-        //         return 'Error loading DoctorController: ' . $e->getMessage();
-        //     }
-        // });
+    
     });
 
     // Rutas exclusivas para doctores (vista personal de consulta externa)
@@ -372,11 +356,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
     // Rutas para médicos (dirmedico)
     Route::middleware(['auth', 'role:dirmedico'])->prefix('doctor')->name('doctor.')->group(function () {
-        // Route::get('/', [\App\Http\Controllers\DoctorController::class, 'index'])->name('dashboard');
-        // Route::get('/consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'verConsulta'])->name('ver-consulta');
-        // Route::post('/iniciar-consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'iniciarConsulta'])->name('iniciar-consulta');
-        // Route::post('/completar-consulta/{consultaId}', [\App\Http\Controllers\DoctorController::class, 'completarConsulta'])->name('completar-consulta');
-    });
+  });
 
     // Rutas de emergencia (admin, dirmedico y emergencia)
     Route::middleware(['role:admin|dirmedico|emergencia'])->group(function () {
@@ -841,7 +821,7 @@ Route::middleware(['auth', 'role:uti|admin|dirmedico|administrador'])->get('/uti
 Route::middleware(['auth', 'role:uti|admin|administrador'])->get('/uti/procedimientos', [\App\Http\Controllers\UtiController::class, 'procedimientos'])->name('uti.procedimientos');
 
 // Rutas de evaluación clínica de pacientes
-Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|admin|administrador|dirmedico|reception'])->group(function () {
+Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|admin|administrador|dirmedico|reception|neonato'])->group(function () {
     Route::get('/evaluacion/{ci}/historial', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'historial'])->name('evaluacion.historial');
     Route::get('/evaluacion/{pacienteId}/print/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'print'])->name('evaluacion.print');
     Route::delete('/evaluacion/{pacienteId}/historial/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'destroy'])->name('evaluacion.destroy')->middleware('role:admin|administrador');

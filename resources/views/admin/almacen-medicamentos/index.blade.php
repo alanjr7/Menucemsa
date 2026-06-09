@@ -110,6 +110,7 @@
                     <option value="hospitalizacion" {{ request('area') == 'hospitalizacion' ? 'selected' : '' }}>Hospitalización</option>
                     <option value="uti" {{ request('area') == 'uti' ? 'selected' : '' }}>UTI</option>
                     <option value="usi" {{ request('area') == 'usi' ? 'selected' : '' }}>USI</option>
+                    <option value="farmacia" {{ request('area') == 'farmacia' ? 'selected' : '' }}>Farmacia</option>
                     <option value="neonato" {{ request('area') == 'neonato' ? 'selected' : '' }}>Neonato</option>
                     <option value="internacion" {{ request('area') == 'internacion' ? 'selected' : '' }}>Internación</option>
                     <option value="todos" {{ request('area') == 'todos' ? 'selected' : '' }}>Todos las áreas</option>

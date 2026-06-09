@@ -1382,7 +1382,7 @@ class QuirofanoController extends Controller
     public function getListaPacientes(): JsonResponse
     {
         try {
-            $pacientes = Paciente::select('ci', 'nombre', 'telefono')
+            $pacientes = Paciente::select('id', 'ci', 'temp_code', 'nombre', 'telefono')
                 ->orderBy('nombre')
                 ->get();
 

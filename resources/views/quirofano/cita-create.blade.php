@@ -384,9 +384,10 @@ function inicializarBuscadores() {
             return;
         }
         
-        const resultados = pacientesData.filter(p => 
-            p.nombre.toLowerCase().includes(query) || 
-            p.ci.toString().includes(query)
+        const resultados = pacientesData.filter(p =>
+            (p.nombre ?? '').toLowerCase().includes(query) ||
+            (p.ci != null && p.ci.toString().includes(query)) ||
+            (p.temp_code ?? '').toLowerCase().includes(query)
         ).slice(0, 10);
         
         mostrarResultadosPacientes(resultados);
@@ -433,8 +434,8 @@ function mostrarResultadosPacientes(resultados) {
     }
     
     container.innerHTML = resultados.map(p => `
-        <div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarPaciente(${p.id}, ${p.ci ?? ''}, '${p.nombre.replace(/'/g, "\\'")}')">
-            <div class="font-medium text-gray-900">${p.nombre}</div>
+        <div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarPaciente(${p.id}, '${p.ci ?? p.temp_code ?? ''}', '${(p.nombre ?? '').replace(/'/g, "\\'")}')">
+            <div class="font-medium text-gray-900">${p.nombre ?? 'Sin nombre'}</div>
             <div class="text-xs text-gray-500">CI: ${p.ci ?? p.temp_code ?? 'N/A'}${p.telefono ? ' - Tel: ' + p.telefono : ''}</div>
         </div>
     `).join('');

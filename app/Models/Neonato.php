@@ -110,6 +110,15 @@ class Neonato extends Model
         return (string) $this->id;
     }
 
+    public function getMadreCiAttribute(): ?string
+    {
+        $madre = $this->madre;
+        if ($madre) {
+            return (string) ($madre->ci ?? $madre->temp_code ?? $madre->id);
+        }
+        return null;
+    }
+
     public function getNombreDisplayAttribute(): string
     {
         return $this->nombre ?: 'Recién Nacido';

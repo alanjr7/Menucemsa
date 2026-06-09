@@ -1124,6 +1124,20 @@ class AlmacenMedicamentosController extends Controller
                         }
                     }
 
+                    $cacheNombre[$nkey] = $cat;
+
+                    $codigo = $item['codigo_lote'] ?? null;
+                    $prov   = $item['proveedor'] ?? null;
+                    $lab    = $item['laboratorio'] ?? null;
+
+                    $lote = AlmacenLote::where('catalogo_id', $cat->id)
+                        ->when($codigo, fn ($q) => $q->where('codigo_lote', $codigo))
+                        ->when(! $codigo && ($prov || $lab), fn ($q) => $q
+                            ->when($prov, fn ($q2) => $q2->where('proveedor', $prov))
+                            ->when($lab,  fn ($q2) => $q2->where('laboratorio', $lab))
+                        )
+                        ->first();
+
                     if (! $lote) {
                         $lote = AlmacenLote::create([
                             'catalogo_id' => $cat->id,
