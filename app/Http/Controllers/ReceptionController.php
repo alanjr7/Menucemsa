@@ -143,7 +143,10 @@ class ReceptionController extends Controller
             ]);
 
             // Crear nuevo paciente con todos los campos requeridos
-            $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
+            $nombreCompleto = mb_convert_case(
+                preg_replace('/\s+/', ' ', trim($request->nombres . ' ' . $request->apellidos)),
+                MB_CASE_UPPER, 'UTF-8'
+            );
             $paciente = Paciente::create([
                 'ci' => (int) $ci,
                 'is_temp' => false,
@@ -1365,7 +1368,10 @@ class ReceptionController extends Controller
             $registroCodigo = $this->obtenerOCrearRegistro();
             $triageId = $this->obenerOCrearTriage();
 
-            $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
+            $nombreCompleto = mb_convert_case(
+                preg_replace('/\s+/', ' ', trim($request->nombres . ' ' . $request->apellidos)),
+                MB_CASE_UPPER, 'UTF-8'
+            );
 
             $paciente = Paciente::create([
                 'ci' => $request->ci,

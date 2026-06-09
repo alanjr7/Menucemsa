@@ -35,7 +35,7 @@
                 <div class="flex items-start justify-between">
                     <div>
                         <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ventas Hoy</p>
-                        <p class="text-2xl sm:text-3xl font-bold text-slate-800 mt-2">${{ number_format($ingresosHoy, 2) }}</p>
+                        <p class="text-2xl sm:text-3xl font-bold text-slate-800 mt-2">Bs. {{ number_format($ingresosHoy, 2) }}</p>
                         <p class="text-sm text-slate-500 mt-1">{{ $ventasHoy }} transacciones</p>
                     </div>
                     <div class="p-3 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors">
@@ -253,7 +253,7 @@
                                         <p class="text-sm text-slate-600">{{ $venta->fecha_venta ? $venta->fecha_venta->format('d/m/Y H:i') : 'N/A' }}</p>
                                     </td>
                                     <td class="py-3 text-right">
-                                        <p class="text-sm font-bold text-emerald-600">${{ number_format($venta->total, 2) }}</p>
+                                        <p class="text-sm font-bold text-emerald-600">Bs. {{ number_format($venta->total, 2) }}</p>
                                     </td>
                                     <td class="py-3 text-center">
                                         <span class="inline-flex items-center justify-center w-7 h-7 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
