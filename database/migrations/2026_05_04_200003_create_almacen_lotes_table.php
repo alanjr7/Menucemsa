@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('catalogo_id')->constrained('almacen_catalogo')->restrictOnDelete();
             $table->string('codigo_lote', 100)->nullable();
+            $table->string('numero_lote_fabricante')->nullable();
             $table->string('proveedor', 150)->nullable();
             $table->string('laboratorio', 150)->nullable();
             $table->date('fecha_vencimiento')->nullable();
@@ -19,6 +20,7 @@ return new class extends Migration
             $table->decimal('porcentaje_ganancia', 5, 2)->nullable();
             $table->decimal('precio_venta', 10, 2)->nullable();
             $table->integer('cantidad_inicial')->default(0);
+            $table->integer('cantidad_recibida')->nullable();
             $table->timestamps();
 
             $table->index('catalogo_id');

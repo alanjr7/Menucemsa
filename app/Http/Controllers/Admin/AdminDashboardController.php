@@ -14,8 +14,8 @@ use App\Models\CuentaCobro;
 use App\Models\Emergency;
 use App\Models\Hospitalizacion;
 use App\Models\AlmacenLote;
+use App\Models\AlmacenStock;
 use App\Models\ActivityLog;
-use App\Models\InventarioFarmacia;
 
 class AdminDashboardController extends Controller
 {
@@ -138,12 +138,10 @@ class AdminDashboardController extends Controller
     {
         $alertas = [];
 
-        // Medicamentos con stock bajo (menor al mínimo)
-        $stockBajo = InventarioFarmacia::whereColumn('stock_disponible', '<', 'stock_minimo')
-            ->orWhere(function ($query) {
-                $query->where('stock_disponible', '<', 10)
-                    ->whereNull('stock_minimo');
-            })
+        // Medicamentos con stock bajo en el área farmacia (en o bajo el mínimo)
+        $stockBajo = AlmacenStock::where('ubicacion', 'farmacia')
+            ->where('stock_minimo', '>', 0)
+            ->whereColumn('cantidad_actual', '<=', 'stock_minimo')
             ->count();
 
         if ($stockBajo > 0) {

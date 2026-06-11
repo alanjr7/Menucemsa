@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Farmacia;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\AlmacenStock;
-use App\Models\Medicamentos;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
 use App\Models\Cliente;

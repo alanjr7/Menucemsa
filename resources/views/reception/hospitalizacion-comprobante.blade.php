@@ -212,7 +212,7 @@
             
             <div class="info-area">
                 <div class="doc-number text-right">
-                    <strong>Nº: <span style="margin-left: 20pt;">{{ $hospitalizacion->paciente->registro_codigo ?? $hospitalizacion->id }}</span></strong>
+                    <strong>Nº: <span style="margin-left: 20pt;">{{ $hospitalizacion->id }}</span></strong>
                 </div>
                 <div class="notice-box">
                     <p><strong>ESTIMADO PACIENTE:</strong></p>
@@ -258,15 +258,19 @@
             </div>
 
             <div class="f-row">
-                <div class="f-field" style="flex: 1.5;">
+                <div class="f-field" style="flex: 1.3;">
+                    <span class="f-label">H.C. Nº</span>
+                    <span class="f-value font-bold">{{ $hospitalizacion->paciente->registro_codigo ?? '—' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.3;">
                     <span class="f-label">C.I. Nº</span>
                     <span class="f-value font-bold">{{ $hospitalizacion->paciente->ci ?? '' }}</span>
                 </div>
-                <div class="f-field" style="flex: 1;">
+                <div class="f-field" style="flex: 0.8;">
                     <span class="f-label">Sexo</span>
                     <span class="f-value font-bold">{{ ($hospitalizacion->paciente->sexo ?? '') === 'M' ? 'MASCULINO' : (($hospitalizacion->paciente->sexo ?? '') === 'F' ? 'FEMENINO' : '') }}</span>
                 </div>
-                <div class="f-field" style="flex: 1.5;">
+                <div class="f-field" style="flex: 1.4;">
                     <span class="f-label">Hora de Ingreso</span>
                     <span class="f-value font-bold">{{ $hospitalizacion->fecha_ingreso ? $hospitalizacion->fecha_ingreso->format('H:i') : '' }}</span>
                 </div>

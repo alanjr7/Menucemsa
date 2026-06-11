@@ -34,7 +34,9 @@ class IngresoGeneralController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        return view('reception.ingreso-general', compact('seguros', 'especialidades'));
+        $tempCodePreview = Paciente::generarTempCode();
+
+        return view('reception.ingreso-general', compact('seguros', 'especialidades', 'tempCodePreview'));
     }
 
     public function buscarEspecialidades(Request $request)
@@ -372,8 +374,7 @@ class IngresoGeneralController extends Controller
         $medicoId           = $request->medico_ci ? (int)$request->medico_ci : null;
         $especialidadCodigo = $request->especialidad_codigo ?: $this->obtenerEspecialidadPorDefecto();
 
-        $consulta = Consulta::create([
-            'codigo'              => 'CONS-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
+        $consulta = Consulta::crearConCodigo([
             'fecha'               => now()->toDateString(),
             'hora'                => now()->toTimeString(),
             'motivo'              => $request->motivo ?? 'Consulta general',
@@ -414,31 +415,24 @@ class IngresoGeneralController extends Controller
 
     private function procesarEmergenciaTemporal(Request $request): array
     {
-        $prefix   = 'TEMP-' . now()->format('Ymd');
-        $last     = Paciente::where('temp_code', 'like', $prefix . '-%')->orderBy('temp_code', 'desc')->value('temp_code');
-        $seq      = $last ? ((int) substr($last, -3)) + 1 : 1;
-        $tempCode = $prefix . '-' . str_pad($seq, 3, '0', STR_PAD_LEFT);
-
-        $paciente = Paciente::create([
-            'nombre'    => trim($request->nombres . ' ' . $request->apellidos),
-            'sexo'      => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',
-            'temp_code' => $tempCode,
-            'is_temp'   => true,
+        $paciente = Paciente::crearTemporal([
+            'nombre' => trim($request->nombres . ' ' . $request->apellidos),
+            'sexo'   => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',
         ]);
+        $tempCode = $paciente->temp_code;
 
-        $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-        $triage        = $this->crearTriage('rojo', 'Emergencia - Ingreso General (Temp)', 'alta');
+        $triage = $this->crearTriage('rojo', 'Emergencia - Ingreso General (Temp)', 'alta');
 
-        $emergencia = Emergency::create([
+        $emergencia = Emergency::crearConCodigo([
             'paciente_id'        => $paciente->id,
             'user_id'            => Auth::id(),
-            'code'               => $nroEmergencia,
             'status'             => 'recibido',
             'tipo_ingreso'       => 'general',
             'symptoms'           => $request->input('descripcion') ?? 'Ingreso por emergencia',
             'initial_assessment' => $request->input('tipo_emergencia') ?? 'Emergencia general',
             'ubicacion_actual'   => 'emergencia',
         ]);
+        $nroEmergencia = $emergencia->code;
 
         CuentaCobroService::crearCuentaEmergencia(
             $paciente->id,
@@ -466,13 +460,11 @@ class IngresoGeneralController extends Controller
         $triage = $this->crearTriage('rojo', 'Emergencia - Ingreso General', 'alta');
         $paciente->update(['triage_id' => $triage->id]);
 
-        $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-        $episodio      = EpisodioService::abrirEpisodio($paciente->id, 'emergencia', Auth::id());
+        $episodio = EpisodioService::abrirEpisodio($paciente->id, 'emergencia', Auth::id());
 
-        $emergencia = Emergency::create([
+        $emergencia = Emergency::crearConCodigo([
             'paciente_id'        => $paciente->id,
             'user_id'            => Auth::id(),
-            'code'               => $nroEmergencia,
             'status'             => 'recibido',
             'tipo_ingreso'       => 'general',
             'symptoms'           => $request->descripcion ?? 'Ingreso por emergencia',
@@ -480,6 +472,7 @@ class IngresoGeneralController extends Controller
             'ubicacion_actual'   => 'emergencia',
             'episodio_id'        => $episodio->id,
         ]);
+        $nroEmergencia = $emergencia->code;
 
         $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
             $paciente->id,
@@ -526,12 +519,10 @@ class IngresoGeneralController extends Controller
         }
         $paciente->update($updateData);
 
-        $idHospitalizacion = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
         $medicoId          = $request->medico_ci ? (int)$request->medico_ci : null;
         $episodio          = EpisodioService::abrirEpisodio($paciente->id, 'internacion', Auth::id());
 
-        $hospitalizacion = Hospitalizacion::create([
-            'id'                => $idHospitalizacion,
+        $hospitalizacion = Hospitalizacion::crearConCodigo([
             'paciente_id'       => $paciente->id,
             'motivo'            => $request->motivo ?? 'Por determinar',
             'diagnostico'       => $request->diagnostico ?? 'Por determinar',
@@ -565,8 +556,8 @@ class IngresoGeneralController extends Controller
             'success'           => true,
             'message'           => 'Hospitalización registrada exitosamente.',
             'tipo'              => 'internacion',
-            'hospitalizacion_id'=> $idHospitalizacion,
-            'redirect_url'      => route('reception.hospitalizacion.comprobante', ['id' => $idHospitalizacion]),
+            'hospitalizacion_id'=> $hospitalizacion->id,
+            'redirect_url'      => route('reception.hospitalizacion.comprobante', ['id' => $hospitalizacion->id]),
         ];
     }
 
@@ -715,8 +706,7 @@ class IngresoGeneralController extends Controller
             Caja::$patientContext = null;
         }
 
-        $consulta = Consulta::create([
-            'codigo'              => 'ENF-' . now()->format('YmdHis') . '-' . random_int(1000, 9999),
+        $consulta = Consulta::crearConCodigo([
             'fecha'               => now()->toDateString(),
             'hora'                => now()->toTimeString(),
             'motivo'              => $request->motivo ?? 'Atención de enfermería',
@@ -728,7 +718,7 @@ class IngresoGeneralController extends Controller
             'caja_id'             => $caja->id,
             'estado'              => 'pendiente',
             'tipo'                => 'enfermeria',
-        ]);
+        ], 'ENF');
 
         $seguroId = $request->filled('seguro_id') ? (int) $request->seguro_id : null;
         $cuenta   = CuentaCobroService::obtenerOCrearCuentaMaestra($paciente->id, 'enfermeria', $seguroId);

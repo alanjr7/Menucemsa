@@ -258,8 +258,7 @@ class CajaController extends Controller
                 }
             } else {
                 // Crear consulta médica asociada
-                $consulta = Consulta::create([
-                    'codigo' => 'CONS-' . date('YmdHis') . '-' . rand(100, 999),
+                $consulta = Consulta::crearConCodigo([
                     'fecha' => now()->toDateString(),
                     'hora' => now()->toTimeString(),
                     'motivo' => $request->concepto,

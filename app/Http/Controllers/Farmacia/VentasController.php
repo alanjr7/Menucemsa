@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
-use App\Models\InventarioFarmacia;
+use App\Models\AlmacenStock;
+use App\Models\AlmacenCatalogo;
 use App\Models\Cliente;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -69,20 +70,23 @@ class VentasController extends Controller
             $venta = VentaFarmacia::where('codigo_venta', $codigoVenta)->firstOrFail();
             $detalles = DetalleVentaFarmacia::where('codigo_venta', $codigoVenta)->get();
 
-            // Restaurar stock antes de eliminar
+            // Restaurar stock en el área farmacia (mismo origen que descuenta el POS)
             foreach ($detalles as $detalle) {
-                $inventario = InventarioFarmacia::where('codigo_item', $detalle->codigo_producto)
-                    ->where('tipo_item', 'medicamento')
+                $catalogo = AlmacenCatalogo::where('codigo_barras', $detalle->codigo_producto)
+                    ->orWhere('id', $detalle->codigo_producto)
                     ->first();
 
-                if ($inventario) {
-                    $nuevoStock = $inventario->stock_disponible + $detalle->cantidad;
-                    $inventario->update([
-                        'stock_disponible' => $nuevoStock,
-                        'reposicion' => $nuevoStock <= $inventario->stock_minimo ? 1 : 0
-                    ]);
+                $stock = $catalogo
+                    ? AlmacenStock::where('ubicacion', 'farmacia')
+                        ->whereHas('lote', fn ($q) => $q->where('catalogo_id', $catalogo->id))
+                        ->orderByDesc('id')
+                        ->first()
+                    : null;
+
+                if ($stock) {
+                    $stock->increment('cantidad_actual', $detalle->cantidad);
                 } else {
-                    \Log::warning("Anulación de venta {$codigoVenta}: no se encontró inventario para producto {$detalle->codigo_producto}. Stock no restaurado.");
+                    \Log::warning("Anulación de venta {$codigoVenta}: no se encontró stock en farmacia para producto {$detalle->codigo_producto}. Stock no restaurado.");
                 }
             }
 

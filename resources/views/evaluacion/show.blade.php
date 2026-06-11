@@ -23,7 +23,9 @@
         </div>
     </div>
 
-    <form @submit.prevent="guardar" class="max-w-4xl mx-auto px-8 py-8 space-y-6">
+    <form @submit.prevent="guardar"
+          @keydown.enter="$event.target.tagName !== 'TEXTAREA' && $event.preventDefault()"
+          class="max-w-4xl mx-auto px-8 py-8 space-y-6">
         @csrf
 
         {{-- Signos Vitales --}}

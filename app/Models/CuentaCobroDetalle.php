@@ -25,12 +25,16 @@ class CuentaCobroDetalle extends Model
         'observaciones',
         'area_origen',
         'user_id',
+        'deshabilitado_en',
+        'deshabilitado_por',
+        'motivo_deshabilitacion',
     ];
 
     protected $casts = [
         'cantidad' => 'decimal:2',
         'precio_unitario' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'deshabilitado_en' => 'datetime',
     ];
 
     // Relaciones
@@ -42,6 +46,11 @@ class CuentaCobroDetalle extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function deshabilitadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deshabilitado_por');
     }
 
     public function tarifa(): BelongsTo
@@ -70,6 +79,22 @@ class CuentaCobroDetalle extends Model
                 $detalle->subtotal = $detalle->cantidad * $detalle->precio_unitario;
             }
         });
+    }
+
+    // Estado de habilitación
+    public function estaDeshabilitado(): bool
+    {
+        return $this->deshabilitado_en !== null;
+    }
+
+    public function scopeActivos($query)
+    {
+        return $query->whereNull('deshabilitado_en');
+    }
+
+    public function scopeDeshabilitados($query)
+    {
+        return $query->whereNotNull('deshabilitado_en');
     }
 
     // Scopes

@@ -20,16 +20,16 @@ class DatabaseSeeder extends Seeder
             SeguroSeeder::class,
             EspecialidadMedicoSeeder::class,
             MenuSeeder::class,
-            AlmacenInventarioSeeder::class,
+            //AlmacenInventarioSeeder::class,
             IpAccessSeeder::class,
             //   MedicamentosOncologicosAntiinfecciososSeeder::class,
             MedicamentosGeneralesSeeder::class,
             CamillaSeeder::class,
             HabitacionSeeder::class,
-            QuirofanoSeeder::class,
+            //QuirofanoSeeder::class,
             // PacienteSeeder::class,
             // CuentaCobroSeeder::class,
-            ProcedimientosClinicosSeeder::class,
+            //ProcedimientosClinicosSeeder::class,
         ]);
     }
 }

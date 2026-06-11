@@ -323,7 +323,7 @@
                         @foreach($alertasStock as $item)
                         <tr class="border-t border-orange-50 hover:bg-orange-50/50">
                             <td class="px-4 py-2 font-medium text-slate-700">
-                                {{ $item->medicamento?->nombre ?? $item->codigo_item }}
+                                {{ $item->nombre }}
                             </td>
                             <td class="px-4 py-2 text-right font-bold text-red-600">{{ $item->stock_disponible }}</td>
                             <td class="px-4 py-2 text-right text-slate-500">{{ $item->stock_minimo }}</td>
@@ -359,7 +359,7 @@
                         @php $dias = \Carbon\Carbon::today()->diffInDays($item->fecha_vencimiento, false); @endphp
                         <tr class="border-t border-red-50 hover:bg-red-50/50">
                             <td class="px-4 py-2 font-medium text-slate-700">
-                                {{ $item->medicamento?->nombre ?? $item->codigo_item }}
+                                {{ $item->nombre }}
                             </td>
                             <td class="px-4 py-2 text-slate-500 text-xs">{{ $item->lote ?? '—' }}</td>
                             <td class="px-4 py-2 text-right text-slate-600">{{ $item->stock_disponible }}</td>

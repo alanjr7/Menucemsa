@@ -37,147 +37,153 @@ class QuirofanoController extends Controller
 
     public function index(Request $request): View
     {
-        \Log::info('Index llamado', [
-            'all_params' => $request->all(),
-            'fecha_param' => $request->input('fecha'),
-            'url' => $request->fullUrl(),
+        // Mes a mostrar: ?mes=YYYY-MM (cualquier día del mes sirve), por defecto el mes actual
+        $fechaBase = $request->filled('mes')
+            ? Carbon::parse($request->input('mes').'-01')
+            : now()->startOfMonth();
+
+        $calendario = $this->construirCalendarioMensual($fechaBase);
+        $emergenciasEnQuirofano = $this->emergenciasEnQuirofano();
+        $stats = $this->statsQuirofano($calendario['citasMes'], $emergenciasEnQuirofano);
+
+        return view('quirofano.index', [
+            'semanas' => $calendario['semanas'],
+            'citasPorDia' => $calendario['citasPorDia'],
+            'mesLabel' => $calendario['mesLabel'],
+            'mesActual' => $calendario['mesActual'],
+            'mesAnterior' => $calendario['mesAnterior'],
+            'mesSiguiente' => $calendario['mesSiguiente'],
+            'stats' => $stats,
+            'emergenciasEnQuirofano' => $emergenciasEnQuirofano,
         ]);
-
-        $quirofanos = Quirofano::all();
-
-        // Obtener fecha seleccionada o usar hoy
-        $fechaSeleccionada = $request->filled('fecha')
-            ? Carbon::parse($request->input('fecha'))
-            : now();
-
-        // Obtener la fecha y el rango de la semana
-        $startOfWeek = $fechaSeleccionada->copy()->startOfWeek()->startOfDay();
-        $endOfWeek = $fechaSeleccionada->copy()->endOfWeek()->endOfDay();
-
-        \Log::info('Date range', [
-            'start' => $startOfWeek->format('Y-m-d H:i:s'),
-            'end' => $endOfWeek->format('Y-m-d H:i:s'),
-            'today' => now()->format('Y-m-d H:i:s'),
-            'fecha_seleccionada' => $fechaSeleccionada->format('Y-m-d'),
-            'used_request_date' => $request->filled('fecha'),
-        ]);
-
-        // Obtener todas las citas de la semana
-        $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
-            ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
-            ->orderBy('fecha')
-            ->orderBy('hora_inicio_estimada')
-            ->get();
-
-        // Obtener emergencias que están actualmente en quirófano
-        $emergenciasEnQuirofano = Emergency::with(['paciente'])
-            ->where('ubicacion_actual', 'cirugia')
-            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($emg) {
-                // Determinar origen basado en flujo_historial
-                $origen = $emg->tipo_ingreso_label;
-                if (! empty($emg->flujo_historial) && is_array($emg->flujo_historial) && count($emg->flujo_historial) > 0) {
-                    $primerMovimiento = $emg->flujo_historial[0];
-                    $desde = $primerMovimiento['desde'] ?? '';
-                    $origen = match ($desde) {
-                        'internacion' => 'Derivado desde Internación',
-                        'recepcion' => 'Ingreso desde Recepción',
-                        'emergencia' => 'Derivado desde Emergencia',
-                        'uti' => 'Derivado desde UTI',
-                        default => $emg->tipo_ingreso_label,
-                    };
-                }
-
-                return [
-                    'id' => $emg->id,
-                    'code' => $emg->code,
-                    'nro_cirugia' => $emg->nro_cirugia,
-                    'paciente_nombre' => $emg->paciente?->is_temp ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                    'paciente_ci' => $emg->paciente?->ci ?? $emg->paciente?->temp_code,
-                    'status' => $emg->status,
-                    'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
-                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                    'tipo_ingreso' => $emg->tipo_ingreso_label,
-                    'origen_label' => $origen,
-                    'is_emergency' => true,
-                ];
-            });
-
-        \Log::info('Citas loaded', ['count' => $citasSemana->count()]);
-        \Log::info('Emergencias en quirofano', ['count' => $emergenciasEnQuirofano->count()]);
-
-        // Agrupar citas por día y hora
-        $citasPorDiaHora = [];
-        foreach ($citasSemana as $cita) {
-            $dia = $cita->fecha->format('Y-m-d');
-            // Handle time safely - it could be null, Carbon, or string
-            $horaStr = $cita->hora_inicio_estimada;
-            if ($horaStr instanceof Carbon) {
-                $hora = $horaStr->format('H:00');
-            } elseif (is_string($horaStr)) {
-                $hora = substr($horaStr, 0, 2).':00';
-            } else {
-                $hora = '00:00';
-            }
-            $citasPorDiaHora[$dia][$hora][$cita->quirofano_id][] = $cita;
-        }
-
-        // Generar los días de la semana
-        $diasSemana = [];
-        for ($date = $startOfWeek; $date <= $endOfWeek; $date->addDay()) {
-            $diasSemana[] = [
-                'fecha' => $date->copy(),
-                'nombre' => $date->locale('es')->dayName,
-                'dia_mes' => $date->format('d/m'),
-                'fecha_key' => $date->format('Y-m-d'),
-            ];
-        }
-
-        // Generar horas del día (6:00 - 22:00)
-        $horasDia = [];
-        for ($hora = 6; $hora <= 22; $hora++) {
-            $horasDia[] = sprintf('%02d:00', $hora);
-        }
-
-        // Estadísticas
-        $stats = [
-            'total_semana' => $citasSemana->count(),
-            'hoy' => CitaQuirurgica::whereDate('fecha', today())->count(),
-            'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
-            'finalizadas' => CitaQuirurgica::whereDate('fecha', today())->where('estado', 'finalizada')->count(),
-            'emergencias' => $emergenciasEnQuirofano->count(),
-        ];
-
-        return view('quirofano.index', compact('quirofanos', 'diasSemana', 'horasDia', 'citasPorDiaHora', 'stats', 'emergenciasEnQuirofano'));
     }
 
     public function apiDashboard(Request $request): JsonResponse
     {
-        $quirofanos = Quirofano::all();
+        $fechaBase = $request->filled('mes')
+            ? Carbon::parse($request->input('mes').'-01')
+            : now()->startOfMonth();
 
-        // Obtener fecha seleccionada o usar hoy (para auto-refresh respetar fecha)
-        $fechaSeleccionada = $request->filled('fecha')
-            ? Carbon::parse($request->input('fecha'))
-            : now();
+        $calendario = $this->construirCalendarioMensual($fechaBase);
+        $emergenciasEnQuirofano = $this->emergenciasEnQuirofano();
+        $stats = $this->statsQuirofano($calendario['citasMes'], $emergenciasEnQuirofano);
 
-        $startOfWeek = $fechaSeleccionada->copy()->startOfWeek()->startOfDay();
-        $endOfWeek = $fechaSeleccionada->copy()->endOfWeek()->endOfDay();
+        return response()->json([
+            'success' => true,
+            'stats' => $stats,
+            'emergencias' => $emergenciasEnQuirofano->values(),
+            'citasPorDia' => $calendario['citasPorDia'],
+        ]);
+    }
 
-        $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
-            ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
+    /**
+     * Construye la grilla de un calendario mensual (semanas Domingo→Sábado)
+     * y agrupa las citas quirúrgicas por día (clave Y-m-d) ya serializadas.
+     */
+    private function construirCalendarioMensual(Carbon $fechaBase): array
+    {
+        $inicioMes = $fechaBase->copy()->startOfMonth();
+        $finMes = $fechaBase->copy()->endOfMonth();
+
+        // La grilla arranca el domingo previo al 1° y termina el sábado posterior al fin de mes
+        $inicioGrid = $inicioMes->copy()->startOfWeek(Carbon::SUNDAY);
+        $finGrid = $finMes->copy()->endOfWeek(Carbon::SATURDAY);
+
+        $citasMes = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
+            ->whereBetween('fecha', [$inicioMes->copy()->startOfDay(), $finMes->copy()->endOfDay()])
             ->orderBy('fecha')
             ->orderBy('hora_inicio_estimada')
             ->get();
 
-        $emergenciasEnQuirofano = Emergency::with(['paciente'])
+        $citasPorDia = [];
+        foreach ($citasMes as $cita) {
+            $citasPorDia[$cita->fecha->format('Y-m-d')][] = $this->serializarCita($cita);
+        }
+
+        // Construir semanas (filas de 7 días)
+        $semanas = [];
+        $semana = [];
+        for ($dia = $inicioGrid->copy(); $dia <= $finGrid; $dia->addDay()) {
+            $key = $dia->format('Y-m-d');
+            $semana[] = [
+                'dia' => $dia->day,
+                'fecha_key' => $key,
+                'es_otro_mes' => $dia->month !== $inicioMes->month,
+                'es_hoy' => $dia->isToday(),
+                'total' => count($citasPorDia[$key] ?? []),
+            ];
+            if (count($semana) === 7) {
+                $semanas[] = $semana;
+                $semana = [];
+            }
+        }
+
+        return [
+            'semanas' => $semanas,
+            'citasPorDia' => $citasPorDia,
+            'citasMes' => $citasMes,
+            'mesLabel' => ucfirst($inicioMes->locale('es')->isoFormat('MMMM [de] YYYY')),
+            'mesActual' => $inicioMes->format('Y-m'),
+            'mesAnterior' => $inicioMes->copy()->subMonth()->format('Y-m'),
+            'mesSiguiente' => $inicioMes->copy()->addMonth()->format('Y-m'),
+        ];
+    }
+
+    /**
+     * Serializa una cita para chips del calendario y el modal de detalle del día.
+     */
+    private function serializarCita(CitaQuirurgica $cita): array
+    {
+        $estadoLabels = [
+            'programada' => 'Programada',
+            'en_curso' => 'En curso',
+            'finalizada' => 'Finalizada',
+            'cancelada' => 'Cancelada',
+        ];
+
+        $hora = $cita->hora_inicio_estimada;
+        $horaInicio = $hora instanceof Carbon
+            ? $hora->format('H:i')
+            : substr((string) $hora, 0, 5);
+
+        return [
+            'id' => $cita->id,
+            'paciente' => $cita->paciente?->is_temp ? 'Paciente Temporal' : ($cita->paciente?->nombre ?? 'Sin paciente'),
+            'cirujano' => optional($cita->cirujano?->user)->name ?? 'Sin asignar',
+            'quirofano' => $cita->quirofano_id,
+            'tipo_cirugia' => $cita->tipo_cirugia,
+            'estado' => $cita->estado,
+            'estado_label' => $estadoLabels[$cita->estado] ?? ucfirst((string) $cita->estado),
+            'hora_inicio' => $horaInicio,
+            'hora_fin' => optional($cita->hora_fin_estimada)->format('H:i'),
+        ];
+    }
+
+    /**
+     * Estadísticas del encabezado (mes visible + estado global vivo).
+     */
+    private function statsQuirofano($citasMes, $emergenciasEnQuirofano): array
+    {
+        return [
+            'total_mes' => $citasMes->count(),
+            'hoy' => CitaQuirurgica::whereDate('fecha', today())->count(),
+            'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
+            'finalizadas' => CitaQuirurgica::whereDate('fecha', today())->where('estado', 'finalizada')->count(),
+            'emergencias' => $emergenciasEnQuirofano->count(),
+        ];
+    }
+
+    /**
+     * Emergencias que están actualmente en quirófano (con su origen).
+     */
+    private function emergenciasEnQuirofano()
+    {
+        return Emergency::with(['paciente'])
             ->where('ubicacion_actual', 'cirugia')
             ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($emg) {
-                // Determinar origen basado en flujo_historial
                 $origen = $emg->tipo_ingreso_label;
                 if (! empty($emg->flujo_historial) && is_array($emg->flujo_historial) && count($emg->flujo_historial) > 0) {
                     $primerMovimiento = $emg->flujo_historial[0];
@@ -205,54 +211,6 @@ class QuirofanoController extends Controller
                     'is_emergency' => true,
                 ];
             });
-
-        $citasPorDiaHora = [];
-        foreach ($citasSemana as $cita) {
-            $dia = $cita->fecha->format('Y-m-d');
-            $horaStr = $cita->hora_inicio_estimada;
-            if ($horaStr instanceof Carbon) {
-                $hora = $horaStr->format('H:00');
-            } elseif (is_string($horaStr)) {
-                $hora = substr($horaStr, 0, 2).':00';
-            } else {
-                $hora = '00:00';
-            }
-            $citasPorDiaHora[$dia][$hora][$cita->quirofano_id][] = $cita;
-        }
-
-        $diasSemana = [];
-        for ($date = $startOfWeek; $date <= $endOfWeek; $date->addDay()) {
-            $diasSemana[] = [
-                'fecha' => $date->format('Y-m-d'),
-                'nombre' => $date->locale('es')->dayName,
-                'dia_mes' => $date->format('d/m'),
-                'fecha_key' => $date->format('Y-m-d'),
-                'is_today' => $date->isToday(),
-            ];
-        }
-
-        $horasDia = [];
-        for ($hora = 6; $hora <= 22; $hora++) {
-            $horasDia[] = sprintf('%02d:00', $hora);
-        }
-
-        $stats = [
-            'total_semana' => $citasSemana->count(),
-            'hoy' => CitaQuirurgica::whereDate('fecha', today())->count(),
-            'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
-            'finalizadas' => CitaQuirurgica::whereDate('fecha', today())->where('estado', 'finalizada')->count(),
-            'emergencias' => $emergenciasEnQuirofano->count(),
-        ];
-
-        return response()->json([
-            'success' => true,
-            'stats' => $stats,
-            'emergencias' => $emergenciasEnQuirofano,
-            'citasPorDiaHora' => $citasPorDiaHora,
-            'diasSemana' => $diasSemana,
-            'horasDia' => $horasDia,
-            'quirofanos' => $quirofanos,
-        ]);
     }
 
     public function create(): View

@@ -290,7 +290,7 @@ tfoot td.r { text-align: right; }
         <tbody>
         @foreach($alertasStock as $item)
         <tr>
-            <td>{{ $item->medicamento?->nombre ?? $item->codigo_item }}</td>
+            <td>{{ $item->nombre }}</td>
             <td>{{ $item->laboratorio ?? '—' }}</td>
             <td>{{ $item->lote ?? '—' }}</td>
             <td class="r" style="color:#dc2626;font-weight:bold;">{{ $item->stock_disponible }}</td>

@@ -1,5 +1,11 @@
 *.log
 .DS_Store
+/cemsa2
+tmp_*.php
+.windsurf/
+.qwen/
+.agents/
+/agents/
 .env
 .env.backup
 .env.production

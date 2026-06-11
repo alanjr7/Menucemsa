@@ -176,20 +176,18 @@ class EmergencyStaffController extends Controller
                     ]);
                     break;
                 case 'hospitalizacion':
-                    $nroHosp = $this->generarNroHospitalizacion($emergency);
-                    $emergency->update([
-                        'status'              => 'hospitalizacion',
-                        'ubicacion_actual'    => 'hospitalizacion',
-                        'nro_hospitalizacion' => $nroHosp,
-                    ]);
-
-                    Hospitalizacion::create([
-                        'id'             => $nroHosp,
+                    $hospitalizacion = Hospitalizacion::crearConCodigo([
                         'paciente_id'    => $emergency->paciente_id,
                         'fecha_ingreso'  => now(),
                         'estado'         => 'activo',
                         'diagnostico'    => $emergency->initial_assessment,
                         'nro_emergencia' => $emergency->id,
+                    ]);
+
+                    $emergency->update([
+                        'status'              => 'hospitalizacion',
+                        'ubicacion_actual'    => 'hospitalizacion',
+                        'nro_hospitalizacion' => $hospitalizacion->id,
                     ]);
 
                     \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
@@ -312,14 +310,6 @@ class EmergencyStaffController extends Controller
     private function generarNroCirugia(Emergency $emergency): string
     {
         return 'CIR-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Generar número de hospitalización
-     */
-    private function generarNroHospitalizacion(Emergency $emergency): string
-    {
-        return 'HOSP-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
     }
 
     /**

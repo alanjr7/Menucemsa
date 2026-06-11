@@ -51,26 +51,55 @@
 
                     {{-- IDENTIFICACIÓN --}}
                     <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Identificación</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Cédula de Identidad (CI) <span class="text-red-500">*</span>
-                            </label>
+                    {{-- CI con búsqueda de paciente existente --}}
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Cédula de Identidad (CI) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex gap-3">
                             <input type="text" name="ci" id="ci" placeholder="Número de CI"
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
-                                required>
-                            <p class="text-xs text-gray-500 mt-1">Identificador único del paciente</p>
-                            @error('ci')
-                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                            @enderror
+                                class="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
+                                required autocomplete="off">
+                            <button type="button" id="btnBuscarCi" onclick="buscarPacientePorCi()"
+                                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                Buscar
+                            </button>
                         </div>
+                        <p class="text-xs text-gray-500 mt-1">Identificador único del paciente. Busque para vincular si ya está registrado.</p>
+                        @error('ci')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Banner: paciente existente encontrado --}}
+                    <input type="hidden" name="paciente_existente_id" id="paciente_existente_id" value="">
+                    <div id="bannerExistente" class="hidden mb-8 bg-green-50 border border-green-200 rounded-xl p-5">
+                        <div class="flex items-start gap-4">
+                            <div class="w-11 h-11 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-green-800">Paciente ya registrado</p>
+                                <p class="text-base font-bold text-gray-800 mt-1" id="exNombre"></p>
+                                <p class="text-sm text-gray-600 mt-0.5">CI: <span id="exCi"></span> · <span id="exSexo"></span></p>
+                                <p class="text-xs text-green-700 mt-2">Al guardar, la emergencia se vinculará a este paciente (no se crea un registro nuevo).</p>
+                            </div>
+                            <button type="button" onclick="resetBusquedaPaciente()" class="text-sm text-gray-500 hover:text-gray-700 underline whitespace-nowrap">Cambiar</button>
+                        </div>
+                    </div>
+
+                    {{-- Campos para paciente nuevo --}}
+                    <div id="camposNuevoPaciente">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Nombres <span class="text-red-500">*</span>
                             </label>
                             <input type="text" name="nombres" id="nombres" placeholder="Nombres"
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
+                                oninput="this.value = this.value.toUpperCase()"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white uppercase focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                 required>
                         </div>
 
@@ -79,7 +108,8 @@
                                 Apellidos <span class="text-red-500">*</span>
                             </label>
                             <input type="text" name="apellidos" id="apellidos" placeholder="Apellidos"
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
+                                oninput="this.value = this.value.toUpperCase()"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white uppercase focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                 required>
                         </div>
 
@@ -194,6 +224,8 @@
                         </div>
                     </div>
 
+                    </div>{{-- /#camposNuevoPaciente --}}
+
                     <!-- Botones de Acción -->
                     <div class="flex justify-between items-center pt-8 border-t border-gray-200 mt-8 gap-4">
                         <a href="{{ route('reception') }}" 
@@ -234,8 +266,95 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
+    // IDs de los campos del paciente nuevo que llevan `required`.
+    const CAMPOS_REQUERIDOS = ['nombres', 'apellidos', 'sexo'];
+
+    // Buscar si el CI ya pertenece a un paciente registrado.
+    async function buscarPacientePorCi() {
+        const ci = document.getElementById('ci').value.trim();
+        if (ci.length < 3) {
+            alert('Ingrese al menos 3 caracteres del CI para buscar');
+            return;
+        }
+
+        const btn = document.getElementById('btnBuscarCi');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+
+        try {
+            const resp = await fetch('/reception/ingreso-general/buscar-paciente?ci=' + encodeURIComponent(ci));
+            const data = await resp.json();
+
+            if (data.success && data.paciente) {
+                vincularPacienteExistente(data.paciente);
+            } else {
+                resetBusquedaPaciente();
+                alert('No existe un paciente con ese CI. Complete los datos para registrarlo.');
+                document.getElementById('nombres').focus();
+            }
+        } catch (err) {
+            console.error('Error:', err);
+            alert('Error al buscar el paciente');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    }
+
+    // Modo "vinculado": se mostrará el banner y se ocultan los campos de paciente nuevo.
+    function vincularPacienteExistente(p) {
+        document.getElementById('paciente_existente_id').value = p.id;
+        document.getElementById('exNombre').textContent = p.nombre || '—';
+        document.getElementById('exCi').textContent = p.ci || '—';
+        document.getElementById('exSexo').textContent = p.sexo === 'M' ? 'Masculino' : (p.sexo === 'F' ? 'Femenino' : '—');
+
+        document.getElementById('bannerExistente').classList.remove('hidden');
+
+        const campos = document.getElementById('camposNuevoPaciente');
+        campos.classList.add('hidden');
+        CAMPOS_REQUERIDOS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.removeAttribute('required');
+        });
+
+        const submitBtn = document.querySelector('#formCompletarDatos button[type="submit"]');
+        if (submitBtn) submitBtn.lastChild.textContent = ' Vincular paciente a la emergencia';
+    }
+
+    // Volver al modo "paciente nuevo".
+    function resetBusquedaPaciente() {
+        document.getElementById('paciente_existente_id').value = '';
+        document.getElementById('bannerExistente').classList.add('hidden');
+
+        const campos = document.getElementById('camposNuevoPaciente');
+        campos.classList.remove('hidden');
+        CAMPOS_REQUERIDOS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.setAttribute('required', '');
+        });
+
+        const submitBtn = document.querySelector('#formCompletarDatos button[type="submit"]');
+        if (submitBtn) submitBtn.lastChild.textContent = ' Guardar Datos del Paciente';
+    }
+
+    // Si el usuario edita el CI tras vincular, se descarta la vinculación.
+    document.getElementById('ci').addEventListener('input', function () {
+        if (document.getElementById('paciente_existente_id').value) {
+            resetBusquedaPaciente();
+        }
+    });
+
+    // Enter en el CI dispara la búsqueda en vez de enviar el formulario.
+    document.getElementById('ci').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarPacientePorCi();
+        }
+    });
+
     document.getElementById('formCompletarDatos').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -245,13 +364,21 @@
         
         // Validar campos requeridos
         const ci = formData.get('ci');
-        const nombres = formData.get('nombres');
-        const apellidos = formData.get('apellidos');
-        const sexo = formData.get('sexo');
+        const vinculado = !!document.getElementById('paciente_existente_id').value;
 
-        if (!ci || !nombres || !apellidos || !sexo) {
-            alert('Complete los campos obligatorios: CI, Nombres, Apellidos y Sexo');
+        if (!ci) {
+            alert('Ingrese el CI del paciente');
             return;
+        }
+
+        if (!vinculado) {
+            const nombres = formData.get('nombres');
+            const apellidos = formData.get('apellidos');
+            const sexo = formData.get('sexo');
+            if (!nombres || !apellidos || !sexo) {
+                alert('Complete los campos obligatorios: CI, Nombres, Apellidos y Sexo');
+                return;
+            }
         }
         
         // Deshabilitar botón durante el envío
@@ -263,6 +390,8 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 body: JSON.stringify(Object.fromEntries(formData))
@@ -286,4 +415,4 @@
         }
     });
 </script>
-@endsection
+@endpush

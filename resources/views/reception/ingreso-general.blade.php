@@ -53,9 +53,9 @@
                         <span class="ms-3 text-sm font-medium text-gray-700">Usar ID Temporal (Paciente sin documento)</span>
                     </label>
                     <div id="temp_id_field" class="hidden mt-2">
-                        <input type="text" id="temp_id" name="temp_id" placeholder="Ej: TEMP-001"
-                               class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all">
-                        <p class="text-xs text-gray-500 mt-1">Se generará automáticamente si se deja vacío</p>
+                        <input type="text" id="temp_id" name="temp_id" value="{{ $tempCodePreview ?? '' }}" readonly
+                               class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-600 cursor-not-allowed focus:outline-none">
+                        <p class="text-xs text-gray-500 mt-1">Código de referencia. El definitivo se asigna automáticamente al guardar.</p>
                     </div>
                 </div>
 
@@ -690,14 +690,10 @@ function toggleTempId() {
             field.removeAttribute('required');
         });
 
-        // Generar ID temporal
-        const date = new Date();
-        const tempId = 'TEMP-' + date.getFullYear() + String(date.getMonth()+1).padStart(2,'0') + String(date.getDate()).padStart(2,'0') + '-' + Math.floor(Math.random() * 999).toString().padStart(3, '0');
-        document.getElementById('temp_id').value = tempId;
+        // El código temporal ya viene precargado (read-only) desde el servidor.
     } else {
         field.classList.add('hidden');
         ciInput.disabled = false;
-        document.getElementById('temp_id').value = '';
 
         // Mostrar datos del paciente y agregar required a campos obligatorios
         datosContainer.classList.remove('hidden');
@@ -1095,9 +1091,28 @@ async function procesarIngreso(event) {
         btn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>Crear Ingreso';
     }
 }
+
+// Forzar mayúsculas en los inputs de texto (excepto email)
+document.addEventListener('DOMContentLoaded', function () {
+    const selector = 'input[type="text"], input[type="search"], textarea';
+    document.querySelectorAll(selector).forEach(function (el) {
+        if (el.type === 'email') return;
+        el.addEventListener('input', function () {
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            const upper = this.value.toUpperCase();
+            if (this.value !== upper) {
+                this.value = upper;
+                try { this.setSelectionRange(start, end); } catch (e) {}
+            }
+        });
+    });
+});
 </script>
 
 <style>
 input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+input[type="text"], input[type="search"], textarea { text-transform: uppercase; }
+input[type="email"] { text-transform: none; }
 </style>
 @endsection

@@ -193,10 +193,9 @@ class InternacionStaffController extends Controller
             $nroCirugia = 'CIR-' . now()->format('Ymd') . '-' . str_pad($hospitalizacion->id, 4, '0', STR_PAD_LEFT);
 
             // Crear registro en emergencias como paciente en cirugía
-            $emergency = Emergency::create([
+            $emergency = Emergency::crearConCodigo([
                 'paciente_id' => $hospitalizacion->paciente_id,
                 'user_id' => auth()->id(),
-                'code' => Emergency::generateCode(),
                 'status' => 'cirugia',
                 'ubicacion_actual' => 'cirugia',
                 'nro_cirugia' => $nroCirugia,

@@ -47,6 +47,47 @@ class Hospitalizacion extends Model
         'equipos_medicos' => 'array',
     ];
 
+    /**
+     * Genera el código de hospitalización: INT-Ymd-NNNN (p. ej. INT-20260610-5001).
+     * Lleva la fecha del ingreso, pero el correlativo final es global e incremental:
+     * arranca en 5001 y NO se reinicia al cambiar de día. Solo considera los códigos
+     * con este formato (INT-fecha-numero), ignorando registros antiguos con otro
+     * esquema. Para crear hospitalizaciones se debe usar {@see crearConCodigo()},
+     * que además resuelve colisiones concurrentes.
+     */
+    public static function generarCodigo(): string
+    {
+        $last = static::where('id', 'REGEXP', '^INT-[0-9]{8}-[0-9]+$')
+            ->max(\DB::raw("CAST(SUBSTRING_INDEX(id, '-', -1) AS UNSIGNED)")) ?? 0;
+        $siguiente = max((int) $last, 5000) + 1;
+
+        return 'INT-' . now()->format('Ymd') . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Crea una hospitalización asignando un `id` (código) único e incremental.
+     * Si dos procesos concurrentes calculan el mismo correlativo, la clave
+     * primaria hace fallar al segundo y aquí se reintenta con el siguiente
+     * número, en vez de un 500. Es la única vía que se debe usar para crear
+     * hospitalizaciones.
+     *
+     * @param array $attributes Datos de la hospitalización. No incluir `id`.
+     */
+    public static function crearConCodigo(array $attributes): self
+    {
+        for ($intento = 0; $intento < 5; $intento++) {
+            $attributes['id'] = static::generarCodigo();
+
+            try {
+                return static::create($attributes);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // Colisión por concurrencia: reintentar con el siguiente correlativo.
+            }
+        }
+
+        throw new \RuntimeException('No se pudo generar un código de hospitalización único tras varios intentos.');
+    }
+
     public function paciente()
     {
         return $this->belongsTo(Paciente::class, 'paciente_id');

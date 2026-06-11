@@ -228,10 +228,7 @@ class HospitalizacionController extends Controller
 
     private function crearHospitalizacion($request, $paciente, $triage, ?int $episodioId = null)
     {
-        $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-
-        return Hospitalizacion::create([
-            'id' => $idHosp,
+        return Hospitalizacion::crearConCodigo([
             'fecha_ingreso' => now(),
             'motivo' => $request->motivo,
             'diagnostico' => $request->diagnostico,

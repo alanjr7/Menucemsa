@@ -416,6 +416,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // Gestión de pacientes
         Route::get('/pacientes/gestionar', [\App\Http\Controllers\PatientsController::class, 'gestionar'])->name('pacientes.gestionar');
 
+        // Ajustes de Paciente (correcciones de cargos/cuenta)
+        Route::get('/ajustes-pacientes', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'index'])->name('ajustes-pacientes.index');
+        Route::get('/ajustes-pacientes/{id}/correcciones', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'correcciones'])->name('ajustes-pacientes.correcciones');
+        Route::post('/ajustes-pacientes/cuentas/{cuentaId}/cargos', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'agregarCargo'])->name('ajustes-pacientes.cargos.store');
+        Route::patch('/ajustes-pacientes/detalles/{detalleId}/deshabilitar', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'deshabilitarCargo'])->name('ajustes-pacientes.detalles.deshabilitar');
+        Route::patch('/ajustes-pacientes/detalles/{detalleId}/restaurar', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'restaurarCargo'])->name('ajustes-pacientes.detalles.restaurar');
+
         // Episodios
         Route::get('/episodios', [\App\Http\Controllers\Admin\EpisodioController::class, 'index'])->name('episodios.index');
         Route::get('/episodios/paciente/{ci}', [\App\Http\Controllers\Admin\EpisodioController::class, 'porPaciente'])->name('episodios.paciente');

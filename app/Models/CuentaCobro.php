@@ -235,6 +235,10 @@ class CuentaCobro extends Model
 
         $grupos = [];
         foreach ($this->detalles as $detalle) {
+            // Los cargos deshabilitados (anulados por corrección) no se facturan
+            if ($detalle->deshabilitado_en !== null) {
+                continue;
+            }
             $area = $detalle->area_origen ?? null;
             $label = $areaLabels[$area] ?? ucfirst((string)$area);
             if (!isset($grupos[$label])) {
@@ -250,7 +254,10 @@ class CuentaCobro extends Model
     // Calcular totales
     public function recalcularTotales(): void
     {
-        $this->total_calculado = $this->detalles->sum('subtotal');
+        // Sólo los cargos activos (no deshabilitados) suman al total facturable
+        $this->total_calculado = $this->detalles
+            ->whereNull('deshabilitado_en')
+            ->sum('subtotal');
         
         if ($this->seguro_estado === 'autorizado' && $this->seguro) {
             $calculo = $this->seguro->calcularCobertura((float)$this->total_calculado);

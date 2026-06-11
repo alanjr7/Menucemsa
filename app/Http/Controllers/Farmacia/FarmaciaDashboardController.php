@@ -3,7 +3,7 @@ namespace App\Http\Controllers\Farmacia;
 
 use App\Http\Controllers\Controller;
 use App\Models\VentaFarmacia;
-use App\Models\InventarioFarmacia;
+use App\Models\AlmacenStock;
 use Carbon\Carbon;
 
 class FarmaciaDashboardController extends Controller
@@ -14,8 +14,14 @@ class FarmaciaDashboardController extends Controller
         $ventasHoy = VentaFarmacia::whereDate('fecha_venta', $hoy)->count();
         $ingresosHoy = VentaFarmacia::whereDate('fecha_venta', $hoy)->sum('total');
 
-        $totalMedicamentos = InventarioFarmacia::where('tipo_item', 'medicamento')->count();
-        $medicamentosDistintos = InventarioFarmacia::where('tipo_item', 'medicamento')->distinct('codigo_item')->count();
+        $totalMedicamentos = (int) $this->stockFarmaciaMedicamentos()->sum('cantidad_actual');
+        $medicamentosDistintos = AlmacenStock::where('almacen_stocks.ubicacion', 'farmacia')
+            ->join('almacen_lotes', 'almacen_stocks.lote_id', '=', 'almacen_lotes.id')
+            ->join('almacen_catalogo', 'almacen_lotes.catalogo_id', '=', 'almacen_catalogo.id')
+            ->where('almacen_catalogo.tipo', 'medicamento')
+            ->where('almacen_stocks.cantidad_actual', '>', 0)
+            ->distinct('almacen_catalogo.id')
+            ->count('almacen_catalogo.id');
 
         $alertasStock = $this->getAlertasStock();
         $alertasVencimiento = $this->getAlertasVencimiento();
@@ -53,45 +59,53 @@ class FarmaciaDashboardController extends Controller
         ));
     }
     
+    /** Stocks de medicamentos en el área farmacia. */
+    private function stockFarmaciaMedicamentos()
+    {
+        return AlmacenStock::with('lote.catalogo')
+            ->where('ubicacion', 'farmacia')
+            ->whereHas('lote.catalogo', fn ($q) => $q->where('tipo', 'medicamento'))
+            ->get();
+    }
+
     private function getAlertasStock()
     {
-        $alertas = InventarioFarmacia::with('medicamento')
-            ->where('tipo_item', 'medicamento')
-            ->whereColumn('stock_disponible', '<=', 'stock_minimo')
+        return AlmacenStock::with('lote.catalogo')
+            ->where('ubicacion', 'farmacia')
             ->where('stock_minimo', '>', 0)
-            ->get();
-
-        return $alertas->map(function ($inventario) {
-            return [
-                'id' => $inventario->codigo_item,
-                'nombre' => $inventario->medicamento->descripcion ?? 'Producto desconocido',
-                'stock_actual' => (int) $inventario->stock_disponible,
-                'stock_minimo' => (int) $inventario->stock_minimo,
-                'tipo' => 'stock_bajo'
-            ];
-        });
+            ->whereColumn('cantidad_actual', '<=', 'stock_minimo')
+            ->whereHas('lote.catalogo', fn ($q) => $q->where('tipo', 'medicamento'))
+            ->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'nombre' => $s->nombre,
+                'stock_actual' => (int) $s->cantidad_actual,
+                'stock_minimo' => (int) $s->stock_minimo,
+                'tipo' => 'stock_bajo',
+            ]);
     }
-    
+
     private function getAlertasVencimiento()
     {
-        // Obtener productos que vencen en los próximos 30 días
         $fechaLimite = Carbon::now()->addDays(30);
-        
-        return InventarioFarmacia::with('medicamento')
-            ->where('tipo_item', 'medicamento')
-            ->whereNotNull('fecha_vencimiento')
-            ->where('fecha_vencimiento', '<=', $fechaLimite)
-            ->where('fecha_vencimiento', '>=', Carbon::now())
+
+        return AlmacenStock::with('lote.catalogo')
+            ->where('ubicacion', 'farmacia')
+            ->where('cantidad_actual', '>', 0)
+            ->whereHas('lote.catalogo', fn ($q) => $q->where('tipo', 'medicamento'))
+            ->whereHas('lote', fn ($q) => $q
+                ->whereNotNull('fecha_vencimiento')
+                ->whereDate('fecha_vencimiento', '<=', $fechaLimite)
+                ->whereDate('fecha_vencimiento', '>=', Carbon::now()))
             ->get()
-            ->map(function ($inventario) {
-                $diasParaVencer = Carbon::parse($inventario->fecha_vencimiento)->diffInDays(Carbon::now());
-                
+            ->map(function ($s) {
+                $fechaVenc = $s->lote->fecha_vencimiento;
                 return [
-                    'id' => $inventario->codigo_item,
-                    'nombre' => $inventario->medicamento->descripcion ?? 'Producto desconocido',
-                    'fecha_vencimiento' => $inventario->fecha_vencimiento,
-                    'dias_para_vencer' => $diasParaVencer,
-                    'tipo' => 'vencimiento'
+                    'id' => $s->id,
+                    'nombre' => $s->nombre,
+                    'fecha_vencimiento' => $fechaVenc,
+                    'dias_para_vencer' => (int) Carbon::today()->diffInDays($fechaVenc, false),
+                    'tipo' => 'vencimiento',
                 ];
             });
     }

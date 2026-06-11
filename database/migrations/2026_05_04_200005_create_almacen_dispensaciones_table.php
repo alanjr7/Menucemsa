@@ -15,7 +15,7 @@ return new class extends Migration
                 'uti', 'usi', 'neonato', 'internacion',
             ])->default('central');
             $table->enum('ubicacion_destino', [
-                'emergencia', 'cirugia', 'hospitalizacion',
+                'farmacia', 'emergencia', 'cirugia', 'hospitalizacion',
                 'uti', 'usi', 'neonato', 'internacion',
             ]);
             $table->foreignId('dispensado_por')->constrained('users')->restrictOnDelete();

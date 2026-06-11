@@ -45,10 +45,7 @@ class EmergencyIngresoController extends Controller
                 ? $this->crearPacienteTemporal($request)
                 : $this->crearOActualizarPaciente($request);
 
-            $emergencyCode = Emergency::generateCode();
-
             $emergencyData = [
-                'code'             => $emergencyCode,
                 'paciente_id'      => $paciente->id,
                 'tipo_ingreso'     => $request->tipo_ingreso,
                 'destino_inicial'  => $request->destino_inicial,
@@ -80,7 +77,8 @@ class EmergencyIngresoController extends Controller
                 $emergencyData['episodio_id'] = $episodio->id;
             }
 
-            $emergency = Emergency::create($emergencyData);
+            $emergency = Emergency::crearConCodigo($emergencyData);
+            $emergencyCode = $emergency->code;
 
             $cuentaCobro = CuentaCobroService::crearCuentaEmergencia(
                 $paciente->id,
@@ -125,18 +123,9 @@ class EmergencyIngresoController extends Controller
 
     private function crearPacienteTemporal(Request $request): Paciente
     {
-        $prefix = 'TEMP-' . now()->format('Ymd');
-        $last   = Paciente::where('temp_code', 'like', $prefix . '-%')
-            ->orderBy('temp_code', 'desc')
-            ->value('temp_code');
-        $seq      = $last ? ((int) substr($last, -3)) + 1 : 1;
-        $tempCode = $prefix . '-' . str_pad($seq, 3, '0', STR_PAD_LEFT);
-
-        return Paciente::create([
-            'nombre'    => trim($request->nombres . ' ' . $request->apellidos),
-            'sexo'      => $request->sexo === 'Femenino' ? 'F' : 'M',
-            'temp_code' => $tempCode,
-            'is_temp'   => true,
+        return Paciente::crearTemporal([
+            'nombre' => trim($request->nombres . ' ' . $request->apellidos),
+            'sexo'   => $request->sexo === 'Femenino' ? 'F' : 'M',
         ]);
     }
 
@@ -201,15 +190,9 @@ class EmergencyIngresoController extends Controller
             if ($quirofano) {
                 $emergency->update(['nro_cirugia' => 'PRE-' . $quirofano->nro]);
             }
-        } elseif ($destino === 'uti') {
-            $cama = DB::table('camas_uti')
-                ->where('estado', 'disponible')
-                ->first();
-
-            if ($cama) {
-                $emergency->update(['nro_uti' => 'PRE-UTI-' . $cama->id]);
-            }
         }
+        // Nota: no hay pre-reserva de cama UTI: el rol UTI opera sobre tablas compartidas
+        // (no existe una tabla de camas UTI dedicada).
     }
 
     private function obtenerOCrearSeguro(string $seguroNombre): int
@@ -274,7 +257,7 @@ class EmergencyIngresoController extends Controller
         $emergency = Emergency::with('paciente')->findOrFail($emergencyId);
 
         if (!$emergency->paciente?->is_temp) {
-            return redirect()->route('reception.dashboard')
+            return redirect()->route('reception')
                 ->with('error', 'Esta emergencia ya tiene datos completos del paciente');
         }
 
@@ -291,10 +274,10 @@ class EmergencyIngresoController extends Controller
         try {
             $validated = $request->validate([
                 'emergency_id'    => 'required|exists:emergencies,id',
-                'ci'              => 'required|integer|unique:pacientes,ci',
-                'nombres'         => 'required|string|max:80',
-                'apellidos'       => 'required|string|max:80',
-                'sexo'            => 'required|string|in:Masculino,Femenino',
+                'ci'              => 'required|integer',
+                'nombres'         => 'nullable|string|max:80',
+                'apellidos'       => 'nullable|string|max:80',
+                'sexo'            => 'nullable|string|in:Masculino,Femenino',
                 'fecha_nacimiento'=> 'nullable|date',
                 'lugar_expedicion'=> 'nullable|string|max:10',
                 'nacionalidad'    => 'nullable|string|max:50',
@@ -310,61 +293,91 @@ class EmergencyIngresoController extends Controller
             DB::beginTransaction();
 
             $emergency = Emergency::with('paciente')->findOrFail($validated['emergency_id']);
-            $paciente  = $emergency->paciente;
+            $temp      = $emergency->paciente;
 
-            $seguroId       = $validated['seguro_id'] ?? $this->obtenerOCrearSeguro('particular');
-            $sexoCodigo     = $validated['sexo'] === 'Masculino' ? 'M' : 'F';
-            $registroCodigo = Registro::generarCodigo([
-                'fecha_nacimiento' => $validated['fecha_nacimiento'] ?? null,
-                'sexo'             => $sexoCodigo,
-                'nombre'           => trim($validated['nombres'] . ' ' . $validated['apellidos']),
-            ]);
+            if (!$temp || !$temp->is_temp) {
+                DB::rollBack();
+                $msg = 'Esta emergencia ya tiene datos completos del paciente';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $msg], 422);
+                }
+                return redirect()->route('reception')->with('error', $msg);
+            }
 
-            Registro::create([
-                'codigo'  => $registroCodigo,
-                'fecha'   => now()->toDateString(),
-                'hora'    => now()->toTimeString(),
-                'motivo'  => 'Registro completado desde paciente temporal de emergencia',
-                'user_id' => Auth::id(),
-            ]);
+            // ¿Ya existe un paciente real con este CI? -> fusionar en vez de promover.
+            $existente = Paciente::where('ci', (int) $validated['ci'])
+                ->where('id', '!=', $temp->id)
+                ->first();
 
-            // Promote temp paciente in-place — all FK relations stay valid
-            $paciente->update([
-                'ci'               => (int) $validated['ci'],
-                'nombre'           => trim($validated['nombres'] . ' ' . $validated['apellidos']),
-                'sexo'             => $sexoCodigo,
-                'fecha_nacimiento' => $validated['fecha_nacimiento'] ?? null,
-                'lugar_expedicion' => $validated['lugar_expedicion'] ?? null,
-                'nacionalidad'     => $validated['nacionalidad'] ?? null,
-                'estado_civil'     => $validated['estado_civil'] ?? null,
-                'direccion'        => $validated['direccion'] ?? 'Sin especificar',
-                'telefono'         => $validated['telefono'] ? (int)$validated['telefono'] : 0,
-                'correo'           => $validated['correo'] ?? 'sin@email.com',
-                'profesion'        => $validated['profesion'] ?? null,
-                'empresa_trabajo'  => $validated['empresa_trabajo'] ?? null,
-                'seguro_id'        => $seguroId,
-                'registro_codigo'  => $registroCodigo,
-                'triage_id'        => $this->obtenerOCrearTriage(),
-                'is_temp'          => false,
-                'temp_code'        => null,
-            ]);
+            if ($existente) {
+                $paciente = $this->fusionarConPacienteExistente($emergency, $temp, $existente);
+            } else {
+                // Paciente nuevo: los datos de identidad son obligatorios para registrarlo.
+                $request->validate([
+                    'nombres'   => 'required|string|max:80',
+                    'apellidos' => 'required|string|max:80',
+                    'sexo'      => 'required|string|in:Masculino,Femenino',
+                ]);
 
-            // Open real episodio now that patient has a CI
-            $episodio = EpisodioService::abrirEpisodio($paciente->id, 'emergencia', Auth::id());
-            $emergency->update(['episodio_id' => $episodio->id]);
+                $seguroId       = $validated['seguro_id'] ?? $this->obtenerOCrearSeguro('particular');
+                $sexoCodigo     = $validated['sexo'] === 'Masculino' ? 'M' : 'F';
+                $nombreCompleto = mb_strtoupper(trim($validated['nombres'] . ' ' . $validated['apellidos']), 'UTF-8');
+                $registroCodigo = Registro::generarCodigo([
+                    'fecha_nacimiento' => $validated['fecha_nacimiento'] ?? null,
+                    'sexo'             => $sexoCodigo,
+                    'nombre'           => $nombreCompleto,
+                ]);
 
-            // Link evaluaciones and cuenta_cobros to the new episodio
-            Evaluacion::where('paciente_id', $paciente->id)
-                ->update(['episodio_id' => $episodio->id]);
+                Registro::create([
+                    'codigo'  => $registroCodigo,
+                    'fecha'   => now()->toDateString(),
+                    'hora'    => now()->toTimeString(),
+                    'motivo'  => 'Registro completado desde paciente temporal de emergencia',
+                    'user_id' => Auth::id(),
+                ]);
 
-            \App\Models\CuentaCobro::where('referencia_type', Emergency::class)
-                ->where('referencia_id', $emergency->id)
-                ->update(['episodio_id' => $episodio->id]);
+                // Promote temp paciente in-place — all FK relations stay valid
+                $temp->update([
+                    'ci'               => (int) $validated['ci'],
+                    'nombre'           => $nombreCompleto,
+                    'sexo'             => $sexoCodigo,
+                    'fecha_nacimiento' => $validated['fecha_nacimiento'] ?? null,
+                    'lugar_expedicion' => $validated['lugar_expedicion'] ?? null,
+                    'nacionalidad'     => $validated['nacionalidad'] ?? null,
+                    'estado_civil'     => $validated['estado_civil'] ?? null,
+                    'direccion'        => $validated['direccion'] ?? 'Sin especificar',
+                    'telefono'         => ($validated['telefono'] ?? null) ? (int)$validated['telefono'] : 0,
+                    'correo'           => $validated['correo'] ?? 'sin@email.com',
+                    'profesion'        => $validated['profesion'] ?? null,
+                    'empresa_trabajo'  => $validated['empresa_trabajo'] ?? null,
+                    'seguro_id'        => $seguroId,
+                    'registro_codigo'  => $registroCodigo,
+                    'triage_id'        => $this->obtenerOCrearTriage(),
+                    'is_temp'          => false,
+                    'temp_code'        => null,
+                ]);
+
+                // Open real episodio now that patient has a CI
+                $episodio = EpisodioService::abrirEpisodio($temp->id, 'emergencia', Auth::id());
+                $emergency->update(['episodio_id' => $episodio->id]);
+
+                // Link evaluaciones and cuenta_cobros to the new episodio
+                Evaluacion::where('paciente_id', $temp->id)
+                    ->update(['episodio_id' => $episodio->id]);
+
+                \App\Models\CuentaCobro::where('referencia_type', Emergency::class)
+                    ->where('referencia_id', $emergency->id)
+                    ->update(['episodio_id' => $episodio->id]);
+
+                $paciente = $temp;
+            }
 
             $emergency->registrarMovimiento(
                 'emergencia',
                 'emergencia',
-                'Datos del paciente completados. CI asignado: ' . $validated['ci']
+                $existente
+                    ? 'Emergencia vinculada a paciente existente. CI: ' . $paciente->ci
+                    : 'Datos del paciente completados. CI asignado: ' . $paciente->ci
             );
 
             DB::commit();
@@ -408,6 +421,50 @@ class EmergencyIngresoController extends Controller
                 ->with('error', 'Error al completar los datos: ' . $e->getMessage())
                 ->withInput();
         }
+    }
+
+    /**
+     * El CI ingresado pertenece a un paciente ya registrado: en lugar de promover
+     * el paciente temporal (lo que duplicaría la historia clínica), se re-apunta la
+     * emergencia y todos sus registros hijos al paciente real y se elimina el temporal.
+     *
+     * Se re-apuntan explícitamente las tablas que (a) tienen FK restrictiva y
+     * bloquearían el borrado (almacen_entregas_paciente, camilla_usos) o (b) tienen
+     * FK en cascada y perderían datos clínicos al borrar el temporal (evaluaciones,
+     * historial_medicos). El episodio se abre/reutiliza sobre el paciente existente.
+     */
+    private function fusionarConPacienteExistente(Emergency $emergency, Paciente $temp, Paciente $existente): Paciente
+    {
+        $episodio = EpisodioService::abrirEpisodio($existente->id, 'emergencia', Auth::id());
+
+        $emergency->update([
+            'paciente_id' => $existente->id,
+            'episodio_id' => $episodio->id,
+        ]);
+
+        Evaluacion::where('paciente_id', $temp->id)
+            ->update(['paciente_id' => $existente->id, 'episodio_id' => $episodio->id]);
+
+        \App\Models\CuentaCobro::where('referencia_type', Emergency::class)
+            ->where('referencia_id', $emergency->id)
+            ->update(['paciente_id' => $existente->id, 'episodio_id' => $episodio->id]);
+
+        DB::table('historial_medicos')
+            ->where('paciente_id', $temp->id)
+            ->update(['paciente_id' => $existente->id]);
+
+        DB::table('almacen_entregas_paciente')
+            ->where('paciente_id', $temp->id)
+            ->update(['paciente_id' => $existente->id]);
+
+        DB::table('camilla_usos')
+            ->where('paciente_id', $temp->id)
+            ->update(['paciente_id' => $existente->id]);
+
+        // El paciente temporal queda huérfano y ya no debe existir.
+        $temp->delete();
+
+        return $existente;
     }
 
     private function obtenerOCrearTriage(): string

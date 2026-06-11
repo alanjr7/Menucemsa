@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
-use App\Models\InventarioFarmacia;
+use App\Models\AlmacenStock;
 use App\Exports\VentasFarmaciaExport;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -28,19 +28,9 @@ class ReporteController extends Controller
 
     public function index()
     {
-        $alertasStock = InventarioFarmacia::with('medicamento')
-            ->whereColumn('stock_disponible', '<=', 'stock_minimo')
-            ->where('stock_minimo', '>', 0)
-            ->get();
-
-        $alertasVencimiento = InventarioFarmacia::with('medicamento')
-            ->whereNotNull('fecha_vencimiento')
-            ->whereDate('fecha_vencimiento', '>=', Carbon::today())
-            ->whereDate('fecha_vencimiento', '<=', Carbon::now()->addDays(30))
-            ->get();
-
-        $valorInventario = InventarioFarmacia::selectRaw('SUM(CAST(stock_disponible AS DECIMAL(10,2)) * CAST(precio_unitario AS DECIMAL(10,2))) as total')
-            ->value('total') ?? 0;
+        $alertasStock = $this->alertasStockFarmacia();
+        $alertasVencimiento = $this->alertasVencimientoFarmacia();
+        $valorInventario = $this->valorInventarioFarmacia();
 
         return view('farmacia.reporte', compact('alertasStock', 'alertasVencimiento', 'valorInventario'));
     }
@@ -197,10 +187,7 @@ class ReporteController extends Controller
             ->take(500)
             ->get();
 
-        $alertasStock = InventarioFarmacia::with('medicamento')
-            ->whereColumn('stock_disponible', '<=', 'stock_minimo')
-            ->where('stock_minimo', '>', 0)
-            ->get();
+        $alertasStock = $this->alertasStockFarmacia();
 
         $periodoLabel = $fechaInicio
             ? Carbon::parse($fechaInicio)->format('d/m/Y') . ' — ' . Carbon::parse($fechaFin)->format('d/m/Y')
@@ -217,6 +204,52 @@ class ReporteController extends Controller
     public function filtrar(Request $request)
     {
         return $this->datos($request);
+    }
+
+    /** Productos del área farmacia con stock en o bajo el mínimo. */
+    private function alertasStockFarmacia()
+    {
+        return AlmacenStock::with('lote.catalogo')
+            ->where('ubicacion', 'farmacia')
+            ->where('stock_minimo', '>', 0)
+            ->whereColumn('cantidad_actual', '<=', 'stock_minimo')
+            ->get()
+            ->map(fn($s) => (object) [
+                'nombre'           => $s->nombre,
+                'laboratorio'      => $s->lote->laboratorio,
+                'lote'             => $s->lote->codigo_lote,
+                'stock_disponible' => $s->cantidad_actual,
+                'stock_minimo'     => $s->stock_minimo,
+                'precio_unitario'  => $s->lote->precio_venta,
+            ]);
+    }
+
+    /** Lotes del área farmacia que vencen dentro de 30 días. */
+    private function alertasVencimientoFarmacia()
+    {
+        return AlmacenStock::with('lote.catalogo')
+            ->where('ubicacion', 'farmacia')
+            ->where('cantidad_actual', '>', 0)
+            ->whereHas('lote', fn($q) => $q
+                ->whereNotNull('fecha_vencimiento')
+                ->whereDate('fecha_vencimiento', '>=', Carbon::today())
+                ->whereDate('fecha_vencimiento', '<=', Carbon::now()->addDays(30)))
+            ->get()
+            ->map(fn($s) => (object) [
+                'nombre'            => $s->nombre,
+                'lote'              => $s->lote->codigo_lote,
+                'stock_disponible'  => $s->cantidad_actual,
+                'fecha_vencimiento' => $s->lote->fecha_vencimiento,
+            ]);
+    }
+
+    /** Valor del inventario del área farmacia: cantidad_actual * precio_venta del lote. */
+    private function valorInventarioFarmacia()
+    {
+        return AlmacenStock::where('ubicacion', 'farmacia')
+            ->join('almacen_lotes', 'almacen_stocks.lote_id', '=', 'almacen_lotes.id')
+            ->selectRaw('SUM(almacen_stocks.cantidad_actual * almacen_lotes.precio_venta) as total')
+            ->value('total') ?? 0;
     }
 
     private function resolverRango(Request $request): array

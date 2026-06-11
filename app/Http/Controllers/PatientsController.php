@@ -121,7 +121,7 @@ class PatientsController extends Controller
         return view('patients.index', compact('pacientes', 'stats'));
     }
 
-    private function determinarTipoIngreso(Paciente $paciente): string
+    public static function determinarTipoIngreso(Paciente $paciente): string
     {
         $consulta = $paciente->consultas->first();
         $emergencia = $paciente->emergencias->first();
