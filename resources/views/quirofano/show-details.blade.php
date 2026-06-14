@@ -19,6 +19,17 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 mb-6 text-sm">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 mb-6 text-sm">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <!-- Estado de la Cirugía -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div class="flex items-center justify-between">
@@ -135,12 +146,18 @@
             <div>
                 <label class="text-sm font-medium text-gray-500">Instrumentista</label>
                 <p class="font-semibold text-gray-900">{{ $cita->nombre_instrumentista }}</p>
+                @if($cita->ci_instrumentista)
+                <p class="text-xs text-gray-500">CI: {{ $cita->ci_instrumentista }}</p>
+                @endif
             </div>
             @endif
             @if($cita->nombre_anestesiologo)
             <div>
                 <label class="text-sm font-medium text-gray-500">Anestesiólogo</label>
                 <p class="font-semibold text-gray-900">{{ $cita->nombre_anestesiologo }}</p>
+                @if($cita->ci_anestesiologo)
+                <p class="text-xs text-gray-500">CI: {{ $cita->ci_anestesiologo }}</p>
+                @endif
             </div>
             @endif
         </div>
@@ -243,6 +260,16 @@
     </div>
 
     @if(auth()->user()->role !== 'cirujano')
+    @php
+        $isEditor = in_array(auth()->user()->role, ['admin', 'administrador']);
+        $costoBase = (float) ($cita->costo_base ?? 0);
+        // Fuente real del cobro de la cirugía: el detalle 'procedimiento' de la cuenta
+        $costoCirugia = $detalleProcedimiento ? (float) $detalleProcedimiento->subtotal : $costoBase;
+        $costoExtra = max(0, round($costoCirugia - $costoBase, 2));
+        $totalMedicamentos = $medicamentosUsados->sum('subtotal');
+        $totalEquipos = $equiposUsados->sum('subtotal');
+        $totalGeneral = round($costoCirugia + $totalMedicamentos + $totalEquipos, 2);
+    @endphp
     <!-- Sección 5: Resumen de Costos -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -251,32 +278,82 @@
             </svg>
             Resumen de Costos
         </h2>
-        
-        @php
-            $totalMedicamentos = $medicamentosUsados->sum('subtotal');
-            $totalEquipos = $equiposUsados->sum('subtotal');
-            $costoCirugia = $cita->costo_final - $totalMedicamentos - $totalEquipos;
-        @endphp
-        
+
+        @if($isEditor)
+        <form method="POST" action="{{ route('quirofano.detalles.update', $cita->id) }}" class="mb-6">
+            @csrf
+            @method('PUT')
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Cirugía</label>
+                    <select name="tipo_cirugia" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 capitalize">
+                        @foreach($tiposCirugia as $tipo)
+                            <option value="{{ $tipo->nombre }}" {{ $cita->tipo_cirugia === $tipo->nombre ? 'selected' : '' }}>{{ ucfirst($tipo->nombre) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Costo Base (Bs.)</label>
+                    <input type="text" value="{{ number_format($costoBase, 2, '.', '') }}" readonly
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed">
+                    <p class="text-xs text-gray-400 mt-1">Precio ingresado al programar la cirugía.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Costo Extra (Bs.)</label>
+                    <input type="number" name="costo_extra" id="costoExtraInput" min="0" step="0.01"
+                           value="{{ number_format($costoExtra, 2, '.', '') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-400 mt-1">Cargo adicional si la cirugía se pasó del tiempo.</p>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+                <div class="flex items-center gap-2 bg-amber-50 rounded-lg px-4 py-3">
+                    <span class="text-sm font-medium text-gray-700">Costo de Cirugía (Base + Extra):</span>
+                    <span class="text-lg font-bold text-amber-700" id="costoCirugiaPreview">Bs. {{ number_format($costoBase + $costoExtra, 2) }}</span>
+                </div>
+                <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors">
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+        @endif
+
+        <p class="text-xs text-gray-400 mb-3">Cobro actual registrado en la cuenta del paciente.</p>
         <div class="space-y-3">
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-600">Costo de Cirugía</span>
-                <span class="font-semibold text-gray-900">${{ number_format($costoCirugia, 2) }}</span>
+                <span class="font-semibold text-gray-900">Bs. {{ number_format($costoCirugia, 2) }}</span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-600">Medicamentos</span>
-                <span class="font-semibold text-green-600">${{ number_format($totalMedicamentos, 2) }}</span>
+                <span class="font-semibold text-green-600">Bs. {{ number_format($totalMedicamentos, 2) }}</span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-600">Equipos y Procedimientos</span>
-                <span class="font-semibold text-cyan-600">${{ number_format($totalEquipos, 2) }}</span>
+                <span class="font-semibold text-cyan-600">Bs. {{ number_format($totalEquipos, 2) }}</span>
             </div>
             <div class="flex justify-between items-center pt-3">
                 <span class="text-lg font-bold text-gray-900">Total</span>
-                <span class="text-2xl font-bold text-green-600">${{ number_format($cita->costo_final, 2) }}</span>
+                <span class="text-2xl font-bold text-green-600">Bs. {{ number_format($totalGeneral, 2) }}</span>
             </div>
         </div>
     </div>
+
+    @if($isEditor)
+    <script>
+    (function () {
+        const base = {{ $costoBase }};
+        const input = document.getElementById('costoExtraInput');
+        const preview = document.getElementById('costoCirugiaPreview');
+        if (input && preview) {
+            input.addEventListener('input', function () {
+                const extra = parseFloat(input.value) || 0;
+                preview.textContent = 'Bs. ' + (base + extra).toFixed(2);
+            });
+        }
+    })();
+    </script>
+    @endif
     @endif
 
 </div>

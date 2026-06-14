@@ -15,7 +15,6 @@ class CuentaCobroDetalle extends Model
     protected $fillable = [
         'cuenta_cobro_id',
         'tipo_item',
-        'tarifa_id',
         'descripcion',
         'cantidad',
         'precio_unitario',
@@ -28,6 +27,8 @@ class CuentaCobroDetalle extends Model
         'deshabilitado_en',
         'deshabilitado_por',
         'motivo_deshabilitacion',
+        'liquidado_en',
+        'liquidado_pago_id',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class CuentaCobroDetalle extends Model
         'precio_unitario' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'deshabilitado_en' => 'datetime',
+        'liquidado_en' => 'datetime',
     ];
 
     // Relaciones
@@ -53,9 +55,9 @@ class CuentaCobroDetalle extends Model
         return $this->belongsTo(User::class, 'deshabilitado_por');
     }
 
-    public function tarifa(): BelongsTo
+    public function liquidadoPago(): BelongsTo
     {
-        return $this->belongsTo(Tarifa::class);
+        return $this->belongsTo(PagoCuenta::class, 'liquidado_pago_id');
     }
 
     public function origen(): \Illuminate\Database\Eloquent\Relations\MorphTo
@@ -81,20 +83,46 @@ class CuentaCobroDetalle extends Model
         });
     }
 
+    /**
+     * Global scope: por defecto los cargos deshabilitados quedan ocultos en TODO el
+     * sistema (cobro, recibo, comprobante, recálculo de totales), igual que SoftDeletes.
+     * La pantalla de correcciones hace opt-in con scopeConDeshabilitados().
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('habilitado', function ($builder) {
+            $builder->whereNull((new static)->qualifyColumn('deshabilitado_en'));
+        });
+    }
+
     // Estado de habilitación
     public function estaDeshabilitado(): bool
     {
         return $this->deshabilitado_en !== null;
     }
 
-    public function scopeActivos($query)
+    /** Incluye también los cargos deshabilitados (quita el global scope). */
+    public function scopeConDeshabilitados($query)
     {
-        return $query->whereNull('deshabilitado_en');
+        return $query->withoutGlobalScope('habilitado');
     }
 
+    /** Sólo los cargos deshabilitados. */
     public function scopeDeshabilitados($query)
     {
-        return $query->whereNotNull('deshabilitado_en');
+        return $query->withoutGlobalScope('habilitado')->whereNotNull('deshabilitado_en');
+    }
+
+    // Estado de liquidación (un cargo se liquida cuando un pago salda la cuenta)
+    public function estaLiquidado(): bool
+    {
+        return $this->liquidado_en !== null;
+    }
+
+    /** Cargos del ciclo pendiente: aún no liquidados por ningún pago. */
+    public function scopePendientesLiquidacion($query)
+    {
+        return $query->whereNull('liquidado_en');
     }
 
     // Scopes

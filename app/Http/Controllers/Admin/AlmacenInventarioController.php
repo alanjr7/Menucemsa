@@ -42,7 +42,7 @@ class AlmacenInventarioController extends Controller
         $data = $request->validate([
             'codigo_activo'  => 'required|string|max:100|unique:almacen_inventario,codigo_activo',
             'nombre'         => 'required|string|max:255',
-            'precio'         => 'required|numeric|min:0',
+            'precio'         => 'required|numeric|decimal:0,2|min:0',
             'cantidad'       => 'required|integer|min:0',
             'marca'          => 'nullable|string|max:150',
             'proveedor'      => 'nullable|string|max:255',
@@ -71,7 +71,7 @@ class AlmacenInventarioController extends Controller
         $data = $request->validate([
             'codigo_activo'  => 'required|string|max:100|unique:almacen_inventario,codigo_activo,' . $almacenInventario->id,
             'nombre'         => 'required|string|max:255',
-            'precio'         => 'required|numeric|min:0',
+            'precio'         => 'required|numeric|decimal:0,2|min:0',
             'cantidad'       => 'required|integer|min:0',
             'marca'          => 'nullable|string|max:150',
             'proveedor'      => 'nullable|string|max:255',

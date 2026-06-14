@@ -132,9 +132,10 @@
                                                 Bs. {{ number_format($detalle->subtotal, 2) }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <form action="{{ route('admin.cuentas.eliminar-item', [$cuenta->id, $detalle->id]) }}" method="POST" onsubmit="return confirm('¿Está seguro de eliminar este item? Esta acción no se puede deshacer.')">
+                                                <form action="{{ route('admin.cuentas.eliminar-item', [$cuenta->id, $detalle->id]) }}" method="POST" onsubmit="return pedirMotivoEliminacion(this)">
                                                     @csrf
                                                     @method('DELETE')
+                                                    <input type="hidden" name="motivo" value="">
                                                     <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-all">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -154,6 +155,46 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                             </svg>
                             <p class="text-gray-500">No hay items en esta cuenta</p>
+                        </div>
+                    @endif
+
+                    <!-- Items Eliminados (auditoría: hora / quién / qué) -->
+                    @php($eliminadosCuenta = ($eliminados[$cuenta->id] ?? collect()))
+                    @if($eliminadosCuenta->count() > 0)
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <h4 class="text-sm font-semibold text-red-700 mb-3 flex items-center">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                Ítems eliminados ({{ $eliminadosCuenta->count() }})
+                            </h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-red-100">
+                                    <thead class="bg-red-50/50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Fecha / Hora</th>
+                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Eliminado por</th>
+                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Ítem</th>
+                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Subtotal</th>
+                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Motivo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-red-50">
+                                        @foreach($eliminadosCuenta as $eliminado)
+                                            <tr class="bg-red-50/20">
+                                                <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-600">{{ $eliminado->eliminado_en->format('d/m/Y H:i') }}</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-700">{{ $eliminado->usuarioEliminacion->name ?? 'N/A' }}</td>
+                                                <td class="px-4 py-2 text-xs text-gray-700">
+                                                    <span class="line-through">{{ $eliminado->descripcion }}</span>
+                                                    <span class="text-gray-400">({{ $eliminado->tipo_item_label }} &times;{{ rtrim(rtrim(number_format($eliminado->cantidad, 2), '0'), '.') }})</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-700">Bs. {{ number_format($eliminado->subtotal, 2) }}</td>
+                                                <td class="px-4 py-2 text-xs text-gray-500 italic">{{ $eliminado->motivo_eliminacion }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     @endif
 
@@ -190,4 +231,19 @@
         @endforelse
 
     </div>
+
+<script>
+    // Pide el motivo antes de eliminar; lo inyecta en el hidden y exige confirmación.
+    function pedirMotivoEliminacion(form) {
+        const motivo = window.prompt('Motivo de la eliminación de este ítem (quedará registrado en auditoría):');
+        if (motivo === null) return false;            // canceló
+        const limpio = motivo.trim();
+        if (limpio === '') {
+            alert('Debe indicar un motivo para eliminar el ítem.');
+            return false;
+        }
+        form.querySelector('input[name="motivo"]').value = limpio;
+        return true;
+    }
+</script>
 @endsection

@@ -1,29 +1,29 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 bg-[#f8fafc] min-h-screen font-sans">
+<div class="p-4 sm:p-6 lg:p-8 bg-[#f8fafc] min-h-screen font-sans">
      <div class="w-full">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-8">
+        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6 sm:mb-8">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Caja Operativa</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Caja Operativa</h1>
                 <p class="text-gray-500 text-sm">Gestión de cobros y pagos</p>
             </div>
-            <div class="flex items-center space-x-4">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                 @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('administrador'))
-                    <a href="{{ route('caja.gestion.index') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ route('caja.gestion.index') }}" class="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 whitespace-nowrap">
+                        <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                         Historial y Gestión
                     </a>
                 @endif
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 whitespace-nowrap">
                     <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                     Caja Abierta
                 </span>
-                <button onclick="mostrarModalCierre()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="mostrarModalCierre()" class="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 whitespace-nowrap">
+                    <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                     </svg>
                     Cerrar Caja
@@ -32,7 +32,7 @@
         </div>
 
         <!-- Estadísticas del día -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div class="bg-white shadow-sm rounded-lg p-4 border border-gray-100">
                 <div class="flex items-center">
                     <div class="p-3 rounded-full bg-green-100 text-green-600">
@@ -148,7 +148,9 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Monto a Pagar (Bs)</label>
-                            <input type="number" id="montoPago" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <input type="number" id="montoPago" step="0.01" min="0" required
+                                   oninput="this.value=this.value.match(/^\d*([.,]\d{0,2})?/)[0]"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Método de Pago</label>
@@ -199,7 +201,9 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Monto Final Físico (Bs)</label>
-                    <input type="number" id="montoFinal" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 font-bold text-lg">
+                    <input type="number" id="montoFinal" step="0.01" min="0"
+                           oninput="this.value=this.value.match(/^\d*([.,]\d{0,2})?/)[0]"
+                           class="mt-1 block w-full rounded-md border-gray-300 font-bold text-lg">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Notas de Cierre</label>
@@ -236,29 +240,47 @@
         ]);
     }
 
+    function mostrarErrorTabla(mensaje) {
+        document.getElementById('tablaPacientes').innerHTML =
+            `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500 font-medium">${mensaje}</td></tr>`;
+    }
+
     async function cargarPacientesPendientes() {
         try {
-            const response = await fetch('{{ route("caja.operativa.pacientes-pendientes") }}');
+            const response = await fetch('{{ route("caja.operativa.pacientes-pendientes") }}', {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            // Sesión expirada: el endpoint redirige a /login (HTML), no devuelve JSON
+            if (response.redirected || response.status === 401 || response.status === 419) {
+                mostrarErrorTabla('Tu sesión expiró. Recargá la página e iniciá sesión de nuevo.');
+                return;
+            }
+
             const data = await response.json();
             if (data.success) {
                 pacientesData = data.cuentas;
                 paginaActual = 1;
                 filtrarPacientes(); // Refresca la vista
+            } else {
+                mostrarErrorTabla(data.message || 'No se pudieron cargar las cuentas.');
             }
         } catch (error) {
             console.error('Error:', error);
-            document.getElementById('tablaPacientes').innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-red-500 font-medium font-medium">Error al conectar con el servidor</td></tr>';
+            mostrarErrorTabla('Error al conectar con el servidor');
         }
+    }
+
+    // Coincidencia de búsqueda. String(... ?? '') fuerza a texto: los campos
+    // pueden llegar como número (ej. CI) y un número no tiene .toLowerCase().
+    function coincideBusqueda(c, t) {
+        const campos = [c.paciente_nombre, c.paciente_ci, c.tipo_atencion, c.estado_label];
+        return campos.some(v => String(v ?? '').toLowerCase().includes(t));
     }
 
     function filtrarPacientes() {
         const t = document.getElementById('buscarPaciente').value.toLowerCase().trim();
-        const filtrados = pacientesData.filter(c => {
-            return (c.paciente_nombre || '').toLowerCase().includes(t) ||
-                   (c.paciente_ci || '').toLowerCase().includes(t) ||
-                   (c.tipo_atencion || '').toLowerCase().includes(t) ||
-                   (c.estado_label || '').toLowerCase().includes(t);
-        });
+        const filtrados = pacientesData.filter(c => coincideBusqueda(c, t));
         paginaActual = 1;
         renderizarTabla(filtrados);
     }
@@ -308,12 +330,7 @@
 
     function cambiarPagina(direccion) {
         const t = document.getElementById('buscarPaciente').value.toLowerCase().trim();
-        const filtrados = pacientesData.filter(c => {
-            return (c.paciente_nombre || '').toLowerCase().includes(t) ||
-                   (c.paciente_ci || '').toLowerCase().includes(t) ||
-                   (c.tipo_atencion || '').toLowerCase().includes(t) ||
-                   (c.estado_label || '').toLowerCase().includes(t);
-        });
+        const filtrados = pacientesData.filter(c => coincideBusqueda(c, t));
         const totalPaginas = Math.max(1, Math.ceil(filtrados.length / registrosPorPagina));
         paginaActual = Math.min(totalPaginas, Math.max(1, paginaActual + direccion));
         renderizarTabla(filtrados);

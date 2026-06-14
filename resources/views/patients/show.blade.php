@@ -167,16 +167,6 @@
                             <dt class="text-sm text-gray-500">Teléfono:</dt>
                             <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_telefono }}</dd>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-sm text-gray-500">Parentesco:</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_parentesco }}</dd>
-                        </div>
-                        @if($contactoEmergencia->contacto_relacion)
-                            <div class="flex justify-between">
-                                <dt class="text-sm text-gray-500">Relación:</dt>
-                                <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_relacion }}</dd>
-                            </div>
-                        @endif
                     @else
                         <div class="flex justify-between">
                             <dt class="text-sm text-gray-500">Estado:</dt>

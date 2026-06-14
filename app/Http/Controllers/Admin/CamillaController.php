@@ -30,7 +30,7 @@ class CamillaController extends Controller
         $data = $request->validate([
             'nombre'          => ['required', 'string', 'max:100'],
             'codigo'          => ['required', 'string', 'max:30', 'unique:camillas,codigo'],
-            'precio_por_hora' => ['required', 'numeric', 'min:0'],
+            'precio_por_hora' => ['required', 'numeric', 'decimal:0,2', 'min:0'],
             'area'            => ['required', 'in:uti,emergencia,neonato'],
         ]);
 
@@ -53,7 +53,7 @@ class CamillaController extends Controller
         $data = $request->validate([
             'nombre'          => ['required', 'string', 'max:100'],
             'codigo'          => ['required', 'string', 'max:30', 'unique:camillas,codigo,' . $camilla->id],
-            'precio_por_hora' => ['required', 'numeric', 'min:0'],
+            'precio_por_hora' => ['required', 'numeric', 'decimal:0,2', 'min:0'],
             'area'            => ['required', 'in:uti,emergencia,neonato'],
         ]);
 

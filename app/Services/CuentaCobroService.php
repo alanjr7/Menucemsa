@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\CuentaCobro;
 use App\Models\CuentaCobroDetalle;
-use App\Models\Tarifa;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -102,7 +102,6 @@ class CuentaCobroService
      * @param string      $areaOrigen     'emergencia'|'quirofano'|'internacion'|'uti'|...
      * @param string|null $origenType     Clase del modelo origen (ej: Emergency::class)
      * @param string|null $origenId       ID del registro origen
-     * @param int|null    $tarifaId       ID de tarifa (opcional)
      */
     public static function agregarCargoConDeduplicacion(
         string  $cuentaCobroId,
@@ -112,12 +111,11 @@ class CuentaCobroService
         float   $cantidad = 1,
         string  $areaOrigen = 'general',
         ?string $origenType = null,
-        ?string $origenId   = null,
-        ?int    $tarifaId   = null
+        ?string $origenId   = null
     ): ?CuentaCobroDetalle {
         return DB::transaction(function () use (
             $cuentaCobroId, $tipoItem, $descripcion, $precioUnitario,
-            $cantidad, $areaOrigen, $origenType, $origenId, $tarifaId
+            $cantidad, $areaOrigen, $origenType, $origenId
         ) {
             // Verificar duplicado por origen
             if ($origenType && $origenId) {
@@ -144,12 +142,11 @@ class CuentaCobroService
                 throw new \Exception('No se pueden agregar cargos a una cuenta ya pagada completamente.');
             }
 
-            $subtotal = round($precioUnitario * $cantidad, 2);
+            $subtotal = Money::mul($precioUnitario, $cantidad);
 
             $detalle = CuentaCobroDetalle::create([
                 'cuenta_cobro_id' => $cuentaCobroId,
                 'tipo_item'       => $tipoItem,
-                'tarifa_id'       => $tarifaId,
                 'descripcion'     => $descripcion,
                 'cantidad'        => $cantidad,
                 'precio_unitario' => $precioUnitario,
@@ -182,13 +179,8 @@ class CuentaCobroService
         ?float $montoPersonalizado = null
     ): CuentaCobro {
         return DB::transaction(function () use ($pacienteId, $consultaNro, $especialidadCodigo, $montoPersonalizado) {
-            // Buscar tarifa según especialidad
-            $tarifa = Tarifa::where('codigo', 'CONS-' . $especialidadCodigo)
-                ->where('activo', true)
-                ->first();
-
-            $precio = $montoPersonalizado ?? ($tarifa ? $tarifa->precio_particular : 150.00);
-            $descripcion = $tarifa ? $tarifa->descripcion : 'Consulta Externa';
+            $precio = $montoPersonalizado ?? (\App\Models\IngresoPrecio::getPrecio('consulta_externa') ?? 150.00);
+            $descripcion = 'Consulta Externa';
 
             // Crear cuenta
             $cuenta = CuentaCobro::create([
@@ -205,7 +197,6 @@ class CuentaCobroService
             // Crear detalle
             $cuenta->detalles()->create([
                 'tipo_item' => 'servicio',
-                'tarifa_id' => $tarifa?->id,
                 'descripcion' => $descripcion,
                 'cantidad' => 1,
                 'precio_unitario' => $precio,
@@ -254,15 +245,14 @@ class CuentaCobroService
                         $precio = $servicio['precio'] ?? 0;
                         $cuentaExistente->detalles()->create([
                             'tipo_item' => $servicio['tipo'] ?? 'servicio',
-                            'tarifa_id' => $servicio['tarifa_id'] ?? null,
                             'descripcion' => $servicio['descripcion'] ?? 'Servicio de Emergencia',
                             'cantidad' => $servicio['cantidad'] ?? 1,
                             'precio_unitario' => $precio,
-                            'subtotal' => $precio * ($servicio['cantidad'] ?? 1),
+                            'subtotal' => Money::mul($precio, $servicio['cantidad'] ?? 1),
                             'origen_type' => $servicio['origen_type'] ?? \App\Models\Emergency::class,
                             'origen_id' => $servicio['origen_id'] ?? $emergencyId,
                         ]);
-                        $total += $precio * ($servicio['cantidad'] ?? 1);
+                        $total = Money::add($total, Money::mul($precio, $servicio['cantidad'] ?? 1));
                     }
                 } else {
                     // Precio de emergencia (con fallback al sistema anterior)
@@ -283,7 +273,7 @@ class CuentaCobroService
                 // Actualizar totales y tipo de atención (más genérico)
                 $cuentaExistente->update([
                     'tipo_atencion' => 'multiple',
-                    'total_calculado' => $cuentaExistente->total_calculado + $total,
+                    'total_calculado' => Money::add($cuentaExistente->total_calculado, $total),
                 ]);
 
                 \Log::info('Cuenta unificada: Emergencia agregada a cuenta existente', [
@@ -317,15 +307,14 @@ class CuentaCobroService
                     $precio = $servicio['precio'] ?? 0;
                     $cuenta->detalles()->create([
                         'tipo_item' => $servicio['tipo'] ?? 'servicio',
-                        'tarifa_id' => $servicio['tarifa_id'] ?? null,
                         'descripcion' => $servicio['descripcion'] ?? 'Servicio de Emergencia',
                         'cantidad' => $servicio['cantidad'] ?? 1,
                         'precio_unitario' => $precio,
-                        'subtotal' => $precio * ($servicio['cantidad'] ?? 1),
+                        'subtotal' => Money::mul($precio, $servicio['cantidad'] ?? 1),
                         'origen_type' => $servicio['origen_type'] ?? null,
                         'origen_id' => $servicio['origen_id'] ?? null,
                     ]);
-                    $total += $precio * ($servicio['cantidad'] ?? 1);
+                    $total = Money::add($total, Money::mul($precio, $servicio['cantidad'] ?? 1));
                 }
             } else {
                 // Precio de emergencia (con fallback al sistema anterior)
@@ -387,15 +376,14 @@ class CuentaCobroService
                         $precio = $servicio['precio'] ?? 0;
                         $cuentaExistente->detalles()->create([
                             'tipo_item' => $servicio['tipo'] ?? 'servicio',
-                            'tarifa_id' => $servicio['tarifa_id'] ?? null,
                             'descripcion' => $servicio['descripcion'] ?? 'Servicio de Internación',
                             'cantidad' => $servicio['cantidad'] ?? 1,
                             'precio_unitario' => $precio,
-                            'subtotal' => $precio * ($servicio['cantidad'] ?? 1),
+                            'subtotal' => Money::mul($precio, $servicio['cantidad'] ?? 1),
                             'origen_type' => $servicio['origen_type'] ?? \App\Models\Hospitalizacion::class,
                             'origen_id' => $servicio['origen_id'] ?? $hospitalizacionId,
                         ]);
-                        $total += $precio * ($servicio['cantidad'] ?? 1);
+                        $total = Money::add($total, Money::mul($precio, $servicio['cantidad'] ?? 1));
                     }
                 } else {
                     // Precio de internación (con fallback al sistema anterior)
@@ -416,7 +404,7 @@ class CuentaCobroService
                 // Actualizar totales y tipo de atención (más genérico)
                 $cuentaExistente->update([
                     'tipo_atencion' => 'multiple',
-                    'total_calculado' => $cuentaExistente->total_calculado + $total,
+                    'total_calculado' => Money::add($cuentaExistente->total_calculado, $total),
                 ]);
 
                 \Log::info('Cuenta unificada: Internación agregada a cuenta existente', [
@@ -450,15 +438,14 @@ class CuentaCobroService
                     $precio = $servicio['precio'] ?? 0;
                     $cuenta->detalles()->create([
                         'tipo_item' => $servicio['tipo'] ?? 'servicio',
-                        'tarifa_id' => $servicio['tarifa_id'] ?? null,
                         'descripcion' => $servicio['descripcion'] ?? 'Servicio de Internación',
                         'cantidad' => $servicio['cantidad'] ?? 1,
                         'precio_unitario' => $precio,
-                        'subtotal' => $precio * ($servicio['cantidad'] ?? 1),
+                        'subtotal' => Money::mul($precio, $servicio['cantidad'] ?? 1),
                         'origen_type' => $servicio['origen_type'] ?? null,
                         'origen_id' => $servicio['origen_id'] ?? null,
                     ]);
-                    $total += $precio * ($servicio['cantidad'] ?? 1);
+                    $total = Money::add($total, Money::mul($precio, $servicio['cantidad'] ?? 1));
                 }
             } else {
                 // Precio de internación (con fallback al sistema anterior)
@@ -494,13 +481,12 @@ class CuentaCobroService
         string $descripcion,
         float $precioUnitario,
         float $cantidad = 1,
-        ?int $tarifaId = null,
         ?string $origenType = null,
         ?string $origenId = null,
         ?string $areaOrigen = null,
         ?int $userId = null
     ): CuentaCobroDetalle {
-        return DB::transaction(function () use ($cuentaCobroId, $tipoItem, $descripcion, $precioUnitario, $cantidad, $tarifaId, $origenType, $origenId, $areaOrigen, $userId) {
+        return DB::transaction(function () use ($cuentaCobroId, $tipoItem, $descripcion, $precioUnitario, $cantidad, $origenType, $origenId, $areaOrigen, $userId) {
             $cuenta = CuentaCobro::findOrFail($cuentaCobroId);
 
             // No permitir agregar cargos si ya está pagada completamente
@@ -508,11 +494,10 @@ class CuentaCobroService
                 throw new \Exception('No se pueden agregar cargos a una cuenta ya pagada');
             }
 
-            $subtotal = $precioUnitario * $cantidad;
+            $subtotal = Money::mul($precioUnitario, $cantidad);
 
             $detalle = $cuenta->detalles()->create([
                 'tipo_item' => $tipoItem,
-                'tarifa_id' => $tarifaId,
                 'descripcion' => $descripcion,
                 'cantidad' => $cantidad,
                 'precio_unitario' => $precioUnitario,
@@ -568,8 +553,10 @@ class CuentaCobroService
                     if ($lote->precio_venta && $lote->precio_venta > 0) {
                         $precioUnitario = (float) $lote->precio_venta;
                     } elseif ($lote->precio_compra !== null) {
-                        $g = (float) ($lote->porcentaje_ganancia ?? 0);
-                        $precioUnitario = round((float) $lote->precio_compra * (1 + $g / 100), 2);
+                        // precio_compra * (1 + ganancia/100) = precio_compra + (precio_compra * ganancia)/100
+                        $g = $lote->porcentaje_ganancia ?? 0;
+                        $margen = Money::div(Money::mul($lote->precio_compra, $g), 100);
+                        $precioUnitario = (float) Money::add($lote->precio_compra, $margen);
                     } else {
                         // fallback al precio_unitario pasado por quien llamó
                         $precioUnitario = (float) ($med['precio_unitario'] ?? 0);
@@ -589,7 +576,7 @@ class CuentaCobroService
                         'descripcion' => $descripcion,
                         'cantidad' => $aConsumir,
                         'precio_unitario' => $precioUnitario,
-                        'subtotal' => round($aConsumir * $precioUnitario, 2),
+                        'subtotal' => Money::mul($aConsumir, $precioUnitario),
                         'origen_type' => \App\Models\AlmacenLote::class,
                         'origen_id' => $lote->id,
                     ]);
@@ -624,7 +611,6 @@ class CuentaCobroService
             $descripcion,
             $precioPorDia,
             $dias,
-            null,
             \App\Models\Hospitalizacion::class,
             $hospitalizacionId
         );
@@ -637,8 +623,7 @@ class CuentaCobroService
         string $cuentaCobroId,
         string $cirugiaId,
         string $nombreCirugia,
-        float $precio,
-        ?int $tarifaId = null
+        float $precio
     ): CuentaCobroDetalle {
         return self::agregarCargo(
             $cuentaCobroId,
@@ -646,7 +631,6 @@ class CuentaCobroService
             'Cirugía: ' . $nombreCirugia,
             $precio,
             1,
-            $tarifaId,
             \App\Models\Cirugia::class,
             $cirugiaId
         );
@@ -659,16 +643,14 @@ class CuentaCobroService
         string $cuentaCobroId,
         string $tipo, // 'laboratorio' o 'imagenologia'
         string $nombreExamen,
-        float $precio,
-        ?int $tarifaId = null
+        float $precio
     ): CuentaCobroDetalle {
         return self::agregarCargo(
             $cuentaCobroId,
             $tipo,
             ucfirst($tipo) . ': ' . $nombreExamen,
             $precio,
-            1,
-            $tarifaId
+            1
         );
     }
 
@@ -803,38 +785,18 @@ class CuentaCobroService
     }
 
     /**
-     * Obtener precio de emergencia con fallback al sistema anterior (tarifas)
+     * Obtener precio de emergencia (fuente: IngresoPrecio, con fallback fijo)
      */
     private static function obtenerPrecioEmergencia(): float
     {
-        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('emergencia');
-
-        if ($precioNuevo !== null) {
-            return (float) $precioNuevo;
-        }
-
-        $tarifaEmergencia = Tarifa::where('codigo', 'EMG-BASE')
-            ->where('activo', true)
-            ->first();
-
-        return $tarifaEmergencia?->precio_particular ?? 200.00;
+        return (float) (\App\Models\IngresoPrecio::getPrecio('emergencia') ?? 200.00);
     }
 
     /**
-     * Obtener precio de internación con fallback al sistema anterior (tarifas)
+     * Obtener precio de internación (fuente: IngresoPrecio, con fallback fijo)
      */
     private static function obtenerPrecioInternacion(): float
     {
-        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('internacion');
-
-        if ($precioNuevo !== null) {
-            return (float) $precioNuevo;
-        }
-
-        $tarifaInternacion = Tarifa::where('codigo', 'HOSP-ADM')
-            ->where('activo', true)
-            ->first();
-
-        return $tarifaInternacion?->precio_particular ?? 150.00;
+        return (float) (\App\Models\IngresoPrecio::getPrecio('internacion') ?? 150.00);
     }
 }

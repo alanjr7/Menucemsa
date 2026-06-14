@@ -14,7 +14,6 @@ use App\Http\Controllers\InternacionStaffController;
 use App\Http\Controllers\InternacionMedicamentosController;
 use App\Http\Controllers\HabitacionApiController;
 use App\Http\Controllers\HabitacionGestionController;
-use App\Http\Controllers\HabitacionAsignacionController;
 use App\Http\Controllers\InternacionNurseController;
 use App\Http\Controllers\Admin\SeguroController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
@@ -22,7 +21,6 @@ use App\Http\Controllers\Admin\EspecialidadController;
 use App\Http\Controllers\Admin\DoctorController;
 use App\Http\Controllers\PatientsController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Admin\TarifarioController;
 use App\Http\Controllers\Gerencial\ReportesController;
 use App\Http\Controllers\Gerencial\KpiController;
 use App\Http\Controllers\Farmacia\FarmaciaDashboardController;
@@ -169,6 +167,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
             // Ruta para ver detalles de cirugía finalizada (solo lectura)
             Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetails'])->name('quirofano.show-details')->where('cita', '[0-9]+');
+            // Editar tipo de cirugía y costo extra (solo admin/administrador, no cirujano)
+            Route::put('/quirofano/{cita}/detalles', [QuirofanoController::class, 'actualizarDetalles'])->name('quirofano.detalles.update')->middleware('role:admin|administrador')->where('cita', '[0-9]+');
             // API para obtener siguiente número de quirófano
             Route::get('/api/quirofanos/next-number', [QuirofanoManagementController::class, 'getNextNumber'])->name('quirofanos.api.next-number');
         });
@@ -281,7 +281,6 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::post('/procesar-cobro', [CajaOperativaController::class, 'procesarCobro'])->name('procesar-cobro');
         Route::get('/resumen-dia', [CajaOperativaController::class, 'getResumenDia'])->name('resumen-dia');
         Route::get('/buscar-paciente', [CajaOperativaController::class, 'buscarPaciente'])->name('buscar-paciente');
-        Route::get('/tarifas', [CajaOperativaController::class, 'getTarifas'])->name('tarifas');
 
         // Comprobante de pago
         Route::get('/comprobante/{cuentaId}', [CajaOperativaController::class, 'comprobante'])->name('comprobante');
@@ -371,15 +370,6 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
             return view('admin.facturacion');
         })->name('facturacion.index');
 
-        Route::get('/tarifarios', [\App\Http\Controllers\Admin\TarifarioController::class, 'index'])->name('tarifarios');
-        Route::post('/tarifarios', [\App\Http\Controllers\Admin\TarifarioController::class, 'store'])->name('tarifarios.store');
-        Route::put('/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'update'])->name('tarifarios.update');
-        Route::delete('/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'destroy'])->name('tarifarios.destroy');
-
-        // API routes for tarifarios
-        Route::get('/api/tarifarios', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiIndex'])->name('tarifarios.api.index');
-        Route::get('/api/tarifarios/{tarifa}', [\App\Http\Controllers\Admin\TarifarioController::class, 'apiShow'])->name('tarifarios.api.show');
-
         Route::get('/ingreso-precios', [\App\Http\Controllers\Admin\IngresoPrecioController::class, 'index'])->name('ingreso-precios.index');
         Route::put('/ingreso-precios', [\App\Http\Controllers\Admin\IngresoPrecioController::class, 'update'])->name('ingreso-precios.update');
 
@@ -408,6 +398,12 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/reporte-morosidad', [CuentaCobrarController::class, 'getReporteMorosidad'])->name('cuentas.api.morosidad');
     });
 
+    // Edición de datos de paciente (admin, administrador y recepción)
+    Route::middleware(['role:admin|administrador|reception'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/pacientes/{id}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');
+        Route::put('/pacientes/{id}', [\App\Http\Controllers\PatientsController::class, 'update'])->name('patients.update');
+    });
+
     // Rutas de administración (admin y administrador) - Especialidades CRUD
     Route::middleware(['role:admin|administrador'])->prefix('admin')->name('admin.')->group(function () {
         // Dashboard principal del admin
@@ -430,9 +426,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/episodios/{id}/excel', [\App\Http\Controllers\Admin\EpisodioController::class, 'exportExcel'])->name('episodios.excel');
         Route::get('/episodios/{id}/pdf', [\App\Http\Controllers\Admin\EpisodioController::class, 'exportPdf'])->name('episodios.pdf');
 
-        // Edición y gestión de pacientes
-        Route::get('/pacientes/{id}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');
-        Route::put('/pacientes/{id}', [\App\Http\Controllers\PatientsController::class, 'update'])->name('patients.update');
+        // Gestión de cuenta de pacientes (solo admin/administrador)
         Route::get('/pacientes/{id}/cuenta', [\App\Http\Controllers\PatientsController::class, 'verCuenta'])->name('cuentas.show');
         Route::delete('/cuentas/{cuentaId}/detalles/{detalleId}', [\App\Http\Controllers\PatientsController::class, 'eliminarItemCuenta'])->name('cuentas.eliminar-item');
 
@@ -560,9 +554,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/almacen-medicamentos/transferir', [AlmacenMedicamentosController::class, 'transferirForm'])->name('almacen-medicamentos.transferir.form');
         Route::post('/almacen-medicamentos/transferir', [AlmacenMedicamentosController::class, 'procesarTransferencia'])->name('almacen-medicamentos.transferir.procesar');
 
-        // Agregar stock masivo al almacén central
-        Route::get('/almacen-medicamentos/agregar-stock', [AlmacenMedicamentosController::class, 'agregarStockForm'])->name('almacen-medicamentos.agregar-stock.form');
-        Route::post('/almacen-medicamentos/agregar-stock', [AlmacenMedicamentosController::class, 'procesarAgregarStock'])->name('almacen-medicamentos.agregar-stock.procesar');
+        // Ajuste de inventario del almacén central (conteo físico / mermas) — opera sobre lotes existentes
+        Route::get('/almacen-medicamentos/ajuste-inventario', [AlmacenMedicamentosController::class, 'ajusteInventarioForm'])->name('almacen-medicamentos.ajuste-inventario.form');
+        Route::post('/almacen-medicamentos/ajuste-inventario', [AlmacenMedicamentosController::class, 'procesarAjusteInventario'])->name('almacen-medicamentos.ajuste-inventario.procesar');
+
+        // Registrar un lote sobre un medicamento existente (ANTES del wildcard {id})
+        Route::get('/almacen-medicamentos/registrar-lote', [AlmacenMedicamentosController::class, 'loteForm'])->name('almacen-medicamentos.lote.form');
+        Route::post('/almacen-medicamentos/registrar-lote', [AlmacenMedicamentosController::class, 'loteStore'])->name('almacen-medicamentos.lote.store');
 
         // Importación masiva por Excel (ANTES de las rutas con wildcard {id})
         Route::get('/almacen-medicamentos/importar', [AlmacenMedicamentosController::class, 'importarForm'])->name('almacen-medicamentos.importar.form');
@@ -675,28 +673,14 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/dashboard', [InternacionStaffController::class, 'index'])->name('dashboard');
         Route::get('/procedimientos', [InternacionStaffController::class, 'procedimientos'])->name('procedimientos');
 
-        // Página de evaluación del paciente
-        Route::get('/evaluar/{id}', [InternacionStaffController::class, 'evaluar'])->name('evaluar');
-
-        // Página de historial del paciente
-        Route::get('/historial/{id}', [InternacionStaffController::class, 'historial'])->name('historial');
-
         // API routes
         Route::get('/api/internaciones', [InternacionStaffController::class, 'apiInternaciones'])->name('api.internaciones');
         Route::get('/api/estadisticas', [InternacionStaffController::class, 'apiEstadisticas'])->name('api.estadisticas');
         Route::post('/api/internacion/{id}/update-status', [InternacionStaffController::class, 'updateStatus'])->name('update-status');
         Route::post('/api/internacion/{id}/derivar-quirofano', [InternacionStaffController::class, 'derivarAQuirofano'])->name('derivar-quirofano');
-        Route::post('/api/internacion/{id}/alta', [InternacionStaffController::class, 'darAlta'])->name('alta');
 
-        // API Medicamentos para pacientes
-        Route::get('/api/medicamentos-disponibles', [InternacionStaffController::class, 'apiMedicamentosDisponibles'])->name('api.medicamentos-disponibles');
-        Route::get('/api/medicamentos/buscar', [InternacionStaffController::class, 'buscarMedicamentos'])->name('api.medicamentos.buscar');
-        Route::get('/api/internacion/{id}/medicamentos', [InternacionStaffController::class, 'apiMedicamentos'])->name('api.medicamentos');
-        Route::post('/api/internacion/{id}/medicamentos', [InternacionStaffController::class, 'storeMedicamento'])->name('api.medicamentos.store');
-
-        // API Catering
+        // API Catering (lectura usada por el dashboard)
         Route::get('/api/internacion/{id}/catering', [InternacionStaffController::class, 'apiCatering'])->name('api.catering');
-        Route::post('/api/internacion/{id}/catering', [InternacionStaffController::class, 'storeCatering'])->name('api.catering.store');
 
         // API Precios de Catering (gestión global)
         Route::get('/api/catering-precios', [InternacionStaffController::class, 'apiCateringPrecios'])->name('api.catering-precios');
@@ -709,20 +693,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // Gestión de Precios de Catering (Admin)
         Route::get('/catering/gestion', [InternacionStaffController::class, 'gestionCatering'])->name('catering.gestion');
 
-        // API Drenajes
-        Route::get('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'apiDrenajes'])->name('api.drenajes');
-        Route::post('/api/internacion/{id}/drenajes', [InternacionStaffController::class, 'storeDrenaje'])->name('api.drenajes.store');
-
-        // API Equipos Médicos
-        Route::get('/api/internacion/{id}/equipos-medicos', [InternacionStaffController::class, 'apiEquiposMedicos'])->name('api.equipos-medicos');
-
-        // API Receta/Diagnóstico
-        Route::post('/api/internacion/{id}/receta', [InternacionStaffController::class, 'updateReceta'])->name('api.receta.update');
+        // API Evolución
         Route::post('/api/internacion/{hospitalizacion}/evolucion', [MedicalHospitalizacionController::class, 'guardarEvolucion'])->name('api.internacion.evolucion');
-
-        // Historial General de Internaciones
-        Route::get('/historial-general', [InternacionStaffController::class, 'historialGeneral'])->name('historial-general');
-        Route::get('/export-historial', [InternacionStaffController::class, 'exportHistorial'])->name('export-historial');
 
         // Rutas para gestión de medicamentos de internación (admin, internacion, administrador y enfermera-internacion)
         Route::middleware(['role:admin|internacion|administrador|enfermera-internacion'])->group(function () {
@@ -753,9 +725,9 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/habitaciones/{habitacion}', [HabitacionApiController::class, 'show'])->name('api.habitaciones.show');
         Route::get('/api/pacientes-sin-habitacion', [HabitacionApiController::class, 'pacientesSinHabitacion'])->name('api.pacientes.sin-habitacion');
 
-        // Operaciones de asignación y liberación
-        Route::post('/habitaciones/{habitacion}/asignar-paciente', [HabitacionAsignacionController::class, 'asignarPaciente'])->name('habitaciones.asignar-paciente');
-        Route::post('/camas/{cama}/liberar', [HabitacionAsignacionController::class, 'liberarCama'])->name('camas.liberar');
+        // Asignación de cama / cobro de estadía: se hace en habitaciones.registro-uso.store
+        // (InternacionHabitacionUsoController). El antiguo HabitacionAsignacionController
+        // (asignar-paciente / camas.liberar) fue eliminado.
 
         // Rutas para gestión de enfermeras de internación (admin, internacion y administrador)
         Route::middleware(['role:admin|internacion|administrador'])->group(function () {

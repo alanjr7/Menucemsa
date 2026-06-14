@@ -18,6 +18,8 @@
             </div>
         </div>
         <div class="flex gap-3">
+            <a href="{{ route('admin.almacen-medicamentos.lote.form', ['catalogo_id' => $catalogo->id]) }}"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">+ Registrar Lote</a>
             <a href="{{ route('admin.almacen-medicamentos.edit', $catalogo) }}"
                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">Editar</a>
             <a href="{{ route('admin.almacen-medicamentos.index') }}"
@@ -28,6 +30,45 @@
     @if($catalogo->descripcion)
     <div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm text-gray-700">
         {{ $catalogo->descripcion }}
+    </div>
+    @endif
+
+    <!-- Identificación / Clasificación -->
+    @if($catalogo->nombre_generico || $catalogo->concentracion || $catalogo->forma_farmaceutica || $catalogo->categoria || $catalogo->codigo_atc || $catalogo->codigo_liname || $catalogo->requiere_receta)
+    <div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-3 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-sm font-semibold text-gray-700">Identificación y Clasificación</h3>
+        </div>
+        <dl class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 p-6 text-sm">
+            @if($catalogo->nombre_generico)
+            <div><dt class="text-xs text-gray-500 uppercase">Genérico</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->nombre_generico }}</dd></div>
+            @endif
+            @if($catalogo->concentracion)
+            <div><dt class="text-xs text-gray-500 uppercase">Concentración</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->concentracion }}</dd></div>
+            @endif
+            @if($catalogo->forma_farmaceutica)
+            <div><dt class="text-xs text-gray-500 uppercase">Forma farmacéutica</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->forma_farmaceutica }}</dd></div>
+            @endif
+            @if($catalogo->categoria)
+            <div><dt class="text-xs text-gray-500 uppercase">Categoría</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->categoria }}</dd></div>
+            @endif
+            @if($catalogo->codigo_atc)
+            <div><dt class="text-xs text-gray-500 uppercase">Código ATC</dt><dd class="text-gray-900 font-mono mt-0.5">{{ $catalogo->codigo_atc }}</dd></div>
+            @endif
+            @if($catalogo->codigo_liname)
+            <div><dt class="text-xs text-gray-500 uppercase">Código LINAME</dt><dd class="text-gray-900 font-mono mt-0.5">{{ $catalogo->codigo_liname }}</dd></div>
+            @endif
+            <div>
+                <dt class="text-xs text-gray-500 uppercase">Receta</dt>
+                <dd class="mt-0.5">
+                    @if($catalogo->requiere_receta)
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Requiere receta</span>
+                    @else
+                        <span class="text-gray-500">Venta libre</span>
+                    @endif
+                </dd>
+            </div>
+        </dl>
     </div>
     @endif
 

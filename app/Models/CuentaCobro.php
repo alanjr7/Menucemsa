@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use App\Support\Money;
 
 class CuentaCobro extends Model
 {
@@ -66,8 +67,9 @@ class CuentaCobro extends Model
      */
     public function getSaldoPendienteAttribute(): float
     {
-        $cobertura = $this->seguro_estado === 'autorizado' ? (float) $this->seguro_monto_cobertura : 0;
-        return max(0, (float) $this->total_calculado - $cobertura - (float) $this->total_pagado);
+        $cobertura = $this->seguro_estado === 'autorizado' ? $this->seguro_monto_cobertura : 0;
+        $saldo = Money::sub(Money::sub($this->total_calculado, $cobertura), $this->total_pagado);
+        return (float) Money::clampZero($saldo);
     }
 
     // Relaciones
@@ -245,7 +247,7 @@ class CuentaCobro extends Model
                 $grupos[$label] = ['items' => [], 'subtotal' => 0];
             }
             $grupos[$label]['items'][] = $detalle;
-            $grupos[$label]['subtotal'] += (float) $detalle->subtotal;
+            $grupos[$label]['subtotal'] = (float) Money::add($grupos[$label]['subtotal'], $detalle->subtotal);
         }
 
         return $grupos;
@@ -257,20 +259,20 @@ class CuentaCobro extends Model
         // Sólo los cargos activos (no deshabilitados) suman al total facturable
         $this->total_calculado = $this->detalles
             ->whereNull('deshabilitado_en')
-            ->sum('subtotal');
-        
+            ->reduce(fn ($acc, $d) => Money::add($acc, $d->subtotal), '0');
+
         if ($this->seguro_estado === 'autorizado' && $this->seguro) {
             $calculo = $this->seguro->calcularCobertura((float)$this->total_calculado);
             $this->seguro_monto_cobertura = $calculo['monto_cubierto'];
             $this->seguro_monto_paciente = $calculo['monto_paciente'];
         }
 
-        $cobertura = $this->seguro_estado === 'autorizado' ? (float) $this->seguro_monto_cobertura : 0;
-        $saldoPendiente = (float) $this->total_calculado - $cobertura - (float) $this->total_pagado;
-        
-        if ($saldoPendiente <= 0) {
+        $cobertura = $this->seguro_estado === 'autorizado' ? $this->seguro_monto_cobertura : 0;
+        $saldoPendiente = Money::sub(Money::sub($this->total_calculado, $cobertura), $this->total_pagado);
+
+        if (Money::cmp($saldoPendiente, 0) <= 0) {
             $this->estado = 'pagado';
-        } elseif ($this->total_pagado > 0 || $cobertura > 0) {
+        } elseif (Money::cmp($this->total_pagado, 0) > 0 || Money::cmp($cobertura, 0) > 0) {
             $this->estado = 'parcial';
         } else {
             $this->estado = 'pendiente';
@@ -290,7 +292,7 @@ class CuentaCobro extends Model
             $metodo = 'efectivo';
         }
 
-        $this->pagos()->create([
+        $pago = $this->pagos()->create([
             'monto' => $monto,
             'metodo_pago' => $metodo,
             'referencia' => $referencia,
@@ -298,8 +300,21 @@ class CuentaCobro extends Model
             'caja_session_id' => $this->caja_session_id,
         ]);
 
-        $this->total_pagado += $monto;
+        $this->total_pagado = Money::add($this->total_pagado, $monto);
         $this->recalcularTotales();
+
+        // Cuando este pago deja la cuenta totalmente saldada, los cargos del ciclo
+        // pendiente quedan "liquidados" y atados a este pago. Así un cargo agregado
+        // o restaurado después se cobra como saldo nuevo y el recibo no re-lista lo
+        // ya pagado. En pagos parciales no se liquida nada (todo sigue pendiente).
+        if ($this->estado === 'pagado') {
+            $this->detalles()
+                ->whereNull('liquidado_en')
+                ->update([
+                    'liquidado_en'      => now(),
+                    'liquidado_pago_id' => $pago->id,
+                ]);
+        }
     }
 
     // Generar código único

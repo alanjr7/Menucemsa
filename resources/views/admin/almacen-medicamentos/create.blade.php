@@ -103,6 +103,22 @@
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             </div>
                         </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Código ATC</label>
+                                <input type="text" name="codigo_atc" value="{{ old('codigo_atc') }}" maxlength="20"
+                                       placeholder="Ej: N02BE01"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg uppercase">
+                                <p class="text-xs text-gray-400 mt-1">Clasificación Anatómica Terapéutica Química</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Código LINAME</label>
+                                <input type="text" name="codigo_liname" value="{{ old('codigo_liname') }}" maxlength="20"
+                                       placeholder="Ej: N 02 08"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <p class="text-xs text-gray-400 mt-1">Lista Nacional de Medicamentos Esenciales</p>
+                            </div>
+                        </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                         <textarea name="descripcion" rows="2" placeholder="Descripción opcional del medicamento o insumo"

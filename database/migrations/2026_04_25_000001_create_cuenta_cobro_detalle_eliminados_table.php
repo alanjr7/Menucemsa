@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->string('cuenta_cobro_id');
             $table->enum('tipo_item', ['servicio', 'medicamento', 'procedimiento', 'estadia', 'laboratorio', 'imagenologia', 'farmacia', 'material', 'equipo_medico']);
-            $table->foreignId('tarifa_id')->nullable()->constrained('tarifas');
             $table->string('descripcion');
             $table->decimal('cantidad', 10, 2)->default(1);
             $table->decimal('precio_unitario', 10, 2);

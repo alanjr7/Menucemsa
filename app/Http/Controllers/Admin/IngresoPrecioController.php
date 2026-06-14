@@ -35,7 +35,7 @@ class IngresoPrecioController extends Controller
     {
         $validated = $request->validate([
             'precios' => 'required|array',
-            'precios.*' => 'nullable|numeric|min:0',
+            'precios.*' => 'nullable|numeric|decimal:0,2|min:0',
         ]);
 
         foreach ($validated['precios'] as $tipo => $precio) {

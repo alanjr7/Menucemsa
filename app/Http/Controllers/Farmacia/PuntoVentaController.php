@@ -9,6 +9,7 @@ use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
 use App\Models\Cliente;
 use App\Models\CajaDiaria;
+use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -65,7 +66,7 @@ class PuntoVentaController extends Controller
                 'items' => 'required|array|min:1',
                 'items.*.id' => 'required|integer',
                 'items.*.cantidad' => 'required|integer|min:1',
-                'items.*.precio' => 'required|numeric|min:0',
+                'items.*.precio' => Money::rules(),
                 'cliente_id' => 'nullable|exists:clientes,id',
                 'metodo_pago' => 'required|string|in:efectivo,tarjeta,transferencia,qr,credito',
                 'requiere_receta' => 'boolean',
@@ -127,7 +128,8 @@ class PuntoVentaController extends Controller
 
             $codigoVenta = VentaFarmacia::generarCodigoVenta();
 
-            $total = collect($validated['items'])->sum(fn($item) => $item['cantidad'] * $item['precio']);
+            $total = collect($validated['items'])
+                ->reduce(fn($acc, $item) => Money::add($acc, Money::mul($item['cantidad'], $item['precio'])), '0');
 
             $clienteNombre = 'Cliente General';
             if ($validated['cliente_id']) {
@@ -159,7 +161,7 @@ class PuntoVentaController extends Controller
                     'nombre_producto' => $catalogo->nombre ?? $item['id'],
                     'cantidad' => $item['cantidad'],
                     'precio_unitario' => $item['precio'],
-                    'subtotal' => $item['cantidad'] * $item['precio'],
+                    'subtotal' => Money::mul($item['cantidad'], $item['precio']),
                 ]);
 
                 $inventario->decrement('cantidad_actual', $item['cantidad']);

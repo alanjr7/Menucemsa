@@ -62,7 +62,7 @@ class InventarioController extends Controller
     {
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'precio' => 'required|numeric|min:0',
+            'precio' => 'required|numeric|decimal:0,2|min:0',
             'categoria' => 'required|string',
             'stock' => 'required|integer|min:0',
             'stockMinimo' => 'required|integer|min:0',
@@ -126,7 +126,7 @@ class InventarioController extends Controller
 
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'precio' => 'required|numeric|min:0',
+            'precio' => 'required|numeric|decimal:0,2|min:0',
             'categoria' => 'required|string',
             'stock' => 'required|integer|min:0',
             'stockMinimo' => 'required|integer|min:0',

@@ -71,7 +71,6 @@ class ConsolidarCuentasPaciente extends Command
                         CuentaCobroDetalle::create([
                             'cuenta_cobro_id' => $cuentaMaestra->id,
                             'tipo_item' => $detalle->tipo_item,
-                            'tarifa_id' => $detalle->tarifa_id,
                             'descripcion' => $detalle->descripcion . ' (consolidado de ' . $cuenta->id . ')',
                             'cantidad' => $detalle->cantidad,
                             'precio_unitario' => $detalle->precio_unitario,

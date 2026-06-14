@@ -68,7 +68,8 @@ class AjustesPacienteController extends Controller
         $paciente = Paciente::with('seguro')->findOrFail($id);
 
         $cuentas = CuentaCobro::with([
-                'detalles' => fn($q) => $q->orderBy('created_at', 'desc'),
+                // Opt-in: aquí SÍ queremos ver los cargos deshabilitados (en gris)
+                'detalles' => fn($q) => $q->conDeshabilitados()->orderBy('created_at', 'desc'),
                 'detalles.deshabilitadoPor',
                 'pagos',
             ])
@@ -89,8 +90,8 @@ class AjustesPacienteController extends Controller
         $validated = $request->validate([
             'descripcion' => 'required|string|max:255',
             'fecha'       => 'required|date',
-            'cantidad'    => 'required|numeric|min:0.01',
-            'monto'       => 'required|numeric|min:0',
+            'cantidad'    => 'required|numeric|decimal:0,2|min:0.01',
+            'monto'       => 'required|numeric|decimal:0,2|min:0',
         ], [], [
             'descripcion' => 'concepto',
             'monto'       => 'monto unitario',
@@ -122,7 +123,7 @@ class AjustesPacienteController extends Controller
      */
     public function deshabilitarCargo(Request $request, $detalleId)
     {
-        $detalle = CuentaCobroDetalle::findOrFail($detalleId);
+        $detalle = CuentaCobroDetalle::conDeshabilitados()->findOrFail($detalleId);
 
         $validated = $request->validate([
             'motivo' => 'nullable|string|max:255',
@@ -150,7 +151,7 @@ class AjustesPacienteController extends Controller
      */
     public function restaurarCargo($detalleId)
     {
-        $detalle = CuentaCobroDetalle::findOrFail($detalleId);
+        $detalle = CuentaCobroDetalle::conDeshabilitados()->findOrFail($detalleId);
 
         if ($detalle->estaDeshabilitado()) {
             $detalle->update([

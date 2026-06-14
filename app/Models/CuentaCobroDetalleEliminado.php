@@ -15,7 +15,6 @@ class CuentaCobroDetalleEliminado extends Model
     protected $fillable = [
         'cuenta_cobro_id',
         'tipo_item',
-        'tarifa_id',
         'descripcion',
         'cantidad',
         'precio_unitario',
@@ -44,11 +43,6 @@ class CuentaCobroDetalleEliminado extends Model
     public function usuarioEliminacion(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_eliminacion_id');
-    }
-
-    public function tarifa(): BelongsTo
-    {
-        return $this->belongsTo(Tarifa::class);
     }
 
     public function getTipoItemLabelAttribute(): string

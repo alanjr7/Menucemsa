@@ -1,0 +1,621 @@
+codigo	medicamento	concentracion	forma	m_res	atc
+J 05 01	Abacavir	300 mg	Comprimido		J05AF06
+J 05 02	Abacavir+Zidovudina+Lamivudina	300 mg+300 mg+150 mg	Comprimido		J05AF30
+A 06 01	Aceite mineral	40%	Emulsión oral		A06AG06
+A 11 01	Aceite vitaminado (alimento)	Según disponibilidad	Emulsión oral		A11CB**
+C 03 01	Acetazolamida	250 mg	Comprimido		C03**
+V 03 01	Acetil Cisteína	10%	Inyectable		V03AB23
+J 05 03	Aciclovir	200 mg	Comprimido		J05AB01
+J 05 04	Aciclovir	400 mg	Comprimido		J05AB01
+S 01 01	Aciclovir	3%	Crema o pomada oftálmica		S01AD03
+G 01 01	Acido acético (Acido tricloroacético)	50%	Solución tópica		G01AD02
+B 01 01	Acido acetil salicílico	100 mg	Comprimido		B01AC06
+N 02 01	Acido acetil salicílico	500 mg	Comprimido		N02BA01
+M 05 03	Acido Alendronico (Alendronato)	70 mg	Comprimido	R	M05BA04
+B 02 01	Acido aminocaproico	50 mg/ml (5ml)	Inyectable		B02AA01
+A 11 01	Acido Acetil Salicílico (Alendronato)	500 mg/ml (5ml)	Inyectable		A11CB**
+A 11 02	Acido Ascorbico (Vitamina C)	500 mg/ml (2 ml)	Inyectable		A11GA01
+A 11 03	Acido Ascórbico (Vitamina C)	Según disponibilidad	Solución oral		A11GA01
+B 03 01	Acido fólico	5 mg	Comprimido		B03BB01
+J 04 11	Acido p-aminosalicilico	4 g	Polvo oral		J04AA01
+D 01 01	Acido salicílico	5%	Solución tópica		D01AE12
+N 03 01	Acido Valpróico ó Valproato sódico	200 mg/5ml	Jarabe o Solución		N03AG01
+N 03 02	Acido Valpróico ó Valproato sódico	250 mg/5ml	Jarabe o Solución		N03AG01
+N 03 03	Acido Valpróico ó Valproato sódico	500 mg	Cápsula o Comprimido		N03AG01
+C 01 01	Adenosina	6 mg/2ml	Inyectable		C01EB10
+B 05 12	Agentes con gelatina	Según disponibilidad	Solucion parenteral de gran volumen		B05AA06
+B 05 01	Agua para inyección	5 ml	Inyectable		B05X**
+P 02 01	Albendazol	200 mg	Comprimido		P02CA03
+P 02 02	Albendazol	200 mg/5ml	Suspensión		P02CA03
+B 05 02	Albúmina humana	20%	Inyectable		B05AA01
+D 08 01	Alcohol etílico (Etanol)	70% o 90%	Solución		D08AX08
+V 06 02	Alimentos Terapéutico Listo para Uso (ATLU)	Según concentracion standard	Polvo, pasta o granulado según disponibilidad		V06DB**
+M 04 01	Alopurinol	300 mg	Comprimido		M04AA01
+N 05 01	Alprazolam	0,5 mg	Comprimido ranurado		N05BA12
+J 02 01	Amfotericina B	50 mg	Inyectable		J02AA01
+J 01 04	Amikacina	250 mg/ml (2ml)	Inyectable		J01GB06
+B 05 03	Aminoácidos	10%	Solucion parenteral de gran volumen		B05BA01
+R 03 01	Aminofilina	25 mg/ml	Inyectable		R03DA05
+R 03 02	Aminofilina	200 mg	Comprimido		R03DA05
+C 01 02	Amiodarona (clorhidrato)	200 mg	Comprimido		C01BD01
+C 01 03	Amiodarona (clorhidrato)	50 mg/ml	Inyectable		C01BD01
+N 06 01	Amitriptilina	25 mg	Comprimido		N06AA09
+C 08 07	Amlodipina	10mg	Comprimido		C08CA01
+J 01 05	Amoxicilina	1 g	Comprimido		J01CA04
+J 01 06	Amoxicilina	500 mg	Comprimido		J01CA04
+J 01 08	Amoxicilina	1 g	Inyectable		J01CA04
+J 01 57	Amoxicilina	500 mg/5 ml	Suspensión		J01CA04
+J 01 09	Amoxicilina+inhibidor betalactamasa	500 mg + Según disponibilidad	Comprimido	R	J01CR02
+J 01 10	Amoxicilina+inhibidor betalactamasa	250 mg + Según disponibilidad	Suspensión	R	J01CR02
+J 01 11	Amoxicilina+inhibidor betalactamasa	1 g + Según disponibilidad	Inyectable	R	J01CR02
+J 01 12	Ampicilina	1 g	Inyectable		J01CA01
+L 02 01	Anastrozol	1 mg	Comprimido		L02BG03
+R 05 01	Antigripal (Paracetamol + Antihistamínico + Vasoconstrictor con o sin Cafeina)	Según disponibilidad	Comprimido		R05XX**
+J 06 01	Antitóxina tetánica	Norma PAI según disponibilidad	Inyectable		J06AA02
+P 01 01	Artesunato	50 mg	Comprimido		P01BE03
+L 01 21	Asparaginasa	10.000 UI	Inyectable		L01XX02
+C 07 01	Atenolol	100 mg	Comprimido		C07AB03
+C 10 01	Atorvastatina	10 mg	Comprimido		C10AA05
+M 03 01	Atracurio besilato	10 mg/ml	Inyectable		M03AC04
+S 01 02	Atropina sulfato	1%	Solución oftálmica		S01FA01
+A 03 01	Atropina sulfato	1 mg/ml	Inyectable		A03BA01
+L 04 01	Azatioprina	50 mg	Comprimido		L04AX01
+L 04 02	Azatioprina	20 mg/ml	Inyectable		L04AX01
+J 01 13	Azitromicina	500 mg	Comprimido	R VIH	J01FA10
+J 01 62	Azitromicina	200mg/5ml	Suspension	R	J01FA10
+D 01 02	Bacitracina + Neomicina sulfato	500 UI+5 mg/g	Crema o pomada		D01AA20
+L 04 09	Basiliximab	200 mg	Polvo para inyectable	R Progr	L04AA09
+R 03 03	Beclometasona dipropionato	50 mcg/inhalación	Aerosol		R03BA01
+J 01 14	Bencilpenicilina benzatínica	600.000 UI	Inyectable		J01CE08
+J 01 15	Bencilpenicilina benzatínica	1.200.000 UI	Inyectable		J01CE08
+J 01 16	Bencilpenicilina benzatínica	2.400.000 UI	Inyectable		J01CE08
+J 01 17	Bencilpenicilina procaínica	400.000 UI	Inyectable		J01CE09
+J 01 18	Bencilpenicilina procaínica	800.000 UI	Inyectable		J01CE09
+J 01 19	Bencilpenicilina sódica	1.000.000 UI	Inyectable		J01CE01
+J 01 20	Bencilpenicilina sódica	30.000.000 UI	Inyectable		J01CE01
+P 01 02	Benznidazol	100 mg	Comprimido		P01CA02
+P 03 01	Benzoato de bencilo	20% o 25%	Solución o loción		P03AX01
+H 02 13	Betametasona (acetato fosfato)	Según disponibilidad	Inyectable		H02AB01
+H 02 01	Betametasona (fosfato)	4 mg	Inyectable	R	H02AB01
+D 07 01	Betametasona (valerato)	0,10%	Crema o pomada		D07AC01
+A 01 01	Bicarbonato de sodio	20 g	Polvo		A01AB11
+B 05 04	Bicarbonato de sodio	8%	Inyectable		B05XA02
+B 05 05	Bicarbonato de sodio p/hemodialisis	Frasco por 720 g	Polvo		B05CB04
+N 04 01	Biperideno clorhidrato	4 mg	Comprimido		N04AA02
+A 06 02	Bisacodilo	5 mg	Comprimido		A06AB02
+A 06 03	Bisacodilo	10 mg	Supositorio		A06AB02
+L 01 01	Bleomicina	15 UI	Inyectable		L01DC01
+G 02 01	Bromocriptina	2,5 mg	Comprimido		G02CB01
+G 02 02	Bromocriptina	5 mg	Comprimido		G02CB01
+N 01 01	Bupivacaina clorhidrato	0,50%	Inyectable		N01BB01
+N 01 02	Bupivacaina clorhidrato (pesada)	0,50%	Inyectable		N01BB01
+N 01 03	Bupivacaina clorhidrato con Epinefrina sin conservante	0,5% / 1:200.000	Inyectable		N01BB51
+L 01 02	Busulfano	2 mg	Comprimido		L01AB01
+A 03 02	Butilbromuro de Hioscina (Butilescopolamina)	10 mg	Comprimido		A03BB01
+A 03 03	Butilbromuro de Hioscina (Butilescopolamina)	0,10%	Solución oral gotas		A03BB01
+A 03 04	Butilbromuro de Hioscina (Butilescopolamina)	20 mg/ml	Inyectable		A03BB01
+A 03 05	Butilbromuro de Hioscina (Butilescopolamina)	10 mg	Supositorio		A03BB01
+A 12 01	Calcio (carbonato o citrato)	500 mg (ión calcio)	Comprimido		A12AA04
+A 12 02	Calcio + Vitamina D	500 mg (ión calcio) Según disponibilidad	Comprimido ó capsula		A12AX**
+L 01 03	Capecitabine	500 mg	Comprimido		L01BC06
+J 04 12	Capreomicina	1g	Inyectable		J04AB30
+N 03 04	Carbamazepina	200 mg	Comprimido		N03AF01
+N 03 05	Carbamazepina	2%	Jarabe		N03AF01
+A 07 01	Carbón medicinal activado	5 g	Polvo		A07BA01
+L 01 04	Carboplatino	450 mg	Inyectable		L01XA02
+L 01 32	Carboplatino	150 mg	Inyectable		L01XA02
+C 07 04	Carvedilol	6,25 mg	Comprimido		C07AG02
+C 07 05	Carvedilol	12,5 mg	Comprimido		C07AG02
+J 01 21	Cefazolina	1 g	Inyectable		J01DB04
+J 01 58	Cefixima	400 mg	Comprimido ó capsula	R	J01DD08
+J 01 63	Cefixima	100 mg / 5 ml	Suspensión		J01DD08
+J 01 22	Cefotaxima	1 g	Inyectable		J01DD01
+J 01 23	Cefradina	500 mg	Cápsula o Comprimido		J01DB09
+J 01 24	Cefradina	250 mg/5 ml	Suspensión		J01DB09
+J 01 25	Ceftazidima	1 g	Inyectable		J01DD02
+J 01 26	Ceftriaxona	1 g	Inyectable		J01DD04
+R 06 07	Cetirizina	10 mg	Comprimido o Cápsula		R06AE07
+R 06 08	Cetirizina	5 mg/ 5 ml	Jarabe		R06AE07
+A 11 04	Cianocobalamina (Vitamina B12)	1 mg/ml	Inyectable		A11EA**
+L 01 05	Ciclofosfamida	500 mg	Inyectable		L01AA01
+L 01 06	Ciclofosfamida	1 g	Inyectable		L01AA01
+L 01 07	Ciclofosfamida	50 mg	Comprimido		L01AA01
+J 04 01	Cicloserina	250 mg	Cápsula		J04AB01
+L 04 03	Ciclosporina	100 mg/ml	Solución oral		L04AA01
+L 04 04	Ciclosporina	100 mg	Cápsula blanda		L04AA01
+L 04 05	Ciclosporina	25 mg	Cápsula blanda		L04AA01
+L 04 06	Ciclosporina	50 mg	Cápsula blanda		L04AA01
+S 01 03	Ciclosporina	0,10%	Solución oftálmica		S01X**
+J 01 27	Ciprofloxacina	500 mg	Comprimido		J01MA02
+J 01 28	Ciprofloxacina	200 mg	Inyectable		J01MA02
+S 01 04	Ciprofloxacina	0,30%	Solución oftálmica		S01AX13
+L 02 02	Ciproterona (acetato)	50 mg	Comprimido		L02AX**
+G 03 01	Ciproterona acetato + Estradiol valerato	2 mg+1mg	Comprimido		G03HA01
+G 03 02	Ciproterona acetato + Estradiol valerato	0,035 mg+ 2 mg	Comprimido		G03HA01
+L 01 08	Cisplatino	10 mg	Inyectable		L01XA01
+L 01 09	Cisplatino	50 mg	Inyectable		L01XA01
+L 01 10	Citarabina	100 mg	Inyectable		L01BC01
+L 01 11	Citarabina	500 mg	Inyectable		L01BC01
+J 01 29	Claritromicina	500 mg	Comprimido	R	J01FA09
+J 01 30	Claritromicina	250 mg/5 ml	Suspensión	R	J01FA09
+J 01 31	Clindamicina	75 mg/5ml	Suspensión	R	J01FF01
+J 01 56	Clindamicina	300 mg	Comprimido	R	J01FF01
+J 01 64	Clindamicina	600 mg	Inyectable		J01FF01
+D 07 02	Clobetasol	0,05%	Crema o pomada		D07AD01
+D 07 03	Clobetasol	0,05%	Solución		D07AD01
+J 04 02	Clofazimina	50 mg	Cápsula		J04BA01
+G 03 03	Clomifeno citrato	50 mg	Comprimido		G03GB02
+N 06 02	Clomipramina	75 mg	Comprimido		N06AA04
+N 06 03	Clomipramina (clorhidrato)	25 mg/2ml	Inyectable		N06AA04
+N 03 06	Clonazepam	2 mg	Comprimido		N03AE01
+N 03 12	Clonazepam	2,5 mg/ ml	Solucion oral		N03AE01
+B 01 06	Clopidogrel	75 mg	Comprimido	R	B01AC04
+J 01 32	Cloranfenicol	500 mg	Cápsula		J01BA01
+S 01 05	Cloranfenicol	0,50%	Solución oftálmica		S01AA01
+S 01 06	Cloranfenicol	1%	Unguento		S01AA01
+J 01 33	Cloranfenicol succinato sódico	1 g	Inyectable		J01BA01
+R 06 01	Clorfenamina (Clorfeniramina)	4 mg	Comprimido		R06AB04
+R 06 02	Clorfenamina (Clorfeniramina)	2 mg/5ml	Jarabe		R06AB04
+R 06 03	Clorfenamina (Clorfeniramina)	10 mg/ml	Inyectable		R06AB04
+D 08 02	Clorhexidina gluconato	Según disponibilidad	Solución		D08AC02
+P 01 03	Cloroquina fosfato	250 mg (150 mg base)	Comprimido		P01BA01
+N 05 02	Clorpromazina	100 mg	Comprimido		N05AA01
+N 05 03	Clorpromazina	12,5 mg/ml	Inyectable		N05AA01
+B 05 06	Cloruro de potasio	20%	Inyectable		B05XA01
+A 12 03	Cloruro de potasio	1,3 mEq/ml	Solución oral		A12BA01
+B 05 07	Cloruro de sodio	20%	Inyectable		B05CB01
+D 01 03	Clotrimazol	1%	Crema o pomada		D01AC01
+G 01 02	Clotrimazol	100 mg	Ovulo		G01AF02
+G 01 03	Clotrimazol	1%	Crema vaginal		G01AF02
+J 01 34	Cloxacilina	500 mg	Inyectable		J01CF02
+J 01 36	Cloxacilina	1 g	Inyectable		J01CF02
+N 02 02	Codeína	30 mg	Comprimido		N02AA07
+R 05 02	Codeína	10 mg/5 ml	Jarabe		R05DA04
+M 04 02	Colchicina	0,5 mg	Comprimido		M04AC01
+A 11 05	Colecalciferol (Vitamina D3)	0,25 mcg	Comprimido		A11CC05
+A 11 06	Complejo B (B1+B6+B12)	Según concentración estandar	Comprimido		A11DB**
+A 11 07	Complejo B (B1+B6+B12)	Según concentración estandar	Inyectable		A11DB**
+A 11 08	Complejo de vitaminas y minerales (Uso pediatría)	Según disponibilidad	Polvo para	R	A11JC**
+V 08 01	Contraste iodado	Según disponibilidad (10 ml)	Inyectable		V08AB**
+V 08 02	Contraste iodado	Según disponibilidad (50 ml)	Inyectable		V08AB**
+V 08 03	Contraste iodado	Según disponibilidad (100 o 200)	Inyectable		V08AB**
+C 05 01	Corticoide + anestésico	Según disponibilidad	Supositorio		C05AX03
+C 05 02	Corticoide + anestésico	Según disponibilidad	Crema o pomada		C05AX03
+S 01 24	Corticoide + antiinfeccioso de accion tópica	Según disponibilidad	Solución oftálmica		S01CA01
+S 01 25	Corticoide + antiinfeccioso de accion tópica	Según disponibilidad	Unguento		S01CA01
+H 01 01	Corticotrofina (ACTH)	25 UI o 40 UI	Inyectable		H01AA01
+J 01 37	Cotrimoxazol (Sulfametoxazol - Trimetoprima)	800+160 mg	Comprimido		J01EE01
+J 01 38	Cotrimoxazol (Sulfametoxazol - Trimetoprima)	200+40 mg/5 ml	Suspensión		J01EE01
+J 01 39	Cotrimoxazol (Sulfametoxazol - Trimetoprima)	100 mg+20mg	Comprimido		J01EE01
+J 01 40	Cotrimoxazol (Sulfametoxazol - Trimetoprima)	400 mg+80mg	Comprimido		J01EE01
+J 01 60	Cotrimoxazol (Sulfametoxazol - Trimetoprima)	400 mg+80mg/5ml	Inyectable		J01EE01
+J 01 65	Cotrimoxazol (Sulfametoxazol - Trimetoprima)	400 mg+80mg/ 5 ml	Suspensión		J01EE01
+L 01 12	Dacarbazina	200 mg	Inyectable		L01AX04
+L 01 13	Dactinomicina	0,5 mg/ml	Inyectable		L01DA01
+J 04 03	Dapsona	100 mg	Comprimido		J04BA02
+V 03 02	Deferoxamina mesilato	500 mg	Inyectable		V03AC01
+H 01 02	Desmopresina acetato	0,1 mg/ml	Solución nasal		H01BA02
+S 01 09	Dexametasona	0,10%	Solución oftálmica		S01BA01
+S 01 10	Dexametasona	0,10%	Unguento o Pomada oftálmica		S01BA01
+H 02 02	Dexametasona	4 mg	Comprimido		H02AB02
+H 02 03	Dexametasona	0,5 mg	Comprimido		H02AB02
+H 02 04	Dexametasona	4 mg/ml	Inyectable		H02AB02
+B 05 08	Dextrán 70	6%	Solucion parenteral de gran volumen		B05AA05
+R 05 03	Dextrometorfano bromhidrato	10 mg/5 ml	Jarabe		R05DA09
+N 05 04	Diazepam	10 mg	Comprimido		N05BA01
+N 05 05	Diazepam	10 mg	Inyectable		N05BA01
+N 05 06	Diazepam	5 mg	Comprimido		N05BA01
+M 01 01	Diclofenaco	1%	Pomada o Gel		M01AB05
+M 01 02	Diclofenaco	50 mg	Comprimido		M01AB05
+M 01 03	Diclofenaco	75 mg	Inyectable		M01AB05
+S 01 11	Diclofenaco	0,10%	Solución oftálmica		S01BC03
+J 01 41	Dicloxacilina sódica	500 mg	Cápsula		J01CF01
+J 01 42	Dicloxacilina sódica	250 mg/5 ml	Suspensión		J01CF01
+J 01 43	Dicloxacilina sódica	250 mg	Cápsula o Comprimido		J01CF01
+J 05 05	Didanosina	400 mg	Cápsula o Comprimido		J05AF02
+J 05 06	Didanosina	250 mg	Cápsula o Comprimido		J05AF02
+J 05 07	Didanosina	20 mg/ml	Polvo para suspensión oral		J05AF02
+J 05 08	Didanosina	100 mg	Cápsula o Comprimido		J05AF02
+J 05 09	Didanosina	25 mg	Cápsula o Comprimido		J05AF02
+C 01 04	Digoxina	0,75 mg/ml	Solución oral		C01AA05
+C 01 05	Digoxina	0,25 mg/ml	Inyectable		C01AA05
+C 01 06	Digoxina	0,25 mg	Comprimido		C01AA05
+N 07 01	Dimenhidrinato	50 mg	Comprimido		N07X**
+N 07 02	Dimenhidrinato	50 mg	Supositorio		N07X**
+N 07 03	Dimenhidrinato	50 mg/ml	Inyectable		N07X**
+V 03 03	Dimercaprol (B.A.L.)	100 mg/ml	Inyectable		V03AB09
+C 01 07	Dinitrato de isosorbida (Isosorbide dinitrato)	5 mg	Comprimido		C01DA08
+N 07 04	Disulfiram	250 mg o 500 mg	Comprimido		N07BB01
+C 01 08	Dobutamina clorhidrato	250 mg	Inyectable		C01CA07
+A 03 06	Domperidona	10 mg	Comprimido		A03FA03
+C 01 09	Dopamina clorhidrato	200 mg	Inyectable		C01CA04
+S 01 12	Dorzolamida	2%	Solución oftálmica		S01EC03
+J 01 44	Doxiciclina	100 mg	Cápsula o Comprimido		J01AA02
+L 01 14	Doxorubicina clorhidrato (Adriamicina clorh.)	10 mg	Inyectable		L01DB01
+L 01 15	Doxorubicina clorhidrato (Adriamicina clorh.)	50 mg	Inyectable		L01DB01
+N 01 04	Droperidol	2,5 mg/ml	Inyectable		N01AX01
+V 03 04	Edetato sódico de calcio (EDTA)	20%	Inyectable		V03AB03
+J 05 10	Efavirenz	600 mg	Comprimido		J05AG03
+B 05 09	Emulsión de lípidos	Según disponibilidad	Emulsión		B05BA02
+C 09 01	Enalapril maleato	10 mg	Comprimido		C09AA02
+C 01 10	Epinefrina (Adrenalina)	1 mg/ml	Inyectable		C01CA24
+G 02 03	Ergometrina maleato	0,2 mg	Comprimido		G02AB03
+G 02 04	Ergometrina maleato	0,2 mg/ml	Inyectable		G02AB03
+N 02 03	Ergotamina tartrato + Cafeina	1 mg+100 mg	Comprimido		N02CA72
+D 10 01	Eritromicina	2% a 4%	Loción		D10AF02
+J 01 45	Eritromicina estearato	500 mg	Cápsula o Comprimido		J01FA01
+J 01 46	Eritromicina etilsuccinato	250 mg/5 ml	Suspensión		J01FA01
+B 03 02	Eritropoyetina	10.000 UI	Inyectable		B03XA01
+B 03 03	Eritropoyetina	4.000 UI	Inyectable		B03XA01
+C 03 02	Espironolactona	100 mg	Comprimido		C03DA01
+C 03 03	Espironolactona	25 mg	Comprimido		C03DA01
+J 05 11	Estavudina	40 mg	Cápsula o Comprimido		J05AF04
+J 05 12	Estavudina	30 mg	Cápsula o Comprimido		J05AF04
+J 05 13	Estavudina	1 mg/ml	Polvo para suspensión oral		J05AF04
+G 03 04	Estradiol + Noretisterona acetato	2 mg+1mg	Comprimido		G03FB05
+G 03 05	Estradiol valerianato + Norgestrel	2 mg+0,5 mg	Comprimido		G03FA10
+G 03 06	Estradiol valerianato + Prasterona enantato	4 mg+200 mg/ml	Inyectable		G03EA03
+J 04 04	Estreptomicina sulfato	1 g	Inyectable		J04AM**
+B 01 02	Estreptoquinasa	1.500.000 UI	Inyectable		B01AD01
+G 03 07	Estrógenos conjugados	0,625 mg	Comprimido		G03CA57
+G 03 08	Estrógenos conjugados	1,25 mg	Comprimido		G03CA57
+G 03 09	Estrógenos conjugados	0,625 mg	Crema vaginal		G03CA57
+J 04 05	Etambutol	400 mg	Comprimido	C	J04AK02
+B 02 03	Etamsilato	250 mg/2ml	Inyectable	R	B02BX01
+D 08 03	Eter alifático dietilamino etanol	1 l	Solución		D08AC**
+C 01 13	Etilefrina	10 mg/ml	Inyectable		C01CA01
+J 04 06	Etionamida	250 mg	Comprimido		J04AD03
+L 01 16	Etopósido	100mg/5ml	Inyectable		L01CB01
+N 03 07	Fenitoína	50 mg/ml	Inyectable		N03AB02
+N 03 08	Fenitoína	100 mg	Cápsula o Comprimido		N03AB02
+N 03 09	Fenobarbital	100 mg	Comprimido		N03AA02
+N 03 10	Fenobarbital	20 mg/ml	Gotas		N03AA02
+N 03 11	Fenobarbital	100 mg/ml	Inyectable		N03AA02
+N 01 05	Fentanilo con conservante	0,05 mg/ml	Inyectable		N01AH01
+N 01 06	Fentanilo sin conservante	0,05 mg/ml	Inyectable		N01AH01
+A 06 04	Fibra natural	Según disponibilidad	Polvo o granulado		A06AC07
+L 03 01	Filgrastrim	300 mcg/ml	Inyectable		L03AA02
+G 04 01	Finasteride	5 mg	Comprimido		G04CB01
+B 02 02	Fitomenadiona (Vitamina K1)	10 mg/ml	Inyectable		B02BA01
+J 02 02	Fluconazol	200 mg	Inyectable		J02AC01
+J 02 03	Fluconazol	150 mg	Comprimido		J02AC01
+V 03 05	Flumazenil	0,5 mg/5 ml	Inyectable		V03AB25
+S 01 13	Fluoresceína	10%	Inyectable		S01JA01
+S 01 14	Fluoresceína (sal sódica)	0,25%	Solución oftálmica		S01JA01
+L 01 17	Fluorouracilo	500mg/10ml	Inyectable		L01BC02
+A 01 02	Fluoruro de sodio	Según Programa	Gel o pasta		A01AA01
+A 12 04	Fluoruro de sodio	0,20%	Solución oral	Prog	A12CD01
+N 06 04	Fluoxetina	20 mg	Cápsula o Comprimido		N06AB03
+L 02 03	Flutamida	250 mg	Comprimido		L02BB01
+D 08 04	Formaldehido	40% p/v	Solución		D08AC**
+C 03 04	Furosemida	40 mg	Comprimido		C03CA01
+C 03 05	Furosemida	10 mg/ml	Inyectable		C03CA01
+N 03 13	Gabapentina	300 mg	Comprimido o capsula		N03AX12
+N 03 14	Gabapentina	600 mg	Comprimido o capsula		N03AX12
+V 08 04	Gadodiamida	287 mg/ml	Inyectable		V08CA03
+V 08 05	Gadopentato de dimeglumina	469 mg/ml	Inyectable		V08CA01
+L 01 18	Gemcitabine	1 g	Inyectable		L01BC05
+L 01 33	Gemcitabine	200 mg	Inyectable		L01BC05
+C 10 02	Genfibrozilo	600 mg	Comprimido		C10AB04
+S 01 15	Gentamicina	0,30%	Unguento		S01AA11
+S 01 16	Gentamicina	0,30%	Solución oftálmica		S01AA11
+J 01 48	Gentamicina sulfato	20 mg	Inyectable		J01GB03
+J 01 49	Gentamicina sulfato	80 mg	Inyectable		J01GB03
+A 10 01	Glibenclamida	5 mg	Comprimido		A10BB01
+S 02 01	Glicerina+carbonato de sodio	Según disponibilidad	Gotas óticas		S02DA30
+D 02 01	Glicerol (Glicerina bidestilada)	1 l	Solución		D02AX**
+A 06 05	Glicerol (Glicerina)	2 g a 4 g (adulto)	Supositorio		A06AX01
+A 06 06	Glicerol (Glicerina)	1 g a 1,80 g (infantil)	Supositorio		A06AX01
+B 05 10	Gluconato Cálcico (Calcio Gluconato)	10%	Inyectable		B05XA07
+G 03 10	Gonadotrofina coriónica	5.000 UI/ml	Inyectable		G03GA01
+J 02 04	Griseofulvina	500 mg	Comprimido		J02AX**
+J 02 05	Griseofulvina	125 mg/ 5 ml	Suspensión		J02AX**
+N 05 07	Haloperidol	2 mg/ml	Solución oral		N05AD01
+N 05 08	Haloperidol	5 mg	Comprimido		N05AD01
+N 05 09	Haloperidol decanoato	50 mg/ml	Inyectable		N05AD01
+N 01 07	Halotano	0,01% de timol	Solución		N01AB01
+B 01 03	Heparina de bajo peso molecular	Según disponibilidad	Inyectable	R	B01AB**
+B 01 04	Heparina sódica	5.000 UI/ml	Inyectable		B01AB01
+C 02 01	Hidralazina clorhidrato	50 mg	Comprimido		C02DB02
+C 02 02	Hidralazina clorhidrato	10 mg	Comprimido		C02DB02
+C 02 03	Hidralazina clorhidrato	20 mg/ml	Inyectable		C02DB02
+C 03 06	Hidroclorotiazida	50 mg	Comprimido		C03AA03
+C 03 07	Hidroclorotiazida+Amilorida	50 mg+5 mg	Comprimido		C03AX01
+D 07 04	Hidrocortisona acetato	1%	Crema o pomada		D07AA02
+H 02 05	Hidrocortisona succinato sódico	100 mg	Inyectable		H02AB09
+H 02 06	Hidrocortisona succinato sódico	250 mg	Inyectable		H02AB09
+D 11 01	Hidroquinona	4% o 5%	Loción		D11AX11
+D 11 02	Hidroquinona	4% o 5 %	Crema o pomada		D11AX11
+A 02 01	Hidroxido de aluminio y magnesio	01:01	Suspensión		A02AD01
+L 01 19	Hidroxiurea	500 mg	Cápsula		L01XX05
+B 03 04	Hierro	100 mg - IM/IV	Inyectable		B03AC02
+D 08 05	Hipoclorito de sodio	8%	Solución		D08AX07
+M 01 04	Ibuprofeno	100 mg/5 ml	Suspensión		M01AE01
+M 01 05	Ibuprofeno	400 mg	Comprimido		M01AE01
+L 01 20	Ifosfamida	1 g	Inyectable		L01AA06
+J 01 50	Imipenem + Cilastatina	500 mg+500 mg	Inyectable	R	J01DH51
+N 06 05	Imipramina clorhidrato	25 mg	Comprimido		N06AA02
+J 05 14	Indinavir	400 mg	Cápsula		J05AE02
+M 01 06	Indometacina	25 mg	Cápsula o Comprimido		M01AB01
+M 01 07	Indometacina	100 mg	Supositorio		M01AB01
+J 06 02	Inmunoglobulina anti D (RH +)	0,1 mg/ml o 0,2 mg/ml	Inyectable		J06BB01
+J 06 03	Inmunoglobulina humana normal	5 g IV	Inyectable		J06BA02
+A 10 02	Insulina recombinante humana NPH	100 UI/ml	Inyectable		A10AC01
+A 10 03	Insulina zinc cristalina recombinante humana	100 UI/ml	Inyectable		A10AB01
+L 03 02	Interferon alfa 2 b recombinante	10.000.000 UI con diluyente (1ml)	Inyectable		L03AB05
+L 03 03	Interferon alfa 2 b recombinante	3.000.000 UI con diluyente (1 ml)	Inyectable		L03AB05
+L 03 04	Interferon beta	0,3 mg	Inyectable		L03AB07
+D 08 06	Iodo (Yodo)	2%	Solución		D08AG03
+D 08 07	Iodo povidona (Yodopovidona)	10% - 500 g	Crema o pomada		D08AG02
+D 08 08	Iodo povidona (Yodopovidona)	10%	Solución		D08AG02
+V 03 06	Ipecacuana	7%	Jarabe		V03AB01
+R 03 09	Ipratropio bromuro	20 ug/dosis	Aerosol		R03BB01
+J 04 07	Isoniazida (INH)	100 mg	Comprimido	C	J04AC01
+C 01 11	Isosorbida Mononitrato	20 mg	Comprimido		C01DA14
+J 04 13	Kanamicina	1g	Inyectable		J01GB04
+N 01 08	Ketamina (Cetamina)	50 mg/ml	Inyectable		N01AX03
+J 02 06	Ketoconazol	200 mg	Comprimido		J02AB02
+J 02 07	Ketoconazol	100 mg/5 ml	Suspensión		J02AB02
+M 01 09	Ketorolaco	30 mg/ ml	Inyectable	R	M01AB15
+S 01 17	Ketotifeno	0,25 mg/ml	Solución oftálmica		S01GX08
+R 06 04	Ketotifeno	1 mg	Comprimido		R06AX17
+A 06 07	Lactulosa	65%	Solución oral		A06AD11
+S 01 18	Lágrimas artificiales	0,3% o 1%	Solución oftálmica		S01XA20
+S 01 26	Lágrimas artificiales	0,3% o 1%	Gel		S01XA20
+J 05 15	Lamivudina	150 mg	Comprimido		J05AF05
+J 05 16	Lamivudina	10 mg/ml	Jarabe ó Solución Oral		J05AF05
+L 02 04	Letrozol	2,5 mg	Comprimido		L02BG04
+V 03 07	Leucovorina	50 mg	Inyectable		V03AF03
+V 03 14	Leucovorina (Folinato de calcio)	15 mg	Comprimido		V03AF03
+N 04 02	Levodopa + Carbidopa	250 mg+25 mg	Comprimido		N04BA02
+G 03 11	Levonorgestrel	0,75 mg	Comprimido		G03AC03
+G 03 12	Levonorgestrel + Etinilestradiol	0,150 mg + 0,03 mg	Comprimido		G03FB09
+H 03 01	Levotiroxina sódica	0,1 mg	Comprimido		H03AA01
+D 04 01	Lidocaína	2%	Gel o jalea		D04AB01
+D 04 02	Lidocaína clorhidrato	10 mg	Solución para		D04AB01
+N 01 09	Lidocaina clorhidrato	2%	Cartucho dental		N01BB52
+N 01 10	Lidocaina clorhidrato + Epinefrina	2% / 1:200.000	Inyectable		N01BB52
+N 01 11	Lidocaina clorhidrato + Epinefrina	2% / 1:200.000	Cartucho dental		N01BB52
+N 01 12	Lidocaina clorhidrato sin conservante	2%	Inyectable		N01BB02
+N 05 10	Litio carbonato	300 mg	Cápsula		N05AN01
+A 07 02	Loperamida	2 mg	Cápsula o Comprimido		A07DA03
+J 05 17	Lopinavir+Ritonavir	133,3 mg+ 33,3 mg	Cápsula blanda		J05AE**
+C 09 02	Losartán	50 mg	Comprimido	R	C09CA01
+P 02 03	Mebendazol	100 mg	Comprimido		P02CA01
+P 02 04	Mebendazol	100 mg/5 ml	Suspensión		P02CA01
+P 02 05	Mebendazol	500 mg	Comprimido		P02CA01
+G 03 13	Medroxiprogesterona acetato	150 mg/ml	Inyectable		G03AC06
+G 03 14	Medroxiprogesterona acetato	10 mg	Comprimido		G03DA02
+P 01 04	Mefloquina (clorhidrato)	250 mg	Comprimido		P01BC02
+P 01 05	Meglumina antimoniato	1,5 g/5 ml	Inyectable		P01CB01
+V 08 06	Meglumina diatrizoato	70% o 76% (20 ml)	Inyectable		V08AA01
+V 08 07	Meglumina diatrizoato	70% o 76% (50 ml)	Inyectable		V08AA01
+L 01 22	Melfalán	2 mg	Comprimido		L01AA03
+L 01 23	Mercaptopurina	50 mg	Comprimido		L01BB02
+V 03 08	Mesna (Mercapto etilsulfonato sódico)	400 mg	Inyectable		V03AF01
+N 02 04	Metadona	5 mg	Comprimido		N02AC**
+N 02 05	Metamizol (Dipirona)	1 g	Inyectable		N02BB02
+A 10 04	Metformina	850 mg	Comprimido		A10BA02
+C 02 04	Metildopa (Alfametildopa)	500 mg	Comprimido		C02AB02
+N 06 06	Metilfenidato	10 mg	Comprimido		N06BA04
+H 02 07	Metilprednisolona succinato sódico	500 mg	Inyectable		H02AB04
+A 03 07	Metoclopramida	10 mg	Comprimido		A03FA01
+A 03 08	Metoclopramida	5 mg/ml (2 ml)	Inyectable		A03FA01
+A 03 09	Metoclopramida	0,35% o 0,5%	Solución oral		A03FA01
+L 01 24	Metotrexato	50 mg	Inyectable		L01BA01
+L 01 25	Metotrexato	500 mg	Inyectable		L01BA01
+L 01 26	Metotrexato	2,5 mg	Comprimido		L01BA01
+G 01 04	Metronidazol	500 mg	Ovulo		G01AF01
+P 01 06	Metronidazol	250 mg/5 ml	Suspensión		P01AB01
+P 01 07	Metronidazol	500 mg	Inyectable		P01AB01
+P 01 08	Metronidazol	125 mg/5 ml	Suspensión		P01AB01
+P 01 09	Metronidazol	500 mg	Comprimido		P01AB01
+L 04 07	Micofenolato de mofetilo	500 mg	Comprimido	R	L04AA06
+B 03 05	Micronutrientes (Vit. C+Vit A+Fe+Zn+Ac. Folico)	Según concentracion standard	Polvo		B03AE10
+N 05 11	Midazolam	5 mg/ml	Inyectable		N05CD08
+A 02 06	Misoprostol	200 mcg	Comprimido	R	A02BB01
+L 01 27	Mitomicina	20 mg	Inyectable		L01DC03
+M 03 02	Mivacuronio	200 mg	Inyectable		M03AC10
+N 02 06	Morfina	10 mg	Cápsula o Comprimido		N02AA01
+N 02 07	Morfina (con y sin conservante)	10 mg/ml	Inyectable		N02AA01
+A 11 09	Multivitaminas	Según concentración estandar	Comprimido		A11AA03
+A 11 10	Multivitaminas	Según concentración estandar	Jarabe		A11AA03
+S 01 19	Nafazolina clorhidrato	0,10%	Solución oftálmica		S01GA01
+V 03 09	Naloxona	0,4 mg/ml	Inyectable		V03AB15
+J 05 18	Nelfinavir	250 mg	Comprimido		J05AE04
+J 05 19	Nelfinavir	50 mg/g	Polvo		J05AE04
+N 07 05	Neostigmina	0,5 mg/ml	Inyectable		N07AA01
+J 05 20	Nevirapina	200 mg	Comprimido		J05AG01
+J 05 21	Nevirapina	10 mg/ml	Suspensión		J05AG01
+P 02 06	Niclosamida	500 mg	Comprimido		P02DA01
+C 08 08	Nifedipino	10 mg	Comprimido o capsula		C08CA05
+P 01 10	Nifurtimox	120 mg	Comprimido		P01CC01
+C 08 02	Nimodipina	30 mg	Cápsula		C08CA06
+C 08 03	Nimodipina	0,2 mg/ml	Inyectable		C08CA06
+G 01 05	Nistatina	100.000 UI	Ovulo		G01AA01
+A 07 03	Nistatina	500.000 UI	Comprimido		A07AA02
+D 01 04	Nistatina	100.000 UI/g	Crema o pomada		D01AAO1
+A 07 04	Nistatina	500.000 UI/ 5 ml	Suspensión		A07AA02
+P 01 11	Nitazoxanida	500 mg	Comprimido		P01AB**
+D 08 09	Nitrofural (Nitrofurazona)	0,2% (450 g)	Crema o pomada		D08AF01
+J 01 51	Nitrofurantoína	100 mg	Comprimido		J01XE01
+J 01 52	Nitrofurantoína	25 mg/5 ml	Suspensión		J01XE01
+C 01 12	Nitroglicerina (Trinitrato de glicerol)	5 mg/ml	Inyectable		C01DA02
+C 02 05	Nitroprusiato de sodio	25 mg/ml	Inyectable		C02DD01
+G 03 15	Noretisterona	5 mg	Comprimido		G03DC02
+G 03 16	Norgestrel + Etinilestradiol	0,3 mg+0,03 ó 0,5 mg+0,05 mg	Comprimido		G03FB01
+J 01 53	Ofloxacina	400 mg	Comprimido	R	J01MA01
+J 01 59	Ofloxacina	200 mg	Comprimido	R	J01MA01
+B 05 11	Oligoelementos para nutricion parenteral	Según disponibilidad	Solucion parenteral de gran volumen		B05BA10
+A 02 02	Omeprazol	20 mg	Cápsula		A02BC01
+A 02 05	Omeprazol	40 mg/ml	Inyectable	R	A02BC01
+A 04 01	Ondansetrón	8 mg	Inyectable		A04AA01
+A 04 02	Ondansetrón	8 mg	Comprimido		A04AA01
+L 01 34	Oxaliplatino	50 mg	Inyectable		L01XA03
+L 01 35	Oxaliplatino	100 mg	Inyectable		L01XA03
+D 02 02	Oxido de Zinc con o sin aceite	Según disponibilidad	Pasta o pomada		D02AB**
+V 03 10	Oxígeno	99%	Gas		V03AN01
+G 02 05	Oxitocina	5 UI/ml	Inyectable		G02AX**
+L 01 28	Paclitaxel	30 mg/ 5ml	Inyectable		L01CD01
+N 02 08	Paracetamol (Acetaminofeno)	500 mg	Comprimido		N02BE01
+N 02 09	Paracetamol (Acetaminofeno)	125 mg/5 ml o 120 mg/5 ml	Jarabe		N02BE01
+N 02 10	Paracetamol (Acetaminofeno)	100 mg/ml	Gotas		N02BE01
+N 02 11	Paracetamol (Acetaminofeno)	100 mg	Supositorio		N02BE01
+N 02 12	Paracetamol (Acetaminofeno)	100 mg	Comprimido		N02BE01
+M 01 08	Penicilamina	250 mg	Comprimido		M01CC01
+P 01 12	Pentamidina	200 mg	Inyectable		P01CX01
+P 01 13	Pentamidina	300 mg	Inyectable		P01CX01
+V 03 11	Permanganato de potasio	1:10.000	Solución acuosa		V03AB18
+P 03 02	Permetrina	1%	Loción		P03AC04
+P 03 03	Permetrina	5%	Crema o pomada		P03AC04
+D 10 02	Peróxido de Benzoílo	5%	Loción		D10AE01
+D 10 03	Peróxido de Benzoílo	5%	Crema o pomada		D10AE01
+D 08 10	Peróxido de hidrógeno (Agua oxigenada)	2% o 3%	Solución		D08AX01
+N 02 13	Petidina (Meperidina)	100 mg	Inyectable		N02AB02
+P 02 07	Pirantel pamoato	250 mg	Comprimido		P02CC01
+P 02 08	Pirantel pamoato	250 mg/5 ml	Suspensión		P02CC01
+J 04 08	Pirazinamida	500 mg	Comprimido	C	J04AK01
+A 11 11	Piridoxina clorhidrato (Vitamina B6)	300 mg	Comprimido		A11HA02
+A 11 12	Piridoxina clorhidrato (Vitamina B6)	300 mg	Inyectable		A11HA02
+P 01 14	Pirimetamina	25 mg	Comprimido		P01BD01
+V 03 12	Pralidoxima	1 g	Inyectable		V03AB04
+P 02 09	Prazicuantel	600 mg	Comprimido		P02BA01
+H 02 08	Prednisona	5 mg	Comprimido		H02AB07
+H 02 09	Prednisona	20 mg	Comprimido		H02AB07
+H 02 10	Prednisona	1 mg/ml	Suspensión		H02AB07
+P 01 15	Primaquina fosfato	26,3 mg (15 mg base)	Comprimido		P01BA03
+P 01 16	Primaquina fosfato	26,3 mg (15 mg base) / 5ml	Suspensión		P01BA03
+H 03 02	Propiltiouracilo	50 mg	Comprimido		H03BA02
+A 03 10	Propinoxato	10 mg	Comprimido		A03AC**
+A 03 11	Propinoxato	5 mg/ml	Inyectable		A03AC**
+N 01 13	Propofol	10 mg/ml	Inyectable		N01AX10
+C 07 02	Propranolol	40 mg	Comprimido		C07AA05
+C 07 03	Propranolol	1 mg/ml	Inyectable		C07AA05
+V 03 13	Protamina Sulfato	10 mg/ml	Inyectable		V03AB14
+V 06 01	Proteinas para alimentación enteral (alimento)	Según disponibilidad	Polvo		V06DB**
+S 01 20	Proximetacaina (Proparacaina)	0,50%	Solución oftálmica		S01HA04
+P 01 17	Quinina (bisulfato o sulfato)	300 mg	Comprimido		P01BC01
+P 01 18	Quinina (diclorhidrato)	600 mg	Inyectable		P01BC01
+A 02 03	Ranitidina	150 mg	Comprimido		A02BA02
+A 02 04	Ranitidina	50 mg	Inyectable		A02BA02
+N 01 16	Remifentanilo	5 mg	Inyectable		N01AH06
+D 06 01	Resina de Podofilo (Podofilina)	10% o 25%	Solución tópica		D06BB04
+D 10 04	Resorcinol	10%	Crema o pomada		D10AX02
+A 11 13	Retinol (Vitamina A)	10.000 UI	Cápsula o perla		A11CA01
+A 11 14	Retinol (Vitamina A)	25.000 UI	Cápsula o perla		A11CA01
+A 11 15	Retinol (Vitamina A)	100.000 UI	Cápsula o perla		A11CA01
+A 11 16	Retinol (Vitamina A)	200.000 UI	Cápsula o perla		A11CA01
+J 04 09	Rifampicina	100 mg/5 ml	Suspensión		J04AB02
+J 04 10	Rifampicina	300 mg	Cápsula o Comprimido		J04AB02
+J 04 14	Rifampicina + Isoniazida (INH)	300 mg +150 mg	Comprimido	C	J04AM02
+N 05 12	Risperidona	3 mg	Comprimido		N05AX08
+G 02 06	Ritodrina	10 mg	Comprimido		G02CA01
+G 02 07	Ritodrina	10 mg/ml	Inyectable		G02CA01
+J 05 22	Ritonavir	100 mg	Cápsula blanda		J05AE03
+M 03 03	Rocuronio bromuro	10 mg/ml	Inyectable		M03AC09
+R 03 04	Salbutamol	5 mg/ml	Solución para nebulización		R03AC02
+R 03 05	Salbutamol	4 mg	Comprimido		R03CC02
+R 03 06	Salbutamol	0,1 mg/inhalación	Aerosol		R03AC02
+A 07 06	Sales de rehidratación oral (SRO) baja	Según concentración estandar	Sobres		A07CA**
+R 03 11	Salmeterol + Fluticasona	25 mcg + 125 mcg	Aerosol		R03AK06
+N 01 14	Sevoflurano (Trifluorometil etil)	250 ml	Solución	R	N01AB08
+A 03 12	Simeticona	3% o 4%	Suspensión		A03AX13
+A 03 13	Simeticona	100 mg	Comprimido		A03AX13
+B 05 13	Solucion Acida	Según disponibilidad	Solución		B05Z**
+B 05 14	Solución Básica	Según disponibilidad	Solución		B05Z**
+B 05 15	Solución de glucosa	5% (500 ml)	Solucion parenteral de gran volumen		B05CX01
+B 05 16	Solución de glucosa	5% (1.000 ml)	Solucion parenteral de gran volumen		B05CX01
+B 05 17	Solución de glucosa	10% (500 ml)	Solucion parenteral de gran volumen		B05CX01
+B 05 18	Solución de glucosa	10% (1.000 ml)	Solucion parenteral de gran volumen		B05CX01
+B 05 19	Solución de glucosa	50% (500 ml)	Solucion parenteral de gran volumen		B05CX01
+B 05 20	Solución de glucosa	50% (20 ml)	Inyectable		B05CX01
+B 05 21	Solución de Manitol	20% (500 ml)	Solucion parenteral de gran volumen		B05CX04
+B 05 22	Solución Fisiologica	0,9% (500 ml)	Solucion parenteral de gran volumen		B05CB01
+B 05 23	Solución Fisiologica	0,9% (1.000 ml)	Solucion parenteral de gran volumen		B05CB01
+S 01 21	Solución Fisiológica	0,9% (15 a 30 ml)	Solución		S01X**
+B 05 24	Solución glucosada clorurada	500 ml	Solucion parenteral de gran volumen		B05CB10
+B 05 25	Solución glucosada clorurada	1.000 ml	Solucion parenteral de gran volumen		B05CB10
+B 05 26	Solución para dialisis peritoneal I	1.000 ml	Solucion parenteral de gran volumen		B05DB**
+B 05 27	Solución para dialisis peritoneal II	1.000 ml	Solucion parenteral de gran volumen		B05DB**
+B 05 29	Solución ringer lactato	500 ml	Solucion parenteral de gran volumen		B05XA30
+B 05 30	Solución ringer lactato	1.000 ml	Solucion parenteral de gran volumen		B05XA30
+B 05 31	Solución ringer normal	500 ml	Solucion parenteral de gran volumen		B05XA30
+B 05 32	Solución ringer normal	1.000 ml	Solucion parenteral de gran volumen		B05XA30
+J 06 04	Suero antiofidico polivalente	10 ml	Inyectable		J06AA03
+J 06 05	Suero antirrabico humano heterologo	Según disponibilidad	Inyectable		J06AA06
+D 06 02	Sulfadiazina de plata	1%	Crema o pomada		D06BA01
+P 01 19	Sulfadoxina + Pirimetamina	500 mg+25 mg	Comprimido		P01BD51
+V 08 08	Sulfato de bario	Según disponibilidad	Suspensión		V08BA02
+V 08 09	Sulfato de bario	Según disponibilidad	Polvo para enema		V08BA02
+B 05 33	Sulfato de magnesio	10%	Inyectable		B05XA05
+A 06 08	Sulfato de Magnesio	20 g a 30 g	Granulado		A06AD04
+B 03 06	Sulfato ferroso	200 mg	Comprimido		B03AA07
+B 03 07	Sulfato ferroso	125 mg/ml	Solución oral		B03AA07
+B 03 08	Sulfato ferroso + Ac. Fólico + Vitamina C	200 mg + 0,5 mg + 150 mg	Comprimido		B03AE10
+B 03 09	Sulfato ferroso + Ac. Fólico + Vitamina C	125 mg + 0,25mg + 30 mg	Solución oral		B03AE10
+R 07 01	Surfactante pulmonar	25 o 30 mg/ml	Inyectable		R07AA02
+M 03 04	Suxametonio (Succinil colina)	500 mg	Inyectable		M03AB01
+L 04 10	Tacrolimus	1 mg	Capsula	R	L04AA05
+L 04 08	Talidomida	100 mg	Comprimido	R	L04AX02
+L 02 05	Tamoxifeno	20 mg	Comprimido		L02BA01
+J 05 28	Tenofovir disoproxilo	245 mg (Equiv. a 300 mg como)	Compimido		J05AF07
+R 03 07	Teofilina	200 mg	Comprimido		R03DA04
+R 03 08	Teofilina	300 mg	Comprimido		R03DA04
+G 03 18	Testosterona undecanoato	1000 mg	Inyectable		G03BA03
+J 01 54	Tetraciclina	500 mg	Cápsula o Comprimido		J01AA07
+P 02 10	Tiabendazol	500 mg	Comprimido		P02CA02
+D 01 05	Tiabendazol	50 mg/g	Crema o pomada		D01AC06
+P 02 11	Tiabendazol	500 mg/5 ml	Suspensión		P02CA02
+A 11 17	Tiamina (Vitamina B 1)	300 mg	Comprimido		A11DA01
+A 11 18	Tiamina (Vitamina B 1)	100 mg/ml	Inyectable		A11DA01
+S 01 22	Timolol maleato	0,50%	Solución oftálmica		S01ED01
+N 01 15	Tiopental sódico	1 g	Inyectable		N01AF03
+N 05 13	Tioridazina	100 mg/5 ml	Suspensión		N05AC02
+N 05 14	Tioridazina	100 mg	Comprimido		N05AC02
+A 11 19	Tocoferol (Vitamina E)	1.000 UI	Cápsula blanda		A11HA03
+D 01 06	Tolnaftato	1%	Solución		D01AE18
+J 07 01	Toxoide tetanico adsorbido	120 UI/ml	Inyectable		J07AM01
+P 02 12	Triclabendazol	250 mg	Comprimido		P02BX04
+L 02 06	Triptorelina	3,75 mg	Inyectable		L02AE04
+L 02 07	Triptorelina	11,25 mg	Inyectable		L02AE04
+S 01 23	Tropicamida	1%	Solución oftálmica		S01FA06
+D 02 03	Unguento dérmico eucalipto mentol	Según disponibilidad	Unguento o Crema		D02AX**
+J 07 02	Vacuna antiamarilica	Norma PAI (20 dosis)	Inyectable		J07BL01
+J 07 03	Vacuna antiamarilica	Norma PAI (10 dosis)	Inyectable		J07BL01
+J 07 04	Vacuna antiamarilica	Norma PAI (5 dosis)	Inyectable		J07BL01
+J 07 05	Vacuna antihepatitis B	Norma PAI	Inyectable		J07BC01
+J 07 06	Vacuna antipoliomielitica trivalente (tipo Sabin)	Norma PAI (20 dosis)	Inyectable		J07BF02
+J 07 07	Vacuna antipoliomielitica trivalente (tipo Sabin)	Norma PAI (10 dosis)	Inyectable		J07BF02
+J 07 18	Vacuna Antirotavirica	Norma PAI Multidosis	Inyectable		J07BH01
+J 07 19	Vacuna Antirotavirica	Norma PAI (Unidosis)	Inyectable		J07BH01
+J 07 08	Vacuna antirrabica	Norma PAI	Inyectable		J07BG01
+J 07 09	Vacuna antisarampionosa	Norma PAI	Inyectable		J07BD01
+J 07 10	Vacuna antitetanica	Norma PAI	Inyectable		J07AM01
+J 07 11	Vacuna BCG	Norma PAI	Inyectable		J07AN01
+J 07 12	Vacuna doble DT (Difteria, Tetanos)	Norma PAI	Inyectable		J07AM51
+J 07 21	Vacuna Influenza Adulto	Norma PAI	Inyectable		J07X**
+J 07 20	Vacuna Influenza Pediatrica	Norma PAI	Inyectable		J07X**
+J 07 13	Vacuna pentavalente (DPT+Hep. B+H. Influenzae)	Norma PAI	Inyectable		J07X**
+J 07 14	Vacuna SR (Sarampion, Rubeola)	Norma PAI	Inyectable		J07BD53
+J 07 15	Vacuna SRP (Sarampion, Rubeola, Paperas)	Norma PAI Multidosis	Inyectable		J07BD01
+J 07 16	Vacuna SRP (Sarampion, Rubeola, Paperas)	Norma PAI (Unidosis)	Inyectable		J07BD01
+J 07 17	Vacuna Triple DPT (Difteria, Pertusis, Tetanos)	Norma PAI	Inyectable		J07X**
+J 05 29	Valganciclovir	450 mg	Comprimido		J05AB14
+J 01 55	Vancomicina	500 mg	Inyectable	R	J01XA01
+D 02 04	Vaselina liquida	1 l	Solución		D02AC**
+D 02 05	Vaselina sólida	1 kg	Pasta		D02AC**
+C 08 04	Verapamilo	80 mg	Comprimido		C08DA01
+C 08 05	Verapamilo	2,5 mg/ml	Inyectable		C08DA01
+C 08 06	Verapamilo	40 mg	Comprimido		C08DA01
+L 01 30	Vincristina	1 mg/ml	Inyectable		L01CA02
+L 01 31	Vinorelbina	50 mg	Inyectable		L01CA04
+D 01 07	Violeta de genciana (Cloruro de metilrosanilina)	1%	Solución		D01AE02
+B 01 05	Warfarina	5 mg	Comprimido		B01AA03
+J 05 23	Zidovudina	100 mg	Cápsula o Comprimido		J05AF01
+J 05 24	Zidovudina	10 mg/ml	Inyectable		J05AF01
+J 05 25	Zidovudina	10 mg/ml	Suspensión oral		J05AF01
+J 05 26	Zidovudina	300 mg	Cápsula o Comprimido		J05AF01
+J 05 27	Zidovudina + Lamivudina	300 mg+150 mg	Comprimido		J05AF30
+A 12 05	Zinc	20 mg/ 5ml	Jarabe		A12CB01
+A 12 06	Zinc	20 mg	Comprimido		A12CB01
+A 12 07	Zinc	10 mg/ 5ml	Jarabe		A12CB01

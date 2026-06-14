@@ -22,7 +22,6 @@ class Caja extends Model
         'total_dia',
         'tipo',
         'nro_factura',
-        'id_farmacia',
         'metodo_pago',
         'referencia',
         'estado',
@@ -31,7 +30,7 @@ class Caja extends Model
     protected $casts = [
         'id' => 'string',
         'fecha' => 'datetime',
-        'total_dia' => 'float',
+        'total_dia' => 'decimal:2',
         'nro_factura' => 'integer',
     ];
 
@@ -39,14 +38,6 @@ class Caja extends Model
      * @deprecated Tabla 'facturas' no existe. Usar CuentaCobro para cobros.
      */
     public function factura()
-    {
-        return $this;
-    }
-
-    /**
-     * @deprecated Usar VentaFarmacia con farmacia_id.
-     */
-    public function farmacia()
     {
         return $this;
     }

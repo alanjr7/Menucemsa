@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\Money;
 
 class Seguro extends Model
 {
@@ -49,30 +50,32 @@ class Seguro extends Model
 
     public function calcularCobertura(float $montoTotal): array
     {
-        $montoCubierto = 0;
-        $montoPaciente = $montoTotal;
+        $montoCubierto = '0';
+        $montoPaciente = Money::format($montoTotal);
 
         switch ($this->tipo_cobertura) {
             case 'porcentaje':
-                $montoCubierto = $montoTotal * ($this->cobertura_porcentaje / 100);
-                $montoPaciente = $montoTotal - $montoCubierto;
+                // (monto * porcentaje) / 100 — multiplicar antes de dividir
+                // para no redondear la tasa y perder precisión.
+                $montoCubierto = Money::div(Money::mul($montoTotal, $this->cobertura_porcentaje), 100);
+                $montoPaciente = Money::sub($montoTotal, $montoCubierto);
                 break;
 
             case 'solo_consulta':
-                $montoCubierto = $montoTotal;
-                $montoPaciente = 0;
+                $montoCubierto = Money::format($montoTotal);
+                $montoPaciente = '0';
                 break;
 
             case 'tope_monto':
-                $montoCubierto = min($montoTotal, $this->tope_monto);
-                $montoPaciente = $montoTotal - $montoCubierto;
+                $montoCubierto = Money::min($montoTotal, $this->tope_monto);
+                $montoPaciente = Money::sub($montoTotal, $montoCubierto);
                 break;
         }
 
         return [
-            'monto_total' => $montoTotal,
-            'monto_cubierto' => round($montoCubierto, 2),
-            'monto_paciente' => round($montoPaciente, 2),
+            'monto_total' => Money::format($montoTotal),
+            'monto_cubierto' => Money::round($montoCubierto),
+            'monto_paciente' => Money::round($montoPaciente),
         ];
     }
 

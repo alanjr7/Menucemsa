@@ -1,38 +1,38 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 bg-[#f8fafc] min-h-screen font-sans" x-data="contabilidad()" x-init="cargar()">
+<div class="p-4 sm:p-6 lg:p-8 bg-[#f8fafc] min-h-screen font-sans" x-data="contabilidad()" x-init="cargar()">
     <div class="w-full max-w-7xl mx-auto">
         <!-- Header -->
-        <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4 mb-6 sm:mb-8">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Contabilidad</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Contabilidad</h1>
                 <p class="text-gray-500 text-sm">Libro de caja — ingresos automáticos y egresos manuales</p>
             </div>
-            <div class="flex items-end gap-2">
-                <div>
+            <div class="flex flex-wrap items-end gap-2">
+                <div class="flex-1 min-w-[140px]">
                     <label class="block text-xs text-gray-500 mb-1">Desde</label>
                     <input type="date" x-model="filtros.fecha_inicio" @change="cargar()"
-                        class="border-gray-300 rounded-md text-sm">
+                        class="w-full border-gray-300 rounded-md text-sm">
                 </div>
-                <div>
+                <div class="flex-1 min-w-[140px]">
                     <label class="block text-xs text-gray-500 mb-1">Hasta</label>
                     <input type="date" x-model="filtros.fecha_fin" @change="cargar()"
-                        class="border-gray-300 rounded-md text-sm">
+                        class="w-full border-gray-300 rounded-md text-sm">
                 </div>
                 <a :href="urlExportar()"
-                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md h-[38px]">
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md h-[38px] whitespace-nowrap">
                     Exportar Excel
                 </a>
                 <a href="{{ route('caja.gestion.index') }}"
-                    class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md h-[38px]">
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md h-[38px]">
                     Volver
                 </a>
             </div>
         </div>
 
         <!-- Tarjetas resumen -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div class="bg-white shadow-sm rounded-lg p-5 border-l-4 border-green-500">
                 <p class="text-xs font-medium text-gray-500 uppercase">Total Ingresos</p>
                 <p class="text-2xl font-bold text-green-600">Bs. <span x-text="fmt(totales.ingresos)"></span></p>
@@ -52,9 +52,9 @@
 
         <!-- Gráfico ingresos vs egresos -->
         <div class="bg-white shadow-sm rounded-lg mb-6">
-            <div class="p-4 border-b border-gray-200 flex items-center gap-4">
+            <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <h3 class="text-lg font-medium text-gray-900">Ingresos vs Egresos por día</h3>
-                <div class="flex items-center gap-3 text-xs text-gray-500">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-green-500"></span>Ingresos caja</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-blue-500"></span>Ingresos farmacia</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500"></span>Egresos</span>
@@ -150,7 +150,8 @@
                         <h3 class="text-lg font-medium text-gray-900">Egresos del período</h3>
                         <span class="text-sm text-gray-500" x-text="egresos.length + ' registros'"></span>
                     </div>
-                    <div class="overflow-x-auto">
+                    <!-- Tabla (sm+) -->
+                    <div class="overflow-x-auto hidden sm:block">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -188,6 +189,30 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Tarjetas (móvil) -->
+                    <div class="sm:hidden divide-y divide-gray-100">
+                        <template x-for="e in egresos" :key="e.id">
+                            <div class="p-4 flex justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="font-medium text-gray-900" x-text="e.descripcion"></p>
+                                    <p class="text-xs text-gray-400" x-show="e.proveedor" x-text="e.proveedor"></p>
+                                    <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-gray-500">
+                                        <span x-text="e.fecha"></span>
+                                        <span>·</span>
+                                        <span x-text="e.categoria"></span>
+                                        <span>·</span>
+                                        <span class="capitalize" x-text="e.metodo_pago"></span>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <p class="font-semibold text-red-600 whitespace-nowrap">Bs. <span x-text="fmt(e.monto)"></span></p>
+                                    <button @click="eliminarEgreso(e)" class="text-gray-400 hover:text-red-600 mt-1 text-xl leading-none" title="Eliminar">&times;</button>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="!egresos.length" class="p-8 text-center text-gray-400">Sin egresos en el período</p>
+                    </div>
                 </div>
 
                 <!-- Ingresos por método -->
@@ -214,7 +239,8 @@
                         <h3 class="text-lg font-medium text-gray-900">Ingresos del período</h3>
                         <span class="text-sm text-gray-500" x-text="ingresos.length + ' registros'"></span>
                     </div>
-                    <div class="overflow-x-auto">
+                    <!-- Tabla (sm+) -->
+                    <div class="overflow-x-auto hidden sm:block">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -254,6 +280,37 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Tarjetas (móvil) -->
+                    <div class="sm:hidden divide-y divide-gray-100">
+                        <template x-for="i in ingresos" :key="i.id">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start gap-3">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                                :class="i.origen === 'Farmacia' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'"
+                                                x-text="i.origen"></span>
+                                            <span class="font-medium text-gray-900 truncate" x-text="i.paciente"></span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1" x-text="i.descripcion"></p>
+                                        <p class="text-xs text-gray-400" x-text="i.cuenta_id"></p>
+                                        <p class="text-xs text-gray-400" x-show="i.referencia" x-text="'Ref: ' + i.referencia"></p>
+                                    </div>
+                                    <p class="font-semibold text-green-600 whitespace-nowrap shrink-0">Bs. <span x-text="fmt(i.monto)"></span></p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-gray-500">
+                                    <span x-text="i.fecha"></span>
+                                    <span>·</span>
+                                    <span class="capitalize" x-text="i.metodo_pago"></span>
+                                    <template x-if="i.usuario">
+                                        <span class="flex items-center gap-2"><span>·</span><span x-text="i.usuario"></span></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="!ingresos.length" class="p-8 text-center text-gray-400">Sin ingresos en el período</p>
                     </div>
                 </div>
             </div>

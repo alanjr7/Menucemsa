@@ -123,7 +123,7 @@ class CuentaCobrarController extends Controller
      */
     public function apiIndex(): JsonResponse
     {
-        $cuentas = CuentaCobro::with(['paciente', 'detalles.tarifa', 'pagos'])
+        $cuentas = CuentaCobro::with(['paciente', 'detalles', 'pagos'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($cuenta) {
@@ -224,7 +224,7 @@ class CuentaCobrarController extends Controller
             }
 
             $validated = $request->validate([
-                'monto' => 'required|numeric|min:0.01',
+                'monto' => 'required|numeric|decimal:0,2|min:0.01',
                 'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr,cheque',
                 'referencia' => 'nullable|string|max:255',
             ]);

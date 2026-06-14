@@ -1,22 +1,22 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-6 bg-gray-50/50 min-h-screen">
+<div class="p-4 sm:p-6 bg-gray-50/50 min-h-screen">
     <!-- Header -->
-    <div class="flex justify-between items-end mb-8">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6 sm:mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Gestión de Enfermeras</h1>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Gestión de Enfermeras</h1>
             <p class="text-sm text-gray-500">Enfermeras del área de emergencia</p>
         </div>
-        <div class="flex gap-3">
-            <a href="{{ route('emergency-staff.auditoria') }}" class="flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all shadow-sm">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex flex-wrap gap-2 sm:gap-3">
+            <a href="{{ route('emergency-staff.auditoria') }}" class="flex-1 sm:flex-none justify-center flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all shadow-sm whitespace-nowrap">
+                <svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                 </svg>
                 Ver Auditoría
             </a>
-            <a href="{{ route('emergency-staff.enfermeras.create') }}" class="flex items-center px-4 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-all shadow-sm">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <a href="{{ route('emergency-staff.enfermeras.create') }}" class="flex-1 sm:flex-none justify-center flex items-center px-4 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-all shadow-sm whitespace-nowrap">
+                <svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
                 Nueva Enfermera
@@ -47,8 +47,8 @@
     </div>
     @endif
 
-    <!-- Tabla de Enfermeras -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <!-- Tabla de Enfermeras (lg+) -->
+    <div class="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -127,6 +127,80 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Tarjetas (móvil/tablet) -->
+    <div class="lg:hidden space-y-3">
+        @forelse($enfermeras as $enfermera)
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div class="flex justify-between items-start gap-3 mb-3">
+                <div class="min-w-0">
+                    <p class="font-semibold text-gray-900">{{ $enfermera->user?->name ?? 'N/A' }}</p>
+                    <p class="text-xs text-gray-500">CI: {{ $enfermera->ci }}</p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0 {{ $enfermera->estado === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                    {{ $enfermera->estado === 'activo' ? 'Activa' : 'Inactiva' }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-3">
+                <div class="min-w-0">
+                    <p class="text-[10px] text-gray-400 uppercase font-semibold">Email</p>
+                    <p class="text-gray-700 truncate">{{ $enfermera->user?->email ?? 'N/A' }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-400 uppercase font-semibold">Teléfono</p>
+                    <p class="text-gray-700">{{ $enfermera->telefono ?? 'No especificado' }}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-400 uppercase font-semibold">Turno</p>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        @if($enfermera->turno == 'mañana') bg-yellow-100 text-yellow-800
+                        @elseif($enfermera->turno == 'tarde') bg-orange-100 text-orange-800
+                        @else bg-indigo-100 text-indigo-800 @endif">
+                        {{ $enfermera->turno_label }}
+                    </span>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-400 uppercase font-semibold">Tipo</p>
+                    <p class="text-gray-700 capitalize">{{ $enfermera->tipo }}</p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-3 border-t border-gray-100">
+                <a href="{{ route('emergency-staff.enfermeras.permissions', $enfermera) }}" class="flex-1 flex items-center justify-center text-purple-600 bg-purple-50 hover:bg-purple-100 py-2 rounded-lg transition" title="Gestionar Permisos">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </a>
+                <a href="{{ route('emergency-staff.enfermeras.actividad', $enfermera) }}" class="flex-1 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg transition" title="Ver Actividad">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </a>
+                <a href="{{ route('emergency-staff.enfermeras.edit', $enfermera) }}" class="flex-1 flex items-center justify-center text-yellow-600 bg-yellow-50 hover:bg-yellow-100 py-2 rounded-lg transition" title="Editar">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </a>
+                <button onclick="toggleEstado({{ $enfermera->user_id }}, '{{ $enfermera->estado }}')" class="flex-1 flex items-center justify-center text-gray-600 bg-gray-50 hover:bg-gray-100 py-2 rounded-lg transition" title="Cambiar Estado">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        @empty
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <p class="text-gray-500 text-lg mb-2">No hay enfermeras registradas</p>
+            <a href="{{ route('emergency-staff.enfermeras.create') }}" class="text-red-600 hover:text-red-700 font-medium">
+                Registrar primera enfermera →
+            </a>
+        </div>
+        @endforelse
     </div>
 </div>
 

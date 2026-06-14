@@ -22,8 +22,7 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             //AlmacenInventarioSeeder::class,
             IpAccessSeeder::class,
-            //   MedicamentosOncologicosAntiinfecciososSeeder::class,
-            MedicamentosGeneralesSeeder::class,
+            LinameSeeder::class, // precarga catálogo de almacén con la LINAME (sin stock)
             CamillaSeeder::class,
             HabitacionSeeder::class,
             //QuirofanoSeeder::class,

@@ -17,6 +17,11 @@ return new class extends Migration
             $table->string('forma_farmaceutica')->nullable();
             $table->boolean('requiere_receta')->default(false);
             $table->string('categoria')->nullable();
+            // Clasificación oficial (LINAME Bolivia). codigo_atc = clasificación ATC (ej. J05AF06);
+            // codigo_liname = código de la Lista Nacional de Medicamentos Esenciales (ej. "J 05 01").
+            // No únicos: la fuente LINAME reusa códigos entre presentaciones.
+            $table->string('codigo_atc', 20)->nullable();
+            $table->string('codigo_liname', 20)->nullable();
             $table->text('descripcion')->nullable();
             $table->string('unidad_medida', 50)->default('unidades');
             $table->enum('tipo', ['medicamento', 'insumo'])->default('medicamento');
@@ -26,6 +31,8 @@ return new class extends Migration
 
             $table->index('nombre');
             $table->index(['tipo', 'activo']);
+            $table->index('codigo_atc');
+            $table->index('codigo_liname');
         });
     }
 

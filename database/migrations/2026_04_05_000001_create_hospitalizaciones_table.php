@@ -17,9 +17,6 @@ return new class extends Migration
             $table->integer('ci_medico')->nullable();
             $table->string('habitacion_id', 20)->nullable();
             $table->unsignedBigInteger('cama_id')->nullable();
-            $table->decimal('precio_cama_dia', 10, 2)->default(0);
-            $table->decimal('total_estancia', 10, 2)->default(0);
-            $table->unsignedBigInteger('cuenta_cobro_detalle_id')->nullable();
             $table->dateTime('fecha_ingreso');
             $table->dateTime('fecha_alta')->nullable();
             $table->text('diagnostico')->nullable();
@@ -29,13 +26,10 @@ return new class extends Migration
             $table->string('nro_emergencia', 30)->nullable();
             $table->string('contacto_nombre', 100)->nullable();
             $table->string('contacto_telefono', 20)->nullable();
-            $table->string('contacto_parentesco', 50)->nullable();
-            $table->string('contacto_relacion', 100)->nullable();
             $table->foreign('paciente_id')->references('id')->on('pacientes')->onDelete('set null');
             $table->foreign('ci_medico')->references('ci')->on('medicos')->onDelete('set null');
             $table->foreign('habitacion_id')->references('id')->on('habitaciones')->onDelete('set null');
             $table->foreign('cama_id')->references('id')->on('camas')->onDelete('set null');
-            $table->foreign('cuenta_cobro_detalle_id')->references('id')->on('cuenta_cobro_detalles')->onDelete('set null');
             $table->json('equipos_medicos')->nullable();
             $table->unsignedBigInteger('episodio_id')->nullable();
             $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();

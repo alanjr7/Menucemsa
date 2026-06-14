@@ -21,7 +21,6 @@ class Enfermera extends Model
         'tipo',
         'estado',
         'area',
-        'asistente_id',
         'turno',
     ];
 
@@ -139,7 +138,7 @@ class Enfermera extends Model
             // Define which permissions belong to which area
             $internacionPermissions = [
                 'ver_pacientes_internacion', 'administrar_medicamentos', 'administrar_catering',
-                'administrar_drenajes', 'cambiar_estados_internacion', 'derivar_a_uti',
+                'cambiar_estados_internacion', 'derivar_a_uti',
                 'dar_alta_internacion', 'ver_historial_internacion', 'editar_diagnostico'
             ];
             

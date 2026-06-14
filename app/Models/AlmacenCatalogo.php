@@ -11,7 +11,7 @@ class AlmacenCatalogo extends Model
     protected $table = 'almacen_catalogo';
 
     protected $fillable = [
-        'nombre', 'codigo_barras', 'nombre_generico', 'concentracion', 'forma_farmaceutica', 'categoria', 'descripcion', 'unidad_medida', 'tipo', 'activo', 'observaciones', 'requiere_receta',
+        'nombre', 'codigo_barras', 'nombre_generico', 'concentracion', 'forma_farmaceutica', 'categoria', 'codigo_atc', 'codigo_liname', 'descripcion', 'unidad_medida', 'tipo', 'activo', 'observaciones', 'requiere_receta',
     ];
 
     protected $casts = [

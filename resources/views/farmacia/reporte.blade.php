@@ -5,7 +5,7 @@
 @endpush
 
 @section('content')
-<div class="p-6 bg-[#f1f5f9] min-h-screen font-sans" x-data="reporteFarmacia()" x-init="init()">
+<div class="p-4 sm:p-6 bg-[#f1f5f9] min-h-screen font-sans" x-data="reporteFarmacia()" x-init="init()">
 
     {{-- HEADER --}}
     <div class="flex flex-wrap gap-4 justify-between items-start mb-6">
@@ -29,7 +29,7 @@
 
     {{-- FILTROS --}}
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
-        <div class="flex flex-wrap gap-2 items-end">
+        <div class="flex flex-col lg:flex-row lg:flex-wrap gap-3 lg:gap-2 lg:items-end">
             <div class="flex gap-1.5 flex-wrap">
                 <template x-for="(label, key) in periodos" :key="key">
                     <button @click="setPeriodo(key)"
@@ -41,13 +41,13 @@
                     </button>
                 </template>
             </div>
-            <div class="flex items-center gap-2 ml-auto flex-wrap">
-                <span class="text-xs text-slate-400 font-medium">Rango personalizado:</span>
+            <div class="flex flex-wrap items-center gap-2 lg:ml-auto">
+                <span class="text-xs text-slate-400 font-medium w-full lg:w-auto">Rango personalizado:</span>
                 <input type="date" x-model="desde"
-                       class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"/>
+                       class="flex-1 min-w-[130px] border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"/>
                 <span class="text-slate-400 text-sm">—</span>
                 <input type="date" x-model="hasta"
-                       class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"/>
+                       class="flex-1 min-w-[130px] border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"/>
                 <button @click="aplicarRango()"
                         class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
                     Aplicar
@@ -64,31 +64,31 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Ventas</p>
-            <p class="text-3xl font-black text-slate-800" x-text="fmt.num(data.totalVentas)">—</p>
+            <p class="text-2xl sm:text-3xl font-black text-slate-800" x-text="fmt.num(data.totalVentas)">—</p>
             <p class="text-xs text-slate-400 mt-1">En el período</p>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ingresos Totales</p>
-            <p class="text-3xl font-black text-emerald-600" x-text="'Bs. ' + fmt.money(data.ingresosTotales)">—</p>
+            <p class="text-2xl sm:text-3xl font-black text-emerald-600" x-text="'Bs. ' + fmt.money(data.ingresosTotales)">—</p>
             <p class="text-xs text-slate-400 mt-1" x-text="'Solo completadas: Bs. ' + fmt.money(data.ingresosCompletadas)"></p>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ticket Promedio</p>
-            <p class="text-3xl font-black text-slate-800" x-text="'Bs. ' + fmt.money(data.promedioPorVenta)">—</p>
+            <p class="text-2xl sm:text-3xl font-black text-slate-800" x-text="'Bs. ' + fmt.money(data.promedioPorVenta)">—</p>
             <p class="text-xs text-slate-400 mt-1">Por venta</p>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Completadas / Anuladas</p>
             <div class="flex items-baseline gap-2">
-                <p class="text-3xl font-black text-emerald-600" x-text="fmt.num(data.completadas)">—</p>
+                <p class="text-2xl sm:text-3xl font-black text-emerald-600" x-text="fmt.num(data.completadas)">—</p>
                 <span class="text-slate-400 font-bold text-lg">/</span>
-                <p class="text-3xl font-black text-red-500" x-text="fmt.num(data.anuladas)">—</p>
+                <p class="text-2xl sm:text-3xl font-black text-red-500" x-text="fmt.num(data.anuladas)">—</p>
             </div>
         </div>
     </div>
 
     {{-- KPI CARDS - FILA 2: INVENTARIO (server-side) --}}
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex justify-between items-center">
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Valor Inventario</p>
@@ -193,15 +193,15 @@
 
     {{-- TABLA VENTAS DETALLADAS --}}
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
-        <div class="p-5 border-b border-slate-100 flex flex-wrap gap-3 justify-between items-center">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:justify-between sm:items-center">
             <div>
                 <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Ventas Detalladas</h2>
                 <p class="text-xs text-slate-400 mt-0.5" x-text="'Mostrando ' + ventasFiltradas.length + ' registros'"></p>
             </div>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
                 <input type="text" x-model="busqueda" placeholder="Buscar por vendedor, cliente, producto..."
-                       class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-200"/>
-                <select x-model="filtroEstado" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                       class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-blue-200"/>
+                <select x-model="filtroEstado" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-blue-200">
                     <option value="">Todos los estados</option>
                     <option value="COMPLETADA">Completadas</option>
                     <option value="ANULADA">Anuladas</option>
@@ -280,7 +280,7 @@
             </table>
         </div>
         {{-- Paginación --}}
-        <div class="p-4 border-t border-slate-100 flex items-center justify-between">
+        <div class="p-4 border-t border-slate-100 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <p class="text-xs text-slate-400">
                 Página <span x-text="paginaActual"></span> de <span x-text="totalPaginas"></span>
                 &nbsp;·&nbsp; mostrando <span x-text="Math.min(pagSize, ventasFiltradas.length - (paginaActual-1)*pagSize)"></span> de <span x-text="ventasFiltradas.length"></span>

@@ -70,6 +70,13 @@
                             </div>
 
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Precio de Cirugía (Bs.) *</label>
+                                <input type="number" name="costo_base" id="costo_base_input" min="0" step="0.01" value="0"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                <p class="text-xs text-gray-500 mt-1">Precio base por la duración estándar del tipo. Si la cirugía se pasa de ese tiempo, se cobra un extra proporcional (regla de 3).</p>
+                            </div>
+
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Quirófano *</label>
                                 <select name="nro_quirofano" id="quirofano" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                     <option value="">Seleccionar quirófano...</option>
@@ -181,7 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function actualizarResumen() {
         const tipoCirugia = tipoCirugiaSelect.options[tipoCirugiaSelect.selectedIndex];
         const duracion = tipoCirugia ? parseInt(tipoCirugia.dataset.duracion) : 0;
-        const costo = tipoCirugia ? parseFloat(tipoCirugia.dataset.costo) : 0;
+        // El precio de la regla de 3 es el que ingresa el usuario, no el preset del tipo
+        const costo = parseFloat(document.getElementById('costo_base_input').value) || 0;
         const horaInicio = horaInicioInput.value;
         
         // Actualizar duración
@@ -200,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Actualizar costo
-        document.getElementById('costo_base').textContent = costo ? `$${costo.toFixed(2)}` : '$0.00';
+        document.getElementById('costo_base').textContent = costo ? `Bs. ${costo.toFixed(2)}` : 'Bs. 0.00';
         
         // Verificar disponibilidad
         verificarDisponibilidad();
@@ -257,8 +265,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Precargar el precio sugerido del tipo (editable por el usuario)
+    function prefillPrecio() {
+        const tipo = tipoCirugiaSelect.options[tipoCirugiaSelect.selectedIndex];
+        const costo = tipo ? parseFloat(tipo.dataset.costo) : 0;
+        if (costo) document.getElementById('costo_base_input').value = costo.toFixed(2);
+    }
+
     // Event listeners
-    tipoCirugiaSelect.addEventListener('change', actualizarResumen);
+    tipoCirugiaSelect.addEventListener('change', function () {
+        prefillPrecio();
+        actualizarResumen();
+    });
+    document.getElementById('costo_base_input').addEventListener('input', actualizarResumen);
     horaInicioInput.addEventListener('change', actualizarResumen);
     document.getElementById('quirofano').addEventListener('change', actualizarResumen);
     fechaInput.addEventListener('change', actualizarResumen);

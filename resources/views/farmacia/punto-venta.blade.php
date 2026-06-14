@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="h-[calc(100vh-64px)] overflow-hidden font-sans"
-     style="display:grid; grid-template-columns: 1fr 1fr 1fr;"
+<div class="flex flex-col lg:grid lg:grid-cols-3 h-[calc(100vh-64px)] overflow-hidden font-sans"
      x-data="posSystem()">
 
     {{-- ══════════════════════════════════════════════════════
          COLUMNA 1: Catálogo de productos
     ══════════════════════════════════════════════════════ --}}
-    <div class="flex flex-col overflow-hidden bg-[#f8fafc] border-r border-gray-200">
+    <div x-show="mobileView === 'productos'"
+         class="flex-1 min-h-0 lg:flex-none flex flex-col overflow-hidden bg-[#f8fafc] border-r border-gray-200 lg:!flex">
 
         {{-- Header + buscador --}}
         <div class="p-6 pb-3 border-b border-gray-100">
@@ -84,7 +84,8 @@
     {{-- ══════════════════════════════════════════════════════
          COLUMNA 2: Items del carrito
     ══════════════════════════════════════════════════════ --}}
-    <div class="flex flex-col overflow-hidden bg-white border-r border-gray-200">
+    <div x-show="mobileView === 'carrito'"
+         class="flex-1 min-h-0 lg:flex-none flex flex-col overflow-hidden bg-white border-r border-gray-200 lg:!flex">
 
         {{-- Header --}}
         <div class="p-5 pb-4 border-b border-gray-100 flex items-center gap-2">
@@ -158,7 +159,8 @@
     {{-- ══════════════════════════════════════════════════════
          COLUMNA 3: Método de pago, total y acciones
     ══════════════════════════════════════════════════════ --}}
-    <div class="flex flex-col overflow-hidden bg-white">
+    <div x-show="mobileView === 'pago'"
+         class="flex-1 min-h-0 lg:flex-none flex flex-col overflow-hidden bg-white lg:!flex">
 
         {{-- Header --}}
         <div class="p-5 pb-4 border-b border-gray-100">
@@ -264,6 +266,41 @@
         </div>
     </div>
 
+    {{-- ══════════════════════════════════════════════════════
+         Navegación por pestañas (solo móvil)
+    ══════════════════════════════════════════════════════ --}}
+    <div class="lg:hidden flex border-t border-gray-200 bg-white shrink-0">
+        <button @click="mobileView = 'productos'"
+                :class="mobileView === 'productos' ? 'text-blue-600 bg-blue-50' : 'text-gray-500'"
+                class="flex-1 py-2.5 flex flex-col items-center gap-0.5 text-[10px] font-bold transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+            Productos
+        </button>
+        <button @click="mobileView = 'carrito'"
+                :class="mobileView === 'carrito' ? 'text-blue-600 bg-blue-50' : 'text-gray-500'"
+                class="flex-1 py-2.5 flex flex-col items-center gap-0.5 text-[10px] font-bold transition-colors relative">
+            <span class="relative">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <span x-show="cart.length > 0"
+                      class="absolute -top-1.5 -right-2 bg-blue-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center"
+                      x-text="cart.length"></span>
+            </span>
+            Carrito
+        </button>
+        <button @click="mobileView = 'pago'"
+                :class="mobileView === 'pago' ? 'text-blue-600 bg-blue-50' : 'text-gray-500'"
+                class="flex-1 py-2.5 flex flex-col items-center gap-0.5 text-[10px] font-bold transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            Pago
+        </button>
+    </div>
+
 </div>
 
 <script>
@@ -278,6 +315,7 @@
             cart: [],
             ultimaVenta: null,
             mostrarImprimir: false,
+            mobileView: 'productos',
             init() {},
             get filteredProducts() {
                 if (!this.searchQuery) return this.productos;
@@ -357,6 +395,7 @@
                         this.cart = [];
                         this.selectedCliente = '';
                         this.requiereReceta = false;
+                        this.mobileView = 'productos';
                     } else {
                         alert('Error: ' + result.message);
                     }

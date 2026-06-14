@@ -235,7 +235,7 @@ class CajaGestionController extends Controller
         try {
             $cuenta = CuentaCobro::with([
                 'paciente',
-                'detalles.tarifa',
+                'detalles',
                 'pagos.user',
                 'cajaSession.user',
                 'referencia'
@@ -676,7 +676,6 @@ class CajaGestionController extends Controller
             CuentaCobroDetalleEliminado::create([
                 'cuenta_cobro_id'        => $detalle->cuenta_cobro_id,
                 'tipo_item'              => $detalle->tipo_item,
-                'tarifa_id'              => $detalle->tarifa_id,
                 'descripcion'            => $detalle->descripcion,
                 'cantidad'               => $detalle->cantidad,
                 'precio_unitario'        => $detalle->precio_unitario,

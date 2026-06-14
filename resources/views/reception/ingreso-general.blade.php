@@ -1107,6 +1107,20 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // Campos de teléfono: solo dígitos y símbolos válidos (+ - espacio ( ))
+    document.querySelectorAll('input[type="tel"]').forEach(function (el) {
+        el.setAttribute('inputmode', 'tel');
+        el.addEventListener('input', function () {
+            const start = this.selectionStart;
+            const cleaned = this.value.replace(/[^0-9+\-() ]/g, '');
+            if (this.value !== cleaned) {
+                const removed = this.value.length - cleaned.length;
+                this.value = cleaned;
+                try { this.setSelectionRange(start - removed, start - removed); } catch (e) {}
+            }
+        });
+    });
 });
 </script>
 

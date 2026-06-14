@@ -546,7 +546,6 @@ class IngresoGeneralController extends Controller
             $cuentaCobro->id,
             'servicio',
             'Admisión de Internación',
-            1,
             $precioAdmision
         );
 

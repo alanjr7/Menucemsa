@@ -20,9 +20,6 @@ class Hospitalizacion extends Model
         'ci_medico',
         'habitacion_id',
         'cama_id',
-        'precio_cama_dia',
-        'total_estancia',
-        'cuenta_cobro_detalle_id',
         'fecha_ingreso',
         'fecha_alta',
         'diagnostico',
@@ -32,8 +29,6 @@ class Hospitalizacion extends Model
         'nro_emergencia',
         'contacto_nombre',
         'contacto_telefono',
-        'contacto_parentesco',
-        'contacto_relacion',
         'equipos_medicos',
         'episodio_id',
     ];
@@ -42,8 +37,6 @@ class Hospitalizacion extends Model
         'fecha_ingreso' => 'datetime',
         'fecha_alta' => 'datetime',
         'ci_medico' => 'integer',
-        'precio_cama_dia' => 'decimal:2',
-        'total_estancia' => 'decimal:2',
         'equipos_medicos' => 'array',
     ];
 
@@ -108,11 +101,6 @@ class Hospitalizacion extends Model
         return $this->belongsTo(Cama::class, 'cama_id');
     }
 
-    public function cuentaCobroDetalle()
-    {
-        return $this->belongsTo(CuentaCobroDetalle::class, 'cuenta_cobro_detalle_id');
-    }
-
     public function episodio()
     {
         return $this->belongsTo(\App\Models\Episodio::class);
@@ -132,13 +120,19 @@ class Hospitalizacion extends Model
     }
 
     /**
-     * Calcular costo actual de estancia
+     * Costo de estancia real: suma de los cargos de estadía (CuentaCobroDetalle
+     * tipo 'estadia') del paciente. La estadía se cobra vía registro-uso, no sobre
+     * la hospitalización, por lo que el costo se deriva de la cuenta del paciente
+     * (los cargos deshabilitados quedan fuera por el global scope de CuentaCobroDetalle).
      */
     public function getCostoEstancia(): float
     {
-        $precio = $this->precio_cama_dia ?? 0;
-        $dias = $this->getDiasEstancia();
+        if (!$this->paciente_id) {
+            return 0.0;
+        }
 
-        return $dias * $precio;
+        return (float) CuentaCobroDetalle::estadia()
+            ->whereHas('cuentaCobro', fn ($q) => $q->where('paciente_id', $this->paciente_id))
+            ->sum('subtotal');
     }
 }

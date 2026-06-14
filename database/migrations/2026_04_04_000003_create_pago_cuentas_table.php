@@ -24,10 +24,21 @@ return new class extends Migration
             $table->index(['cuenta_cobro_id', 'created_at']);
             $table->index(['caja_session_id', 'created_at']);
         });
+
+        // Trazabilidad pago<->item: ya existe la columna liquidado_pago_id en
+        // cuenta_cobro_detalles (creada en 000002); su FK se agrega acá, una vez
+        // que pago_cuentas existe.
+        Schema::table('cuenta_cobro_detalles', function (Blueprint $table) {
+            $table->foreign('liquidado_pago_id')->references('id')->on('pago_cuentas')->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('cuenta_cobro_detalles', function (Blueprint $table) {
+            $table->dropForeign(['liquidado_pago_id']);
+        });
+
         Schema::dropIfExists('pago_cuentas');
     }
 };

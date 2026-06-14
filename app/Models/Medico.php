@@ -19,7 +19,6 @@ class Medico extends Model
         'user_id',
         'telefono',
         'estado',
-        'asistente_id',
         'codigo_especialidad',
     ];
 
@@ -32,11 +31,6 @@ class Medico extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function asistenteQuirofano()
-    {
-        return $this->belongsTo(AsistenteQuirofanos::class, 'asistente_id');
     }
 
     public function especialidad()

@@ -238,37 +238,6 @@ $hasPermission = function($permission) use ($userPermissions) {
             </div>
             @endif
 
-            <!-- Sección: Acciones Principales -->
-            <div class="mb-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Atención</h4>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <a id="linkEvaluar" href="#" class="group relative flex flex-col items-center p-3 bg-white border border-blue-200 rounded-lg hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/10 transition-all duration-200 text-center">
-                        <div class="w-9 h-9 bg-blue-50 group-hover:bg-blue-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                            </svg>
-                        </div>
-                        <span class="font-semibold text-slate-800 text-sm block mb-0.5">Evaluar Paciente</span>
-                        <span class="text-xs text-slate-500">Medicamentos y drenajes</span>
-                    </a>
-
-                    @if($hasPermission('ver_historial_internacion'))
-                    <a id="linkHistorial" href="#" class="group relative flex flex-col items-center p-3 bg-white border border-violet-200 rounded-lg hover:border-violet-400 hover:shadow-md hover:shadow-violet-500/10 transition-all duration-200 text-center">
-                        <div class="w-9 h-9 bg-violet-50 group-hover:bg-violet-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
-                            <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                        </div>
-                        <span class="font-semibold text-slate-800 text-sm block mb-0.5">Ver Historial</span>
-                        <span class="text-xs text-slate-500">Historial completo</span>
-                    </a>
-                    @endif
-                </div>
-            </div>
-
             <!-- Sección: Catering -->
             @if($hasPermission('administrar_catering') || empty($userPermissions))
             <div class="mb-4">
@@ -290,28 +259,7 @@ $hasPermission = function($permission) use ($userPermissions) {
             </div>
             @endif
 
-            <!-- Sección: Egreso -->
-            @if($hasPermission('dar_alta_internacion'))
-            <div>
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Egreso</h4>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="darAlta()" class="group relative flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-2 border-emerald-200 rounded-lg hover:border-emerald-400 hover:shadow-md hover:shadow-emerald-500/15 transition-all duration-200">
-                        <div class="w-9 h-9 bg-emerald-500 group-hover:bg-emerald-600 rounded-md flex items-center justify-center transition-colors duration-200 shadow-sm">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                            </svg>
-                        </div>
-                        <div class="text-left">
-                            <span class="font-bold text-emerald-800 text-base block">Dar de Alta</span>
-                            <span class="text-xs text-emerald-600">Paciente egresado</span>
-                        </div>
-                    </button>
-                </div>
-            </div>
-            @endif
+            {{-- Egreso: el alta se realiza en /patients-dar-de-alta (PatientsController::darDeAlta). --}}
         </div>
 
         <!-- Footer del Modal -->
@@ -537,12 +485,6 @@ $hasPermission = function($permission) use ($userPermissions) {
         if (internacionSeleccionada) {
             document.getElementById('modal-paciente-nombre').textContent = internacionSeleccionada.paciente_nombre;
             document.getElementById('modalAcciones').classList.remove('hidden');
-
-            // Actualizar link de evaluar
-            document.getElementById('linkEvaluar').href = `/internacion-staff/evaluar/${internacionSeleccionada.id}`;
-
-            // Actualizar link de historial
-            document.getElementById('linkHistorial').href = `/internacion-staff/historial/${internacionSeleccionada.id}`;
         }
     }
 
@@ -634,37 +576,6 @@ $hasPermission = function($permission) use ($userPermissions) {
         } catch (error) {
             console.error('Error:', error);
             alert('Error al derivar a Quirófano');
-        }
-    }
-
-    async function darAlta() {
-        if (!internacionSeleccionada) return;
-
-        const motivo = prompt('Ingrese el motivo del alta (opcional):');
-        if (motivo === null) return; // Usuario canceló
-
-        try {
-            const response = await fetch(`/internacion-staff/api/internacion/${internacionSeleccionada.id}/alta`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ motivo_alta: motivo })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                alert('Paciente dado de alta correctamente');
-                cerrarModal();
-                cargarInternaciones();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al dar alta');
         }
     }
 

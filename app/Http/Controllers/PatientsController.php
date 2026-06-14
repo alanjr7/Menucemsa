@@ -10,6 +10,7 @@ use App\Models\Emergency;
 use App\Models\AltaPaciente;
 use App\Services\EpisodioService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PatientsController extends Controller
@@ -300,7 +301,21 @@ class PatientsController extends Controller
     public function edit($id): View
     {
         $paciente = Paciente::findOrFail($id);
-        return view('patients.edit', compact('paciente'));
+        $backUrl = $this->urlVolverPaciente();
+        return view('patients.edit', compact('paciente', 'backUrl'));
+    }
+
+    /**
+     * Destino de "volver" tras ver/editar un paciente segun el rol:
+     * admin/administrador vuelven a la gestion; recepcion a su listado.
+     */
+    private function urlVolverPaciente(): string
+    {
+        $user = auth()->user();
+        if ($user && in_array($user->role, ['admin', 'administrador'], true)) {
+            return route('admin.pacientes.gestionar');
+        }
+        return route('reception.pacientes.index');
     }
 
     /**
@@ -323,12 +338,11 @@ class PatientsController extends Controller
             'estado_civil' => 'nullable|string|max:50',
             'profesion' => 'nullable|string|max:100',
             'empresa_trabajo' => 'nullable|string|max:255',
-            'codigo_seguro' => 'nullable|string|max:50',
         ]);
 
         $paciente->update($validated);
 
-        return redirect()->route('admin.pacientes.gestionar')
+        return redirect()->to($this->urlVolverPaciente())
             ->with('success', 'Información del paciente actualizada correctamente.');
     }
 
@@ -338,21 +352,30 @@ class PatientsController extends Controller
     public function verCuenta($id): View
     {
         $paciente = Paciente::findOrFail($id);
-        
+
         $cuentas = \App\Models\CuentaCobro::with(['detalles', 'pagos'])
             ->where('paciente_id', $paciente->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.pacientes.cuenta', compact('paciente', 'cuentas'));
+        // Historial de ítems eliminados (auditoría: hora / quién / qué), agrupado por cuenta
+        $eliminados = \App\Models\CuentaCobroDetalleEliminado::with('usuarioEliminacion')
+            ->whereIn('cuenta_cobro_id', $cuentas->pluck('id'))
+            ->orderBy('eliminado_en', 'desc')
+            ->get()
+            ->groupBy('cuenta_cobro_id');
+
+        return view('admin.pacientes.cuenta', compact('paciente', 'cuentas', 'eliminados'));
     }
 
     /**
      * Eliminar item de cuenta
      */
-    public function eliminarItemCuenta($cuentaId, $detalleId)
+    public function eliminarItemCuenta(Request $request, $cuentaId, $detalleId)
     {
-        $detalle = \App\Models\CuentaCobroDetalle::find($detalleId);
+        $request->validate(['motivo' => 'required|string|max:500']);
+
+        $detalle = \App\Models\CuentaCobroDetalle::with('cuentaCobro')->find($detalleId);
 
         if (!$detalle) {
             return redirect()->back()
@@ -361,17 +384,41 @@ class PatientsController extends Controller
 
         $cuenta = $detalle->cuentaCobro;
 
-        // Eliminar el detalle
-        $detalle->delete();
-
-        // Recalcular total de la cuenta
-        if ($cuenta) {
-            $nuevoTotal = $cuenta->detalles()->sum('subtotal');
-            $cuenta->update(['total' => $nuevoTotal]);
+        // No se puede eliminar de una cuenta ya pagada (rompería liquidación/recibos)
+        if ($cuenta && $cuenta->estado === 'pagado') {
+            return redirect()->back()
+                ->with('error', 'No se puede eliminar ítems de una cuenta ya pagada.');
         }
-        
+
+        DB::transaction(function () use ($detalle, $cuenta, $request) {
+            // Registrar en historial de auditoría (hora / quién / qué) antes de borrar
+            \App\Models\CuentaCobroDetalleEliminado::create([
+                'cuenta_cobro_id'        => $detalle->cuenta_cobro_id,
+                'tipo_item'              => $detalle->tipo_item,
+                'descripcion'            => $detalle->descripcion,
+                'cantidad'               => $detalle->cantidad,
+                'precio_unitario'        => $detalle->precio_unitario,
+                'subtotal'               => $detalle->subtotal,
+                'origen_type'            => $detalle->origen_type,
+                'origen_id'              => $detalle->origen_id,
+                'area_origen'            => $detalle->area_origen,
+                'observaciones'          => $detalle->observaciones,
+                'usuario_eliminacion_id' => auth()->id(),
+                'motivo_eliminacion'     => $request->motivo,
+                'eliminado_en'           => now(),
+            ]);
+
+            $detalle->delete();
+
+            // Recalcular totales/estado con la fuente única de verdad del modelo
+            if ($cuenta) {
+                $cuenta->load('detalles');
+                $cuenta->recalcularTotales();
+            }
+        });
+
         return redirect()->back()
-            ->with('success', 'Item eliminado correctamente.');
+            ->with('success', 'Item eliminado y registrado en el historial.');
     }
 
     /**
@@ -465,19 +512,33 @@ class PatientsController extends Controller
             'observaciones' => 'nullable|string|max:1000',
         ]);
 
-        AltaPaciente::create([
-            'paciente_id'       => $paciente->id,
-            'dado_de_alta_por'  => auth()->id(),
-            'motivo_alta'       => $validated['motivo_alta'],
-            'observaciones'     => $validated['observaciones'] ?? null,
-            'fecha_alta'        => now(),
-        ]);
+        DB::transaction(function () use ($paciente, $validated) {
+            AltaPaciente::create([
+                'paciente_id'       => $paciente->id,
+                'dado_de_alta_por'  => auth()->id(),
+                'motivo_alta'       => $validated['motivo_alta'],
+                'observaciones'     => $validated['observaciones'] ?? null,
+                'fecha_alta'        => now(),
+            ]);
 
-        EpisodioService::cerrarEpisodioDelPaciente(
-            $paciente->id,
-            auth()->id(),
-            $validated['motivo_alta']
-        );
+            EpisodioService::cerrarEpisodioDelPaciente(
+                $paciente->id,
+                auth()->id(),
+                $validated['motivo_alta']
+            );
+
+            // Sincronizar el estado de la internación con el alta. La fuente de verdad
+            // del alta es AltaPaciente; aquí cerramos la hospitalización activa para que
+            // los conteos de "internación activa" y los KPIs reflejen el egreso (antes
+            // quedaban en estado 'activo' para siempre porque nadie los cerraba).
+            Hospitalizacion::where('paciente_id', $paciente->id)
+                ->whereNull('fecha_alta')
+                ->where('estado', '!=', 'trasladado')
+                ->update([
+                    'fecha_alta' => now(),
+                    'estado'     => $validated['motivo_alta'] === 'traslado' ? 'trasladado' : 'alta',
+                ]);
+        });
 
         return redirect()->route('patients.dar-de-alta.index')
             ->with('success', "Paciente {$paciente->nombre} dado de alta correctamente.");

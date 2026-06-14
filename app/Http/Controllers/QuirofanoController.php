@@ -293,7 +293,9 @@ class QuirofanoController extends Controller
                 'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
                 'fecha' => 'required|date|after_or_equal:today',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
-                'costo_base' => 'required|numeric|min:0',
+                'costo_base' => 'required|numeric|decimal:0,2|min:0',
+                'ci_instrumentista' => 'nullable|integer',
+                'ci_anestesiologo' => 'nullable|integer',
             ]);
 
             // Crear cita sin validación de disponibilidad por ahora
@@ -306,6 +308,8 @@ class QuirofanoController extends Controller
             $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
 
             // Campos opcionales
+            $cita->ci_instrumentista = $validated['ci_instrumentista'] ?? null;
+            $cita->ci_anestesiologo = $validated['ci_anestesiologo'] ?? null;
             $cita->nombre_instrumentista = $request->input('nombre_instrumentista');
             $cita->nombre_anestesiologo = $request->input('nombre_anestesiologo');
             $cita->descripcion_cirugia = $request->input('descripcion_cirugia');
@@ -441,7 +445,7 @@ class QuirofanoController extends Controller
                 'fecha' => 'required|date|after_or_equal:today',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
                 'descripcion_cirugia' => 'nullable|string|max:500',
-                'costo_base' => 'required|numeric|min:0',
+                'costo_base' => 'required|numeric|decimal:0,2|min:0',
             ]);
 
             $emergencia = Emergency::findOrFail($validated['emergency_id']);
@@ -671,6 +675,12 @@ class QuirofanoController extends Controller
                 ->get();
         }
 
+        // Detalle de cobro de la cirugía (fuente real del cargo base + extra)
+        $detalleProcedimiento = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+            ->where('origen_id', (string) $cita->id)
+            ->where('tipo_item', 'procedimiento')
+            ->first();
+
         $tiposCirugia = TipoCirugia::activos()->get();
         $medicamentos = AlmacenCatalogo::where('tipo', 'medicamento')
             ->where('activo', true)
@@ -683,8 +693,84 @@ class QuirofanoController extends Controller
             'medicamentos',
             'medicamentosUsados',
             'equiposUsados',
-            'cuentaCobro'
+            'cuentaCobro',
+            'detalleProcedimiento'
         ));
+    }
+
+    /**
+     * Actualizar tipo de cirugía y costo extra desde la vista de detalles.
+     * Solo admin/administrador. El cobro de la cirugía = costo_base + costo_extra,
+     * y se refleja en el detalle 'procedimiento' de la cuenta del paciente.
+     */
+    public function actualizarDetalles(Request $request, CitaQuirurgica $cita): RedirectResponse
+    {
+        $validated = $request->validate([
+            'tipo_cirugia' => 'required|exists:tipos_cirugia,nombre',
+            'costo_extra' => 'required|numeric|decimal:0,2|min:0',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $costoBaseStr = (string) ($cita->costo_base ?? '0');
+            $costoExtraStr = (string) $validated['costo_extra'];
+            // Cobro de la cirugía = base + extra (el extra sólo suma, nunca reduce el base)
+            $costoCirugiaStr = bcadd($costoBaseStr, $costoExtraStr, 2);
+
+            $cita->tipo_cirugia = $validated['tipo_cirugia'];
+
+            // Actualizar el detalle de cobro de la cirugía (procedimiento)
+            $detalle = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'procedimiento')
+                ->first();
+
+            if ($detalle) {
+                $duracionTxt = $cita->duracion_real ? ' - '.$cita->duracion_real.' min' : '';
+                $detalle->descripcion = 'Cirugía '.$validated['tipo_cirugia'].$duracionTxt.' (Cita #'.$cita->id.')';
+                $detalle->precio_unitario = $costoCirugiaStr;
+                $detalle->subtotal = $costoCirugiaStr;
+                $detalle->save();
+
+                // Recalcular total de la cuenta (respeta deshabilitados y seguro)
+                $detalle->cuentaCobro?->recalcularTotales();
+            }
+
+            // Mantener consistente el resumen denormalizado de la cita
+            $totalMedicamentos = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'medicamento')
+                ->sum('subtotal');
+            $totalEquipos = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'equipo_medico')
+                ->sum('subtotal');
+
+            $cita->costo_final = bcadd(
+                bcadd($costoCirugiaStr, (string) $totalMedicamentos, 2),
+                (string) $totalEquipos,
+                2
+            );
+            $cita->save();
+
+            $this->logActivity(
+                'editar_costos_cirugia',
+                'Costos de cirugía editados (Cita #'.$cita->id.') - Tipo: '.$validated['tipo_cirugia'].
+                ' - Base: '.$costoBaseStr.' - Extra: '.$costoExtraStr.' - Cirugía: '.$costoCirugiaStr,
+                $cita
+            );
+
+            DB::commit();
+
+            return redirect()->route('quirofano.show-details', $cita->id)
+                ->with('success', 'Datos de la cirugía actualizados correctamente.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()->route('quirofano.show-details', $cita->id)
+                ->with('error', 'No se pudieron actualizar los datos: '.$e->getMessage());
+        }
     }
 
     public function show(CitaQuirurgica $cita): View|RedirectResponse
@@ -732,7 +818,7 @@ class QuirofanoController extends Controller
             'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
             'equipos' => 'nullable|array',
             'equipos.*.nombre' => 'required_with:equipos|string|max:255',
-            'equipos.*.precio' => 'required_with:equipos|numeric|min:0',
+            'equipos.*.precio' => 'required_with:equipos|numeric|decimal:0,2|min:0',
             'equipos.*.cantidad' => 'required_with:equipos|integer|min:1',
         ]);
 
@@ -1661,7 +1747,7 @@ class QuirofanoController extends Controller
             // Validar input
             $validated = $request->validate([
                 'nombre' => 'required|string|max:255',
-                'precio' => 'required|numeric|min:0',
+                'precio' => 'required|numeric|decimal:0,2|min:0',
                 'cantidad' => 'required|integer|min:1',
             ]);
 

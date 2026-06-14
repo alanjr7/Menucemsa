@@ -1,23 +1,23 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="w-full p-6 bg-gray-50/50 min-h-screen">
+<div class="w-full p-4 sm:p-6 bg-gray-50/50 min-h-screen">
 
     <!-- Page Header -->
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Gestión de Quirófanos</h1>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Gestión de Quirófanos</h1>
             <p class="text-sm text-gray-500">Administrar la configuración de quirófanos</p>
         </div>
-        <div class="flex gap-3">
-            <a href="{{ route('quirofanos.management.create') }}" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex flex-wrap gap-2 sm:gap-3">
+            <a href="{{ route('quirofanos.management.create') }}" class="flex-1 sm:flex-none justify-center flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors whitespace-nowrap">
+                <svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
                 Nuevo Quirófano
             </a>
-            <a href="{{ route('quirofano.index') }}" class="flex items-center px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <a href="{{ route('quirofano.index') }}" class="flex-1 sm:flex-none justify-center flex items-center px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors whitespace-nowrap">
+                <svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 Volver a Horario
@@ -26,8 +26,8 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Total Quirófanos</p>
@@ -41,7 +41,7 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Activos</p>
@@ -55,7 +55,7 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Inactivos</p>
@@ -69,7 +69,7 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500">Mantenimiento</p>
@@ -87,11 +87,12 @@
 
     <!-- Quirófanos List -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
-        <div class="p-6 border-b border-gray-100">
+        <div class="p-4 sm:p-6 border-b border-gray-100">
             <h2 class="text-lg font-bold text-gray-800">Lista de Quirófanos</h2>
         </div>
-        
-        <div class="overflow-x-auto">
+
+        <!-- Tabla (md+) -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
@@ -157,6 +158,45 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+
+        <!-- Tarjetas (móvil) -->
+        <div class="md:hidden divide-y divide-gray-100">
+            @forelse($quirofanos as $quirofano)
+                <div class="p-4">
+                    <div class="flex justify-between items-start gap-3 mb-3">
+                        <div>
+                            <p class="text-base font-bold text-gray-900">Q{{ $quirofano->id }}</p>
+                            <p class="text-sm text-gray-500">{{ $quirofano->tipo }}</p>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize shrink-0
+                            {{ $quirofano->estado === 'disponible' ? 'bg-green-100 text-green-800' :
+                               ($quirofano->estado === 'ocupado' ? 'bg-red-100 text-red-800' :
+                               'bg-amber-100 text-amber-800') }}">
+                            {{ $quirofano->estado }}
+                        </span>
+                    </div>
+                    <div class="flex gap-4 text-sm text-gray-500 mb-3">
+                        <span>Citas: <span class="font-medium text-gray-700">{{ $quirofano->citasQuirurgicas()->count() }}</span></span>
+                        <span>Creado: <span class="font-medium text-gray-700">{{ $quirofano->created_at->format('d/m/Y') }}</span></span>
+                    </div>
+                    <div class="flex gap-2 pt-3 border-t border-gray-100">
+                        <a href="{{ route('quirofanos.management.show', $quirofano) }}" class="flex-1 text-center text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg text-sm font-medium transition">
+                            Ver
+                        </a>
+                        <a href="{{ route('quirofanos.management.edit', $quirofano) }}" class="flex-1 text-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 py-2 rounded-lg text-sm font-medium transition">
+                            Editar
+                        </a>
+                        @if($quirofano->citasQuirurgicas()->count() == 0)
+                            <button onclick="eliminarQuirófano({{ $quirofano->id }})" class="flex-1 text-center text-red-600 bg-red-50 hover:bg-red-100 py-2 rounded-lg text-sm font-medium transition">
+                                Eliminar
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="p-8 text-center text-gray-400">No hay quirófanos registrados</div>
+            @endforelse
         </div>
     </div>
 </div>

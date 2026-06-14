@@ -112,7 +112,6 @@ class InternacionHabitacionUsoController extends Controller
             $dias,
             null,
             null,
-            null,
             'internacion',
             auth()->id()
         );

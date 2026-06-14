@@ -82,12 +82,6 @@ class EnfermeraPermission extends Model
             'icon' => 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z',
             'default' => true,
         ],
-        'administrar_drenajes' => [
-            'label' => 'Administrar Drenajes',
-            'description' => 'Registrar drenajes realizados a pacientes',
-            'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z',
-            'default' => false,
-        ],
         'cambiar_estados_internacion' => [
             'label' => 'Cambiar Estados Internación',
             'description' => 'Cambiar estados (activo, estable, crítico, observación)',

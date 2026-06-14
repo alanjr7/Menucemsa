@@ -19,12 +19,12 @@
                     </svg>
                     Importar Excel
                 </a>
-                <a href="{{ route('admin.almacen-medicamentos.agregar-stock.form') }}"
+                <a href="{{ route('admin.almacen-medicamentos.ajuste-inventario.form') }}"
                    class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                     </svg>
-                    Agregar Stock
+                    Ajustar Inventario
                 </a>
                 <a href="{{ route('admin.almacen-medicamentos.transferir.form') }}"
                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
@@ -33,12 +33,19 @@
                     </svg>
                     Transferir a Área
                 </a>
-                <a href="{{ route('admin.almacen-medicamentos.create') }}"
+                <a href="{{ route('admin.almacen-medicamentos.lote.form') }}"
                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                    Registrar Lote
+                </a>
+                <a href="{{ route('admin.almacen-medicamentos.create') }}"
+                   class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Agregar Medicamento/Insumo
+                    Crear Medicamento Nuevo
                 </a>
             </div>
         </div>
@@ -193,51 +200,81 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($catalogo as $item)
-                    @php
-                        $todosStocks = $item->lotes->flatMap->stocks;
-                        $lotesParaJs = $item->lotes->map(fn($l) => [
-                            'id' => $l->id,
-                            'codigo' => $l->codigo_lote ?? 'Sin código',
-                            'laboratorio' => $l->laboratorio,
-                            'proveedor' => $l->proveedor,
-                            'vencimiento' => $l->fecha_vencimiento?->format('d/m/Y') ?? 'Sin fecha',
-                            'stock_central' => $l->stocks->where('ubicacion', 'central')->sum('cantidad_actual'),
-                        ])->filter(fn($l) => $l['stock_central'] > 0)->values()->toJson();
-
-                        $fechaVencimiento = $item->lotes
-                            ->filter(fn($l) => $l->fecha_vencimiento && $l->fecha_vencimiento->isFuture())
-                            ->sortBy('fecha_vencimiento')
-                            ->first()?->fecha_vencimiento;
-
-                        if ($mostrarTodos) {
-                            $filas = $todosStocks->groupBy('ubicacion')->map(fn($stocks, $ub) => [
-                                'ubicacion' => $ub,
-                                'stock' => $stocks->sum('cantidad_actual'),
-                                'stock_minimo' => $stocks->min('stock_minimo') ?? 0,
-                            ])->values();
-                            if ($filas->isEmpty()) {
-                                $filas = collect([['ubicacion' => null, 'stock' => 0, 'stock_minimo' => 0]]);
-                            }
-                        } else {
-                            $ubicacionActual = $area ?? 'central';
-                            $stocksFiltrados = $todosStocks->where('ubicacion', $ubicacionActual);
-                            $filas = collect([['ubicacion' => $ubicacionActual, 'stock' => $stocksFiltrados->sum('cantidad_actual'), 'stock_minimo' => $stocksFiltrados->min('stock_minimo') ?? 0]]);
+                @php
+                    // Formatea un agregado de precios por lote: '—' si no hay, 'Bs. X' si todos
+                    // los lotes coinciden, o 'Bs. min – max' (con badge "Varios") si difieren.
+                    $aggPrecio = function ($valores, $sufijo = '', $prefijo = 'Bs. ') {
+                        $vals = collect($valores)->filter(fn ($v) => $v !== null)->map(fn ($v) => (float) $v)->values();
+                        if ($vals->isEmpty()) {
+                            return ['txt' => '—', 'varios' => false];
                         }
+                        $u = $vals->unique();
+                        if ($u->count() === 1) {
+                            return ['txt' => $prefijo.number_format($u->first(), 2).$sufijo, 'varios' => false];
+                        }
+                        return ['txt' => $prefijo.number_format($vals->min(), 2).' – '.number_format($vals->max(), 2).$sufijo, 'varios' => true];
+                    };
+                @endphp
+                @forelse($catalogo as $item)
+                @php
+                    $todosStocks = $item->lotes->flatMap->stocks;
+                    $lotesParaJs = $item->lotes->map(fn($l) => [
+                        'id' => $l->id,
+                        'codigo' => $l->codigo_lote ?? 'Sin código',
+                        'laboratorio' => $l->laboratorio,
+                        'proveedor' => $l->proveedor,
+                        'vencimiento' => $l->fecha_vencimiento?->format('d/m/Y') ?? 'Sin fecha',
+                        'stock_central' => $l->stocks->where('ubicacion', 'central')->sum('cantidad_actual'),
+                    ])->filter(fn($l) => $l['stock_central'] > 0)->values()->toJson();
 
-                        // Precio de referencia (lote con más stock central)
-                        $loteRef = $item->lotes->sortByDesc(fn($l) => $l->stocks->where('ubicacion', 'central')->sum('cantidad_actual'))->first();
-                        $precioCompra = $loteRef?->precio_compra;
-                        $precioVenta = $loteRef?->precio_venta;
-                        $ganancia = $loteRef?->porcentaje_ganancia;
-                    @endphp
-                    @foreach($filas as $fila)
-                    @php
-                        $stockFila = $fila['stock'];
-                        $stockMinFila = $fila['stock_minimo'];
-                        $estadoStock = $stockFila <= 0 ? 'agotado' : ($stockFila <= $stockMinFila ? 'bajo' : 'normal');
-                    @endphp
+                    $fechaVencimiento = $item->lotes
+                        ->filter(fn($l) => $l->fecha_vencimiento && $l->fecha_vencimiento->isFuture())
+                        ->sortBy('fecha_vencimiento')
+                        ->first()?->fecha_vencimiento;
+
+                    if ($mostrarTodos) {
+                        $filas = $todosStocks->groupBy('ubicacion')->map(fn($stocks, $ub) => [
+                            'ubicacion' => $ub,
+                            'stock' => $stocks->sum('cantidad_actual'),
+                            'stock_minimo' => $stocks->min('stock_minimo') ?? 0,
+                        ])->values();
+                        if ($filas->isEmpty()) {
+                            $filas = collect([['ubicacion' => null, 'stock' => 0, 'stock_minimo' => 0]]);
+                        }
+                    } else {
+                        $ubicacionActual = $area ?? 'central';
+                        $stocksFiltrados = $todosStocks->where('ubicacion', $ubicacionActual);
+                        $filas = collect([['ubicacion' => $ubicacionActual, 'stock' => $stocksFiltrados->sum('cantidad_actual'), 'stock_minimo' => $stocksFiltrados->min('stock_minimo') ?? 0]]);
+                    }
+                @endphp
+                @foreach($filas as $fila)
+                @php
+                    $stockFila = $fila['stock'];
+                    $stockMinFila = $fila['stock_minimo'];
+                    $estadoStock = $stockFila <= 0 ? 'agotado' : ($stockFila <= $stockMinFila ? 'bajo' : 'normal');
+
+                    // Lotes con stock en el área de esta fila (los que aportan precio/ganancia reales).
+                    $ubicFila = $fila['ubicacion'] ?? 'central';
+                    $lotesFila = $item->lotes
+                        ->map(fn($l) => (object) [
+                            'codigo' => $l->codigo_lote ?: ('Lote #'.$l->id),
+                            'proveedor' => $l->proveedor,
+                            'laboratorio' => $l->laboratorio,
+                            'stock' => $l->stocks->where('ubicacion', $ubicFila)->sum('cantidad_actual'),
+                            'precio_compra' => $l->precio_compra,
+                            'precio_venta' => $l->precio_venta,
+                            'ganancia' => $l->porcentaje_ganancia,
+                            'vencimiento' => $l->fecha_vencimiento,
+                        ])
+                        ->filter(fn($l) => $l->stock > 0)
+                        ->sortBy(fn($l) => optional($l->vencimiento)->format('Y-m-d') ?? '9999-12-31')
+                        ->values();
+
+                    $aggCompra = $aggPrecio($lotesFila->pluck('precio_compra'));
+                    $aggVenta = $aggPrecio($lotesFila->pluck('precio_venta'));
+                    $aggGanancia = $aggPrecio($lotesFila->pluck('ganancia'), '%', '');
+                @endphp
+                <tbody class="bg-white divide-y divide-gray-200" x-data="{ open: false }">
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium text-gray-900">{{ $item->nombre }}</div>
@@ -254,8 +291,19 @@
                             {{ $fila['ubicacion'] ? ucfirst($fila['ubicacion']) : '—' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $item->unidad_medida }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {{ $item->lotes->count() }} lote(s)
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            @if($lotesFila->count() > 0)
+                                <button type="button" @click="open = !open"
+                                        class="inline-flex items-center gap-1 text-gray-700 hover:text-indigo-600 font-medium"
+                                        :title="open ? 'Ocultar lotes' : 'Ver lotes'">
+                                    <svg class="w-3.5 h-3.5 transition-transform" :class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                    {{ $lotesFila->count() }} lote(s)
+                                </button>
+                            @else
+                                <span class="text-gray-400">{{ $item->lotes->count() }} lote(s)</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($estadoStock === 'agotado')
@@ -276,13 +324,16 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $precioCompra !== null ? 'Bs. ' . number_format($precioCompra, 2) : '—' }}
+                            {{ $aggCompra['txt'] }}
+                            @if($aggCompra['varios'])<span class="ml-1 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-700">Varios</span>@endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $precioVenta !== null ? 'Bs. ' . number_format($precioVenta, 2) : '—' }}
+                            {{ $aggVenta['txt'] }}
+                            @if($aggVenta['varios'])<span class="ml-1 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-700">Varios</span>@endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $ganancia !== null ? $ganancia . '%' : '—' }}
+                            {{ $aggGanancia['txt'] }}
+                            @if($aggGanancia['varios'])<span class="ml-1 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-700">Varios</span>@endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             @if($fechaVencimiento)
@@ -344,15 +395,56 @@
                             </div>
                         </td>
                     </tr>
-                    @endforeach
-                    @empty
+                    <!-- Fila-detalle: desglose por lote (proveedor/precio/ganancia/vencimiento) -->
+                    <tr x-show="open" x-cloak>
+                        <td colspan="12" class="px-6 py-3 bg-gray-50 border-l-4 border-indigo-300">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-xs">
+                                    <thead>
+                                        <tr class="text-gray-500">
+                                            <th class="text-left font-semibold px-3 py-1.5">Proveedor / Lab.</th>
+                                            <th class="text-left font-semibold px-3 py-1.5">Lote</th>
+                                            <th class="text-right font-semibold px-3 py-1.5">Stock</th>
+                                            <th class="text-right font-semibold px-3 py-1.5">P. Compra</th>
+                                            <th class="text-right font-semibold px-3 py-1.5">P. Venta</th>
+                                            <th class="text-right font-semibold px-3 py-1.5">Ganancia</th>
+                                            <th class="text-left font-semibold px-3 py-1.5">Vencimiento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach($lotesFila as $l)
+                                        <tr class="text-gray-700">
+                                            <td class="px-3 py-1.5">{{ $l->laboratorio ?: ($l->proveedor ?: '—') }}@if($l->laboratorio && $l->proveedor)<span class="text-gray-400"> · {{ $l->proveedor }}</span>@endif</td>
+                                            <td class="px-3 py-1.5">{{ $l->codigo }}</td>
+                                            <td class="px-3 py-1.5 text-right font-medium">{{ $l->stock }} {{ $item->unidad_medida }}</td>
+                                            <td class="px-3 py-1.5 text-right">{{ $l->precio_compra !== null ? 'Bs. '.number_format($l->precio_compra, 2) : '—' }}</td>
+                                            <td class="px-3 py-1.5 text-right font-semibold text-emerald-700">{{ $l->precio_venta !== null ? 'Bs. '.number_format($l->precio_venta, 2) : '—' }}</td>
+                                            <td class="px-3 py-1.5 text-right">{{ $l->ganancia !== null ? number_format($l->ganancia, 2).'%' : '—' }}</td>
+                                            <td class="px-3 py-1.5">
+                                                @if($l->vencimiento)
+                                                    <span class="{{ $l->vencimiento->diffInDays(now()) <= 30 && $l->vencimiento->isFuture() ? 'text-amber-600 font-medium' : 'text-gray-600' }}">{{ $l->vencimiento->format('d/m/Y') }}</span>
+                                                @else
+                                                    <span class="text-gray-400">—</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+                @endforeach
+                @empty
+                <tbody class="bg-white">
                     <tr>
                         <td colspan="12" class="px-6 py-12 text-center text-gray-500">
                             No se encontraron medicamentos/insumos.
                         </td>
                     </tr>
-                    @endforelse
                 </tbody>
+                @endforelse
             </table>
         </div>
 

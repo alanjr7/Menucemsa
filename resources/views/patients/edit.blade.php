@@ -10,11 +10,11 @@
                 <p class="text-sm text-gray-500">Modificar información del paciente</p>
             </div>
             <div>
-                <a href="{{ route('admin.pacientes.gestionar') }}" class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-xl text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors shadow-sm">
+                <a href="{{ $backUrl ?? route('admin.pacientes.gestionar') }}" class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-xl text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors shadow-sm">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
-                    Volver a Gestión
+                    Volver
                 </a>
             </div>
         </div>
@@ -168,17 +168,19 @@
                         <label class="block text-sm font-medium text-gray-700">Nacionalidad</label>
                         <select name="nacionalidad" 
                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition-colors">
+                            @php $nacSel = old('nacionalidad', $paciente->nacionalidad); @endphp
                             <option value="">Seleccionar...</option>
-                            <option value="Bolivia" {{ old('nacionalidad', $paciente->nacionalidad) == 'Bolivia' ? 'selected' : '' }}>Bolivia</option>
-                            <option value="Argentina" {{ old('nacionalidad', $paciente->nacionalidad) == 'Argentina' ? 'selected' : '' }}>Argentina</option>
-                            <option value="Brasil" {{ old('nacionalidad', $paciente->nacionalidad) == 'Brasil' ? 'selected' : '' }}>Brasil</option>
-                            <option value="Chile" {{ old('nacionalidad', $paciente->nacionalidad) == 'Chile' ? 'selected' : '' }}>Chile</option>
-                            <option value="Colombia" {{ old('nacionalidad', $paciente->nacionalidad) == 'Colombia' ? 'selected' : '' }}>Colombia</option>
-                            <option value="Ecuador" {{ old('nacionalidad', $paciente->nacionalidad) == 'Ecuador' ? 'selected' : '' }}>Ecuador</option>
-                            <option value="Paraguay" {{ old('nacionalidad', $paciente->nacionalidad) == 'Paraguay' ? 'selected' : '' }}>Paraguay</option>
-                            <option value="Perú" {{ old('nacionalidad', $paciente->nacionalidad) == 'Perú' ? 'selected' : '' }}>Perú</option>
-                            <option value="Uruguay" {{ old('nacionalidad', $paciente->nacionalidad) == 'Uruguay' ? 'selected' : '' }}>Uruguay</option>
-                            <option value="Venezuela" {{ old('nacionalidad', $paciente->nacionalidad) == 'Venezuela' ? 'selected' : '' }}>Venezuela</option>
+                            <option value="Boliviana" {{ $nacSel == 'Boliviana' ? 'selected' : '' }}>Boliviana</option>
+                            <option value="Argentina" {{ $nacSel == 'Argentina' ? 'selected' : '' }}>Argentina</option>
+                            <option value="Brasileña" {{ $nacSel == 'Brasileña' ? 'selected' : '' }}>Brasileña</option>
+                            <option value="Chilena" {{ $nacSel == 'Chilena' ? 'selected' : '' }}>Chilena</option>
+                            <option value="Colombiana" {{ $nacSel == 'Colombiana' ? 'selected' : '' }}>Colombiana</option>
+                            <option value="Ecuatoriana" {{ $nacSel == 'Ecuatoriana' ? 'selected' : '' }}>Ecuatoriana</option>
+                            <option value="Paraguaya" {{ $nacSel == 'Paraguaya' ? 'selected' : '' }}>Paraguaya</option>
+                            <option value="Peruana" {{ $nacSel == 'Peruana' ? 'selected' : '' }}>Peruana</option>
+                            <option value="Uruguaya" {{ $nacSel == 'Uruguaya' ? 'selected' : '' }}>Uruguaya</option>
+                            <option value="Venezolana" {{ $nacSel == 'Venezolana' ? 'selected' : '' }}>Venezolana</option>
+                            <option value="Otra" {{ $nacSel == 'Otra' ? 'selected' : '' }}>Otra</option>
                         </select>
                         @error('nacionalidad')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -207,21 +209,11 @@
                         @enderror
                     </div>
 
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-gray-700">Código de Seguro</label>
-                        <input type="text" 
-                               name="codigo_seguro" 
-                               value="{{ old('codigo_seguro', $paciente->codigo_seguro) }}"
-                               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm transition-colors">
-                        @error('codigo_seguro')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
                 </div>
 
                 <!-- Form Actions -->
                 <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
-                    <a href="{{ route('admin.pacientes.gestionar') }}" 
+                    <a href="{{ $backUrl ?? route('admin.pacientes.gestionar') }}"
                        class="inline-flex items-center px-6 py-2.5 border border-gray-200 rounded-xl text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors shadow-sm">
                         Cancelar
                     </a>

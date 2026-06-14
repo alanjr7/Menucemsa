@@ -8,13 +8,9 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('distribucionMasiva', () => ({
         recibidoPor: '',
         busqueda: '',
-        medicamentos: @js($medicamentos->map(fn($m) => [
-            'catalogo_id' => $m->id,
-            'nombre'      => $m->nombre,
-            'unidad'      => $m->unidad_medida,
-            'stock'       => (int) $m->stock_central,
-        ])),
-        seleccionados: [],
+        // Lotes individuales del almacén central (cada uno con su proveedor/precio/vencimiento)
+        lotes: @js($lotes),
+        seleccionados: [],   // filas de la tabla = lotes elegidos
         areasActivas: [],
 
         todasLasAreas: [
@@ -28,14 +24,55 @@ document.addEventListener('alpine:init', () => {
             { value: 'internacion',     label: 'Internación' },
         ],
 
+        // Lotes agrupados por medicamento, para el panel de selección
+        get medicamentos() {
+            const map = {};
+            this.lotes.forEach(l => {
+                if (!map[l.catalogo_id]) {
+                    map[l.catalogo_id] = {
+                        catalogo_id: l.catalogo_id,
+                        nombre: l.nombre,
+                        unidad: l.unidad,
+                        stockTotal: 0,
+                        lotes: [],
+                    };
+                }
+                map[l.catalogo_id].stockTotal += l.stock;
+                map[l.catalogo_id].lotes.push(l);
+            });
+            return Object.values(map);
+        },
+
         get filtrados() {
             if (!this.busqueda) return this.medicamentos;
             const t = this.busqueda.toLowerCase();
-            return this.medicamentos.filter(m => m.nombre.toLowerCase().includes(t));
+            return this.medicamentos.filter(m =>
+                m.nombre.toLowerCase().includes(t)
+                || m.lotes.some(l =>
+                    (l.proveedor || '').toLowerCase().includes(t)
+                    || (l.laboratorio || '').toLowerCase().includes(t)));
         },
 
-        estaSeleccionado(catalogoId) {
-            return this.seleccionados.some(s => s.catalogo_id === catalogoId);
+        precioFmt(v) {
+            return v === null || v === undefined ? '—' : 'Bs ' + Number(v).toFixed(2);
+        },
+
+        loteLabel(l) {
+            const prov = l.laboratorio || l.proveedor;
+            return (prov ? prov + ' · ' : '') + l.codigo;
+        },
+
+        loteSeleccionado(loteId) {
+            return this.seleccionados.some(s => s.lote_id === loteId);
+        },
+
+        // # de lotes de un medicamento ya agregados a la tabla
+        lotesAgregados(med) {
+            return med.lotes.filter(l => this.loteSeleccionado(l.lote_id)).length;
+        },
+
+        todosAgregados(med) {
+            return med.lotes.length > 0 && this.lotesAgregados(med) === med.lotes.length;
         },
 
         areaActiva(area) {
@@ -53,23 +90,30 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        agregar(catalogoId) {
-            if (this.estaSeleccionado(catalogoId)) return;
-            const med = this.medicamentos.find(m => m.catalogo_id === catalogoId);
-            if (!med) return;
-            const cantidades = {};
-            this.areasActivas.forEach(a => { cantidades[a] = 0; });
-            this.seleccionados.push({
-                catalogo_id: med.catalogo_id,
-                nombre:      med.nombre,
-                unidad:      med.unidad,
-                stock:       med.stock,
-                cantidades,
+        // Agrega todos los lotes (aún no agregados) de un medicamento
+        agregar(med) {
+            med.lotes.forEach(l => {
+                if (this.loteSeleccionado(l.lote_id)) return;
+                const cantidades = {};
+                this.areasActivas.forEach(a => { cantidades[a] = 0; });
+                this.seleccionados.push({
+                    lote_id:     l.lote_id,
+                    catalogo_id: l.catalogo_id,
+                    nombre:      l.nombre,
+                    unidad:      l.unidad,
+                    codigo:      l.codigo,
+                    proveedor:   l.proveedor,
+                    laboratorio: l.laboratorio,
+                    precio_venta: l.precio_venta,
+                    vencimiento: l.vencimiento,
+                    stock:       l.stock,
+                    cantidades,
+                });
             });
         },
 
-        quitar(catalogoId) {
-            this.seleccionados = this.seleccionados.filter(s => s.catalogo_id !== catalogoId);
+        quitar(loteId) {
+            this.seleccionados = this.seleccionados.filter(s => s.lote_id !== loteId);
         },
 
         stockUsado(item) {
@@ -114,7 +158,7 @@ document.addEventListener('alpine:init', () => {
             this.areasActivas.forEach(area => {
                 const items = this.seleccionados
                     .filter(s => (parseInt(s.cantidades[area]) || 0) > 0)
-                    .map(s => ({ catalogo_id: s.catalogo_id, cantidad: parseInt(s.cantidades[area]) }));
+                    .map(s => ({ lote_id: s.lote_id, cantidad: parseInt(s.cantidades[area]) }));
                 if (items.length > 0) data[area] = items;
             });
             if (Object.keys(data).length === 0) return;
@@ -135,7 +179,7 @@ document.addEventListener('alpine:init', () => {
     <div class="mb-5 flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Distribución Masiva</h1>
-            <p class="text-gray-500 text-sm mt-0.5">Reparte medicamentos del almacén central a múltiples áreas en una sola operación</p>
+            <p class="text-gray-500 text-sm mt-0.5">Reparte el stock del almacén central a múltiples áreas. La transferencia es <b>por lote</b>: cada proveedor/precio se mueve por separado.</p>
         </div>
         <a href="{{ route('admin.almacen-medicamentos.index') }}"
            class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 text-sm shadow-sm">
@@ -196,28 +240,47 @@ document.addEventListener('alpine:init', () => {
                 </div>
             </div>
             <div class="p-4 flex flex-col gap-3 flex-1">
-                <input x-model="busqueda" type="text" placeholder="Buscar por nombre..."
+                <input x-model="busqueda" type="text" placeholder="Buscar por nombre, proveedor o lab..."
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none">
                 <div class="space-y-1.5 overflow-y-auto" style="max-height: 460px">
                     <template x-for="med in filtrados" :key="med.catalogo_id">
-                        <div class="flex items-center justify-between px-3 py-2.5 border rounded-lg transition-all cursor-default"
-                             :class="estaSeleccionado(med.catalogo_id)
+                        <div class="px-3 py-2.5 border rounded-lg transition-all"
+                             :class="todosAgregados(med)
                                 ? 'bg-green-50 border-green-200'
                                 : 'border-gray-200 hover:bg-gray-50'">
-                            <div class="flex-1 min-w-0 pr-2">
-                                <p class="text-sm font-medium text-gray-900 truncate" x-text="med.nombre"></p>
-                                <p class="text-xs text-green-600 font-semibold" x-text="'Stock: ' + med.stock + ' ' + med.unidad"></p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1 min-w-0 pr-2">
+                                    <p class="text-sm font-medium text-gray-900 truncate" x-text="med.nombre"></p>
+                                    <p class="text-xs text-gray-500">
+                                        <span class="text-green-600 font-semibold" x-text="'Stock: ' + med.stockTotal + ' ' + med.unidad"></span>
+                                        <span x-text="' · ' + med.lotes.length + ' lote(s)'"></span>
+                                    </p>
+                                </div>
+                                <button type="button" @click.stop="agregar(med)"
+                                        :disabled="todosAgregados(med)"
+                                        class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+                                        :class="todosAgregados(med)
+                                            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                            : 'bg-green-100 text-green-600 hover:bg-green-200'"
+                                        :title="med.lotes.length > 1 ? 'Agregar los ' + med.lotes.length + ' lotes' : 'Agregar lote'">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                </button>
                             </div>
-                            <button type="button" @click.stop="agregar(med.catalogo_id)"
-                                    :disabled="estaSeleccionado(med.catalogo_id)"
-                                    class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-                                    :class="estaSeleccionado(med.catalogo_id)
-                                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                                        : 'bg-green-100 text-green-600 hover:bg-green-200'">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                </svg>
-                            </button>
+                            <!-- desglose de lotes del producto -->
+                            <div class="mt-1.5 space-y-0.5" x-show="med.lotes.length > 0">
+                                <template x-for="l in med.lotes" :key="l.lote_id">
+                                    <div class="flex items-center justify-between text-xs pl-2 border-l-2"
+                                         :class="loteSeleccionado(l.lote_id) ? 'border-green-300 text-gray-400' : 'border-gray-200 text-gray-500'">
+                                        <span class="truncate pr-2" x-text="loteLabel(l) + (l.vencimiento ? ' · vence ' + l.vencimiento : '')"></span>
+                                        <span class="flex-shrink-0 tabular-nums">
+                                            <span x-text="l.stock"></span> ·
+                                            <span x-text="precioFmt(l.precio_venta)"></span>
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </template>
                     <div x-show="filtrados.length === 0" class="text-center py-8 text-gray-400 text-sm">
@@ -231,12 +294,12 @@ document.addEventListener('alpine:init', () => {
         <div class="lg:col-span-3 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col">
             <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50 rounded-t-xl flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">3. Ingresa las cantidades</p>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">3. Ingresa las cantidades por lote</p>
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-gray-800">Tabla de distribución</span>
                         <span x-show="seleccionados.length > 0"
                               class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full"
-                              x-text="seleccionados.length + ' medicamentos'"></span>
+                              x-text="seleccionados.length + ' lote(s)'"></span>
                     </div>
                 </div>
                 <button x-show="seleccionados.length > 0" type="button" @click="seleccionados = []"
@@ -257,7 +320,7 @@ document.addEventListener('alpine:init', () => {
                 <table class="w-full text-sm border-collapse min-w-max">
                     <thead>
                         <tr class="bg-gray-50 border-b border-gray-200">
-                            <th class="text-left px-4 py-2.5 font-semibold text-gray-600 text-xs sticky left-0 bg-gray-50 z-10 min-w-[180px]">Medicamento</th>
+                            <th class="text-left px-4 py-2.5 font-semibold text-gray-600 text-xs sticky left-0 bg-gray-50 z-10 min-w-[220px]">Medicamento / Lote</th>
                             <template x-for="area in areasActivas" :key="area">
                                 <th class="text-center px-3 py-2.5 font-semibold text-indigo-700 text-xs min-w-[90px]"
                                     x-text="todasLasAreas.find(a => a.value === area)?.label"></th>
@@ -267,14 +330,18 @@ document.addEventListener('alpine:init', () => {
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="item in seleccionados" :key="item.catalogo_id">
+                        <template x-for="item in seleccionados" :key="item.lote_id">
                             <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                                 :class="stockExcedido(item) ? 'bg-red-50' : ''">
-                                <!-- Nombre -->
+                                <!-- Nombre + lote -->
                                 <td class="px-4 py-2.5 sticky left-0 bg-white z-10"
                                     :class="stockExcedido(item) ? '!bg-red-50' : 'group-hover:bg-gray-50'">
                                     <p class="font-medium text-gray-900 text-xs leading-tight" x-text="item.nombre"></p>
-                                    <p class="text-gray-400 text-xs" x-text="item.unidad"></p>
+                                    <p class="text-gray-500 text-xs leading-tight">
+                                        <span x-text="loteLabel(item)"></span>
+                                        <span class="text-emerald-600 font-medium" x-text="' · ' + precioFmt(item.precio_venta)"></span>
+                                        <span x-show="item.vencimiento" class="text-gray-400" x-text="' · vence ' + item.vencimiento"></span>
+                                    </p>
                                 </td>
                                 <!-- Cantidad por área -->
                                 <template x-for="area in areasActivas" :key="area">
@@ -299,7 +366,7 @@ document.addEventListener('alpine:init', () => {
                                 </td>
                                 <!-- Quitar -->
                                 <td class="px-2 py-2 text-center">
-                                    <button type="button" @click.stop="quitar(item.catalogo_id)"
+                                    <button type="button" @click.stop="quitar(item.lote_id)"
                                             class="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors mx-auto">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -354,7 +421,7 @@ document.addEventListener('alpine:init', () => {
                 <!-- Alerta de excedido -->
                 <span x-show="hayExcedidos" class="text-xs text-red-600 font-medium flex items-center gap-1">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                    Stock excedido en uno o más ítems
+                    Stock excedido en uno o más lotes
                 </span>
 
                 <button type="button" @click="enviar()" :disabled="!puedeTransferir"

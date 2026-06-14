@@ -162,7 +162,7 @@ class ContabilidadController extends Controller
                 'fecha' => 'required|date',
                 'categoria' => 'required|in:'.implode(',', array_keys(Egreso::CATEGORIAS)),
                 'descripcion' => 'required|string|max:255',
-                'monto' => 'required|numeric|min:0.01',
+                'monto' => 'required|numeric|decimal:0,2|min:0.01',
                 'metodo_pago' => 'required|in:efectivo,transferencia,cheque,tarjeta,qr',
                 'proveedor' => 'nullable|string|max:255',
                 'comprobante_nro' => 'nullable|string|max:50',

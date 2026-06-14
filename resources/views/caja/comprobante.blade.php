@@ -85,7 +85,44 @@
     <div class="section-title">Detalle de Servicios</div>
 
     @php
-        $grupos = $cuenta->detalles->groupBy('area_origen');
+        // --- Alcance del recibo = ciclo de cobro actual ---
+        // Si la cuenta está saldada, el recibo muestra los cargos liquidados por el
+        // último pago (el ciclo recién cerrado). Si aún hay saldo, muestra todo lo
+        // pendiente. Nunca re-lista cargos ya pagados en un ciclo anterior.
+        $pagosOrdenados = $cuenta->pagos->sortBy('created_at')->values();
+        $ultimoPago     = $pagosOrdenados->last();
+        $cuentaSaldada  = bccomp((string) $cuenta->saldo_pendiente, '0', 2) <= 0 && $ultimoPago;
+
+        if ($cuentaSaldada) {
+            $detallesRecibo = $cuenta->detalles->where('liquidado_pago_id', $ultimoPago->id);
+            // Fallback legacy: cuenta saldada sin ítems liquidados -> mostrar todos
+            if ($detallesRecibo->isEmpty()) {
+                $detallesRecibo = $cuenta->detalles;
+            }
+            // Pago(s) que cierran el ciclo previo (para excluir cobros anteriores)
+            $cortePrevio = $cuenta->detalles
+                ->whereNotNull('liquidado_pago_id')
+                ->where('liquidado_pago_id', '!=', $ultimoPago->id)
+                ->map(fn($d) => optional($d->liquidadoPago)->created_at)
+                ->filter()->max();
+        } else {
+            $detallesRecibo = $cuenta->detalles->whereNull('liquidado_en');
+            $cortePrevio = $cuenta->detalles
+                ->whereNotNull('liquidado_pago_id')
+                ->map(fn($d) => optional($d->liquidadoPago)->created_at)
+                ->filter()->max();
+        }
+
+        // Pagos del ciclo actual = los posteriores al cierre del ciclo previo
+        $pagosRecibo = $cortePrevio
+            ? $pagosOrdenados->filter(fn($p) => $p->created_at->gt($cortePrevio))->values()
+            : $pagosOrdenados;
+
+        $totalRecibo  = $detallesRecibo->sum('subtotal');
+        $pagadoRecibo = $pagosRecibo->sum('monto');
+        $saldoRecibo  = bcsub((string) $totalRecibo, (string) $pagadoRecibo, 2);
+
+        $grupos = $detallesRecibo->groupBy('area_origen');
         $areaLabels = [
             'emergencia'      => 'Emergencia',
             'internacion'     => 'Internación',
@@ -116,7 +153,7 @@
     {{-- Pagos --}}
     <div class="divider"></div>
     <div class="section-title">Pagos Realizados</div>
-    @forelse($cuenta->pagos as $p)
+    @forelse($pagosRecibo as $p)
     <div class="pago-row">
         <span>{{ $p->metodo_pago_label }}
             @if($p->created_at)
@@ -133,19 +170,19 @@
     <div class="divider-solid"></div>
     <div class="total-row">
         <span>TOTAL PAGADO</span>
-        <span>Bs. {{ number_format($cuenta->total_pagado, 2) }}</span>
+        <span>Bs. {{ number_format($pagadoRecibo, 2) }}</span>
     </div>
-    @if(bccomp((string)$cuenta->saldo_pendiente, '0', 2) > 0)
+    @if(bccomp((string)$saldoRecibo, '0', 2) > 0)
     <div class="saldo-row">
         <span>SALDO PENDIENTE</span>
-        <span>Bs. {{ number_format($cuenta->saldo_pendiente, 2) }}</span>
+        <span>Bs. {{ number_format($saldoRecibo, 2) }}</span>
     </div>
     @endif
 
     {{-- Footer --}}
     <div class="divider"></div>
     <div class="footer">
-        <p>Total de ítems: {{ $cuenta->detalles->count() }}</p>
+        <p>Total de ítems: {{ $detallesRecibo->count() }}</p>
         <p style="margin-top:6px;">Gracias por su preferencia</p>
         <p>CEMSA — Clinica de Especialidades Santa Cruz</p>
     </div>

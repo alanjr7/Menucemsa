@@ -89,8 +89,8 @@ class InternacionMedicamentosController extends Controller
             'proveedor' => 'nullable|string|max:150',
             'laboratorio' => 'nullable|string|max:150',
             'fecha_vencimiento' => 'nullable|date|after:today',
-            'precio_compra' => 'required|numeric|min:0',
-            'porcentaje_ganancia' => 'required|numeric|min:0|max:100',
+            'precio_compra' => 'required|numeric|decimal:0,2|min:0',
+            'porcentaje_ganancia' => 'required|numeric|decimal:0,2|min:0|max:100',
             'cantidad_inicial' => 'required|integer|min:1',
             'stock_minimo' => 'required|integer|min:0',
         ]);

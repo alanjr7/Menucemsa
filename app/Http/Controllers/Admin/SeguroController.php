@@ -116,9 +116,9 @@ class SeguroController extends Controller
                 'telefono' => 'nullable|string|max:50',
                 'formulario' => 'nullable|string|max:100',
                 'tipo_cobertura' => 'required|in:porcentaje,solo_consulta,tope_monto',
-                'cobertura_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'copago_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'tope_monto' => 'nullable|numeric|min:0',
+                'cobertura_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'copago_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'tope_monto' => 'nullable|numeric|decimal:0,2|min:0',
             ]);
 
             $validated['estado'] = 'activo';
@@ -151,9 +151,9 @@ class SeguroController extends Controller
                 'formulario' => 'nullable|string|max:100',
                 'estado' => 'nullable|in:activo,inactivo',
                 'tipo_cobertura' => 'nullable|in:porcentaje,solo_consulta,tope_monto',
-                'cobertura_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'copago_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'tope_monto' => 'nullable|numeric|min:0',
+                'cobertura_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'copago_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'tope_monto' => 'nullable|numeric|decimal:0,2|min:0',
             ]);
 
             $seguro->update($validated);

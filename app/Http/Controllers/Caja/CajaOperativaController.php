@@ -11,11 +11,11 @@ use App\Models\Paciente;
 use App\Models\Emergency;
 use App\Models\Consulta;
 use App\Models\Hospitalizacion;
-use App\Models\Tarifa;
 use App\Models\MovimientoCaja;
 use App\Services\CuentaCobroService;
 use App\Services\AplicarSeguroService;
 use App\Services\NotificationService;
+use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -104,7 +104,7 @@ class CajaOperativaController extends Controller
     {
         try {
             $request->validate([
-                'monto_inicial' => 'required|numeric|min:0',
+                'monto_inicial' => Money::rules(),
                 'observaciones' => 'nullable|string|max:500'
             ]);
 
@@ -167,7 +167,7 @@ class CajaOperativaController extends Controller
     {
         try {
             $request->validate([
-                'monto_final' => 'required|numeric|min:0',
+                'monto_final' => Money::rules(),
                 'observaciones' => 'nullable|string|max:500'
             ]);
 
@@ -180,8 +180,8 @@ class CajaOperativaController extends Controller
             $egresos = $caja->movimientos()->where('tipo', 'egreso')->where('concepto', '!=', 'Cierre de caja')->sum('monto');
             $totalIngresos = $cobros;
             $totalEgresos = $egresos;
-            $totalEsperado = (float) $caja->monto_inicial + $cobros - $egresos;
-            $diferencia = round($request->monto_final - $totalEsperado, 2);
+            $totalEsperado = Money::sub(Money::add($caja->monto_inicial, $cobros), $egresos);
+            $diferencia = Money::sub($request->monto_final, $totalEsperado);
 
             DB::beginTransaction();
 
@@ -289,9 +289,9 @@ class CajaOperativaController extends Controller
                     }
                 }
 
-                $totalCalculado = $cuentasPaciente->sum('total_calculado');
-                $totalPagado    = $cuentasPaciente->sum('total_pagado');
-                $saldoPendiente = $totalCalculado - $totalPagado;
+                $totalCalculado = $cuentasPaciente->reduce(fn($acc, $c) => Money::add($acc, $c->total_calculado), '0');
+                $totalPagado    = $cuentasPaciente->reduce(fn($acc, $c) => Money::add($acc, $c->total_pagado), '0');
+                $saldoPendiente = Money::sub($totalCalculado, $totalPagado);
                 $itemsCount     = $cuentasPaciente->sum(fn($c) => $c->detalles->count());
 
                 // Tipos de atención combinados
@@ -351,11 +351,11 @@ class CajaOperativaController extends Controller
     public function getDetalleCuenta(string $id): JsonResponse
     {
         try {
-            $cuentaPrincipal = CuentaCobro::with(['paciente', 'referencia', 'detalles.tarifa', 'pagos.user'])
+            $cuentaPrincipal = CuentaCobro::with(['paciente', 'referencia', 'detalles', 'pagos.user'])
                 ->findOrFail($id);
 
             // Todas las cuentas pendientes del mismo paciente
-            $todasCuentas = CuentaCobro::with(['detalles.tarifa', 'pagos.user', 'seguro'])
+            $todasCuentas = CuentaCobro::with(['detalles', 'pagos.user', 'seguro'])
                 ->where('paciente_id', $cuentaPrincipal->paciente_id)
                 ->whereIn('estado', ['pendiente', 'parcial'])
                 ->orderBy('created_at', 'asc')
@@ -389,9 +389,11 @@ class CajaOperativaController extends Controller
                 }
             }
 
-            // Consolidar detalles de todas las cuentas
+            // Consolidar detalles de todas las cuentas.
+            // Sólo los cargos NO liquidados (del ciclo pendiente): los ya pagados en
+            // un cobro anterior no se re-listan para cobrar de nuevo.
             $detallesConsolidados = $todasCuentas->flatMap(function ($cuenta) {
-                return $cuenta->detalles->map(function ($detalle) use ($cuenta) {
+                return $cuenta->detalles->whereNull('liquidado_en')->map(function ($detalle) use ($cuenta) {
                     $origen = 'General';
                     if ($detalle->area_origen) {
                         $origen = ucfirst($detalle->area_origen);
@@ -431,11 +433,11 @@ class CajaOperativaController extends Controller
                 });
             });
 
-            $totalCalculado = $todasCuentas->sum('total_calculado');
-            $totalPagado    = $todasCuentas->sum('total_pagado');
-            $saldoPendiente = $totalCalculado - $totalPagado;
+            $totalCalculado = $todasCuentas->reduce(fn($acc, $c) => Money::add($acc, $c->total_calculado), '0');
+            $totalPagado    = $todasCuentas->reduce(fn($acc, $c) => Money::add($acc, $c->total_pagado), '0');
+            $saldoPendiente = Money::sub($totalCalculado, $totalPagado);
 
-            $estado = $saldoPendiente <= 0 ? 'pagado' : ($totalPagado > 0 ? 'parcial' : 'pendiente');
+            $estado = Money::cmp($saldoPendiente, 0) <= 0 ? 'pagado' : (Money::cmp($totalPagado, 0) > 0 ? 'parcial' : 'pendiente');
 
             return response()->json([
                 'success' => true,
@@ -501,7 +503,7 @@ class CajaOperativaController extends Controller
                 'cuenta_cobro_id' => 'required|string|exists:cuenta_cobros,id',
                 'cuenta_ids'      => 'nullable|array',
                 'cuenta_ids.*'    => 'string|exists:cuenta_cobros,id',
-                'monto' => 'required|numeric|min:0.01',
+                'monto' => Money::rules(min: '0.01'),
                 'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr',
                 'referencia' => 'nullable|string|max:100',
                 'ci_nit_facturacion' => 'nullable|string|max:20',
@@ -532,16 +534,16 @@ class CajaOperativaController extends Controller
             $cuenta = $cuentas->firstWhere('id', $request->cuenta_cobro_id) ?? $cuentas->first();
 
             // Calcular saldo total consolidado
-            $saldoTotalPendiente = round($cuentas->sum(fn($c) => $c->saldo_pendiente), 2);
+            $saldoTotalPendiente = $cuentas->reduce(fn($acc, $c) => Money::add($acc, $c->saldo_pendiente), '0');
 
             // Aplicar seguro en la cuenta principal si corresponde
             $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
             if ($infoSeguro['aplicado']) {
                 $cuenta->refresh();
-                $saldoTotalPendiente = round($cuentas->fresh()->sum(fn($c) => $c->saldo_pendiente), 2);
+                $saldoTotalPendiente = $cuentas->fresh()->reduce(fn($acc, $c) => Money::add($acc, $c->saldo_pendiente), '0');
             }
 
-            if ($saldoTotalPendiente <= 0) {
+            if (Money::cmp($saldoTotalPendiente, 0) <= 0) {
                 DB::commit();
                 return response()->json([
                     'success' => true,
@@ -559,9 +561,9 @@ class CajaOperativaController extends Controller
 
             $montoPagar = $request->es_pago_total
                 ? $saldoTotalPendiente
-                : (float) $request->monto;
+                : Money::round($request->monto);
 
-            if (round($montoPagar, 2) > $saldoTotalPendiente) {
+            if (Money::cmp($montoPagar, $saldoTotalPendiente) > 0) {
                 return response()->json([
                     'success' => false,
                     'message' => 'El monto a pagar no puede ser mayor al saldo pendiente'
@@ -582,16 +584,16 @@ class CajaOperativaController extends Controller
             $montoRestante = $montoPagar;
             $ultimaCuentaPagada = $cuenta;
             foreach ($cuentas as $cuentaItem) {
-                if ($montoRestante <= 0) break;
-                $saldoItem = round($cuentaItem->saldo_pendiente, 2);
-                if ($saldoItem <= 0) continue;
+                if (Money::cmp($montoRestante, 0) <= 0) break;
+                $saldoItem = Money::round($cuentaItem->saldo_pendiente);
+                if (Money::cmp($saldoItem, 0) <= 0) continue;
 
-                $montoEstaCuenta = min($montoRestante, $saldoItem);
+                $montoEstaCuenta = Money::min($montoRestante, $saldoItem);
                 $cuentaItem->caja_session_id = $cajaAbierta->id;
                 $cuentaItem->save();
                 $cuentaItem->registrarPago($montoEstaCuenta, $request->metodo_pago, $request->referencia, Auth::id());
                 $cuentaItem->refresh();
-                $montoRestante = round($montoRestante - $montoEstaCuenta, 2);
+                $montoRestante = Money::sub($montoRestante, $montoEstaCuenta);
                 $ultimaCuentaPagada = $cuentaItem;
             }
             $cuenta->refresh();
@@ -656,8 +658,8 @@ class CajaOperativaController extends Controller
 
             DB::commit();
 
-            $saldoRestante = round($cuentas->fresh()->sum(fn($c) => $c->saldo_pendiente), 2);
-            $todosPagado   = $saldoRestante <= 0;
+            $saldoRestante = $cuentas->fresh()->reduce(fn($acc, $c) => Money::add($acc, $c->saldo_pendiente), '0');
+            $todosPagado   = Money::cmp($saldoRestante, 0) <= 0;
 
             $tipoPago = $todosPagado ? 'total' : 'parcial';
             $this->logActivity(
@@ -789,37 +791,12 @@ class CajaOperativaController extends Controller
     }
 
     /**
-     * Obtener tarifas disponibles para mostrar precios
-     */
-    public function getTarifas(): JsonResponse
-    {
-        try {
-            $tarifas = Tarifa::where('activo', true)
-                ->orderBy('categoria')
-                ->orderBy('descripcion')
-                ->get()
-                ->groupBy('categoria');
-
-            return response()->json([
-                'success' => true,
-                'tarifas' => $tarifas
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al cargar tarifas: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Vista de comprobante de pago imprimible
      */
     public function comprobante(string $cuentaId): View
     {
         $cuenta = CuentaCobro::with([
-            'paciente', 'detalles', 'pagos.user', 'cajaSession.user'
+            'paciente', 'detalles.liquidadoPago', 'pagos.user', 'cajaSession.user'
         ])->findOrFail($cuentaId);
 
         return view('caja.comprobante', compact('cuenta'));

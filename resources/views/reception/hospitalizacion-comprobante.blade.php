@@ -131,16 +131,6 @@
                     <dd class="text-sm font-medium text-gray-900">{{ $hospitalizacion->contacto_telefono ?? 'No registrado' }}</dd>
                 </div>
             </dl>
-            <dl class="space-y-2">
-                <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Parentesco:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ $hospitalizacion->contacto_parentesco ?? 'No registrado' }}</dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="text-sm text-gray-500">Relación:</dt>
-                    <dd class="text-sm font-medium text-gray-900">{{ $hospitalizacion->contacto_relacion ?? 'No registrada' }}</dd>
-                </div>
-            </dl>
         </div>
     </div>
 

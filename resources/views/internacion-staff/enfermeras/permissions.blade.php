@@ -45,7 +45,7 @@
             // Filtrar permisos según el área de la enfermera que se está editando
             $enfermeraArea = $enfermera->area ?? null;
             $emergenciaPermissions = ['ver_pacientes', 'registrar_signos_vitales', 'cambiar_estados', 'aplicar_medicamentos', 'ver_historial', 'derivar_pacientes', 'dar_alta'];
-            $internacionPermissions = ['ver_pacientes_internacion', 'administrar_medicamentos', 'administrar_catering', 'administrar_drenajes', 'cambiar_estados_internacion', 'derivar_a_uti', 'dar_alta_internacion', 'ver_historial_internacion', 'editar_diagnostico'];
+            $internacionPermissions = ['ver_pacientes_internacion', 'administrar_medicamentos', 'administrar_catering', 'cambiar_estados_internacion', 'derivar_a_uti', 'dar_alta_internacion', 'ver_historial_internacion', 'editar_diagnostico'];
 
             $filteredPermissions = collect($availablePermissions);
             if ($enfermeraArea === 'emergencia') {
@@ -60,7 +60,7 @@
             @foreach($filteredPermissions as $key => $permission)
             @php
                 $isInternacion = str_contains($key, 'internacion') || 
-                                 in_array($key, ['administrar_medicamentos', 'administrar_catering', 'administrar_drenajes', 'derivar_a_uti', 'editar_diagnostico']);
+                                 in_array($key, ['administrar_medicamentos', 'administrar_catering', 'derivar_a_uti', 'editar_diagnostico']);
             @endphp
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 {{ $isInternacion ? 'border-l-4 border-l-indigo-500' : 'opacity-75' }}">
                 <div class="flex items-start gap-4">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Habitacion;
 use App\Models\Cama;
+use App\Models\Paciente;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -26,33 +27,34 @@ class HabitacionGestionController extends Controller
 
     public function index(): View
     {
-        $stats = [
-            'total_habitaciones' => Habitacion::count(),
-            'habitaciones_disponibles' => Habitacion::where('estado', 'disponible')->count(),
-            'habitaciones_ocupadas' => Habitacion::where('estado', 'ocupada')->count(),
-            'habitaciones_mantenimiento' => Habitacion::where('estado', 'mantenimiento')->count(),
-            'total_camas' => Cama::count(),
-            'camas_disponibles' => Cama::where('disponibilidad', 'disponible')->count(),
-            'camas_ocupadas' => Cama::where('disponibilidad', 'ocupada')->count(),
-        ];
-
-        $habitaciones = Habitacion::with(['camas' => function($q) {
-                $q->orderBy('nro')->with(['hospitalizacionActiva.paciente']);
-            }])
-            ->withCount(['camas as camas_disponibles' => fn($q) => $q->where('disponibilidad', 'disponible')])
+        // Flujo de registro de estadía (no ocupación): la cama no cambia de estado,
+        // solo se carga la estadía a la cuenta del paciente vía registro-uso.store.
+        $habitaciones = Habitacion::with(['camas' => fn($q) => $q->orderBy('nro')])
             ->withCount('camas')
             ->orderBy('id')
             ->get();
 
-        $pacientesSinHabitacion = \App\Models\Hospitalizacion::whereNull('fecha_alta')
-            ->whereNull('habitacion_id')
-            ->with('paciente')
-            ->orderBy('created_at', 'desc')
+        $stats = [
+            'total_habitaciones'         => $habitaciones->count(),
+            'habitaciones_disponibles'   => $habitaciones->where('estado', 'disponible')->count(),
+            'habitaciones_mantenimiento' => $habitaciones->where('estado', 'mantenimiento')->count(),
+            'total_camas'                => $habitaciones->sum('camas_count'),
+        ];
+
+        // Pacientes elegibles para el selector del modal (mismo criterio que registro-uso).
+        $pacientes = Paciente::whereHas('registro')
+            ->with('seguro')
+            ->orderBy('nombre')
             ->get()
-            ->unique('paciente_id')
+            ->map(fn($p) => [
+                'id'     => $p->id,
+                'nombre' => $p->nombre,
+                'ci'     => $p->ci,
+                'seguro' => $p->seguro->nombre_empresa ?? 'Particular',
+            ])
             ->values();
 
-        return view('internacion-staff.habitaciones.index', compact('stats', 'habitaciones', 'pacientesSinHabitacion'));
+        return view('internacion-staff.habitaciones.index', compact('stats', 'habitaciones', 'pacientes'));
     }
 
     public function create(): View
@@ -69,7 +71,7 @@ class HabitacionGestionController extends Controller
             'camas' => 'required|array|min:1',
             'camas.*.nro' => 'required|integer|min:1',
             'camas.*.tipo' => 'required|string|max:80',
-            'camas.*.precio_por_dia' => 'required|numeric|min:0',
+            'camas.*.precio_por_dia' => 'required|numeric|decimal:0,2|min:0',
         ]);
 
         $this->crearHabitacionConCamas($validated);
@@ -116,7 +118,7 @@ class HabitacionGestionController extends Controller
             'capacidad' => 'required|integer|min:1|max:10',
             'camas' => 'nullable|array',
             'camas.*.id' => 'required|exists:camas,id',
-            'camas.*.precio_por_dia' => 'required|numeric|min:0',
+            'camas.*.precio_por_dia' => 'required|numeric|decimal:0,2|min:0',
         ]);
 
         $habitacion->update([

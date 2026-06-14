@@ -237,8 +237,6 @@ class HospitalizacionController extends Controller
             'paciente_id' => $paciente->id,
             'contacto_nombre' => $request->contacto_nombre,
             'contacto_telefono' => $request->contacto_telefono,
-            'contacto_parentesco' => $request->contacto_parentesco,
-            'contacto_relacion' => $request->contacto_relacion,
             'episodio_id' => $episodioId,
             'created_at' => now(),
             'updated_at' => now(),
@@ -349,8 +347,6 @@ class HospitalizacionController extends Controller
                 'diagnostico' => $request->diagnostico ?? $hospitalizacion->diagnostico,
                 'contacto_nombre' => $request->contacto_nombre ?? $hospitalizacion->contacto_nombre,
                 'contacto_telefono' => $request->contacto_telefono ?? $hospitalizacion->contacto_telefono,
-                'contacto_parentesco' => $request->contacto_parentesco ?? $hospitalizacion->contacto_parentesco,
-                'contacto_relacion' => $request->contacto_relacion ?? $hospitalizacion->contacto_relacion,
                 'updated_at' => now(),
             ]);
 
@@ -384,16 +380,6 @@ class HospitalizacionController extends Controller
 
     private function obtenerPrecioInternacion(): float
     {
-        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('internacion');
-
-        if ($precioNuevo !== null) {
-            return (float) $precioNuevo;
-        }
-
-        $tarifaInternacion = \App\Models\Tarifa::where('codigo', 'HOSP-ADM')
-            ->where('activo', true)
-            ->first();
-
-        return $tarifaInternacion?->precio_particular ?? 150.00;
+        return (float) (\App\Models\IngresoPrecio::getPrecio('internacion') ?? 150.00);
     }
 }

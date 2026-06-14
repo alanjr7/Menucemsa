@@ -1,29 +1,29 @@
 @extends('layouts.app')
 
-@section('title', 'Agregar Stock al Almacén Central')
+@section('title', 'Ajuste de Inventario — Almacén Central')
 
 @push('head')
 <script>
 document.addEventListener('alpine:init', () => {
-    Alpine.data('agregarStock', () => ({
+    Alpine.data('ajusteInventario', () => ({
         motivo: '',
         busqueda: '',
         filtroEstado: '',
         filtroTipo: '',
-        cantidades: {},
+        contados: {},
         pagina: 1,
         porPagina: 25,
 
-        medicamentos: @js($medicamentos),
+        stocks: @js($stocks),
 
         get filtrados() {
-            return this.medicamentos.filter(m => {
-                if (this.busqueda && !m.nombre.toLowerCase().includes(this.busqueda.toLowerCase())) return false;
-                if (this.filtroTipo && m.tipo !== this.filtroTipo) return false;
-                if (this.filtroEstado) {
-                    const estado = this.estadoItem(m);
-                    if (this.filtroEstado !== estado) return false;
+            return this.stocks.filter(s => {
+                if (this.busqueda) {
+                    const q = this.busqueda.toLowerCase();
+                    if (!s.nombre.toLowerCase().includes(q) && !(s.lote || '').toLowerCase().includes(q)) return false;
                 }
+                if (this.filtroTipo && s.tipo !== this.filtroTipo) return false;
+                if (this.filtroEstado && this.estadoItem(s) !== this.filtroEstado) return false;
                 return true;
             });
         },
@@ -45,55 +45,67 @@ document.addEventListener('alpine:init', () => {
             this.pagina = 1;
         },
 
-        estadoItem(m) {
-            if (m.stock <= 0) return 'agotado';
-            if (m.stock_minimo > 0 && m.stock <= m.stock_minimo) return 'bajo';
+        estadoItem(s) {
+            if (s.stock <= 0) return 'agotado';
+            if (s.stock_minimo > 0 && s.stock <= s.stock_minimo) return 'bajo';
             return 'normal';
         },
 
-        getCantidad(catalogoId) {
-            return this.cantidades[catalogoId] ?? '';
+        getContado(stockId) {
+            return (stockId in this.contados) ? this.contados[stockId] : '';
         },
 
-        setCantidad(catalogoId, val) {
+        setContado(stockId, val) {
+            if (val === '' || val === null) {
+                delete this.contados[stockId];
+                return;
+            }
             const n = parseInt(val);
-            if (!val || isNaN(n) || n <= 0) {
-                delete this.cantidades[catalogoId];
+            if (isNaN(n) || n < 0) {
+                delete this.contados[stockId];
             } else {
-                this.cantidades[catalogoId] = n;
+                this.contados[stockId] = n;
             }
         },
 
-        nuevoStock(m) {
-            const c = parseInt(this.cantidades[m.catalogo_id]) || 0;
-            return m.stock + c;
+        modificado(s) {
+            return (s.stock_id in this.contados) && this.contados[s.stock_id] !== s.stock;
         },
 
-        get itemsConCantidad() {
-            return this.medicamentos.filter(m => (parseInt(this.cantidades[m.catalogo_id]) || 0) > 0);
+        delta(s) {
+            if (!this.modificado(s)) return 0;
+            return this.contados[s.stock_id] - s.stock;
         },
 
-        get totalUnidades() {
-            return Object.values(this.cantidades).reduce((sum, c) => sum + (parseInt(c) || 0), 0);
+        nuevoStock(s) {
+            return (s.stock_id in this.contados) ? this.contados[s.stock_id] : s.stock;
+        },
+
+        get itemsModificados() {
+            return this.stocks.filter(s => this.modificado(s));
+        },
+
+        get totalDelta() {
+            return this.itemsModificados.reduce((sum, s) => sum + this.delta(s), 0);
         },
 
         get puedeGuardar() {
-            return this.motivo.trim().length > 0 && this.itemsConCantidad.length > 0;
+            return this.motivo.trim().length > 0 && this.itemsModificados.length > 0;
         },
 
-        limpiarCantidades() {
-            this.cantidades = {};
+        limpiarConteos() {
+            this.contados = {};
         },
 
         enviar() {
             if (!this.puedeGuardar) return;
-            const items = this.itemsConCantidad.map(m => ({
-                catalogo_id: m.catalogo_id,
-                cantidad: parseInt(this.cantidades[m.catalogo_id]),
+            const items = this.itemsModificados.map(s => ({
+                stock_id: s.stock_id,
+                contado: this.contados[s.stock_id],
             }));
             document.getElementById('input-items').value = JSON.stringify(items);
             document.getElementById('input-motivo').value = this.motivo;
-            document.getElementById('form-ingreso').submit();
+            document.getElementById('form-ajuste').submit();
         },
     }));
 });
@@ -102,7 +114,7 @@ document.addEventListener('alpine:init', () => {
 
 
 @section('content')
-<div class="min-h-screen bg-gray-50" x-data="agregarStock">
+<div class="min-h-screen bg-gray-50" x-data="ajusteInventario">
 
     <!-- Header fijo -->
     <div class="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-20 shadow-sm">
@@ -115,20 +127,21 @@ document.addEventListener('alpine:init', () => {
                     </svg>
                 </a>
                 <div>
-                    <h1 class="text-xl font-bold text-gray-900">Agregar Stock — Almacén Central</h1>
-                    <p class="text-xs text-gray-400 mt-0.5">Ingresa las cantidades a sumar para cada ítem</p>
+                    <h1 class="text-xl font-bold text-gray-900">Ajuste de Inventario — Almacén Central</h1>
+                    <p class="text-xs text-gray-400 mt-0.5">Conteo físico por lote: escribe la cantidad real en estante. No crea lotes.</p>
                 </div>
             </div>
             <!-- Contador flotante -->
-            <div x-show="itemsConCantidad.length > 0"
-                 class="flex items-center gap-4">
+            <div x-show="itemsModificados.length > 0" class="flex items-center gap-4">
                 <div class="text-right">
-                    <p class="text-xs text-gray-500">Ítems modificados</p>
-                    <p class="text-lg font-bold text-amber-600" x-text="itemsConCantidad.length"></p>
+                    <p class="text-xs text-gray-500">Lotes ajustados</p>
+                    <p class="text-lg font-bold text-amber-600" x-text="itemsModificados.length"></p>
                 </div>
                 <div class="text-right">
-                    <p class="text-xs text-gray-500">Unidades a ingresar</p>
-                    <p class="text-lg font-bold text-gray-800" x-text="totalUnidades"></p>
+                    <p class="text-xs text-gray-500">Diferencia neta</p>
+                    <p class="text-lg font-bold"
+                       :class="totalDelta > 0 ? 'text-green-600' : (totalDelta < 0 ? 'text-red-600' : 'text-gray-800')"
+                       x-text="(totalDelta > 0 ? '+' : '') + totalDelta"></p>
                 </div>
             </div>
         </div>
@@ -143,15 +156,15 @@ document.addEventListener('alpine:init', () => {
         <!-- Motivo (requerido) -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-                Motivo del ingreso
+                Motivo del ajuste
                 <span class="text-red-500">*</span>
-                <span class="ml-1 font-normal text-gray-400 text-xs">(requerido para registrar el ajuste)</span>
+                <span class="ml-1 font-normal text-gray-400 text-xs">(requerido — queda registrado en la auditoría)</span>
             </label>
             <input type="text" x-model="motivo" maxlength="255"
-                   placeholder="Ej: Compra mensual, Donación, Ajuste de inventario..."
+                   placeholder="Ej: Conteo físico mensual, Merma por rotura, Corrección de inventario..."
                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none transition-colors"
                    :class="motivo.trim() ? 'border-green-400 bg-green-50' : ''">
-            <p x-show="!motivo.trim() && itemsConCantidad.length > 0"
+            <p x-show="!motivo.trim() && itemsModificados.length > 0"
                class="mt-1.5 text-xs text-red-500">Ingresa el motivo para poder guardar.</p>
         </div>
 
@@ -164,7 +177,7 @@ document.addEventListener('alpine:init', () => {
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
-                        <input x-model="busqueda" @input="resetPagina()" type="text" placeholder="Nombre del medicamento..."
+                        <input x-model="busqueda" @input="resetPagina()" type="text" placeholder="Nombre o código de lote..."
                                class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none">
                     </div>
                 </div>
@@ -190,14 +203,14 @@ document.addEventListener('alpine:init', () => {
                             class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
                         Limpiar filtros
                     </button>
-                    <button x-show="itemsConCantidad.length > 0" type="button" @click="limpiarCantidades()"
+                    <button x-show="itemsModificados.length > 0" type="button" @click="limpiarConteos()"
                             class="px-3 py-2 text-sm text-red-500 hover:text-red-700 border border-red-200 rounded-lg hover:bg-red-50">
-                        Limpiar cantidades
+                        Limpiar conteos
                     </button>
                 </div>
                 <div class="ml-auto">
                     <span class="text-xs text-gray-400"
-                          x-text="filtrados.length + ' de {{ $medicamentos->count() }} ítems'"></span>
+                          x-text="filtrados.length + ' de {{ $stocks->count() }} lotes'"></span>
                 </div>
             </div>
         </div>
@@ -207,75 +220,80 @@ document.addEventListener('alpine:init', () => {
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Medicamento / Insumo</th>
-                        <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Stock actual</th>
-                        <th class="text-center px-4 py-3 text-xs font-semibold text-amber-600 uppercase tracking-wide w-36">Agregar</th>
-                        <th class="text-center px-4 py-3 text-xs font-semibold text-green-600 uppercase tracking-wide w-28">Nuevo total</th>
+                        <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Medicamento / Insumo · Lote</th>
+                        <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Sistema</th>
+                        <th class="text-center px-4 py-3 text-xs font-semibold text-amber-600 uppercase tracking-wide w-36">Contado</th>
+                        <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">Diferencia</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    <template x-for="m in paginados" :key="m.catalogo_id">
+                    <template x-for="s in paginados" :key="s.stock_id">
                         <tr class="hover:bg-gray-50 transition-colors"
                             :class="{
-                                'bg-red-50 hover:bg-red-100': estadoItem(m) === 'agotado',
-                                'bg-yellow-50 hover:bg-yellow-100': estadoItem(m) === 'bajo',
+                                'bg-red-50 hover:bg-red-100': estadoItem(s) === 'agotado',
+                                'bg-yellow-50 hover:bg-yellow-100': estadoItem(s) === 'bajo',
                             }">
 
-                            <!-- Nombre -->
+                            <!-- Nombre + lote -->
                             <td class="px-5 py-3">
-                                <div class="flex items-center gap-2">
-                                    <div>
-                                        <p class="font-medium text-gray-900 text-sm" x-text="m.nombre"></p>
-                                        <p x-show="m.descripcion" class="text-xs text-gray-500 mt-0.5 leading-snug" x-text="m.descripcion"></p>
-                                        <div class="flex items-center gap-2 mt-0.5">
-                                            <span class="text-xs text-gray-400" x-text="m.unidad"></span>
-                                            <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                                                  :class="m.tipo === 'medicamento' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
-                                                  x-text="m.tipo === 'medicamento' ? 'Med.' : 'Ins.'"></span>
-                                        </div>
-                                    </div>
+                                <p class="font-medium text-gray-900 text-sm" x-text="s.nombre"></p>
+                                <p x-show="s.descripcion" class="text-xs text-gray-500 mt-0.5 leading-snug" x-text="s.descripcion"></p>
+                                <div class="flex flex-wrap items-center gap-2 mt-1">
+                                    <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                          :class="s.tipo === 'medicamento' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+                                          x-text="s.tipo === 'medicamento' ? 'Med.' : 'Ins.'"></span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium" x-text="s.lote"></span>
+                                    <span x-show="s.proveedor" class="text-xs text-gray-400" x-text="s.proveedor"></span>
+                                    <span x-show="s.vencimiento" class="text-xs"
+                                          :class="{
+                                              'text-red-600 font-medium': s.estado_venc === 'vencido',
+                                              'text-amber-600': s.estado_venc === 'por_vencer',
+                                              'text-gray-400': s.estado_venc === 'vigente' || s.estado_venc === 'sin_fecha',
+                                          }">
+                                        Vence <span x-text="s.vencimiento"></span>
+                                    </span>
                                 </div>
                             </td>
 
-                            <!-- Stock actual -->
+                            <!-- Stock de sistema -->
                             <td class="px-4 py-3 text-center">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
                                       :class="{
-                                          'bg-red-100 text-red-700':    estadoItem(m) === 'agotado',
-                                          'bg-yellow-100 text-yellow-700': estadoItem(m) === 'bajo',
-                                          'bg-green-100 text-green-700':   estadoItem(m) === 'normal',
+                                          'bg-red-100 text-red-700':       estadoItem(s) === 'agotado',
+                                          'bg-yellow-100 text-yellow-700': estadoItem(s) === 'bajo',
+                                          'bg-green-100 text-green-700':    estadoItem(s) === 'normal',
                                       }"
-                                      x-text="m.stock + ' ' + m.unidad"></span>
-                                <p x-show="estadoItem(m) === 'agotado'" class="text-xs text-red-500 mt-0.5">Agotado</p>
-                                <p x-show="estadoItem(m) === 'bajo'" class="text-xs text-yellow-600 mt-0.5">Bajo stock</p>
+                                      x-text="s.stock + ' ' + s.unidad"></span>
                             </td>
 
-                            <!-- Input cantidad -->
+                            <!-- Input conteo real -->
                             <td class="px-4 py-3 text-center">
                                 <input type="number"
-                                       :value="getCantidad(m.catalogo_id)"
-                                       @input="setCantidad(m.catalogo_id, $event.target.value)"
+                                       :value="getContado(s.stock_id)"
+                                       @input="setContado(s.stock_id, $event.target.value)"
                                        @wheel.prevent
-                                       min="1"
-                                       placeholder="0"
+                                       min="0"
+                                       :placeholder="s.stock"
                                        class="w-24 px-3 py-1.5 text-center border rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2"
-                                       :class="(parseInt(cantidades[m.catalogo_id]) || 0) > 0
-                                           ? 'border-amber-400 bg-amber-50 text-amber-800 focus:ring-amber-200'
+                                       :class="modificado(s)
+                                           ? (delta(s) > 0 ? 'border-green-400 bg-green-50 text-green-800 focus:ring-green-200'
+                                                           : 'border-red-400 bg-red-50 text-red-800 focus:ring-red-200')
                                            : 'border-gray-200 text-gray-500 focus:ring-amber-100 focus:border-amber-300 hover:border-gray-300'">
                             </td>
 
-                            <!-- Nuevo total (preview) -->
+                            <!-- Diferencia (preview) -->
                             <td class="px-4 py-3 text-center">
-                                <template x-if="(parseInt(cantidades[m.catalogo_id]) || 0) > 0">
+                                <template x-if="modificado(s)">
                                     <div>
-                                        <span class="text-sm font-bold text-green-700" x-text="nuevoStock(m)"></span>
-                                        <span class="text-xs text-green-500 ml-1" x-text="m.unidad"></span>
-                                        <p class="text-xs text-green-500 mt-0.5">
-                                            +<span x-text="cantidades[m.catalogo_id]"></span>
+                                        <span class="text-sm font-bold"
+                                              :class="delta(s) > 0 ? 'text-green-700' : 'text-red-700'"
+                                              x-text="(delta(s) > 0 ? '+' : '') + delta(s)"></span>
+                                        <p class="text-xs text-gray-400 mt-0.5">
+                                            <span x-text="s.stock"></span> → <span class="font-semibold text-gray-600" x-text="nuevoStock(s)"></span>
                                         </p>
                                     </div>
                                 </template>
-                                <template x-if="(parseInt(cantidades[m.catalogo_id]) || 0) <= 0">
+                                <template x-if="!modificado(s)">
                                     <span class="text-gray-300 text-xs">—</span>
                                 </template>
                             </td>
@@ -285,7 +303,7 @@ document.addEventListener('alpine:init', () => {
                     <!-- Sin resultados -->
                     <tr x-show="filtrados.length === 0">
                         <td colspan="4" class="px-5 py-12 text-center text-gray-400 text-sm">
-                            Sin ítems que coincidan con los filtros.
+                            Sin lotes que coincidan con los filtros.
                         </td>
                     </tr>
                 </tbody>
@@ -295,7 +313,7 @@ document.addEventListener('alpine:init', () => {
             <div x-show="totalPaginas > 1"
                  class="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50">
                 <span class="text-xs text-gray-500"
-                      x-text="'Página ' + pagina + ' de ' + totalPaginas + ' — ' + filtrados.length + ' ítems'"></span>
+                      x-text="'Página ' + pagina + ' de ' + totalPaginas + ' — ' + filtrados.length + ' lotes'"></span>
                 <div class="flex items-center gap-1">
                     <button type="button" @click="irPagina(1)" :disabled="pagina === 1"
                             class="px-2 py-1 text-xs rounded border transition-colors"
@@ -336,25 +354,29 @@ document.addEventListener('alpine:init', () => {
     <div class="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-lg px-6 py-4">
         <div class="max-w-screen-xl mx-auto flex items-center justify-between gap-4">
 
-            <!-- Resumen de lo que se va a guardar -->
-            <div x-show="itemsConCantidad.length === 0" class="text-sm text-gray-400">
-                Ingresa cantidades en la tabla para continuar.
+            <!-- Resumen -->
+            <div x-show="itemsModificados.length === 0" class="text-sm text-gray-400">
+                Escribe el conteo real de los lotes que difieran del sistema.
             </div>
-            <div x-show="itemsConCantidad.length > 0" class="flex flex-wrap gap-2 flex-1">
-                <template x-for="m in itemsConCantidad.slice(0, 6)" :key="m.catalogo_id">
-                    <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 text-xs">
-                        <span class="font-medium text-amber-800 truncate max-w-32" x-text="m.nombre"></span>
-                        <span class="text-amber-500 font-bold">+<span x-text="cantidades[m.catalogo_id]"></span></span>
+            <div x-show="itemsModificados.length > 0" class="flex flex-wrap gap-2 flex-1">
+                <template x-for="s in itemsModificados.slice(0, 6)" :key="s.stock_id">
+                    <div class="flex items-center gap-1.5 border rounded-lg px-2.5 py-1 text-xs"
+                         :class="delta(s) > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'">
+                        <span class="font-medium truncate max-w-32"
+                              :class="delta(s) > 0 ? 'text-green-800' : 'text-red-800'" x-text="s.nombre"></span>
+                        <span class="font-bold"
+                              :class="delta(s) > 0 ? 'text-green-600' : 'text-red-600'"
+                              x-text="(delta(s) > 0 ? '+' : '') + delta(s)"></span>
                     </div>
                 </template>
-                <div x-show="itemsConCantidad.length > 6"
+                <div x-show="itemsModificados.length > 6"
                      class="flex items-center px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg font-medium"
-                     x-text="'+' + (itemsConCantidad.length - 6) + ' más'"></div>
+                     x-text="'+' + (itemsModificados.length - 6) + ' más'"></div>
             </div>
 
             <!-- Botón guardar -->
             <div class="flex items-center gap-3 flex-shrink-0">
-                <div x-show="!motivo.trim() && itemsConCantidad.length > 0"
+                <div x-show="!motivo.trim() && itemsModificados.length > 0"
                      class="text-xs text-red-500 font-medium text-right max-w-36">
                     Falta el motivo
                 </div>
@@ -364,11 +386,11 @@ document.addEventListener('alpine:init', () => {
                             ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm hover:shadow'
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                    <span x-text="itemsConCantidad.length > 0
-                        ? 'Guardar ingreso (' + itemsConCantidad.length + ' ítems, ' + totalUnidades + ' uds)'
-                        : 'Guardar ingreso'"></span>
+                    <span x-text="itemsModificados.length > 0
+                        ? 'Aplicar ajuste (' + itemsModificados.length + ' lotes)'
+                        : 'Aplicar ajuste'"></span>
                 </button>
             </div>
         </div>
@@ -376,7 +398,7 @@ document.addEventListener('alpine:init', () => {
 
 </div>
 
-<form id="form-ingreso" method="POST" action="{{ route('admin.almacen-medicamentos.agregar-stock.procesar') }}" style="display:none">
+<form id="form-ajuste" method="POST" action="{{ route('admin.almacen-medicamentos.ajuste-inventario.procesar') }}" style="display:none">
     @csrf
     <input type="hidden" id="input-motivo" name="motivo">
     <input type="hidden" id="input-items" name="items">

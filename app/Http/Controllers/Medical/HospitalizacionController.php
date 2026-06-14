@@ -37,7 +37,7 @@ class HospitalizacionController extends Controller
             'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
             'equipos_medicos' => 'nullable|array',
             'equipos_medicos.*.nombre' => 'required_with:equipos_medicos|string|max:255',
-            'equipos_medicos.*.precio' => 'required_with:equipos_medicos|numeric|min:0',
+            'equipos_medicos.*.precio' => 'required_with:equipos_medicos|numeric|decimal:0,2|min:0',
             'equipos_medicos.*.cantidad' => 'required_with:equipos_medicos|integer|min:1',
         ]);
 
@@ -129,7 +129,6 @@ class HospitalizacionController extends Controller
                                 'Internación - ' . $med['nombre'] . ' (' . $med['cantidad'] . ' ' . $med['unidad_medida'] . ')',
                                 $med['precio_unitario'],
                                 $med['cantidad'],
-                                null,
                                 AlmacenCatalogo::class,
                                 $med['id']
                             );
@@ -147,7 +146,6 @@ class HospitalizacionController extends Controller
                                 'Internación - Equipo/Procedimiento: ' . $equipo['nombre'],
                                 $equipo['precio_unitario'],
                                 $equipo['cantidad'],
-                                null,
                                 Hospitalizacion::class,
                                 $hospitalizacion->id
                             );

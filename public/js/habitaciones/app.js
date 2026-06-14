@@ -104,53 +104,6 @@ const HabitacionApp = (function() {
         });
     }
 
-    async function liberarCama(camaId) {
-        if (!confirm('¿Está seguro de liberar esta cama?')) return;
-
-        try {
-            const formData = new FormData();
-            formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
-
-            const response = await fetch('/internacion-staff/camas/' + camaId + '/liberar', {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json' }
-            }).then(r => r.json());
-
-            if (response.success) {
-                window.location.reload();
-            } else {
-                alert(response.error || 'Error al liberar cama');
-            }
-        } catch (error) {
-            alert('Error de conexión');
-        }
-    }
-
-    function mostrarModalAsignar(camaId, habitacionId) {
-        const container = elements.detalleContainer;
-        const pacientes = JSON.parse(container.dataset.pacientes || '[]');
-        HabitacionModal.asignarPaciente(camaId, pacientes, async (formData) => {
-            try {
-                formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
-
-                const response = await fetch('/internacion-staff/habitaciones/' + habitacionId + '/asignar-paciente', {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'Accept': 'application/json' }
-                }).then(r => r.json());
-
-                if (response.success) {
-                    window.location.reload();
-                } else {
-                    alert(response.error || 'Error al asignar paciente');
-                }
-            } catch (error) {
-                alert('Error de conexión');
-            }
-        });
-    }
-
     async function toggleMantenimiento(habitacionId) {
         const panel = document.getElementById('detalle-' + habitacionId);
         const estadoActual = panel?.dataset.estado;
@@ -182,8 +135,6 @@ const HabitacionApp = (function() {
     return {
         init,
         seleccionarHabitacion,
-        liberarCama,
-        mostrarModalAsignar,
         toggleMantenimiento,
     };
 })();

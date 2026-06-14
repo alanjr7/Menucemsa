@@ -19,11 +19,6 @@ class Quirofano extends Model
         'estado',
     ];
 
-    public function asistentes()
-    {
-        return $this->hasMany(AsistenteQuirofanos::class, 'quirofano_id');
-    }
-
     public function citasQuirurgicas()
     {
         return $this->hasMany(CitaQuirurgica::class, 'quirofano_id');
