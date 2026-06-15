@@ -180,7 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const doctorFields = document.getElementById('doctor-fields');
     
     function toggleDoctorFields() {
-        console.log('Rol seleccionado:', roleSelect.value); // Debug
         
         if (roleSelect.value === 'doctor' || roleSelect.value === 'dirmedico') {
             doctorFields.classList.remove('hidden');
@@ -191,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (ciField) ciField.required = true;
             if (especialidadField) especialidadField.required = true;
             
-            console.log('Campos de doctor habilitados'); // Debug
         } else {
             doctorFields.classList.add('hidden');
             // Quitar obligatoriedad
@@ -201,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (ciField) ciField.required = false;
             if (especialidadField) especialidadField.required = false;
             
-            console.log('Campos de doctor deshabilitados'); // Debug
         }
     }
     
@@ -211,7 +208,6 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleDoctorFields();
     
     // Debug: mostrar el valor inicial del rol
-    console.log('Valor inicial del rol:', roleSelect.value);
 });
 </script>
 @endsection

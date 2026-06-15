@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Support\Money;
 
 class CitaQuirurgica extends Model
 {
@@ -143,6 +144,28 @@ class CitaQuirurgica extends Model
         return 'mayor';
     }
 
+    /**
+     * Cobro de una cirugía por regla de 3 sobre la duración, con PISO en el costo base.
+     * Fuente ÚNICA de la fórmula (antes duplicada en QuirofanoController y JS).
+     *
+     * cobro = max(costo_base, costo_base * duracion_real / duracion_base)
+     * El cobro nunca baja del costo_base aunque la cirugía termine antes; el "extra"
+     * es sólo el sobrecargo por excederse de la duración de referencia del tipo.
+     *
+     * @return array{base:string, extra:string, cirugia:string}
+     */
+    public static function calcularCobroCirugia($costoBase, $duracionReal, $duracionBase): array
+    {
+        $base  = Money::format($costoBase);
+        $dBase = ((int) $duracionBase) > 0 ? (string) $duracionBase : (string) $duracionReal;
+
+        $reglaTres = Money::div(Money::mul($base, (string) $duracionReal), $dBase);
+        $cirugia   = Money::cmp($reglaTres, $base) > 0 ? Money::format($reglaTres) : $base;
+        $extra     = Money::sub($cirugia, $base);
+
+        return ['base' => $base, 'extra' => $extra, 'cirugia' => $cirugia];
+    }
+
     private function calcularCostoFinal()
     {
         $duracionReal = $this->duracion_real;
@@ -152,11 +175,7 @@ class CitaQuirurgica extends Model
         $tipoOriginal     = TipoCirugia::where('nombre', $this->tipo_cirugia)->first();
         $duracionBaseStr  = (string) ($tipoOriginal ? $tipoOriginal->duracion_minutos : $duracionReal);
 
-        // Regla de 3: costo_total = (costo_base * duracion_real) / duracion_base
-        $costoTotal = bcdiv(bcmul($costoBaseStr, (string) $duracionReal, 10), $duracionBaseStr, 2);
-        $costoExtra = bccomp($costoTotal, $costoBaseStr, 2) > 0
-            ? bcsub($costoTotal, $costoBaseStr, 2)
-            : '0.00';
+        $cobro = self::calcularCobroCirugia($costoBaseStr, $duracionReal, $duracionBaseStr);
 
         $costoMedicamentos = '0';
         $cuentaCobro = \App\Models\CuentaCobro::where('referencia_type', self::class)
@@ -168,8 +187,8 @@ class CitaQuirurgica extends Model
                 ->sum('subtotal');
         }
 
-        $this->costo_final        = bcadd($costoTotal, $costoMedicamentos, 2);
-        $this->costo_minuto_extra = bccomp($duracionBaseStr, '0', 0) > 0
+        $this->costo_final        = Money::add($cobro['cirugia'], $costoMedicamentos);
+        $this->costo_minuto_extra = ((int) $duracionBaseStr) > 0
             ? bcdiv($costoBaseStr, $duracionBaseStr, 4)
             : '0.0000';
     }

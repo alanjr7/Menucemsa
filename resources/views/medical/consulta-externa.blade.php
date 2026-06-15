@@ -177,7 +177,6 @@
             const pacienteCi = button.getAttribute('data-paciente-ci');
             const consultaNro = button.getAttribute('data-consulta-nro');
             
-            console.log('handleVerButton called with:', pacienteCi, consultaNro);
             alert('Botón Ver funciona! CI: ' + pacienteCi + ', Consulta: ' + consultaNro);
             
             verDetallesPaciente(pacienteCi, consultaNro);
@@ -199,7 +198,6 @@
         }
 
         function verDetallesPaciente(pacienteCi, consultaNro) {
-            console.log('verDetallesPaciente called with:', pacienteCi, consultaNro);
             
             // Show loading indicator
             alert('Cargando datos del paciente CI: ' + pacienteCi);
@@ -207,11 +205,9 @@
             // Show patient details in a modal or redirect to patient details
             fetch(`/api/paciente/${pacienteCi}?t=${Date.now()}`)
                 .then(response => {
-                    console.log('Response status:', response.status);
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data);
                     if (data.success) {
                         mostrarModalPaciente(data.paciente, consultaNro);
                     } else {

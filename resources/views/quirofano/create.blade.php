@@ -254,7 +254,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 disponibilidadElement.textContent = 'Ocupado';
                 disponibilidadElement.className = 'font-semibold text-red-600';
                 if (data.conflictos && data.conflictos.length > 0) {
-                    console.log('Conflictos encontrados:', data.conflictos);
                 }
             }
         })
@@ -305,7 +304,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        console.log('Enviando datos:', data);
         
         fetch('/quirofano', {
             method: 'POST',
@@ -317,8 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify(data)
         })
         .then(response => {
-            console.log('Respuesta status:', response.status);
-            console.log('Respuesta headers:', response.headers);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -327,7 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
-            console.log('Respuesta data:', data);
             
             if (data.success) {
                 alert(data.message);
@@ -345,11 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         errorMessage += `\n\nDEBUG: ${data.debug}`;
                     }
                     
-                    console.log('Validation errors:', data.errors);
-                    console.log('Debug info:', data.debug);
                     alert(errorMessage);
                 } else {
-                    console.log('Other error:', data);
                     alert(data.message || 'Error al programar la cita');
                 }
             }

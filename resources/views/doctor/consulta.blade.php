@@ -262,12 +262,9 @@
                     body: JSON.stringify(data)
                 })
                 .then(response => {
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', response.headers.get('content-type'));
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data);
                     if (data.success) {
                         alert('Consulta completada exitosamente');
                         window.location.href = '/consulta-externa';

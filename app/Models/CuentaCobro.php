@@ -34,7 +34,7 @@ class CuentaCobro extends Model
         'ci_nit_facturacion',
         'razon_social',
         'caja_session_id',
-        'usuario_caja_id',
+        'user_caja_id',
         'observaciones',
         'seguro_estado',
         'seguro_id',
@@ -90,7 +90,7 @@ class CuentaCobro extends Model
 
     public function usuarioCaja(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'usuario_caja_id');
+        return $this->belongsTo(User::class, 'user_caja_id');
     }
 
     public function detalles(): HasMany

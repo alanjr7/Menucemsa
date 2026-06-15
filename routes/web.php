@@ -53,16 +53,18 @@ Route::get('/', function () {
 });
 
 
-Route::get('/admin/system/optimize', function () {
+Route::middleware(['auth', 'role:admin'])->get('/admin/system/optimize', function () {
     try {
         Artisan::call('optimize:clear');
 
         Artisan::call('optimize');
 
         return "<h1>¡Sistema Optimizado!</h1>
-                <p>Se ha refrescado el archivo .env y las rutas correctamente.</p>";
+                <p>Se ha refrescado la configuración y las rutas correctamente.</p>";
     } catch (\Exception $e) {
-        return "<h1>Error al optimizar</h1>" . $e->getMessage();
+        report($e);
+
+        return "<h1>Error al optimizar</h1><p>Revise los registros del sistema.</p>";
     }
 })->name('admin.system.optimize');
 
@@ -140,6 +142,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Rutas para medicamentos durante cirugía
         Route::get('/quirofano/{cita}/medicamentos-disponibles', [QuirofanoController::class, 'getMedicamentosDisponibles'])->name('quirofano.medicamentos.disponibles')->where('cita', '[0-9]+');
+        Route::get('/quirofano/{cita}/insumos-disponibles', [QuirofanoController::class, 'getInsumosDisponibles'])->name('quirofano.insumos.disponibles')->where('cita', '[0-9]+');
         Route::get('/quirofano/{cita}/medicamentos-usados', [QuirofanoController::class, 'getMedicamentosUsados'])->name('quirofano.medicamentos.usados')->where('cita', '[0-9]+');
         Route::post('/quirofano/{cita}/medicamentos', [QuirofanoController::class, 'agregarMedicamento'])->name('quirofano.medicamentos.agregar')->where('cita', '[0-9]+');
 
@@ -280,6 +283,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/detalle-cuenta/{id}', [CajaOperativaController::class, 'getDetalleCuenta'])->name('detalle-cuenta');
         Route::post('/procesar-cobro', [CajaOperativaController::class, 'procesarCobro'])->name('procesar-cobro');
         Route::get('/resumen-dia', [CajaOperativaController::class, 'getResumenDia'])->name('resumen-dia');
+        Route::get('/cobros-realizados', [CajaOperativaController::class, 'getCobrosRealizados'])->name('cobros-realizados');
         Route::get('/buscar-paciente', [CajaOperativaController::class, 'buscarPaciente'])->name('buscar-paciente');
 
         // Comprobante de pago
@@ -498,10 +502,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
     // Rutas gerenciales (admin, gerente y administrador)
     Route::middleware(['role:admin|gerente|administrador'])->prefix('gerencial')->name('gerencial.')->group(function () {
-        // Dashboard del gerente
-        Route::get('/dashboard', function () {
-            return view('dashboard');
-        })->name('dashboard');
+        // Dashboard del gerente (reutiliza el controlador que prepara stats/alertas/chartData)
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes');
         Route::get('/reportes/data', [ReportesController::class, 'data'])->name('reportes.data');
@@ -688,6 +690,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Rutas de Catering Masivo
         Route::get('/catering', [InternacionStaffController::class, 'cateringIndex'])->name('catering.index');
+        Route::get('/catering/por-fecha', [InternacionStaffController::class, 'cateringPorFecha'])->name('catering.por-fecha');
         Route::post('/catering/registrar', [InternacionStaffController::class, 'cateringRegistrar'])->name('catering.registrar');
 
         // Gestión de Precios de Catering (Admin)

@@ -198,6 +198,69 @@
     </div>
 </div>
 
+        <!-- Sección 3b: Insumos -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        Insumos Utilizados
+    </h2>
+
+    <!-- Lista de insumos agregados -->
+    <div id="listaInsumos" class="space-y-2 mb-4 max-h-64 overflow-y-auto">
+        <p class="text-gray-500 text-sm text-center py-4">No hay insumos agregados</p>
+    </div>
+
+    <!-- Buscador de insumos -->
+    <div class="border-t border-gray-200 pt-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-3">Agregar Insumo</h4>
+
+        <div class="relative mb-3">
+            <div class="relative">
+                <input type="text"
+                       id="buscadorInsumo"
+                       placeholder="🔍 Buscar insumo por nombre, presentación o concentración..."
+                       autocomplete="off"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                <div id="loadingInsumos" class="absolute right-3 top-3 hidden">
+                    <svg class="animate-spin h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Resultados de búsqueda -->
+            <div id="resultadosBusquedaInsumo" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
+            </div>
+        </div>
+
+        <!-- Cantidad y botón agregar -->
+        <div id="seleccionContainerInsumo" class="hidden bg-purple-50 rounded-lg p-3 mt-3">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <p id="insumoSeleccionadoNombre" class="font-medium text-gray-900"></p>
+                    <p class="text-xs text-gray-500">Stock disponible: <span id="stockDisponibleInsumo">0</span> unidades</p>
+                    <p class="text-xs text-gray-500">Precio unitario: Bs. <span id="precioUnitarioInsumo">0</span></p>
+                </div>
+                <div class="flex gap-2">
+                    <input type="number" id="insumoCantidad" min="1" value="1"
+                           class="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center">
+                    <button type="button" onclick="agregarInsumoSeleccionado()"
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Agregar
+                    </button>
+                    <button type="button" onclick="limpiarSeleccionInsumo()"
+                            class="border border-gray-300 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
         <!-- Sección 4: Equipos y Procedimientos -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -273,6 +336,10 @@
                     <span class="font-semibold text-green-600" id="costoMedicamentosPreview">Bs. 0.00</span>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="text-sm text-gray-600">Insumos</span>
+                    <span class="font-semibold text-purple-600" id="costoInsumosPreview">Bs. 0.00</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
                     <span class="text-sm text-gray-600">Equipos y Procedimientos</span>
                     <span class="font-semibold text-cyan-600" id="costoEquiposPreview">Bs. 0.00</span>
                 </div>
@@ -302,6 +369,7 @@
 
     <!-- Inputs ocultos para arrays -->
     <input type="hidden" id="medicamentosInput" name="medicamentos" value="[]">
+    <input type="hidden" id="insumosInput" name="insumos" value="[]">
     <input type="hidden" id="equiposInput" name="equipos" value="[]">
 </div>
 
@@ -330,6 +398,7 @@
 <script>
 // Variables globales
 let medicamentosAgregados = [];
+let insumosAgregados = [];
 let equiposAgregados = [];
 let costoBase = {{ $cita->costo_base }};
 
@@ -618,6 +687,213 @@ function actualizarCostosMedicamentos() {
     actualizarCostoTotal();
 }
 
+// ========== GESTIÓN DE INSUMOS CON BUSCADOR ==========
+
+let todosLosInsumos = [];
+let insumoSeleccionado = null;
+let busquedaInsumoTimeout = null;
+
+async function cargarInsumos() {
+    const loadingIcon = document.getElementById('loadingInsumos');
+    loadingIcon.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`/quirofano/{{ $cita->id }}/insumos-disponibles`);
+        const data = await response.json();
+
+        if (data.success) {
+            todosLosInsumos = data.insumos;
+        } else {
+            console.error('Error cargando insumos:', data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    } finally {
+        loadingIcon.classList.add('hidden');
+    }
+}
+
+function buscarInsumos(query) {
+    const resultadosDiv = document.getElementById('resultadosBusquedaInsumo');
+
+    if (!query || query.length < 2) {
+        resultadosDiv.classList.add('hidden');
+        return;
+    }
+
+    const queryLower = query.toLowerCase();
+    const resultados = todosLosInsumos.filter(ins => {
+        return ins.nombre.toLowerCase().includes(queryLower) ||
+               (ins.presentacion && ins.presentacion.toLowerCase().includes(queryLower)) ||
+               (ins.concentracion && ins.concentracion.toLowerCase().includes(queryLower));
+    });
+
+    if (resultados.length === 0) {
+        resultadosDiv.innerHTML = '<div class="p-3 text-center text-gray-500">No se encontraron insumos</div>';
+        resultadosDiv.classList.remove('hidden');
+        return;
+    }
+
+    resultadosDiv.innerHTML = resultados.map(ins => `
+        <div class="resultado-item p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+             data-stock-id="${ins.stock_id}"
+             onclick="seleccionarInsumoPorStock(${ins.stock_id})">
+            <div class="font-medium text-gray-900">${highlightText(ins.nombre, query)}</div>
+            <div class="text-xs text-gray-500 flex gap-3 mt-1 flex-wrap">
+                <span>📦 Stock: ${ins.cantidad} ${ins.unidad_medida}</span>
+                ${ins.laboratorio ? `<span>🏭 ${ins.laboratorio}</span>` : ''}
+                ${ins.codigo_lote ? `<span>🔖 Lote ${ins.codigo_lote}</span>` : ''}
+                <span>💰 Bs. ${ins.precio.toFixed(2)}</span>
+            </div>
+        </div>
+    `).join('');
+
+    resultadosDiv.classList.remove('hidden');
+}
+
+function seleccionarInsumoPorStock(stockId) {
+    const ins = todosLosInsumos.find(i => i.stock_id === stockId);
+    if (!ins) return;
+    insumoSeleccionado = {
+        id: ins.id, stock_id: ins.stock_id, lote_id: ins.lote_id,
+        nombre: ins.nombre, precio: ins.precio, stock: ins.cantidad,
+        laboratorio: ins.laboratorio || '',
+    };
+
+    const labTxt = ins.laboratorio ? ` (${ins.laboratorio})` : '';
+    document.getElementById('insumoSeleccionadoNombre').textContent = ins.nombre + labTxt;
+    document.getElementById('stockDisponibleInsumo').textContent = ins.cantidad;
+    document.getElementById('precioUnitarioInsumo').textContent = ins.precio.toFixed(2);
+    document.getElementById('insumoCantidad').value = 1;
+    document.getElementById('insumoCantidad').max = ins.cantidad;
+    document.getElementById('seleccionContainerInsumo').classList.remove('hidden');
+
+    document.getElementById('buscadorInsumo').value = '';
+    document.getElementById('resultadosBusquedaInsumo').classList.add('hidden');
+}
+
+function limpiarSeleccionInsumo() {
+    insumoSeleccionado = null;
+    document.getElementById('seleccionContainerInsumo').classList.add('hidden');
+    document.getElementById('buscadorInsumo').value = '';
+    document.getElementById('buscadorInsumo').focus();
+}
+
+function agregarInsumoSeleccionado() {
+    if (!insumoSeleccionado) {
+        alert('Seleccione un insumo primero');
+        return;
+    }
+
+    const cantidad = parseInt(document.getElementById('insumoCantidad').value);
+
+    if (isNaN(cantidad) || cantidad < 1) {
+        alert('Ingrese una cantidad válida');
+        return;
+    }
+
+    if (cantidad > insumoSeleccionado.stock) {
+        alert(`Stock insuficiente. Solo hay ${insumoSeleccionado.stock} unidades disponibles.`);
+        return;
+    }
+
+    const existente = insumosAgregados.find(i => i.stock_id === insumoSeleccionado.stock_id);
+    if (existente) {
+        existente.cantidad += cantidad;
+        existente.subtotal  = existente.precio * existente.cantidad;
+    } else {
+        insumosAgregados.push({
+            id:          insumoSeleccionado.id,
+            stock_id:    insumoSeleccionado.stock_id,
+            lote_id:     insumoSeleccionado.lote_id,
+            laboratorio: insumoSeleccionado.laboratorio,
+            nombre:      insumoSeleccionado.nombre,
+            precio:      insumoSeleccionado.precio,
+            cantidad,
+            subtotal:    insumoSeleccionado.precio * cantidad,
+        });
+    }
+    renderizarInsumos();
+    actualizarCostosInsumos();
+
+    insumoSeleccionado.stock -= cantidad;
+    document.getElementById('stockDisponibleInsumo').textContent = insumoSeleccionado.stock;
+    document.getElementById('insumoCantidad').value = 1;
+
+    if (insumoSeleccionado.stock === 0) {
+        limpiarSeleccionInsumo();
+    }
+}
+
+function eliminarInsumo(index) {
+    insumosAgregados.splice(index, 1);
+    renderizarInsumos();
+    actualizarCostosInsumos();
+}
+
+function renderizarInsumos() {
+    const container = document.getElementById('listaInsumos');
+
+    if (insumosAgregados.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No hay insumos agregados</p>';
+        return;
+    }
+
+    container.innerHTML = insumosAgregados.map((ins, index) => `
+        <div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">
+            <div class="flex-1">
+                <span class="font-medium text-gray-900">${ins.nombre}</span>
+                ${ins.laboratorio ? `<span class="text-xs text-indigo-600 ml-2">${ins.laboratorio}</span>` : ''}
+                <span class="text-sm text-gray-500 ml-2">x${ins.cantidad}</span>
+                <div class="text-xs text-gray-500">Bs. ${ins.precio.toFixed(2)} c/u</div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="font-semibold text-purple-600">Bs. ${ins.subtotal.toFixed(2)}</span>
+                <button type="button" onclick="eliminarInsumo(${index})"
+                        class="text-red-500 hover:text-red-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function actualizarCostosInsumos() {
+    const total = insumosAgregados.reduce((sum, ins) => sum + ins.subtotal, 0);
+    const elIns = document.getElementById('costoInsumosPreview');
+    if (elIns) elIns.textContent = 'Bs. ' + total.toFixed(2);
+    actualizarCostoTotal();
+}
+
+document.getElementById('buscadorInsumo').addEventListener('input', function(e) {
+    clearTimeout(busquedaInsumoTimeout);
+    const query = e.target.value;
+    busquedaInsumoTimeout = setTimeout(() => buscarInsumos(query), 300);
+});
+
+document.addEventListener('click', function(e) {
+    const buscador = document.getElementById('buscadorInsumo');
+    const resultados = document.getElementById('resultadosBusquedaInsumo');
+
+    if (!buscador.contains(e.target) && !resultados.contains(e.target)) {
+        resultados.classList.add('hidden');
+    }
+});
+
+document.getElementById('insumoCantidad').addEventListener('change', function() {
+    const max = parseInt(this.max);
+    const val = parseInt(this.value);
+    if (val > max) {
+        this.value = max;
+        alert(`La cantidad no puede exceder el stock disponible (${max})`);
+    }
+    if (val < 1) this.value = 1;
+});
+
+cargarInsumos();
+
 // ========== GESTIÓN DE PROCEDIMIENTOS/EQUIPOS ==========
 
 let procedimientoSeleccionado = null;
@@ -765,14 +1041,16 @@ function actualizarCostosEquipos() {
 function actualizarCostoTotal() {
     const elExtra = document.getElementById('costoExtraPreview');
     const elMed   = document.getElementById('costoMedicamentosPreview');
+    const elIns   = document.getElementById('costoInsumosPreview');
     const elEq    = document.getElementById('costoEquiposPreview');
     const elTotal = document.getElementById('costoTotalPreview');
 
     const costoExtra       = elExtra ? (parseFloat(elExtra.textContent.replace('Bs. ', '')) || 0) : 0;
     const costoMedicamentos = elMed  ? (parseFloat(elMed.textContent.replace('Bs. ', ''))   || 0) : 0;
+    const costoInsumos      = elIns  ? (parseFloat(elIns.textContent.replace('Bs. ', ''))    || 0) : 0;
     const costoEquipos      = elEq   ? (parseFloat(elEq.textContent.replace('Bs. ', ''))    || 0) : 0;
 
-    const total = costoBase + costoExtra + costoMedicamentos + costoEquipos;
+    const total = costoBase + costoExtra + costoMedicamentos + costoInsumos + costoEquipos;
     if (elTotal) elTotal.textContent = 'Bs. ' + total.toFixed(2);
 }
 
@@ -802,6 +1080,11 @@ document.getElementById('ejecutarCirugiaForm').addEventListener('submit', functi
             id: m.id,
             lote_id: m.lote_id,
             cantidad: m.cantidad
+        })),
+        insumos: insumosAgregados.map(i => ({
+            id: i.id,
+            lote_id: i.lote_id,
+            cantidad: i.cantidad
         })),
         equipos: equiposAgregados.map(e => ({
             nombre: e.nombre,

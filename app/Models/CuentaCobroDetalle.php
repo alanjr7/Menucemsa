@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Support\Money;
 
 class CuentaCobroDetalle extends Model
 {
@@ -72,13 +73,13 @@ class CuentaCobroDetalle extends Model
 
         static::creating(function ($detalle) {
             if (empty($detalle->subtotal)) {
-                $detalle->subtotal = $detalle->cantidad * $detalle->precio_unitario;
+                $detalle->subtotal = Money::mul($detalle->cantidad, $detalle->precio_unitario);
             }
         });
 
         static::updating(function ($detalle) {
             if ($detalle->isDirty('cantidad') || $detalle->isDirty('precio_unitario')) {
-                $detalle->subtotal = $detalle->cantidad * $detalle->precio_unitario;
+                $detalle->subtotal = Money::mul($detalle->cantidad, $detalle->precio_unitario);
             }
         });
     }

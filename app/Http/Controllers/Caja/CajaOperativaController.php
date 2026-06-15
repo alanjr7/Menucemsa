@@ -409,8 +409,9 @@ class CajaOperativaController extends Controller
 
                     return [
                         'id'             => $detalle->id,
+                        'area'           => $origen,
                         'tipo_item'      => $detalle->tipo_item_label,
-                        'descripcion'    => '[' . $origen . '] ' . $detalle->descripcion,
+                        'descripcion'    => $detalle->descripcion,
                         'cantidad'       => $detalle->cantidad,
                         'precio_unitario' => $detalle->precio_unitario,
                         'subtotal'       => $detalle->subtotal,
@@ -786,6 +787,57 @@ class CajaOperativaController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener resumen: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cobros realizados en la caja abierta del usuario (turno actual).
+     * Cada fila es un PagoCuenta; el recibo se reimprime via el comprobante
+     * de su cuenta de cobro.
+     */
+    public function getCobrosRealizados(): JsonResponse
+    {
+        try {
+            $cajaAbierta = CajaSession::delUsuario(Auth::id())
+                ->abierta()
+                ->first();
+
+            if (!$cajaAbierta) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay caja abierta'
+                ], 400);
+            }
+
+            $cobros = PagoCuenta::with(['cuentaCobro.paciente'])
+                ->where('caja_session_id', $cajaAbierta->id)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($pago) {
+                    $paciente = $pago->cuentaCobro?->paciente;
+                    return [
+                        'id'              => $pago->id,
+                        'cuenta_id'       => $pago->cuenta_cobro_id,
+                        'hora'            => $pago->created_at->format('d/m/Y H:i'),
+                        'paciente_nombre' => $paciente?->nombre ?? 'N/A',
+                        'paciente_ci'     => $paciente?->ci ?? $paciente?->temp_code ?? 'N/A',
+                        'metodo'          => $pago->metodo_pago,
+                        'metodo_label'    => $pago->metodo_pago_label,
+                        'referencia'      => $pago->referencia ?? '',
+                        'monto'           => $pago->monto,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'cobros'  => $cobros,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener cobros: ' . $e->getMessage()
             ], 500);
         }
     }

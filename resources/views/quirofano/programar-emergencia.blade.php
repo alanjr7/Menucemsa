@@ -249,7 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 disponibilidadElement.textContent = 'Ocupado';
                 disponibilidadElement.className = 'font-semibold text-red-600';
                 if (data.conflictos && data.conflictos.length > 0) {
-                    console.log('Conflictos encontrados:', data.conflictos);
                 }
             }
         })
@@ -290,7 +289,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        console.log('Enviando datos:', data);
         
         fetch('/quirofano/emergencia/store', {
             method: 'POST',
@@ -303,7 +301,6 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(async response => {
             const text = await response.text();
-            console.log('RESPUESTA RAW:', text);
 
             let data;
             try {
@@ -331,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return data;
         })
         .then(data => {
-            console.log('Respuesta data:', data);
 
             if (data.success) {
                 alert(data.message);
@@ -342,10 +338,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     for (const [field, messages] of Object.entries(data.errors)) {
                         errorMessage += `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}\n`;
                     }
-                    console.log('Validation errors:', data.errors);
                     alert(errorMessage);
                 } else {
-                    console.log('Other error:', data);
                     alert(data.message || 'Error al programar la cita');
                 }
             }

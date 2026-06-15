@@ -132,6 +132,47 @@
                 </div>
             </div>
         </div>
+
+        <!-- Cobros realizados (turno actual) -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-100 mt-6">
+            <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h3 class="text-lg font-bold text-gray-800">Cobros Realizados</h3>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="buscarCobro"
+                           placeholder="Paciente, método, recibo..."
+                           class="block w-full sm:w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <button onclick="cargarCobrosRealizados()" class="p-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600" title="Recargar">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Recibo / Hora</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Paciente</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Método</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Monto</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="tablaCobros">
+                        <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400 italic font-medium">Cargando cobros...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-4 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="text-sm text-gray-500" id="paginacionCobrosInfo">Mostrando 0 registros</div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnCobroAnterior" onclick="cambiarPaginaCobros(-1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                    <div class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-md border border-gray-200" id="paginacionCobrosPagina">Página 1 de 1</div>
+                    <button type="button" id="btnCobroSiguiente" onclick="cambiarPaginaCobros(1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Siguiente</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -148,8 +189,8 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Monto a Pagar (Bs)</label>
-                            <input type="number" id="montoPago" step="0.01" min="0" required
-                                   oninput="this.value=this.value.match(/^\d*([.,]\d{0,2})?/)[0]"
+                            <input type="text" inputmode="decimal" id="montoPago" data-decimal required
+                                   placeholder="0.00"
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
@@ -201,8 +242,8 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Monto Final Físico (Bs)</label>
-                    <input type="number" id="montoFinal" step="0.01" min="0"
-                           oninput="this.value=this.value.match(/^\d*([.,]\d{0,2})?/)[0]"
+                    <input type="text" inputmode="decimal" id="montoFinal" data-decimal
+                           placeholder="0.00"
                            class="mt-1 block w-full rounded-md border-gray-300 font-bold text-lg">
                 </div>
                 <div>
@@ -225,18 +266,47 @@
     let paginaActual = 1;
     const registrosPorPagina = 10;
 
+    let cobrosData = [];
+    let paginaCobros = 1;
+    const cobrosPorPagina = 5;
+
     // Cargar datos al iniciar
     document.addEventListener('DOMContentLoaded', () => {
         recargarTodo();
         // Buscador inteligente en tiempo real
         document.getElementById('buscarPaciente').addEventListener('input', filtrarPacientes);
+        document.getElementById('buscarCobro').addEventListener('input', filtrarCobros);
+        // Inputs monetarios: acepta punto o coma, normaliza a punto, máx 2 decimales
+        document.querySelectorAll('input[data-decimal]').forEach(inicializarInputDecimal);
     });
+
+    // Saneador de montos (Bs). Convierte coma a punto y limita a 2 decimales.
+    function inicializarInputDecimal(input) {
+        input.addEventListener('keypress', (e) => {
+            if (!/[0-9.,]/.test(e.key)) e.preventDefault();
+        });
+        input.addEventListener('input', function () {
+            const pos = this.selectionStart;
+            let val = this.value.replace(',', '.').replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+            // Tope de 2 decimales
+            const dot = val.indexOf('.');
+            if (dot !== -1) val = val.slice(0, dot + 1) + val.slice(dot + 1, dot + 3);
+            if (this.value !== val) { this.value = val; this.setSelectionRange(pos, pos); }
+        });
+        input.addEventListener('blur', function () {
+            const num = parseFloat(this.value);
+            this.value = isNaN(num) ? '' : num.toFixed(2);
+        });
+    }
 
     async function recargarTodo() {
         // Bloqueamos la UI brevemente con texto de carga si fuera necesario
         await Promise.all([
             cargarPacientesPendientes(),
-            cargarResumenDia()
+            cargarResumenDia(),
+            cargarCobrosRealizados()
         ]);
     }
 
@@ -336,6 +406,107 @@
         renderizarTabla(filtrados);
     }
 
+    // ---- Cobros realizados (turno actual) ----
+    async function cargarCobrosRealizados() {
+        try {
+            const response = await fetch('{{ route("caja.operativa.cobros-realizados") }}', {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (response.redirected || response.status === 401 || response.status === 419) {
+                document.getElementById('tablaCobros').innerHTML =
+                    '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">Tu sesión expiró. Recargá la página.</td></tr>';
+                return;
+            }
+            const data = await response.json();
+            if (data.success) {
+                cobrosData = data.cobros;
+                paginaCobros = 1;
+                filtrarCobros();
+            } else {
+                document.getElementById('tablaCobros').innerHTML =
+                    `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">${data.message || 'No se pudieron cargar los cobros.'}</td></tr>`;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('tablaCobros').innerHTML =
+                '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">Error al conectar con el servidor</td></tr>';
+        }
+    }
+
+    function coincideBusquedaCobro(c, t) {
+        const campos = [c.paciente_nombre, c.paciente_ci, c.metodo_label, c.id, c.referencia];
+        return campos.some(v => String(v ?? '').toLowerCase().includes(t));
+    }
+
+    function filtrarCobros() {
+        const t = document.getElementById('buscarCobro').value.toLowerCase().trim();
+        const filtrados = cobrosData.filter(c => coincideBusquedaCobro(c, t));
+        paginaCobros = 1;
+        renderizarCobros(filtrados);
+    }
+
+    function renderizarCobros(cobros) {
+        const tbody = document.getElementById('tablaCobros');
+        const totalRegistros = cobros.length;
+        const totalPaginas = Math.max(1, Math.ceil(totalRegistros / cobrosPorPagina));
+        if (paginaCobros > totalPaginas) paginaCobros = totalPaginas;
+
+        const inicio = (paginaCobros - 1) * cobrosPorPagina;
+        const fin = inicio + cobrosPorPagina;
+        const paginaItems = cobros.slice(inicio, fin);
+
+        document.getElementById('paginacionCobrosInfo').textContent = totalRegistros === 0
+            ? 'Mostrando 0 registros'
+            : `Mostrando ${inicio + 1}-${Math.min(fin, totalRegistros)} de ${totalRegistros} registros`;
+        document.getElementById('paginacionCobrosPagina').textContent = `Página ${totalPaginas === 0 ? 0 : paginaCobros} de ${totalPaginas}`;
+        document.getElementById('btnCobroAnterior').disabled = paginaCobros <= 1;
+        document.getElementById('btnCobroSiguiente').disabled = paginaCobros >= totalPaginas;
+
+        if (totalRegistros === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-400 font-medium">No hay cobros que coincidan con la búsqueda</td></tr>';
+            return;
+        }
+
+        const metodoColor = { efectivo: 'green', transferencia: 'blue', tarjeta: 'purple', qr: 'orange' };
+        tbody.innerHTML = paginaItems.map(c => {
+            const color = metodoColor[c.metodo] || 'gray';
+            return `
+            <tr class="hover:bg-blue-50/30 transition-colors">
+                <td class="px-6 py-4">
+                    <div class="text-xs font-mono font-bold text-gray-700">${c.id}</div>
+                    <div class="text-[11px] text-gray-500">${c.hora}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-bold text-gray-800">${c.paciente_nombre}</div>
+                    <div class="text-[11px] text-gray-500">DNI/CI: ${c.paciente_ci}</div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-2.5 py-1 rounded text-[10px] font-black tracking-tighter bg-${color}-100 text-${color}-800 border border-${color}-200">${c.metodo_label.toUpperCase()}</span>
+                </td>
+                <td class="px-6 py-4 text-right text-sm font-black text-gray-900">Bs ${parseFloat(c.monto).toFixed(2)}</td>
+                <td class="px-6 py-4 text-center">
+                    <button onclick="imprimirRecibo('${c.cuenta_id}')" class="inline-flex items-center gap-1 px-4 py-1.5 bg-gray-700 text-white text-[11px] font-black rounded shadow hover:bg-gray-800 transition-all uppercase">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        Recibo
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function cambiarPaginaCobros(direccion) {
+        const t = document.getElementById('buscarCobro').value.toLowerCase().trim();
+        const filtrados = cobrosData.filter(c => coincideBusquedaCobro(c, t));
+        const totalPaginas = Math.max(1, Math.ceil(filtrados.length / cobrosPorPagina));
+        paginaCobros = Math.min(totalPaginas, Math.max(1, paginaCobros + direccion));
+        renderizarCobros(filtrados);
+    }
+
+    function imprimirRecibo(cuentaId) {
+        const url = '{{ url('/caja-operativa/comprobante') }}' + '/' + cuentaId;
+        window.open(url, '_blank');
+    }
+
     async function cargarResumenDia() {
         try {
             const response = await fetch('{{ route("caja.operativa.resumen-dia") }}');
@@ -375,30 +546,51 @@
         if (data.success) {
             cuentaActual = data.cuenta;
             document.getElementById('detalleCuenta').innerHTML = `
-                <div class="bg-gray-50 p-4 rounded-md border border-gray-200 text-sm">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-gray-500 font-medium">Paciente:</span>
-                        <span class="font-bold text-gray-900">${cuentaActual.paciente.nombre}</span>
+                <div class="rounded-lg border border-gray-200 overflow-hidden">
+                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Paciente</span>
+                        <span class="text-sm font-bold text-gray-900">${cuentaActual.paciente.nombre}</span>
                     </div>
-                    <div class="space-y-1 text-xs text-gray-600 border-t pt-3 mb-3">
-                        ${cuentaActual.detalles.map(d => {
-                            // Limpiar floats crudos en descripciones antiguas (ej: 40.3666 hrs → 40h 22min)
-                            const desc = d.descripcion.replace(/(\d+\.\d{3,})\s*hrs?/g, (_, h) => {
-                                const hh = Math.floor(parseFloat(h));
-                                const mm = Math.round((parseFloat(h) - hh) * 60);
-                                return mm > 0 ? `${hh}h ${mm}min` : `${hh}h`;
-                            });
-                            return `<div class="flex justify-between"><span>${d.cantidad}x ${desc}</span><span class="font-mono">Bs ${parseFloat(d.subtotal).toFixed(2)}</span></div>`;
-                        }).join('')}
-                    </div>
-                    <div class="border-t mt-2 pt-3 flex justify-between font-black text-xl text-gray-900">
-                        <span>Pagar:</span>
-                        <span class="text-red-600">Bs ${parseFloat(cuentaActual.saldo_pendiente).toFixed(2)}</span>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+                                    <th class="px-3 py-2 text-left font-bold">Área</th>
+                                    <th class="px-3 py-2 text-left font-bold">Ítem</th>
+                                    <th class="px-3 py-2 text-center font-bold">Cant.</th>
+                                    <th class="px-3 py-2 text-right font-bold">P. Unit.</th>
+                                    <th class="px-3 py-2 text-right font-bold">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${cuentaActual.detalles.map(d => {
+                                    // Limpiar floats crudos en descripciones antiguas (ej: 40.3666 hrs → 40h 22min)
+                                    const desc = d.descripcion.replace(/(\d+\.\d{3,})\s*hrs?/g, (_, h) => {
+                                        const hh = Math.floor(parseFloat(h));
+                                        const mm = Math.round((parseFloat(h) - hh) * 60);
+                                        return mm > 0 ? `${hh}h ${mm}min` : `${hh}h`;
+                                    });
+                                    const cant = parseFloat(d.cantidad);
+                                    return `<tr>
+                                        <td class="px-3 py-2 align-top whitespace-nowrap"><span class="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wide">${d.area || 'General'}</span></td>
+                                        <td class="px-3 py-2 align-top text-gray-700">${desc}</td>
+                                        <td class="px-3 py-2 align-top text-center text-gray-600 whitespace-nowrap">${Number.isInteger(cant) ? cant : cant.toFixed(2)}</td>
+                                        <td class="px-3 py-2 align-top text-right font-mono text-gray-600 whitespace-nowrap">Bs ${parseFloat(d.precio_unitario).toFixed(2)}</td>
+                                        <td class="px-3 py-2 align-top text-right font-mono font-semibold text-gray-900 whitespace-nowrap">Bs ${parseFloat(d.subtotal).toFixed(2)}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-gray-200 bg-gray-50">
+                                    <td colspan="4" class="px-3 py-3 text-right font-black text-gray-900 uppercase tracking-wide">Total a pagar</td>
+                                    <td class="px-3 py-3 text-right font-black text-lg text-red-600 whitespace-nowrap">Bs ${parseFloat(cuentaActual.saldo_pendiente).toFixed(2)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
             `;
             document.getElementById('montoPago').value = parseFloat(cuentaActual.saldo_pendiente).toFixed(2);
-            document.getElementById('montoPago').max = parseFloat(cuentaActual.saldo_pendiente).toFixed(2);
             document.getElementById('ciNitFactura').value = cuentaActual.ci_nit_facturacion || '';
             document.getElementById('razonSocialFactura').value = cuentaActual.razon_social || '';
             document.getElementById('modalCobro').classList.remove('hidden');

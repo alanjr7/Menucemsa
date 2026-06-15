@@ -465,6 +465,35 @@ class InternacionStaffController extends Controller
     }
 
     /**
+     * API: Estados de catering de una fecha para un conjunto de pacientes.
+     * Permite al frontend refrescar los indicadores al cambiar la fecha sin recargar.
+     */
+    public function cateringPorFecha(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'fecha'  => 'required|date',
+            'ids'    => 'array',
+            'ids.*'  => 'integer',
+        ]);
+
+        $fecha = \Carbon\Carbon::parse($validated['fecha'])->toDateString();
+        $ids   = $validated['ids'] ?? [];
+
+        $estados = HospCatering::where('fecha', $fecha)
+            ->whereIn('paciente_id', $ids)
+            ->get(['paciente_id', 'tipo_comida', 'estado'])
+            ->groupBy('paciente_id')
+            ->map(fn($registros) => [
+                'desayuno' => $registros->firstWhere('tipo_comida', 'desayuno')->estado ?? 'no_dado',
+                'almuerzo' => $registros->firstWhere('tipo_comida', 'almuerzo')->estado ?? 'no_dado',
+                'merienda' => $registros->firstWhere('tipo_comida', 'merienda')->estado ?? 'no_dado',
+                'cena'     => $registros->firstWhere('tipo_comida', 'cena')->estado ?? 'no_dado',
+            ]);
+
+        return response()->json($estados);
+    }
+
+    /**
      * Determinar el área actual donde está el paciente
      */
     private function determinarAreaActualPaciente(Paciente $paciente): string
@@ -506,6 +535,7 @@ class InternacionStaffController extends Controller
             DB::beginTransaction();
 
             $validated = $request->validate([
+                'fecha' => 'nullable|date',
                 'registros' => 'required|array',
                 'registros.*.paciente_id' => 'required|integer|exists:pacientes,id',
                 'registros.*.tipo_comida' => 'required|in:desayuno,almuerzo,merienda,cena',
@@ -513,7 +543,10 @@ class InternacionStaffController extends Controller
                 'registros.*.observaciones' => 'nullable|string|max:255',
             ]);
 
-            $fecha = now()->toDateString();
+            // Fecha objetivo: la enviada por el usuario (para registrar días olvidados) o hoy por defecto.
+            $fecha = !empty($validated['fecha'])
+                ? \Carbon\Carbon::parse($validated['fecha'])->toDateString()
+                : now()->toDateString();
             $registrosGuardados = 0;
             $cargosGenerados = 0;
             $errores = [];

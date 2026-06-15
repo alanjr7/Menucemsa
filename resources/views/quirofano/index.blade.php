@@ -71,20 +71,7 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs lg:text-sm font-medium text-slate-500">En Curso</p>
-                    <p class="text-lg lg:text-2xl font-bold text-red-600" id="stat-en-curso">{{ $stats['en_curso'] }}</p>
-                </div>
-                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
+     
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
             <div class="flex items-center justify-between">
@@ -100,20 +87,6 @@
             </div>
         </div>
 
-        <!-- Emergencias en Quirófano -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 lg:p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs lg:text-sm font-medium text-slate-600">Emergencias</p>
-                    <p class="text-lg lg:text-2xl font-bold text-slate-700" id="stat-emergencias">{{ $stats['emergencias'] }}</p>
-                </div>
-                <div class="w-8 h-8 lg:w-12 lg:h-12 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 lg:w-6 lg:h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Emergencias en Quirófano -->

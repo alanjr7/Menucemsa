@@ -1,7 +1,24 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="w-full p-6 bg-gray-50/50 min-h-screen" x-data="cateringApp()">
+@php
+    // Mapa inicial de estados por paciente (catering de HOY) y lista de IDs visibles.
+    // Alimenta el estado reactivo de Alpine para refrescar indicadores al cambiar la fecha.
+    $cateringInicial = [];
+    $pacienteIdsList = [];
+    foreach ($todosPacientes as $p) {
+        $ch = $cateringHoy[$p->id] ?? collect();
+        $cateringInicial[$p->id] = [
+            'desayuno' => $ch->firstWhere('tipo_comida', 'desayuno')?->estado ?? 'no_dado',
+            'almuerzo' => $ch->firstWhere('tipo_comida', 'almuerzo')?->estado ?? 'no_dado',
+            'merienda' => $ch->firstWhere('tipo_comida', 'merienda')?->estado ?? 'no_dado',
+            'cena'     => $ch->firstWhere('tipo_comida', 'cena')?->estado ?? 'no_dado',
+        ];
+        $pacienteIdsList[] = $p->id;
+    }
+@endphp
+<div class="w-full p-6 bg-gray-50/50 min-h-screen"
+     x-data="cateringApp({{ Js::from($cateringInicial) }}, {{ Js::from($pacienteIdsList) }}, '{{ $fecha }}')">
 
     <div class="flex justify-between items-end mb-8">
         <div>
@@ -102,6 +119,38 @@
         @endif
     </form>
 
+    {{-- Selector de Fecha de Registro --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4"
+        :class="esHoy ? 'border-gray-100' : 'border-amber-300 ring-1 ring-amber-200'">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="p-2 rounded-lg" :class="esHoy ? 'bg-blue-100' : 'bg-amber-100'">
+                    <svg class="w-6 h-6" :class="esHoy ? 'text-blue-600' : 'text-amber-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-gray-800">Fecha de registro</p>
+                    <p class="text-xs text-gray-500">Todo lo que registres se guardará en este día</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" @click="setFecha(diaRelativo(-1))"
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">← Ayer</button>
+                <input type="date" x-model="fecha" @change="cambiarFecha()"
+                    class="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <button type="button" @click="setFecha(hoyStr)" x-show="!esHoy"
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Hoy</button>
+                <button type="button" @click="setFecha(diaRelativo(1))"
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Mañana →</button>
+                <span x-show="cargandoFecha" class="text-xs text-gray-400">Cargando…</span>
+            </div>
+        </div>
+        <div x-show="!esHoy" x-cloak class="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+            ⚠️ Estás registrando comidas de <span class="font-semibold" x-text="fechaLarga"></span>, no de hoy.
+        </div>
+    </div>
+
     {{-- Precios de Referencia --}}
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
         <div class="flex items-center justify-center gap-8">
@@ -128,7 +177,9 @@
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Carnet</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Seguro</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Área Actual</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Catering Hoy</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Catering <span x-text="esHoy ? 'Hoy' : fechaCorta"></span>
+                        </th>
                         <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -193,7 +244,9 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center gap-1">
                                     @foreach(['desayuno' => 'D', 'almuerzo' => 'A', 'merienda' => 'M', 'cena' => 'C'] as $tipo => $letra)
-                                        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white {{ $coloresEstado[$estados[$tipo]] }}" title="{{ ucfirst($tipo) }}">
+                                        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                                            :class="colorDot(estadoDe('{{ $pacienteId }}', '{{ $tipo }}'))"
+                                            title="{{ ucfirst($tipo) }}">
                                             {{ $letra }}
                                         </span>
                                     @endforeach
@@ -201,7 +254,7 @@
                             </td>
                             {{-- Acciones --}}
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <button @click="abrirModal('{{ $pacienteId }}', '{{ $paciente->nombre }}', {{ json_encode($estados) }})"
+                                <button @click="abrirModal('{{ $pacienteId }}', @js($paciente->nombre))"
                                     class="inline-flex items-center px-3 py-1.5 border border-orange-200 shadow-sm text-xs font-medium rounded-lg text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all">
                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -404,30 +457,82 @@
 </div>
 
 <script>
-    function cateringApp() {
+    function cateringApp(cateringInicial, pacienteIds, fechaInicial) {
+        const vacio = () => ({ desayuno: 'no_dado', almuerzo: 'no_dado', merienda: 'no_dado', cena: 'no_dado' });
         return {
             modalOpen: false,
             guardando: false,
+            cargandoFecha: false,
             pacienteId: '',
             pacienteNombre: '',
             observaciones: '',
-            estados: {
-                desayuno: 'no_dado',
-                almuerzo: 'no_dado',
-                merienda: 'no_dado',
-                cena: 'no_dado'
+            fecha: fechaInicial,
+            hoyStr: fechaInicial,
+            pacienteIds: pacienteIds,
+            cateringData: cateringInicial,
+            estados: vacio(),
+
+            // ── Fecha ──────────────────────────────────────────────
+            get esHoy() {
+                return this.fecha === this.hoyStr;
+            },
+            get fechaCorta() {
+                if (!this.fecha) return '';
+                const [y, m, d] = this.fecha.split('-');
+                return `${d}/${m}`;
+            },
+            get fechaLarga() {
+                if (!this.fecha) return '';
+                const [y, m, d] = this.fecha.split('-').map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'long' });
+            },
+            diaRelativo(delta) {
+                const [y, m, d] = this.fecha.split('-').map(Number);
+                const dt = new Date(y, m - 1, d + delta);
+                const p = n => String(n).padStart(2, '0');
+                return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`;
+            },
+            setFecha(nuevaFecha) {
+                this.fecha = nuevaFecha;
+                this.cambiarFecha();
+            },
+            async cambiarFecha() {
+                if (!this.fecha) return;
+                this.cargandoFecha = true;
+                try {
+                    const params = new URLSearchParams();
+                    params.set('fecha', this.fecha);
+                    this.pacienteIds.forEach(id => params.append('ids[]', id));
+                    const res = await fetch('{{ route('internacion-staff.catering.por-fecha') }}?' + params.toString());
+                    const data = await res.json();
+                    const nuevo = {};
+                    this.pacienteIds.forEach(id => { nuevo[id] = data[id] || vacio(); });
+                    this.cateringData = nuevo;
+                } catch (e) {
+                    console.error('Error al cargar la fecha:', e);
+                    alert('No se pudieron cargar los datos de esa fecha');
+                } finally {
+                    this.cargandoFecha = false;
+                }
             },
 
-            abrirModal(id, nombre, estadosActuales) {
+            // ── Indicadores reactivos por fila ─────────────────────
+            estadoDe(id, tipo) {
+                return this.cateringData[id]?.[tipo] || 'no_dado';
+            },
+            colorDot(estado) {
+                return {
+                    'dado': 'bg-green-500',
+                    'no_dado': 'bg-gray-300',
+                    'no_aplica': 'bg-red-400',
+                }[estado] || 'bg-gray-300';
+            },
+
+            abrirModal(id, nombre) {
                 this.pacienteId = id;
                 this.pacienteNombre = nombre;
                 this.observaciones = '';
-                this.estados = {
-                    desayuno: estadosActuales?.desayuno || 'no_dado',
-                    almuerzo: estadosActuales?.almuerzo || 'no_dado',
-                    merienda: estadosActuales?.merienda || 'no_dado',
-                    cena: estadosActuales?.cena || 'no_dado'
-                };
+                this.estados = { ...vacio(), ...(this.cateringData[id] || {}) };
                 this.modalOpen = true;
             },
 
@@ -469,14 +574,15 @@
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
                         },
-                        body: JSON.stringify({ registros })
+                        body: JSON.stringify({ fecha: this.fecha, registros })
                     });
 
                     const data = await response.json();
 
                     if (data.success) {
+                        // Actualiza los indicadores en vivo (sin recargar la página).
+                        this.cateringData[this.pacienteId] = { ...this.estados };
                         this.cerrarModal();
-                        window.location.reload();
                     } else {
                         alert('Error: ' + data.message);
                     }

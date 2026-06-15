@@ -816,6 +816,10 @@ class QuirofanoController extends Controller
             'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_catalogo,id',
             'medicamentos.*.lote_id' => 'nullable|integer|exists:almacen_lotes,id',
             'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
+            'insumos' => 'nullable|array',
+            'insumos.*.id' => 'required_with:insumos|exists:almacen_catalogo,id',
+            'insumos.*.lote_id' => 'nullable|integer|exists:almacen_lotes,id',
+            'insumos.*.cantidad' => 'required_with:insumos|integer|min:1',
             'equipos' => 'nullable|array',
             'equipos.*.nombre' => 'required_with:equipos|string|max:255',
             'equipos.*.precio' => 'required_with:equipos|numeric|decimal:0,2|min:0',
@@ -852,19 +856,16 @@ class QuirofanoController extends Controller
             // Duración de referencia = tipo originalmente programado (base del cobro)
             $duracionBaseStr = (string) ($tipoCirugiaBase ? $tipoCirugiaBase->duracion_minutos : $duracion);
 
-            // Regla de 3: costo_total = (costo_base * duracion_real) / duracion_base
-            $costoTotalBc = bcdiv(bcmul($costoBaseStr, $duracionStr, 10), $duracionBaseStr, 2);
-            $costoExtraBc = bccomp($costoTotalBc, $costoBaseStr, 2) > 0
-                ? bcsub($costoTotalBc, $costoBaseStr, 2)
-                : '0.00';
-            $costoExtra = (float) $costoExtraBc;
+            // Regla de 3 con piso en el costo base (fuente única en el modelo)
+            $cobro = CitaQuirurgica::calcularCobroCirugia($costoBaseStr, $duracion, $duracionBaseStr);
+            $costoExtra = (float) $cobro['extra'];
             // Costo por minuto efectivo (base / duracion_base) para auditoría
             $costoMinuto = bccomp($duracionBaseStr, '0', 0) > 0
                 ? (float) bcdiv($costoBaseStr, $duracionBaseStr, 4)
                 : 0;
 
-            // Costo final = regla de 3 proporcional a la duración real
-            $costoCirugia = (float) $costoTotalBc;
+            // El cobro de la cirugía nunca baja del costo base
+            $costoCirugia = (float) $cobro['cirugia'];
 
             // Buscar el detalle de cirugía en CUALQUIER cuenta del paciente (no solo la más reciente).
             // Buscar por cuenta scoped causaba doble cargo cuando una nueva cuenta pendiente
@@ -901,79 +902,14 @@ class QuirofanoController extends Controller
                 $cuenta->refresh();
             }
 
-            // Procesar medicamentos recibidos desde el formulario
-            $costoMedicamentos = 0;
-            $medicamentosUsados = [];
-            if (! empty($validated['medicamentos'])) {
-                foreach ($validated['medicamentos'] as $med) {
-                    $medicamento = AlmacenCatalogo::find($med['id']);
-                    if ($medicamento) {
-                        // Lote exacto si viene (laboratorio elegido); si no, el más reciente no vencido
-                        $lote = ! empty($med['lote_id'])
-                            ? AlmacenLote::find($med['lote_id'])
-                            : AlmacenLote::where('catalogo_id', $medicamento->id)
-                                ->where(function ($q) {
-                                    $q->whereNull('fecha_vencimiento')
-                                        ->orWhere('fecha_vencimiento', '>', now());
-                                })
-                                ->orderByDesc('created_at')
-                                ->first();
-
-                        $precioUnitario = (float) ($lote->precio_venta ?? 0);
-                        $subtotal = $precioUnitario * $med['cantidad'];
-                        $costoMedicamentos += $subtotal;
-
-                        // Descontar del stock de cirugía/quirófano (del lote exacto si vino lote_id)
-                        $stock = AlmacenStock::whereIn('ubicacion', ['cirugia', 'quirofano'])
-                            ->where('cantidad_actual', '>=', $med['cantidad'])
-                            ->when(! empty($med['lote_id']), fn ($q) => $q->where('lote_id', $med['lote_id']))
-                            ->when(empty($med['lote_id']), fn ($q) => $q->whereHas('lote', function ($lq) use ($medicamento) {
-                                $lq->where('catalogo_id', $medicamento->id)
-                                    ->where(function ($sub) {
-                                        $sub->whereNull('fecha_vencimiento')
-                                            ->orWhere('fecha_vencimiento', '>', now());
-                                    });
-                            }))
-                            ->first();
-
-                        if ($stock) {
-                            $stock->cantidad_actual -= $med['cantidad'];
-                            $stock->save();
-                        } else {
-                            \Log::warning('No hay stock suficiente para medicamento: '.$medicamento->nombre.' - Cantidad solicitada: '.$med['cantidad']);
-                        }
-
-                        // Verificar que no se haya agregado ya desde el módulo de medicamentos en tiempo real
-                        $yaAgregado = $cuenta->detalles()
-                            ->where('tipo_item', 'medicamento')
-                            ->where('origen_type', CitaQuirurgica::class)
-                            ->where('origen_id', (string) $cita->id)
-                            ->where('descripcion', 'like', '%'.$medicamento->nombre.'%')
-                            ->exists();
-
-                        if (! $yaAgregado) {
-                            $cuenta->detalles()->create([
-                                'tipo_item' => 'medicamento',
-                                'descripcion' => $medicamento->nombre,
-                                'cantidad' => $med['cantidad'],
-                                'precio_unitario' => $precioUnitario,
-                                'subtotal' => $subtotal,
-                                'area_origen' => 'quirofano',
-                                'origen_type' => CitaQuirurgica::class,
-                                'origen_id' => (string) $cita->id,
-                            ]);
-                        }
-
-                        $medicamentosUsados[] = [
-                            'id' => $medicamento->id,
-                            'nombre' => $medicamento->nombre,
-                            'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $precioUnitario,
-                            'subtotal' => $subtotal,
-                        ];
-                    }
-                }
-            }
+            // Procesar medicamentos e insumos recibidos desde el formulario.
+            // Ambos viven en almacen_catalogo y se descuentan/cobran igual; solo cambia el tipo_item.
+            [$costoMedicamentos, $medicamentosUsados] = $this->procesarItemsAlmacen(
+                $cuenta, $cita, $validated['medicamentos'] ?? [], 'medicamento'
+            );
+            [$costoInsumos, $insumosUsados] = $this->procesarItemsAlmacen(
+                $cuenta, $cita, $validated['insumos'] ?? [], 'material'
+            );
 
             // Procesar equipos médicos recibidos desde el formulario
             $costoEquipos = 0;
@@ -1004,7 +940,7 @@ class QuirofanoController extends Controller
             }
 
             // Recalcular total de la cuenta desde la suma real de sus detalles
-            $costoTotal = $costoCirugia + $costoMedicamentos + $costoEquipos;
+            $costoTotal = $costoCirugia + $costoMedicamentos + $costoInsumos + $costoEquipos;
             $cuenta->total_calculado = $cuenta->detalles()->sum('subtotal');
             $cuenta->save();
 
@@ -1051,6 +987,92 @@ class QuirofanoController extends Controller
 
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Descuenta stock de quirófano/cirugía y carga a la cuenta los ítems de almacén
+     * (medicamentos o insumos) recibidos en la ejecución de la cirugía.
+     *
+     * @param  array  $items  cada uno: ['id' => catalogo_id, 'lote_id' => ?int, 'cantidad' => int]
+     * @return array{0: float, 1: array} [costo total, ítems cargados]
+     */
+    private function procesarItemsAlmacen($cuenta, CitaQuirurgica $cita, array $items, string $tipoItem): array
+    {
+        $costo = 0;
+        $usados = [];
+
+        foreach ($items as $item) {
+            $catalogo = AlmacenCatalogo::find($item['id']);
+            if (! $catalogo) {
+                continue;
+            }
+
+            // Lote exacto si viene (laboratorio elegido); si no, el más reciente no vencido
+            $lote = ! empty($item['lote_id'])
+                ? AlmacenLote::find($item['lote_id'])
+                : AlmacenLote::where('catalogo_id', $catalogo->id)
+                    ->where(function ($q) {
+                        $q->whereNull('fecha_vencimiento')
+                            ->orWhere('fecha_vencimiento', '>', now());
+                    })
+                    ->orderByDesc('created_at')
+                    ->first();
+
+            $precioUnitario = (float) ($lote->precio_venta ?? 0);
+            $subtotal = $precioUnitario * $item['cantidad'];
+            $costo += $subtotal;
+
+            // Descontar del stock de cirugía/quirófano (del lote exacto si vino lote_id)
+            $stock = AlmacenStock::whereIn('ubicacion', ['cirugia', 'quirofano'])
+                ->where('cantidad_actual', '>=', $item['cantidad'])
+                ->when(! empty($item['lote_id']), fn ($q) => $q->where('lote_id', $item['lote_id']))
+                ->when(empty($item['lote_id']), fn ($q) => $q->whereHas('lote', function ($lq) use ($catalogo) {
+                    $lq->where('catalogo_id', $catalogo->id)
+                        ->where(function ($sub) {
+                            $sub->whereNull('fecha_vencimiento')
+                                ->orWhere('fecha_vencimiento', '>', now());
+                        });
+                }))
+                ->first();
+
+            if ($stock) {
+                $stock->cantidad_actual -= $item['cantidad'];
+                $stock->save();
+            } else {
+                \Log::warning('No hay stock suficiente para '.$tipoItem.': '.$catalogo->nombre.' - Cantidad solicitada: '.$item['cantidad']);
+            }
+
+            // Evitar doble cargo si ya se agregó en tiempo real desde otro módulo
+            $yaAgregado = $cuenta->detalles()
+                ->where('tipo_item', $tipoItem)
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('descripcion', 'like', '%'.$catalogo->nombre.'%')
+                ->exists();
+
+            if (! $yaAgregado) {
+                $cuenta->detalles()->create([
+                    'tipo_item' => $tipoItem,
+                    'descripcion' => $catalogo->nombre,
+                    'cantidad' => $item['cantidad'],
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $subtotal,
+                    'area_origen' => 'quirofano',
+                    'origen_type' => CitaQuirurgica::class,
+                    'origen_id' => (string) $cita->id,
+                ]);
+            }
+
+            $usados[] = [
+                'id' => $catalogo->id,
+                'nombre' => $catalogo->nombre,
+                'cantidad' => $item['cantidad'],
+                'precio_unitario' => $precioUnitario,
+                'subtotal' => $subtotal,
+            ];
+        }
+
+        return [$costo, $usados];
     }
 
     public function edit(CitaQuirurgica $cita): View
@@ -1499,34 +1521,9 @@ class QuirofanoController extends Controller
                 ], 422);
             }
 
-            // Obtener medicamentos del área 'quirófano' o 'cirugia' con stock > 0
-            $medicamentos = AlmacenStock::where('cantidad_actual', '>', 0)
-                ->whereIn('ubicacion', ['quirófano', 'cirugia'])
-                ->whereHas('lote.catalogo', function ($q) {
-                    $q->where('tipo', 'medicamento')
-                        ->where('activo', true);
-                })
-                ->with(['lote.catalogo', 'lote'])
-                ->get()
-                ->map(function ($stock) {
-                    return [
-                        'id' => $stock->lote->catalogo->id,
-                        'stock_id' => $stock->id,
-                        'lote_id' => $stock->lote_id,
-                        'laboratorio' => $stock->lote->laboratorio,
-                        'codigo_lote' => $stock->lote->codigo_lote,
-                        'nombre' => $stock->lote->catalogo->nombre,
-                        'presentacion' => $stock->lote->catalogo->presentacion ?? '',
-                        'concentracion' => $stock->lote->catalogo->concentracion ?? '',
-                        'cantidad' => $stock->cantidad_actual,
-                        'precio' => (float) ($stock->lote->precio_venta ?? $stock->lote->catalogo->precio ?? 0),
-                        'unidad_medida' => $stock->lote->catalogo->unidad_medida ?? 'unidad',
-                    ];
-                });
-
             return response()->json([
                 'success' => true,
-                'medicamentos' => $medicamentos,
+                'medicamentos' => $this->stockDisponiblePorTipo('medicamento'),
             ]);
         } catch (\Exception $e) {
             \Log::error('Error en getMedicamentosDisponibles: '.$e->getMessage());
@@ -1536,6 +1533,65 @@ class QuirofanoController extends Controller
                 'message' => 'Error al cargar medicamentos: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Obtener insumos disponibles en quirófano para una cirugía
+     */
+    public function getInsumosDisponibles(CitaQuirurgica $cita): JsonResponse
+    {
+        try {
+            // Verificar que la cirugía esté programada o en curso
+            if (! in_array($cita->estado, ['programada', 'en_curso'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cirugía debe estar programada o en curso',
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'insumos' => $this->stockDisponiblePorTipo('insumo'),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error en getInsumosDisponibles: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar insumos: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Stock disponible (por lote) en quirófano/cirugía para un tipo de catálogo dado.
+     * Fuente única para medicamentos e insumos del buscador de la ejecución de cirugía.
+     */
+    private function stockDisponiblePorTipo(string $tipo)
+    {
+        return AlmacenStock::where('cantidad_actual', '>', 0)
+            ->whereIn('ubicacion', ['quirófano', 'cirugia'])
+            ->whereHas('lote.catalogo', function ($q) use ($tipo) {
+                $q->where('tipo', $tipo)
+                    ->where('activo', true);
+            })
+            ->with(['lote.catalogo', 'lote'])
+            ->get()
+            ->map(function ($stock) {
+                return [
+                    'id' => $stock->lote->catalogo->id,
+                    'stock_id' => $stock->id,
+                    'lote_id' => $stock->lote_id,
+                    'laboratorio' => $stock->lote->laboratorio,
+                    'codigo_lote' => $stock->lote->codigo_lote,
+                    'nombre' => $stock->lote->catalogo->nombre,
+                    'presentacion' => $stock->lote->catalogo->presentacion ?? '',
+                    'concentracion' => $stock->lote->catalogo->concentracion ?? '',
+                    'cantidad' => $stock->cantidad_actual,
+                    'precio' => (float) ($stock->lote->precio_venta ?? $stock->lote->catalogo->precio ?? 0),
+                    'unidad_medida' => $stock->lote->catalogo->unidad_medida ?? 'unidad',
+                ];
+            });
     }
 
     /**

@@ -232,11 +232,8 @@
 
         cargosData = @json($cargosPorCuenta);
 
-        console.log('Datos de cargos cargados:', cargosData);
 
         function verCargos(cuentaId) {
-            console.log('Ver cargos para ID:', cuentaId);
-            console.log('Cargos disponibles:', cargosData[cuentaId]);
 
             const cargos = cargosData[cuentaId] || {};
             let html = '<div class="space-y-4">';
