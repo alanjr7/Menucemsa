@@ -44,7 +44,7 @@ class CuentaCobroSeeder extends Seeder
             }
 
             CuentaCobro::create([
-                'id' => 'CC-' . date('Ymd') . '-' . Str::upper(Str::random(6)),
+                // id correlativo asignado por el modelo (REC-AAAA-NNNNNN)
                 'paciente_ci' => $paciente->ci,
                 'tipo_atencion' => $faker->randomElement(['Consulta Externa', 'Emergencia', 'Laboratorio', 'Rayos X']),
                 'estado' => $estado,

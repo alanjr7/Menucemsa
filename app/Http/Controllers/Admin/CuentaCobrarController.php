@@ -10,7 +10,9 @@ use App\Models\PagoCuenta;
 use App\Models\Paciente;
 use App\Models\Emergency;
 use App\Services\AplicarSeguroService;
+use App\Support\Money;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class CuentaCobrarController extends Controller
@@ -227,82 +229,87 @@ class CuentaCobrarController extends Controller
                 'monto' => 'required|numeric|decimal:0,2|min:0.01',
                 'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr,cheque',
                 'referencia' => 'nullable|string|max:255',
+                'idempotency_key' => 'nullable|string|max:64',
             ]);
 
-            $cuenta = CuentaCobro::with('paciente.seguro')->findOrFail($id);
+            $resultado = DB::transaction(function () use ($id, $validated, $userId) {
+                // Bloquear la fila de la cuenta dentro de la transacción para evitar
+                // doble-cobro concurrente (este endpoint y el de caja operan sobre la
+                // misma cuenta). El lock aplica solo a la tabla base.
+                $cuenta = CuentaCobro::with('paciente.seguro')
+                    ->lockForUpdate()
+                    ->findOrFail($id);
 
-            // Aplicar seguro automaticamente si corresponde
-            $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
-            if ($infoSeguro['aplicado']) {
-                $cuenta->refresh();
-            }
-
-            // Si el seguro cubrio todo, no se requiere pago del paciente
-            if ($cuenta->saldo_pendiente <= 0) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $infoSeguro['aplicado']
-                        ? 'Cobro completado. El seguro cubrio el total.'
-                        : 'Cuenta ya saldada.',
-                    'cuenta' => [
-                        'id' => $cuenta->id,
-                        'estado' => $cuenta->estado,
-                        'total_pagado' => $cuenta->total_pagado,
-                        'saldo_pendiente' => 0,
-                    ]
-                ]);
-            }
-
-            // Verificar que no exceda el saldo
-            if ($validated['monto'] > $cuenta->saldo_pendiente) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El monto excede el saldo pendiente',
-                ], 422);
-            }
-
-            // Registrar pago
-            $pago = new PagoCuenta();
-            $pago->cuenta_cobro_id = $id;
-            $pago->monto = $validated['monto'];
-            $pago->metodo_pago = $validated['metodo_pago'];
-            $pago->referencia = $validated['referencia'];
-            $pago->user_id = $userId;
-            $pago->save();
-
-            // Actualizar cuenta
-            $cuenta->total_pagado += $validated['monto'];
-            
-            // Calcular saldo para determinar estado
-            $saldoPendiente = (float) $cuenta->total_calculado - (float) $cuenta->total_pagado;
-            
-            if ($saldoPendiente <= 0) {
-                $cuenta->estado = 'pagado';
-            } else {
-                $cuenta->estado = $cuenta->total_pagado > 0 ? 'parcial' : 'pendiente';
-            }
-            
-            $cuenta->save();
-
-            // Si es emergencia, marcar como pagada
-            if ($cuenta->es_emergencia && $cuenta->estado === 'pagado') {
-                $emergency = Emergency::find($cuenta->referencia_id);
-                if ($emergency) {
-                    $emergency->update(['paid' => true]);
+                // Aplicar seguro automaticamente si corresponde
+                $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
+                if ($infoSeguro['aplicado']) {
+                    $cuenta->refresh();
                 }
-            }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Pago registrado exitosamente',
-                'pago' => $pago,
-                'cuenta' => [
-                    'id' => $cuenta->id,
-                    'estado' => $cuenta->estado,
-                    'total_pagado' => $cuenta->total_pagado,
-                    'saldo_pendiente' => $cuenta->saldo_pendiente,
-                ],
-            ]);
+                // Si el seguro cubrio todo, no se requiere pago del paciente
+                if (Money::cmp($cuenta->saldo_pendiente, 0) <= 0) {
+                    return [
+                        'status' => 200,
+                        'body' => [
+                            'success' => true,
+                            'message' => $infoSeguro['aplicado']
+                                ? 'Cobro completado. El seguro cubrio el total.'
+                                : 'Cuenta ya saldada.',
+                            'cuenta' => [
+                                'id' => $cuenta->id,
+                                'estado' => $cuenta->estado,
+                                'total_pagado' => $cuenta->total_pagado,
+                                'saldo_pendiente' => 0,
+                            ],
+                        ],
+                    ];
+                }
+
+                // Verificar que no exceda el saldo
+                if (Money::cmp($validated['monto'], $cuenta->saldo_pendiente) > 0) {
+                    return [
+                        'status' => 422,
+                        'body' => [
+                            'success' => false,
+                            'message' => 'El monto excede el saldo pendiente',
+                        ],
+                    ];
+                }
+
+                // Registrar pago delegando en el modelo: usa BCMath, recalcula totales,
+                // fija estado y liquida los detalles si la cuenta queda saldada.
+                $cuenta->registrarPago(
+                    $validated['monto'],
+                    $validated['metodo_pago'],
+                    $validated['referencia'] ?? null,
+                    $userId,
+                    $validated['idempotency_key'] ?? null
+                );
+
+                // Si es emergencia y quedó saldada, marcar la emergencia como pagada
+                if ($cuenta->es_emergencia && $cuenta->estado === 'pagado') {
+                    $emergency = Emergency::find($cuenta->referencia_id);
+                    if ($emergency) {
+                        $emergency->update(['paid' => true]);
+                    }
+                }
+
+                return [
+                    'status' => 200,
+                    'body' => [
+                        'success' => true,
+                        'message' => 'Pago registrado exitosamente',
+                        'cuenta' => [
+                            'id' => $cuenta->id,
+                            'estado' => $cuenta->estado,
+                            'total_pagado' => $cuenta->total_pagado,
+                            'saldo_pendiente' => $cuenta->saldo_pendiente,
+                        ],
+                    ],
+                ];
+            });
+
+            return response()->json($resultado['body'], $resultado['status']);
 
         } catch (\Exception $e) {
             return response()->json([

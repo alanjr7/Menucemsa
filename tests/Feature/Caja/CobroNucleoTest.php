@@ -169,6 +169,47 @@ class CobroNucleoTest extends TestCase
         $this->assertSame(2, $cuenta->pagos()->count());
     }
 
+    // --- Idempotencia: token por intento de cobro ---
+
+    public function test_token_repetido_no_duplica_el_pago(): void
+    {
+        $user = User::factory()->create();
+        $cuenta = $this->cuenta();
+        $this->detalle($cuenta, '1', '100.00');
+        $cuenta->load('detalles');
+        $cuenta->recalcularTotales();
+
+        // Primer intento: crea el pago y devuelve true
+        $creado1 = $cuenta->registrarPago(100.00, 'efectivo', null, $user->id, 'tok-abc');
+        // Reintento con el mismo token (doble-click / red): replay, no crea nada
+        $creado2 = $cuenta->registrarPago(100.00, 'efectivo', null, $user->id, 'tok-abc');
+
+        $this->assertTrue($creado1);
+        $this->assertFalse($creado2);
+        $this->assertSame(1, $cuenta->pagos()->count());
+        $cuenta->refresh();
+        // El total pagado no se infla por el reintento
+        $this->assertSame('100.00', (string) $cuenta->total_pagado);
+        $this->assertEqualsWithDelta(0.0, $cuenta->saldo_pendiente, 0.001);
+    }
+
+    public function test_tokens_distintos_registran_pagos_distintos(): void
+    {
+        $user = User::factory()->create();
+        $cuenta = $this->cuenta();
+        $this->detalle($cuenta, '1', '100.00');
+        $cuenta->load('detalles');
+        $cuenta->recalcularTotales();
+
+        $cuenta->registrarPago(60.00, 'efectivo', null, $user->id, 'tok-1');
+        $cuenta->registrarPago(40.00, 'qr', null, $user->id, 'tok-2');
+        $cuenta->refresh();
+
+        $this->assertSame(2, $cuenta->pagos()->count());
+        $this->assertSame('100.00', (string) $cuenta->total_pagado);
+        $this->assertSame('pagado', $cuenta->estado);
+    }
+
     // --- Seguro: cobertura ---
 
     public function test_seguro_porcentaje_calcula_cobertura_y_copago(): void

@@ -32,28 +32,20 @@ class ActivityLogService
     private static function cleanValues($values)
     {
         if (!$values) return null;
+        if (!is_array($values)) return $values;
 
-        // Si es un array asociativo, filtrar campos sensibles
-        if (is_array($values)) {
-            $sensitiveFields = ['password', 'remember_token'];
-            
-            // Si solo tiene un campo (como is_active), mostrarlo directamente
-            if (count($values) === 1) {
-                return $values;
+        // Fuente única de reglas: descartar ruido y ofuscar campos sensibles.
+        $cleaned = [];
+        foreach ($values as $key => $value) {
+            if (in_array($key, ActivityLog::NOISE_KEYS, true)) {
+                continue;
             }
-            
-            // Si tiene múltiples campos, filtrar los sensibles
-            $cleaned = [];
-            foreach ($values as $key => $value) {
-                if (!in_array($key, $sensitiveFields)) {
-                    $cleaned[$key] = $value;
-                }
-            }
-            
-            return $cleaned;
+            $cleaned[$key] = in_array($key, ActivityLog::SENSITIVE_KEYS, true)
+                ? '***REDACTED***'
+                : $value;
         }
 
-        return $values;
+        return $cleaned ?: null;
     }
 
     public static function logCreate($model, $description = null, $values = null)

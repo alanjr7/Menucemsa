@@ -447,6 +447,89 @@ input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-a
                         </div>
                     </div>
 
+                    <!-- Código de barras -->
+                    <div class="form-group">
+                        <label class="form-label" for="codigo_barras">Código de Barras</label>
+                        <input type="text" id="codigo_barras" name="codigo_barras"
+                               value="{{ old('codigo_barras', $catalogo->codigo_barras) }}"
+                               maxlength="50" placeholder="Escanear o ingresar..."
+                               class="form-input @error('codigo_barras') error @enderror">
+                        @error('codigo_barras')<p class="error-message">{{ $message }}</p>@enderror
+                    </div>
+
+                    <!-- Nombre genérico -->
+                    <div class="form-group">
+                        <label class="form-label" for="nombre_generico">Nombre Genérico</label>
+                        <input type="text" id="nombre_generico" name="nombre_generico"
+                               value="{{ old('nombre_generico', $catalogo->nombre_generico) }}"
+                               maxlength="255" placeholder="Ej: Paracetamol"
+                               class="form-input @error('nombre_generico') error @enderror">
+                        @error('nombre_generico')<p class="error-message">{{ $message }}</p>@enderror
+                    </div>
+
+                    <!-- Concentración + Forma farmacéutica -->
+                    <div class="form-grid form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label" for="concentracion">Concentración</label>
+                            <input type="text" id="concentracion" name="concentracion"
+                                   value="{{ old('concentracion', $catalogo->concentracion) }}"
+                                   maxlength="100" placeholder="Ej: 500mg"
+                                   class="form-input @error('concentracion') error @enderror">
+                            @error('concentracion')<p class="error-message">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="forma_farmaceutica">Forma Farmacéutica</label>
+                            <input type="text" id="forma_farmaceutica" name="forma_farmaceutica"
+                                   value="{{ old('forma_farmaceutica', $catalogo->forma_farmaceutica) }}"
+                                   maxlength="100" placeholder="Ej: cápsula, jarabe"
+                                   class="form-input @error('forma_farmaceutica') error @enderror">
+                            @error('forma_farmaceutica')<p class="error-message">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <!-- Categoría -->
+                    <div class="form-group">
+                        <label class="form-label" for="categoria">Categoría</label>
+                        <input type="text" id="categoria" name="categoria"
+                               value="{{ old('categoria', $catalogo->categoria) }}"
+                               maxlength="100" placeholder="Ej: Analgésico"
+                               class="form-input @error('categoria') error @enderror">
+                        @error('categoria')<p class="error-message">{{ $message }}</p>@enderror
+                    </div>
+
+                    <!-- Códigos oficiales (LINAME Bolivia) -->
+                    <div class="form-grid form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label" for="codigo_atc">Código ATC</label>
+                            <input type="text" id="codigo_atc" name="codigo_atc"
+                                   value="{{ old('codigo_atc', $catalogo->codigo_atc) }}"
+                                   maxlength="20" placeholder="Ej: N02BE01"
+                                   class="form-input @error('codigo_atc') error @enderror" style="text-transform:uppercase;">
+                            @error('codigo_atc')<p class="error-message">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="codigo_liname">Código LINAME</label>
+                            <input type="text" id="codigo_liname" name="codigo_liname"
+                                   value="{{ old('codigo_liname', $catalogo->codigo_liname) }}"
+                                   maxlength="20" placeholder="Ej: N 02 08"
+                                   class="form-input @error('codigo_liname') error @enderror">
+                            @error('codigo_liname')<p class="error-message">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <!-- Requiere receta -->
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:var(--gray-700);">
+                            <input type="hidden" name="requiere_receta" value="0">
+                            <input type="checkbox" name="requiere_receta" value="1"
+                                   style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;"
+                                   {{ old('requiere_receta', $catalogo->requiere_receta) ? 'checked' : '' }}>
+                            Requiere receta médica
+                        </label>
+                    </div>
+
                     <!-- Descripción -->
                     <div class="form-group">
                         <label class="form-label" for="descripcion">Descripción</label>

@@ -17,6 +17,9 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('caja_session_id')->nullable()->constrained('caja_sessions');
             $table->text('observaciones')->nullable();
+            // Idempotencia: token único por intento de cobro. Evita pagos duplicados
+            // ante doble-click o reintento de red. NULL para pagos sin token (legacy/internos).
+            $table->string('idempotency_key')->nullable()->unique();
             $table->timestamps();
 
             $table->foreign('cuenta_cobro_id')->references('id')->on('cuenta_cobros')->onDelete('cascade');

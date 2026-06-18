@@ -169,7 +169,7 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-500">Quirófano:</span>
-                            <span class="font-medium">Q{{ $cita->quirofano->id }}</span>
+                            <span class="font-medium">{{ $cita->quirofano->nombre }}</span>
                         </div>
                         @if($cita->costo_final && auth()->user()->role !== 'cirujano')
                             <div class="flex justify-between pt-2 border-t">
@@ -268,7 +268,7 @@
                                 <div class="text-sm text-gray-900">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                Q{{ $cita->quirofano->id }}
+                                {{ $cita->quirofano->nombre }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 capitalize">

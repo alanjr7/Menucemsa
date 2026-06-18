@@ -103,12 +103,16 @@
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monto Unit.</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad a anular</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($cuenta->detalles as $detalle)
-                                @php $off = $detalle->deshabilitado_en !== null; @endphp
+                                @php
+                                    $off = $detalle->deshabilitado_en !== null;
+                                    $liquidado = $detalle->liquidado_en !== null;
+                                    $anulaciones = $detalle->anulaciones ?? collect();
+                                @endphp
                                 <tr class="{{ $off ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-50' }}">
                                     <td class="px-4 py-3 whitespace-nowrap text-sm {{ $off ? 'text-gray-400' : 'text-gray-500' }}">
                                         {{ $detalle->created_at->format('d/m/Y') }}
@@ -116,11 +120,8 @@
                                     <td class="px-4 py-3 text-sm {{ $off ? 'text-gray-400 line-through' : 'text-gray-900' }}">
                                         {{ $detalle->descripcion }}
                                         @if($off)
-                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 no-underline">Deshabilitado</span>
-                                            @if($detalle->motivo_deshabilitacion)
-                                                <span class="block text-[11px] text-gray-400 mt-0.5 no-underline">Motivo: {{ $detalle->motivo_deshabilitacion }}</span>
-                                            @endif
-                                        @elseif($detalle->liquidado_en)
+                                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 no-underline">Anulado</span>
+                                        @elseif($liquidado)
                                             <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">Pagado</span>
                                         @else
                                             <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">Pendiente</span>
@@ -130,33 +131,56 @@
                                     <td class="px-4 py-3 whitespace-nowrap text-right text-sm {{ $off ? 'text-gray-400' : 'text-gray-500' }}">Bs. {{ number_format($detalle->precio_unitario, 2) }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium {{ $off ? 'text-gray-400' : 'text-gray-900' }}">Bs. {{ number_format($detalle->subtotal, 2) }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-                                        @if($off)
-                                            <form action="{{ route('admin.ajustes-pacientes.detalles.restaurar', $detalle->id) }}" method="POST">
+                                        @if($liquidado && !$off)
+                                            <span class="text-[11px] text-gray-400">Cargo pagado</span>
+                                        @elseif(!$off)
+                                            {{-- Anular N unidades (parcial o total). Default = cantidad viva. --}}
+                                            <form action="{{ route('admin.cargos.anular', $detalle->id) }}" method="POST"
+                                                  onsubmit="return prepararAnulacion(this)"
+                                                  class="flex items-center justify-end gap-1.5">
                                                 @csrf
-                                                @method('PATCH')
-                                                <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-green-200 shadow-sm text-xs font-medium rounded-lg text-green-700 bg-green-50 hover:bg-green-100 transition-all">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                    </svg>
-                                                    Restaurar
+                                                <input type="number" name="cantidad"
+                                                       value="{{ rtrim(rtrim(number_format($detalle->cantidad, 2), '0'), '.') }}"
+                                                       step="1" min="1" max="{{ $detalle->cantidad }}"
+                                                       title="Cantidad a anular (máx. {{ rtrim(rtrim(number_format($detalle->cantidad, 2), '0'), '.') }})"
+                                                       class="w-16 px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 text-right text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                                                <input type="hidden" name="motivo">
+                                                <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 transition-all">
+                                                    Anular
                                                 </button>
                                             </form>
                                         @else
-                                            <form action="{{ route('admin.ajustes-pacientes.detalles.deshabilitar', $detalle->id) }}" method="POST"
-                                                  onsubmit="this.motivo.value = prompt('Motivo (opcional):') || ''; return true;">
-                                                @csrf
-                                                @method('PATCH')
-                                                <input type="hidden" name="motivo">
-                                                <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 transition-all">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-                                                    </svg>
-                                                    Deshabilitar
-                                                </button>
-                                            </form>
+                                            <span class="text-[11px] text-gray-400">Anulado totalmente</span>
                                         @endif
                                     </td>
                                 </tr>
+                                {{-- Historial de anulaciones de esta línea (con Revertir) --}}
+                                @foreach($anulaciones as $anul)
+                                    <tr class="bg-gray-50/60 text-xs">
+                                        <td class="px-4 py-1.5 text-gray-400">{{ $anul->eliminado_en?->format('d/m/Y H:i') }}</td>
+                                        <td class="px-4 py-1.5 text-gray-500" colspan="3">
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 font-medium mr-1">
+                                                Anuladas {{ rtrim(rtrim(number_format($anul->cantidad, 2), '0'), '.') }} u.
+                                            </span>
+                                            <span class="text-gray-400">{{ $anul->motivo_eliminacion }}</span>
+                                            <span class="text-gray-300">· {{ $anul->usuarioEliminacion?->name ?? 'N/A' }}</span>
+                                            @if($anul->revertido_en)
+                                                <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">Revertida {{ $anul->revertido_en->format('d/m/Y H:i') }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-1.5 text-right text-gray-500 font-medium">Bs. {{ number_format($anul->subtotal, 2) }}</td>
+                                        <td class="px-4 py-1.5 text-right">
+                                            @if(!$anul->revertido_en && !$liquidado)
+                                                <form action="{{ route('admin.anulaciones.revertir', $anul->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center px-2.5 py-1 border border-blue-200 text-[11px] font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all">
+                                                        Revertir
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="6" class="px-4 py-6 text-center text-sm text-gray-400">No hay cargos en esta cuenta.</td>
@@ -184,7 +208,7 @@
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-xs font-medium text-gray-500 mb-1">Cantidad</label>
-                            <input type="number" name="cantidad" value="1" step="0.01" min="0.01" required
+                            <input type="number" name="cantidad" value="1" step="1" min="1" required
                                    class="block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
                         </div>
                         <div class="md:col-span-2">
@@ -214,4 +238,26 @@
     @endforelse
 
 </div>
+
+<script>
+    // Valida la cantidad a anular y pide el motivo (obligatorio) antes de enviar.
+    function prepararAnulacion(form) {
+        const input = form.querySelector('input[name=cantidad]');
+        const max = parseFloat(input.max);
+        const cant = parseFloat(input.value);
+        if (isNaN(cant) || cant <= 0) {
+            alert('Ingresá una cantidad válida a anular.');
+            return false;
+        }
+        if (cant > max) {
+            alert('No podés anular más de ' + max + ' unidades de este cargo.');
+            return false;
+        }
+        const esTotal = cant >= max;
+        const motivo = prompt('Motivo de la anulación' + (esTotal ? ' total' : ' de ' + cant + ' u.') + ':');
+        if (!motivo || !motivo.trim()) return false;
+        form.motivo.value = motivo.trim();
+        return true;
+    }
+</script>
 @endsection

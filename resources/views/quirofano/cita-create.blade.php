@@ -164,10 +164,11 @@
                                     </div>
                                     <select name="tipo_cirugia" id="tipo_cirugia" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer" required>
                                         <option value="">Seleccionar tipo...</option>
-                                        <option value="menor">Menor - 60 min</option>
-                                        <option value="mediana">Mediana - 90 min</option>
-                                        <option value="mayor">Mayor - 120 min</option>
-                                        <option value="ambulatoria">Ambulatoria - 45 min</option>
+                                        @foreach($tiposCirugia as $tipo)
+                                            <option value="{{ $tipo->nombre }}" data-duracion="{{ $tipo->duracion_minutos }}" data-costo="{{ $tipo->costo_base }}" class="capitalize">
+                                                {{ ucfirst($tipo->nombre) }} - {{ $tipo->duracion_formateada }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,10 +180,10 @@
 
                             <!-- Precio de la Cirugía -->
                             <div class="relative">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Precio de la Cirugía ($) *</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Precio de la Cirugía (Bs) *</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 font-semibold">$</span>
+                                        <span class="text-gray-500 font-semibold">Bs</span>
                                     </div>
                                     <input type="text" inputmode="decimal" name="costo_base" id="costo_base"
                                            class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -537,5 +538,15 @@ function limpiarCirujano() {
         const num = parseFloat(this.value);
         if (!isNaN(num)) this.value = num.toFixed(2);
     });
+
+    // Precargar el precio por defecto del tipo seleccionado (sigue siendo editable)
+    const tipoSelect = document.getElementById('tipo_cirugia');
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            const costo = opt ? parseFloat(opt.dataset.costo) : NaN;
+            if (!isNaN(costo)) input.value = costo.toFixed(2);
+        });
+    }
 })();</script>
 @endsection

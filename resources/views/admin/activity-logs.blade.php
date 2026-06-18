@@ -91,23 +91,6 @@
         <!-- Lista de logs -->
         <div class="p-6">
             <div class="space-y-3">
-                @php
-                if (!function_exists('formatLogValue')) {
-                    function formatLogValue($value) {
-                        if (is_array($value)) {
-                            $json = json_encode($value);
-                            return strlen($json) > 50 ? substr($json, 0, 50) . '...' : $json;
-                        }
-                        if (is_bool($value)) {
-                            return $value ? 'true' : 'false';
-                        }
-                        if (is_null($value)) {
-                            return 'null';
-                        }
-                        return $value;
-                    }
-                }
-                @endphp
                 @forelse($logs as $log)
                     <div class="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                         <!-- Icono de acción -->
@@ -222,9 +205,15 @@
                                         <span class="text-sm text-gray-600">{{ $log->description }}</span>
                                     </div>
                                     
-                                    @if($log->old_values || $log->new_values)
+                                    @php
+                                        $displayOld = $log->displayableOldValues();
+                                        $displayNew = $log->displayableNewValues();
+                                        $isToggle = $log->action === 'update'
+                                            && isset($log->old_values['is_active'], $log->new_values['is_active']);
+                                    @endphp
+                                    @if($isToggle || $displayOld || $displayNew)
                                         <div class="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
-                                            @if($log->action === 'update' && isset($log->old_values['is_active']) && isset($log->new_values['is_active']))
+                                            @if($isToggle)
                                                 <div class="flex items-center gap-2">
                                                     <span class="font-medium text-gray-700">Estado cambiado:</span>
                                                     <span class="px-2 py-1 rounded text-xs font-medium
@@ -241,53 +230,8 @@
                                                 </div>
                                             @else
                                                 <div class="space-y-2">
-                                                    @if($log->old_values)
-                                                        @php
-                                                            $relevantOld = [];
-                                                            foreach($log->old_values as $key => $value) {
-                                                                if (!in_array($key, ['id', 'created_at', 'updated_at', 'email_verified_at', 'remember_token'])) {
-                                                                    $relevantOld[$key] = $value;
-                                                                }
-                                                            }
-                                                        @endphp
-                                                        @if(!empty($relevantOld))
-                                                            <div class="text-red-600">
-                                                                <span class="font-medium">Cambios anteriores:</span>
-                                                                <div class="mt-1 space-y-1">
-                                                                    @foreach($relevantOld as $key => $value)
-                                                                        <div class="flex items-center gap-2 text-sm">
-                                                                            <span class="font-medium capitalize">{{ $key }}:</span>
-                                                                            <span class="bg-red-50 px-2 py-1 rounded text-xs">{{ formatLogValue($value) }}</span>
-                                                                        </div>
-                                                                    @endforeach
-                                                                </div>
-                                                            </div>
-                                                        @endif
-                                                    @endif
-                                                    
-                                                    @if($log->new_values)
-                                                        @php
-                                                            $relevantNew = [];
-                                                            foreach($log->new_values as $key => $value) {
-                                                                if (!in_array($key, ['id', 'created_at', 'updated_at', 'email_verified_at', 'remember_token'])) {
-                                                                    $relevantNew[$key] = $value;
-                                                                }
-                                                            }
-                                                        @endphp
-                                                        @if(!empty($relevantNew))
-                                                            <div class="text-green-600">
-                                                                <span class="font-medium">Valores nuevos:</span>
-                                                                <div class="mt-1 space-y-1">
-                                                                    @foreach($relevantNew as $key => $value)
-                                                                        <div class="flex items-center gap-2 text-sm">
-                                                                            <span class="font-medium capitalize">{{ $key }}:</span>
-                                                                            <span class="bg-green-50 px-2 py-1 rounded text-xs">{{ formatLogValue($value) }}</span>
-                                                                        </div>
-                                                                    @endforeach
-                                                                </div>
-                                                            </div>
-                                                        @endif
-                                                    @endif
+                                                    @include('admin.partials.activity-log-values', ['entries' => $displayOld, 'tone' => 'old', 'title' => 'Cambios anteriores'])
+                                                    @include('admin.partials.activity-log-values', ['entries' => $displayNew, 'tone' => 'new', 'title' => 'Valores nuevos'])
                                                 </div>
                                             @endif
                                         </div>

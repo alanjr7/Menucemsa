@@ -63,6 +63,11 @@ class Episodio extends Model
         return $this->hasMany(Hospitalizacion::class);
     }
 
+    public function cirugias(): HasMany
+    {
+        return $this->hasMany(CitaQuirurgica::class);
+    }
+
     public function cuentasCobro(): HasMany
     {
         return $this->hasMany(CuentaCobro::class);

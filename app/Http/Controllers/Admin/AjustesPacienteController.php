@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\PatientsController;
 use App\Models\CuentaCobro;
-use App\Models\CuentaCobroDetalle;
 use App\Models\Paciente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -71,6 +70,11 @@ class AjustesPacienteController extends Controller
                 // Opt-in: aquí SÍ queremos ver los cargos deshabilitados (en gris)
                 'detalles' => fn($q) => $q->conDeshabilitados()->orderBy('created_at', 'desc'),
                 'detalles.deshabilitadoPor',
+                // Historial de anulaciones (parciales/totales) por línea, para mostrar
+                // el detalle y poder revertir.
+                'detalles.anulaciones' => fn($q) => $q->orderBy('eliminado_en', 'desc'),
+                'detalles.anulaciones.usuarioEliminacion',
+                'detalles.anulaciones.revertidoPor',
                 'pagos',
             ])
             ->where('paciente_id', $paciente->id)
@@ -118,55 +122,7 @@ class AjustesPacienteController extends Controller
             ->with('success', 'Cargo agregado correctamente.');
     }
 
-    /**
-     * Deshabilita un cargo (no se elimina; deja de sumar al total).
-     */
-    public function deshabilitarCargo(Request $request, $detalleId)
-    {
-        $detalle = CuentaCobroDetalle::conDeshabilitados()->findOrFail($detalleId);
-
-        $validated = $request->validate([
-            'motivo' => 'nullable|string|max:255',
-        ]);
-
-        if (!$detalle->estaDeshabilitado()) {
-            $detalle->update([
-                'deshabilitado_en'       => now(),
-                'deshabilitado_por'      => auth()->id(),
-                'motivo_deshabilitacion' => $validated['motivo'] ?? null,
-            ]);
-
-            $cuenta = $detalle->cuentaCobro;
-            if ($cuenta) {
-                $cuenta->load('detalles');
-                $cuenta->recalcularTotales();
-            }
-        }
-
-        return redirect()->back()->with('success', 'Cargo deshabilitado correctamente.');
-    }
-
-    /**
-     * Restaura un cargo previamente deshabilitado.
-     */
-    public function restaurarCargo($detalleId)
-    {
-        $detalle = CuentaCobroDetalle::conDeshabilitados()->findOrFail($detalleId);
-
-        if ($detalle->estaDeshabilitado()) {
-            $detalle->update([
-                'deshabilitado_en'       => null,
-                'deshabilitado_por'      => null,
-                'motivo_deshabilitacion' => null,
-            ]);
-
-            $cuenta = $detalle->cuentaCobro;
-            if ($cuenta) {
-                $cuenta->load('detalles');
-                $cuenta->recalcularTotales();
-            }
-        }
-
-        return redirect()->back()->with('success', 'Cargo restaurado correctamente.');
-    }
+    // Anular (deshabilitar parcial/total) y revertir cargos se unificó en
+    // App\Http\Controllers\Admin\AjusteCargoController (admin.cargos.anular /
+    // admin.anulaciones.revertir), fuente única de eliminaciones seguras.
 }

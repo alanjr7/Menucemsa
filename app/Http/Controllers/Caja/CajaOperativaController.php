@@ -510,6 +510,7 @@ class CajaOperativaController extends Controller
                 'ci_nit_facturacion' => 'nullable|string|max:20',
                 'razon_social' => 'nullable|string|max:100',
                 'es_pago_total' => 'nullable|boolean',
+                'idempotency_key' => 'nullable|string|max:64',
             ]);
 
             $cajaAbierta = CajaSession::delUsuario(Auth::id())
@@ -527,9 +528,13 @@ class CajaOperativaController extends Controller
 
             // Determinar qué cuentas cobrar: si vienen cuenta_ids, todas; si no, solo la principal
             $cuentaIds = $request->filled('cuenta_ids') ? $request->cuenta_ids : [$request->cuenta_cobro_id];
+            // Bloquear las filas de cuenta_cobros dentro de la transacción para evitar
+            // doble-cobro concurrente (dos cajeros / doble-click sobre la misma cuenta).
+            // El lock aplica solo a la tabla base; los eager loads corren sin bloqueo.
             $cuentas = CuentaCobro::with('paciente.seguro')
                 ->whereIn('id', $cuentaIds)
                 ->orderBy('created_at', 'asc')
+                ->lockForUpdate()
                 ->get();
 
             $cuenta = $cuentas->firstWhere('id', $request->cuenta_cobro_id) ?? $cuentas->first();
@@ -582,8 +587,13 @@ class CajaOperativaController extends Controller
             $cuenta->save();
 
             // Distribuir el pago entre todas las cuentas (de más antigua a más reciente)
+            // Idempotencia: el token del request se combina con el id de cada cuenta para
+            // formar una clave única por pago. Un reintento reusa las mismas claves, así
+            // registrarPago las detecta como replay y no duplica pagos.
+            $idemKey = $request->input('idempotency_key');
             $montoRestante = $montoPagar;
             $ultimaCuentaPagada = $cuenta;
+            $algunPagoCreado = false;
             foreach ($cuentas as $cuentaItem) {
                 if (Money::cmp($montoRestante, 0) <= 0) break;
                 $saldoItem = Money::round($cuentaItem->saldo_pendiente);
@@ -592,7 +602,9 @@ class CajaOperativaController extends Controller
                 $montoEstaCuenta = Money::min($montoRestante, $saldoItem);
                 $cuentaItem->caja_session_id = $cajaAbierta->id;
                 $cuentaItem->save();
-                $cuentaItem->registrarPago($montoEstaCuenta, $request->metodo_pago, $request->referencia, Auth::id());
+                $pagoKey = $idemKey ? $idemKey . ':' . $cuentaItem->id : null;
+                $creado = $cuentaItem->registrarPago($montoEstaCuenta, $request->metodo_pago, $request->referencia, Auth::id(), $pagoKey);
+                $algunPagoCreado = $algunPagoCreado || $creado;
                 $cuentaItem->refresh();
                 $montoRestante = Money::sub($montoRestante, $montoEstaCuenta);
                 $ultimaCuentaPagada = $cuentaItem;
@@ -646,16 +658,20 @@ class CajaOperativaController extends Controller
                 }
             }
 
-            MovimientoCaja::create([
-                'caja_session_id' => $cajaAbierta->id,
-                'tipo' => 'ingreso',
-                'concepto' => 'Cobro consolidado - Paciente: ' . $nombrePaciente,
-                'monto' => $montoPagar,
-                'metodo_pago' => $request->metodo_pago,
-                'referencia' => $request->referencia,
-                'movable_type' => 'App\Models\PagoCuenta',
-                'movable_id' => 0,
-            ]);
+            // Solo registrar el movimiento de caja si efectivamente se creó algún pago.
+            // En un reintento idempotente los pagos ya existían y no se duplica el movimiento.
+            if ($algunPagoCreado) {
+                MovimientoCaja::create([
+                    'caja_session_id' => $cajaAbierta->id,
+                    'tipo' => 'ingreso',
+                    'concepto' => 'Cobro consolidado - Paciente: ' . $nombrePaciente,
+                    'monto' => $montoPagar,
+                    'metodo_pago' => $request->metodo_pago,
+                    'referencia' => $request->referencia,
+                    'movable_type' => 'App\Models\PagoCuenta',
+                    'movable_id' => 0,
+                ]);
+            }
 
             DB::commit();
 

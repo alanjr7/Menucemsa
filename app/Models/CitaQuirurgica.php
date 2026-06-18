@@ -15,6 +15,7 @@ class CitaQuirurgica extends Model
 
     protected $fillable = [
         'paciente_id',
+        'episodio_id',
         'fecha',
         'hora_inicio_estimada',
         'hora_inicio_real',
@@ -51,10 +52,48 @@ class CitaQuirurgica extends Model
         'costo_minuto_extra' => 'decimal:2',
     ];
 
+    /**
+     * Fuente única: al crear una cirugía, vincularla al episodio abierto del
+     * paciente (si lo hay), igual que evaluaciones/emergencias/hospitalizaciones.
+     * Respeta un episodio_id ya asignado explícitamente.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (CitaQuirurgica $cita) {
+            if (empty($cita->episodio_id) && ! empty($cita->paciente_id)) {
+                $cita->episodio_id = \App\Services\EpisodioService::getEpisodioAbierto($cita->paciente_id)?->id;
+            }
+        });
+    }
+
     // Relaciones
     public function paciente()
     {
         return $this->belongsTo(Paciente::class, 'paciente_id');
+    }
+
+    public function episodio()
+    {
+        return $this->belongsTo(Episodio::class, 'episodio_id');
+    }
+
+    /**
+     * Garantiza que la cirugía quede ligada a un episodio en el momento en que
+     * realmente se realiza (ejecutar / iniciar). Si el paciente tiene un episodio
+     * abierto, la vincula a ese; si no, abre uno nuevo (tipo_ingreso = 'cirugia').
+     * No abre episodios al solo programar (eso lo decide el hook creating).
+     */
+    public function asegurarEpisodio(?int $userId = null): void
+    {
+        if (! empty($this->episodio_id) || empty($this->paciente_id)) {
+            return;
+        }
+
+        $this->episodio_id = \App\Services\EpisodioService::abrirEpisodio(
+            $this->paciente_id,
+            'cirugia',
+            $userId ?? auth()->id()
+        )->id;
     }
 
     public function cirujano()
@@ -114,6 +153,7 @@ class CitaQuirurgica extends Model
 
     public function iniciarCirugia()
     {
+        $this->asegurarEpisodio();
         $this->timestamp_inicio = now();
         $this->hora_inicio_real = now()->format('H:i:s');
         $this->estado = 'en_curso';

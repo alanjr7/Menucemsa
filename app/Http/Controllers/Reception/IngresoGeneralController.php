@@ -394,7 +394,7 @@ class IngresoGeneralController extends Controller
         CuentaCobroService::agregarCargoConDeduplicacion(
             $cuenta->id,
             'servicio',
-            'Consulta Externa - ' . $consulta->codigo,
+            'Admisión de Consulta Externa',
             $costoConsulta,
             1,
             'consulta_externa',
@@ -725,7 +725,7 @@ class IngresoGeneralController extends Controller
         CuentaCobroService::agregarCargoConDeduplicacion(
             $cuenta->id,
             'servicio',
-            'Enfermería - ' . $consulta->codigo,
+            'Admisión de Enfermería',
             $costoEnfermeria,
             1,
             'enfermeria',

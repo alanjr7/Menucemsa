@@ -281,9 +281,17 @@ class CuentaCobro extends Model
         $this->save();
     }
 
-    // Registrar un pago
-    public function registrarPago(float $monto, string $metodoPago, ?string $referencia = null, ?int $usuarioId = null): void
+    // Registrar un pago.
+    // Devuelve true si creó el pago, false si fue un replay idempotente (token ya usado).
+    public function registrarPago(float $monto, string $metodoPago, ?string $referencia = null, ?int $usuarioId = null, ?string $idempotencyKey = null): bool
     {
+        // Idempotencia: si ya existe un pago con este token, es un reintento.
+        // No se vuelve a crear ni a re-aplicar totales. El unique index en BD es el
+        // respaldo final; este chequeo evita la excepción cuando se tiene el lock de fila.
+        if ($idempotencyKey && PagoCuenta::where('idempotency_key', $idempotencyKey)->exists()) {
+            return false;
+        }
+
         // Normalizar metodo de pago y validar valores permitidos
         $metodo = strtolower(trim((string) $metodoPago));
         $permitidos = ['efectivo', 'transferencia', 'tarjeta', 'qr'];
@@ -298,6 +306,7 @@ class CuentaCobro extends Model
             'referencia' => $referencia,
             'user_id' => $usuarioId ?? auth()->id(),
             'caja_session_id' => $this->caja_session_id,
+            'idempotency_key' => $idempotencyKey,
         ]);
 
         $this->total_pagado = Money::add($this->total_pagado, $monto);
@@ -315,17 +324,47 @@ class CuentaCobro extends Model
                     'liquidado_pago_id' => $pago->id,
                 ]);
         }
+
+        return true;
     }
 
-    // Generar código único
+    // Generar número de cuenta correlativo
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($cuenta) {
             if (empty($cuenta->id)) {
-                $cuenta->id = 'CC-' . date('YmdHis') . '-' . str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+                $cuenta->id = static::generarNumero();
             }
         });
+    }
+
+    /**
+     * Siguiente número de cuenta: REC-AAAA-NNNNNN (p. ej. REC-2026-000123).
+     *
+     * Correlativo incremental por gestión fiscal (año): reinicia en 000001 cada
+     * 1° de enero. Reemplaza al antiguo CC-{timestamp}-{random}, ilegible y no
+     * secuencial. Un correlativo limpio y sin saltos es lo que exige el control
+     * interno (poder auditar comprobantes faltantes). Solo considera los ids con
+     * este formato para no inflar el contador con registros de otro esquema.
+     *
+     * El bucle reasigna si el candidato ya existe (creación seguida en el mismo
+     * proceso); ante una colisión concurrente real, el índice único del PK
+     * protege la integridad.
+     */
+    public static function generarNumero(): string
+    {
+        $prefijo = 'REC-' . now()->format('Y') . '-';
+
+        do {
+            $ultimo = static::where('id', 'REGEXP', '^REC-[0-9]{4}-[0-9]{6}$')
+                ->where('id', 'like', $prefijo . '%')
+                ->max(\DB::raw("CAST(SUBSTRING_INDEX(id, '-', -1) AS UNSIGNED)")) ?? 0;
+
+            $numero = $prefijo . str_pad((int) $ultimo + 1, 6, '0', STR_PAD_LEFT);
+        } while (static::whereKey($numero)->exists());
+
+        return $numero;
     }
 }

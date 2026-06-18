@@ -123,7 +123,7 @@
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ $detalle->cantidad }}
+                                                {{ rtrim(rtrim(number_format($detalle->cantidad, 2), '0'), '.') }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 Bs. {{ number_format($detalle->precio_unitario, 2) }}
@@ -132,17 +132,25 @@
                                                 Bs. {{ number_format($detalle->subtotal, 2) }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <form action="{{ route('admin.cuentas.eliminar-item', [$cuenta->id, $detalle->id]) }}" method="POST" onsubmit="return pedirMotivoEliminacion(this)">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <input type="hidden" name="motivo" value="">
-                                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-all">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                        </svg>
-                                                        Eliminar
-                                                    </button>
-                                                </form>
+                                                @if($detalle->liquidado_en)
+                                                    <span class="text-[11px] text-gray-400">Cargo pagado</span>
+                                                @else
+                                                    {{-- Anular N unidades (parcial o total). Default = cantidad viva. --}}
+                                                    <form action="{{ route('admin.cargos.anular', $detalle->id) }}" method="POST"
+                                                          onsubmit="return prepararAnulacion(this)"
+                                                          class="flex items-center justify-end gap-1.5">
+                                                        @csrf
+                                                        <input type="number" name="cantidad"
+                                                               value="{{ rtrim(rtrim(number_format($detalle->cantidad, 2), '0'), '.') }}"
+                                                               step="0.01" min="0.01" max="{{ $detalle->cantidad }}"
+                                                               title="Cantidad a anular (máx. {{ rtrim(rtrim(number_format($detalle->cantidad, 2), '0'), '.') }})"
+                                                               class="w-16 px-2 py-1 border border-gray-200 rounded-lg bg-gray-50 text-right text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500">
+                                                        <input type="hidden" name="motivo" value="">
+                                                        <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-all">
+                                                            Anular
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -158,7 +166,7 @@
                         </div>
                     @endif
 
-                    <!-- Items Eliminados (auditoría: hora / quién / qué) -->
+                    <!-- Anulaciones (auditoría: hora / quién / cuánto / motivo) -->
                     @php($eliminadosCuenta = ($eliminados[$cuenta->id] ?? collect()))
                     @if($eliminadosCuenta->count() > 0)
                         <div class="mt-6 pt-6 border-t border-gray-200">
@@ -166,30 +174,47 @@
                                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
-                                Ítems eliminados ({{ $eliminadosCuenta->count() }})
+                                Anulaciones ({{ $eliminadosCuenta->count() }})
                             </h4>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-red-100">
                                     <thead class="bg-red-50/50">
                                         <tr>
                                             <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Fecha / Hora</th>
-                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Eliminado por</th>
+                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Anulado por</th>
                                             <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Ítem</th>
-                                            <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Subtotal</th>
+                                            <th class="px-4 py-2 text-right text-[11px] font-semibold text-red-700 uppercase tracking-wider">Cant.</th>
+                                            <th class="px-4 py-2 text-right text-[11px] font-semibold text-red-700 uppercase tracking-wider">Monto</th>
                                             <th class="px-4 py-2 text-left text-[11px] font-semibold text-red-700 uppercase tracking-wider">Motivo</th>
+                                            <th class="px-4 py-2 text-right text-[11px] font-semibold text-red-700 uppercase tracking-wider">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-red-50">
                                         @foreach($eliminadosCuenta as $eliminado)
+                                            @php($puedeRevertir = !$eliminado->revertido_en && $eliminado->detalle && !$eliminado->detalle->liquidado_en)
                                             <tr class="bg-red-50/20">
                                                 <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-600">{{ $eliminado->eliminado_en->format('d/m/Y H:i') }}</td>
                                                 <td class="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-700">{{ $eliminado->usuarioEliminacion->name ?? 'N/A' }}</td>
                                                 <td class="px-4 py-2 text-xs text-gray-700">
                                                     <span class="line-through">{{ $eliminado->descripcion }}</span>
-                                                    <span class="text-gray-400">({{ $eliminado->tipo_item_label }} &times;{{ rtrim(rtrim(number_format($eliminado->cantidad, 2), '0'), '.') }})</span>
+                                                    <span class="text-gray-400">({{ $eliminado->tipo_item_label }})</span>
+                                                    @if($eliminado->revertido_en)
+                                                        <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600">Revertida {{ $eliminado->revertido_en->format('d/m/Y H:i') }}</span>
+                                                    @endif
                                                 </td>
-                                                <td class="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-700">Bs. {{ number_format($eliminado->subtotal, 2) }}</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-right text-xs text-gray-700">{{ rtrim(rtrim(number_format($eliminado->cantidad, 2), '0'), '.') }}</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-right text-xs font-medium text-gray-700">Bs. {{ number_format($eliminado->subtotal, 2) }}</td>
                                                 <td class="px-4 py-2 text-xs text-gray-500 italic">{{ $eliminado->motivo_eliminacion }}</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-right">
+                                                    @if($puedeRevertir)
+                                                        <form action="{{ route('admin.anulaciones.revertir', $eliminado->id) }}" method="POST" class="inline">
+                                                            @csrf
+                                                            <button type="submit" class="inline-flex items-center px-2.5 py-1 border border-blue-200 text-[11px] font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all">
+                                                                Revertir
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -233,16 +258,28 @@
     </div>
 
 <script>
-    // Pide el motivo antes de eliminar; lo inyecta en el hidden y exige confirmación.
-    function pedirMotivoEliminacion(form) {
-        const motivo = window.prompt('Motivo de la eliminación de este ítem (quedará registrado en auditoría):');
-        if (motivo === null) return false;            // canceló
-        const limpio = motivo.trim();
-        if (limpio === '') {
-            alert('Debe indicar un motivo para eliminar el ítem.');
+    // Valida la cantidad a anular y pide el motivo (obligatorio) antes de enviar.
+    function prepararAnulacion(form) {
+        const input = form.querySelector('input[name=cantidad]');
+        const max = parseFloat(input.max);
+        const cant = parseFloat(input.value);
+        if (isNaN(cant) || cant <= 0) {
+            alert('Ingresá una cantidad válida a anular.');
             return false;
         }
-        form.querySelector('input[name="motivo"]').value = limpio;
+        if (cant > max) {
+            alert('No podés anular más de ' + max + ' unidades de este cargo.');
+            return false;
+        }
+        const esTotal = cant >= max;
+        const motivo = window.prompt('Motivo de la anulación' + (esTotal ? ' total' : ' de ' + cant + ' u.') + ' (queda en auditoría):');
+        if (motivo === null) return false;
+        const limpio = motivo.trim();
+        if (limpio === '') {
+            alert('Debe indicar un motivo para anular el cargo.');
+            return false;
+        }
+        form.motivo.value = limpio;
         return true;
     }
 </script>

@@ -358,8 +358,9 @@ class PatientsController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Historial de ítems eliminados (auditoría: hora / quién / qué), agrupado por cuenta
-        $eliminados = \App\Models\CuentaCobroDetalleEliminado::with('usuarioEliminacion')
+        // Historial de anulaciones (auditoría: hora / quién / qué / cuánto), agrupado
+        // por cuenta. Incluye la línea viva para decidir si se puede revertir.
+        $eliminados = \App\Models\CuentaCobroDetalleEliminado::with(['usuarioEliminacion', 'revertidoPor', 'detalle'])
             ->whereIn('cuenta_cobro_id', $cuentas->pluck('id'))
             ->orderBy('eliminado_en', 'desc')
             ->get()
@@ -368,58 +369,9 @@ class PatientsController extends Controller
         return view('admin.pacientes.cuenta', compact('paciente', 'cuentas', 'eliminados'));
     }
 
-    /**
-     * Eliminar item de cuenta
-     */
-    public function eliminarItemCuenta(Request $request, $cuentaId, $detalleId)
-    {
-        $request->validate(['motivo' => 'required|string|max:500']);
-
-        $detalle = \App\Models\CuentaCobroDetalle::with('cuentaCobro')->find($detalleId);
-
-        if (!$detalle) {
-            return redirect()->back()
-                ->with('warning', 'El item ya no existe o fue eliminado previamente.');
-        }
-
-        $cuenta = $detalle->cuentaCobro;
-
-        // No se puede eliminar de una cuenta ya pagada (rompería liquidación/recibos)
-        if ($cuenta && $cuenta->estado === 'pagado') {
-            return redirect()->back()
-                ->with('error', 'No se puede eliminar ítems de una cuenta ya pagada.');
-        }
-
-        DB::transaction(function () use ($detalle, $cuenta, $request) {
-            // Registrar en historial de auditoría (hora / quién / qué) antes de borrar
-            \App\Models\CuentaCobroDetalleEliminado::create([
-                'cuenta_cobro_id'        => $detalle->cuenta_cobro_id,
-                'tipo_item'              => $detalle->tipo_item,
-                'descripcion'            => $detalle->descripcion,
-                'cantidad'               => $detalle->cantidad,
-                'precio_unitario'        => $detalle->precio_unitario,
-                'subtotal'               => $detalle->subtotal,
-                'origen_type'            => $detalle->origen_type,
-                'origen_id'              => $detalle->origen_id,
-                'area_origen'            => $detalle->area_origen,
-                'observaciones'          => $detalle->observaciones,
-                'usuario_eliminacion_id' => auth()->id(),
-                'motivo_eliminacion'     => $request->motivo,
-                'eliminado_en'           => now(),
-            ]);
-
-            $detalle->delete();
-
-            // Recalcular totales/estado con la fuente única de verdad del modelo
-            if ($cuenta) {
-                $cuenta->load('detalles');
-                $cuenta->recalcularTotales();
-            }
-        });
-
-        return redirect()->back()
-            ->with('success', 'Item eliminado y registrado en el historial.');
-    }
+    // La eliminación de ítems de cuenta se unificó en
+    // App\Http\Controllers\Admin\AjusteCargoController (anular/revertir),
+    // fuente única de eliminaciones seguras con soporte de cantidades parciales.
 
     /**
      * Vista de listado de pacientes para dar de alta (roles autorizados)

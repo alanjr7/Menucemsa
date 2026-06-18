@@ -152,7 +152,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => null, 'order' => 1],
             ['name' => 'Gestionar Pacientes', 'route' => 'admin.pacientes.gestionar', 'roles' => 'admin,administrador', 'order' => 2],
             ['name' => 'Episodios', 'route' => 'admin.episodios.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Dar de Alta', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 4],
+            ['name' => 'Cerrar Episodio', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 4],
             ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
         ]);
 
@@ -210,7 +210,7 @@ class MenuSeeder extends Seeder
         // 3. Cirugías (Nivel 2)
         $cirugiasAdmin = $gestionarClinica->children()->create([
             'name' => 'Cirugías',
-            'active_pattern' => 'quirofano*,quirofanos-management*,admin.cirujanos*',
+            'active_pattern' => 'quirofano*,quirofanos-management*,tipos-cirugia*,admin.cirujanos*',
             'roles' => 'admin,administrador',
             'order' => 3,
         ]);
@@ -220,6 +220,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Ver Cirujanos',        'route' => 'admin.cirujanos.index',        'roles' => 'admin,administrador', 'order' => 3],
             ['name' => 'Medicamentos',         'route' => 'quirofano.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 4],
             ['name' => 'Procedimientos',       'route' => 'admin.cirugia.procedimientos', 'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Precios y Duración',   'route' => 'tipos-cirugia.index',          'roles' => 'admin,administrador', 'order' => 6],
         ]);
 
         // 4. Internación (Nivel 2)
@@ -374,6 +375,7 @@ class MenuSeeder extends Seeder
             // Agregamos el submenú aquí:
             ['name' => 'Gestión de Menús', 'route' => 'menus.index', 'roles' => 'admin', 'order' => 3],
             ['name' => 'Control de Accesos', 'route' => 'seguridad.accesos.index', 'roles' => 'admin,gerente,administrador', 'order' => 4],
+            ['name' => 'Backups', 'route' => 'seguridad.backup.index', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
     }
 }

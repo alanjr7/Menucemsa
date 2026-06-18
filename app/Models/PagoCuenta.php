@@ -24,6 +24,7 @@ class PagoCuenta extends Model
         'user_id',
         'caja_session_id',
         'observaciones',
+        'idempotency_key',
     ];
 
     protected $casts = [

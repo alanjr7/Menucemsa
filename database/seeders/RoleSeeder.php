@@ -15,7 +15,7 @@ class RoleSeeder extends Seeder
     {
         // Crear usuario administrador
         User::firstOrCreate(
-            ['email' => 'admin@menucemsa.com'],
+            ['email' => 'admin@ClinicaSantaCruz.com'],
             [
                 'name' => 'Administrador',
                 'password' => bcrypt('admin123'),
@@ -26,7 +26,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario recepción
         User::firstOrCreate(
-            ['email' => 'recepcion@menucemsa.com'],
+            ['email' => 'recepcion@ClinicaSantaCruz.com'],
             [
                 'name' => 'Recepción',
                 'password' => bcrypt('recepcion123'),
@@ -37,7 +37,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Director Médico
         User::firstOrCreate(
-            ['email' => 'dirmedico@menucemsa.com'],
+            ['email' => 'dirmedico@ClinicaSantaCruz.com'],
             [
                 'name' => 'Director Médico',
                 'password' => bcrypt('dirmedico123'),
@@ -48,7 +48,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Emergencia
         User::firstOrCreate(
-            ['email' => 'emergencia@menucemsa.com'],
+            ['email' => 'emergencia@ClinicaSantaCruz.com'],
             [
                 'name' => 'Emergencia',
                 'password' => bcrypt('emergencia123'),
@@ -59,7 +59,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Caja
         User::firstOrCreate(
-            ['email' => 'caja@menucemsa.com'],
+            ['email' => 'caja@ClinicaSantaCruz.com'],
             [
                 'name' => 'Caja',
                 'password' => bcrypt('caja123'),
@@ -70,7 +70,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Gerente
         User::firstOrCreate(
-            ['email' => 'gerente@menucemsa.com'],
+            ['email' => 'gerente@ClinicaSantaCruz.com'],
             [
                 'name' => 'Gerente',
                 'password' => bcrypt('gerente123'),
@@ -81,7 +81,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario UTI
         User::firstOrCreate(
-            ['email' => 'uti@menucemsa.com'],
+            ['email' => 'uti@ClinicaSantaCruz.com'],
             [
                 'name' => 'UTI',
                 'password' => bcrypt('uti123'),
@@ -92,7 +92,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Internación
         User::firstOrCreate(
-            ['email' => 'internacion@menucemsa.com'],
+            ['email' => 'internacion@ClinicaSantaCruz.com'],
             [
                 'name' => 'Internación',
                 'password' => bcrypt('internacion123'),
@@ -103,7 +103,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Cirujano
         User::firstOrCreate(
-            ['email' => 'cirujano@menucemsa.com'],
+            ['email' => 'cirujano@ClinicaSantaCruz.com'],
             [
                 'name' => 'Cirujano',
                 'password' => bcrypt('cirujano123'),
@@ -114,7 +114,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Doctor
         User::firstOrCreate(
-            ['email' => 'doctor@menucemsa.com'],
+            ['email' => 'doctor@ClinicaSantaCruz.com'],
             [
                 'name' => 'Doctor',
                 'password' => bcrypt('doctor123'),
@@ -125,7 +125,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Farmacia
         User::firstOrCreate(
-            ['email' => 'farmacia@menucemsa.com'],
+            ['email' => 'farmacia@ClinicaSantaCruz.com'],
             [
                 'name' => 'Farmacia',
                 'password' => bcrypt('farmacia123'),
@@ -136,7 +136,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Enfermera Emergencia
         User::firstOrCreate(
-            ['email' => 'enfermera-emergencia@menucemsa.com'],
+            ['email' => 'enfermera-emergencia@ClinicaSantaCruz.com'],
             [
                 'name' => 'Enfermera Emergencia',
                 'password' => bcrypt('enfermera123'),
@@ -147,7 +147,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Enfermera Internación
         User::firstOrCreate(
-            ['email' => 'enfermera-internacion@menucemsa.com'],
+            ['email' => 'enfermera-internacion@ClinicaSantaCruz.com'],
             [
                 'name' => 'Enfermera Internación',
                 'password' => bcrypt('enfermera123'),
@@ -158,7 +158,7 @@ class RoleSeeder extends Seeder
 
         // Crear usuario Administrador (rol visualizador general)
         User::firstOrCreate(
-            ['email' => 'administrador@menucemsa.com'],
+            ['email' => 'administrador@ClinicaSantaCruz.com'],
             [
                 'name' => 'Administrador',
                 'password' => bcrypt('administrador123'),

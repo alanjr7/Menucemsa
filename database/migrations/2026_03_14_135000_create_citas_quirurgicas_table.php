@@ -16,6 +16,7 @@ return new class extends Migration
             
             // Paciente y fecha/hora
             $table->unsignedBigInteger('paciente_id');
+            $table->unsignedBigInteger('episodio_id')->nullable();
             $table->date('fecha');
             $table->time('hora_inicio_estimada');
             $table->time('hora_inicio_real')->nullable();
@@ -60,11 +61,13 @@ return new class extends Migration
             // Índices
             $table->index(['fecha', 'hora_inicio_estimada']);
             $table->index('paciente_id');
+            $table->index('episodio_id');
             $table->index('ci_cirujano');
             $table->index('quirofano_id');
-            
+
             // Claves foráneas
             $table->foreign('paciente_id')->references('id')->on('pacientes');
+            $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
             $table->foreign('ci_cirujano')->references('ci')->on('medicos');
             $table->foreign('quirofano_id')->references('id')->on('quirofanos');
         });

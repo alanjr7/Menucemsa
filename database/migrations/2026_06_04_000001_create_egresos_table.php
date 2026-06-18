@@ -28,6 +28,15 @@ return new class extends Migration
             $table->enum('metodo_pago', ['efectivo', 'transferencia', 'cheque', 'tarjeta', 'qr'])->default('efectivo');
             $table->string('proveedor')->nullable();
             $table->string('comprobante_nro', 50)->nullable();
+
+            // Crédito fiscal IVA (Libro de Compras) — datos de la factura de compra.
+            // Sin factura válida no hay crédito fiscal; importe_iva = total * 13%.
+            $table->boolean('con_credito_fiscal')->default(false);
+            $table->string('nit_proveedor', 20)->nullable();
+            $table->string('nro_factura', 50)->nullable();
+            $table->string('codigo_autorizacion', 100)->nullable();
+            $table->decimal('importe_iva', 12, 2)->default(0);
+
             $table->text('observaciones')->nullable();
             $table->foreignId('user_id')->constrained('users');
             $table->timestamps();

@@ -180,7 +180,7 @@ class CuentaCobroService
     ): CuentaCobro {
         return DB::transaction(function () use ($pacienteId, $consultaNro, $especialidadCodigo, $montoPersonalizado) {
             $precio = $montoPersonalizado ?? (\App\Models\IngresoPrecio::getPrecio('consulta_externa') ?? 150.00);
-            $descripcion = 'Consulta Externa';
+            $descripcion = 'Admisión de Consulta Externa';
 
             // Crear cuenta
             $cuenta = CuentaCobro::create([
@@ -260,7 +260,7 @@ class CuentaCobroService
 
                     $cuentaExistente->detalles()->create([
                         'tipo_item' => 'servicio',
-                        'descripcion' => 'Atención de Emergencia',
+                        'descripcion' => 'Admisión de Emergencia',
                         'cantidad' => 1,
                         'precio_unitario' => $precioBase,
                         'subtotal' => $precioBase,
@@ -322,7 +322,7 @@ class CuentaCobroService
 
                 $cuenta->detalles()->create([
                     'tipo_item' => 'servicio',
-                    'descripcion' => 'Atención de Emergencia',
+                    'descripcion' => 'Admisión de Emergencia',
                     'cantidad' => 1,
                     'precio_unitario' => $precioBase,
                     'subtotal' => $precioBase,

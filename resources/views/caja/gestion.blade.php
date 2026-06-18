@@ -297,6 +297,9 @@
                         <div class="flex items-center space-x-2">
                             <input type="date" id="filtroAuditoriaFecha"
                                 class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <span class="text-gray-500">-</span>
+                            <input type="date" id="filtroAuditoriaFechaFin"
+                                class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <select id="filtroAuditoriaTipo"
                                 class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option value="todos">Todas las acciones</option>
@@ -351,10 +354,10 @@
                     <div id="paginacionAuditoria" class="mt-4"></div>
                 </div>
 
-                <!-- Tab: Ítems Eliminados -->
+                <!-- Tab: Ítems Eliminados (anulaciones) -->
                 <div id="panel-items-eliminados" class="p-4 hidden">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
-                        <h4 class="text-md font-medium text-gray-900">Ítems Eliminados de Cuentas</h4>
+                        <h4 class="text-md font-medium text-gray-900">Anulaciones de Cargos</h4>
                         <div class="flex items-center space-x-2">
                             <input type="date" id="filtroItemsEliminadosFechaInicio"
                                 class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -390,13 +393,14 @@
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Eliminado
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Anulado
                                         por</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acción</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200" id="tablaItemsEliminados">
                                 <tr>
-                                    <td colspan="10" class="px-4 py-4 text-center text-gray-500">Cargando...</td>
+                                    <td colspan="11" class="px-4 py-4 text-center text-gray-500">Cargando...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -442,11 +446,17 @@
                 cargarEstadisticas();
                 cargarTransacciones();
 
-                // Set fechas por defecto
-                const hoy = new Date().toISOString().split('T')[0];
-                document.getElementById('filtroCajaFechaInicio').value = hoy;
+                // Set fechas por defecto = HOY del servidor (zona de la app), no UTC
+                // del navegador: los timestamps (eliminado_en, etc.) se guardan en la
+                // zona de la app; usar toISOString() (UTC) desfasaba el filtro de noche
+                // y ocultaba los registros del día.
+                const hoy = @json(now()->toDateString());
+                // Desde = apertura de la caja abierta (cubre sesión que cruza medianoche); hasta = hoy
+                const desdeOperativo = @json($fechaInicioOperativa);
+                document.getElementById('filtroCajaFechaInicio').value = desdeOperativo;
                 document.getElementById('filtroCajaFechaFin').value = hoy;
-                document.getElementById('filtroAuditoriaFecha').value = hoy;
+                document.getElementById('filtroAuditoriaFecha').value = desdeOperativo;
+                document.getElementById('filtroAuditoriaFechaFin').value = hoy;
                 document.getElementById('filtroItemsEliminadosFechaInicio').value = hoy;
                 document.getElementById('filtroItemsEliminadosFechaFin').value = hoy;
             });
@@ -695,6 +705,7 @@
                 try {
                     const params = new URLSearchParams({
                         fecha_inicio: document.getElementById('filtroAuditoriaFecha').value,
+                        fecha_fin: document.getElementById('filtroAuditoriaFechaFin').value,
                         tipo_accion: document.getElementById('filtroAuditoriaTipo').value,
                         page: page
                     });
@@ -754,7 +765,7 @@
                             <table class="min-w-full text-sm">
                                 <thead><tr class="border-b"><th class="text-left py-1">Item</th><th class="text-right py-1">Cant.</th><th class="text-right py-1">Precio</th><th class="text-right py-1">Subtotal</th>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? '<th class="text-center py-1">Acciones</th>' : ''}</tr></thead>
                                 <tbody>
-                                    ${t.detalles.map(d => `<tr class="border-b border-gray-100"><td class="py-1">${d.descripcion}</td><td class="text-right">${d.cantidad}</td><td class="text-right">Bs ${parseFloat(d.precio_unitario).toFixed(2)}</td><td class="text-right">Bs ${parseFloat(d.subtotal).toFixed(2)}</td>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? `<td class="text-center py-1"><button onclick="eliminarDetalleItem('${d.id}', '${d.descripcion.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-900 text-xs">Eliminar</button></td>` : ''}</tr>`).join('')}
+                                    ${t.detalles.map(d => `<tr class="border-b border-gray-100"><td class="py-1">${d.descripcion}</td><td class="text-right">${d.cantidad}</td><td class="text-right">Bs ${parseFloat(d.precio_unitario).toFixed(2)}</td><td class="text-right">Bs ${parseFloat(d.subtotal).toFixed(2)}</td>${(userRole === 'admin' || userRole === 'administrador') && t.estado !== 'pagado' ? `<td class="text-center py-1"><button onclick="anularDetalleItem('${d.id}', '${d.descripcion.replace(/'/g, "\\'")}', ${parseFloat(d.cantidad)})" class="text-red-600 hover:text-red-900 text-xs">Anular</button></td>` : ''}</tr>`).join('')}
                                 </tbody>
                                 <tfoot>
                                     <tr class="font-bold"><td colspan="3" class="text-right py-2">Total:</td><td class="text-right py-2">Bs ${parseFloat(t.total_calculado).toFixed(2)}</td></tr>
@@ -795,38 +806,74 @@
                 }
             }
 
-            async function eliminarDetalleItem(detalleId, descripcion) {
-                const motivo = prompt('Motivo de eliminación del ítem: ' + descripcion);
+            // Anula N unidades de un cargo (parcial o total). Endpoint único compartido
+            // con Correcciones y Cuenta del paciente: admin.cargos.anular.
+            async function anularDetalleItem(detalleId, descripcion, cantidadMax) {
+                const entrada = prompt(
+                    'Cantidad a anular de "' + descripcion + '" (máx. ' + cantidadMax + '):',
+                    cantidadMax
+                );
+                if (entrada === null) return;
+                const cantidad = parseFloat(entrada);
+                if (isNaN(cantidad) || cantidad <= 0) { alert('Cantidad inválida.'); return; }
+                if (cantidad > cantidadMax) { alert('No podés anular más de ' + cantidadMax + ' unidades.'); return; }
+
+                const motivo = prompt('Motivo de la anulación' + (cantidad >= cantidadMax ? ' total' : ' de ' + cantidad + ' u.') + ':');
                 if (!motivo || motivo.trim() === '') return;
 
-                if (!confirm('¿Confirmar eliminación del ítem "' + descripcion + '"?')) return;
-
                 try {
-                    const url = '{{ route('caja.gestion.eliminar-detalle', ['detalleId' => 'DETALLE_ID']) }}'.replace(
+                    const url = '{{ route('admin.cargos.anular', ['detalleId' => 'DETALLE_ID']) }}'.replace(
                         'DETALLE_ID', detalleId);
                     const response = await fetch(url, {
-                        method: 'DELETE',
+                        method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
-                        body: JSON.stringify({
-                            motivo: motivo.trim()
-                        })
+                        body: JSON.stringify({ cantidad: cantidad, motivo: motivo.trim() })
                     });
 
                     const data = await response.json();
                     if (data.success) {
-                        alert('Ítem eliminado correctamente.');
+                        alert(data.message || 'Cargo anulado correctamente.');
                         const cuentaIdActual = document.getElementById('detalleTransaccionContent').dataset.cuentaId;
                         if (cuentaIdActual) verDetalleTransaccion(cuentaIdActual);
                         cargarTransacciones();
                     } else {
-                        alert(data.message || 'Error al eliminar.');
+                        alert(data.message || 'Error al anular.');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Error de red al eliminar ítem.');
+                    alert('Error de red al anular el cargo.');
+                }
+            }
+
+            // Revierte una anulación: devuelve las unidades al cargo.
+            async function revertirAnulacionItem(anulacionId) {
+                if (!confirm('¿Revertir esta anulación? Las unidades volverán al cargo.')) return;
+                try {
+                    const url = '{{ route('admin.anulaciones.revertir', ['anulacionId' => 'ANUL_ID']) }}'.replace(
+                        'ANUL_ID', anulacionId);
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        alert(data.message || 'Anulación revertida.');
+                        cargarItemsEliminados();
+                        cargarTransacciones();
+                    } else {
+                        alert(data.message || 'No se pudo revertir.');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error de red al revertir.');
                 }
             }
 
@@ -846,12 +893,18 @@
                         const tbody = document.getElementById('tablaItemsEliminados');
                         if (data.eliminados.data.length === 0) {
                             tbody.innerHTML =
-                                '<tr><td colspan="10" class="px-4 py-4 text-center text-gray-500">No hay ítems eliminados</td></tr>';
+                                '<tr><td colspan="11" class="px-4 py-4 text-center text-gray-500">No hay anulaciones</td></tr>';
                             return;
                         }
 
-                        tbody.innerHTML = data.eliminados.data.map(item => `
-                        <tr class="hover:bg-gray-50">
+                        tbody.innerHTML = data.eliminados.data.map(item => {
+                            const accion = item.revertido
+                                ? `<span class="text-xs text-blue-600">Revertida ${item.revertido_en || ''}</span>`
+                                : (item.puede_revertir
+                                    ? `<button onclick="revertirAnulacionItem('${item.id}')" class="text-blue-600 hover:text-blue-900 text-xs font-medium">Revertir</button>`
+                                    : '<span class="text-xs text-gray-300">—</span>');
+                            return `
+                        <tr class="hover:bg-gray-50 ${item.revertido ? 'opacity-60' : ''}">
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.eliminado_en}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.cuenta_cobro_id.substring(0, 15)}...</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${item.paciente.nombre}</td>
@@ -862,18 +915,19 @@
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-red-600">Bs ${parseFloat(item.subtotal).toFixed(2)}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.motivo_eliminacion}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.usuario}</td>
-                        </tr>
-                    `).join('');
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-right">${accion}</td>
+                        </tr>`;
+                        }).join('');
 
                         renderizarPaginacion('paginacionItemsEliminados', data.eliminados, 'cargarItemsEliminados');
                     } else {
                         document.getElementById('tablaItemsEliminados').innerHTML =
-                            `<tr><td colspan="10" class="px-4 py-4 text-center text-red-500">${data.message || 'Error al cargar datos'}</td></tr>`;
+                            `<tr><td colspan="11" class="px-4 py-4 text-center text-red-500">${data.message || 'Error al cargar datos'}</td></tr>`;
                     }
                 } catch (error) {
                     console.error('Error:', error);
                     document.getElementById('tablaItemsEliminados').innerHTML =
-                        '<tr><td colspan="10" class="px-4 py-4 text-center text-red-500">Error de red o servidor</td></tr>';
+                        '<tr><td colspan="11" class="px-4 py-4 text-center text-red-500">Error de red o servidor</td></tr>';
                 }
             }
 
@@ -922,12 +976,13 @@
             }
 
             function exportarExcelAuditoria() {
-                const fecha = document.getElementById('filtroAuditoriaFecha').value;
+                const fechaInicio = document.getElementById('filtroAuditoriaFecha').value;
+                const fechaFin = document.getElementById('filtroAuditoriaFechaFin').value;
                 const tipo = document.getElementById('filtroAuditoriaTipo').value;
 
                 // Construimos la URL con los filtros actuales de JS
                 const url =
-                    `{{ route('caja.gestion.exportar.auditoria') }}?fecha_inicio=${fecha}&fecha_fin=${fecha}&tipo_accion=${tipo}`;
+                    `{{ route('caja.gestion.exportar.auditoria') }}?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}&tipo_accion=${tipo}`;
 
                 window.location.href = url;
             }

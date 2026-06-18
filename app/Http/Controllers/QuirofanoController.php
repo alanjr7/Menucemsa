@@ -215,7 +215,8 @@ class QuirofanoController extends Controller
 
     public function create(): View
     {
-        return view('quirofano.cita-create');
+        $tiposCirugia = TipoCirugia::activos()->get();
+        return view('quirofano.cita-create', compact('tiposCirugia'));
     }
 
     public function getQuirofanosDisponibles(): JsonResponse
@@ -610,6 +611,7 @@ class QuirofanoController extends Controller
             $cita->estado = 'en_curso';
             $cita->timestamp_inicio = now();
             $cita->user_registro_id = auth()->id();
+            $cita->asegurarEpisodio();
             $cita->save();
 
             // Marcar quirófano como ocupado
@@ -945,6 +947,7 @@ class QuirofanoController extends Controller
             $cuenta->save();
 
             // Actualizar cita quirúrgica
+            $cita->asegurarEpisodio();
             $cita->tipo_cirugia = $validated['tipo_cirugia'];
             $cita->descripcion_cirugia = $validated['descripcion_cirugia'];
             $cita->observaciones = $validated['observaciones'];

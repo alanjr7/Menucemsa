@@ -20,6 +20,11 @@ class Egreso extends Model
         'metodo_pago',
         'proveedor',
         'comprobante_nro',
+        'con_credito_fiscal',
+        'nit_proveedor',
+        'nro_factura',
+        'codigo_autorizacion',
+        'importe_iva',
         'observaciones',
         'user_id',
     ];
@@ -27,6 +32,8 @@ class Egreso extends Model
     protected $casts = [
         'fecha' => 'date',
         'monto' => 'decimal:2',
+        'con_credito_fiscal' => 'boolean',
+        'importe_iva' => 'decimal:2',
     ];
 
     public const CATEGORIAS = [

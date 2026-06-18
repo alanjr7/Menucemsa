@@ -262,6 +262,7 @@
 @push('scripts')
 <script>
     let cuentaActual = null;
+    let idempotencyKeyCobro = null;
     let pacientesData = [];
     let paginaActual = 1;
     const registrosPorPagina = 10;
@@ -545,6 +546,11 @@
         const data = await response.json();
         if (data.success) {
             cuentaActual = data.cuenta;
+            // Token de idempotencia: uno por apertura de modal. Un reintento del mismo
+            // cobro (doble-click / red) reusa este token y el backend no duplica el pago.
+            idempotencyKeyCobro = (crypto.randomUUID
+                ? crypto.randomUUID()
+                : 'idem-' + Date.now() + '-' + Math.random().toString(36).slice(2));
             document.getElementById('detalleCuenta').innerHTML = `
                 <div class="rounded-lg border border-gray-200 overflow-hidden">
                     <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
@@ -611,7 +617,8 @@
             referencia: document.getElementById('referenciaPago').value,
             ci_nit_facturacion: document.getElementById('ciNitFactura').value,
             razon_social: document.getElementById('razonSocialFactura').value,
-            es_pago_total: document.getElementById('esPagoTotal').checked
+            es_pago_total: document.getElementById('esPagoTotal').checked,
+            idempotency_key: idempotencyKeyCobro
         };
 
         if(!payload.metodo_pago) {

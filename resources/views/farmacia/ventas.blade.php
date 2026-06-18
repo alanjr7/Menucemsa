@@ -125,14 +125,28 @@
 </div>
 
 <script>
+const tiposDoc = { 1: 'CI', 2: 'CEX', 3: 'Pasaporte', 4: 'Otro', 5: 'NIT' };
+let ventaActual = null;
+
 function verDetalle(codigoVenta) {
     fetch(`/farmacia/ventas/${codigoVenta}`)
         .then(response => response.json())
         .then(data => {
+            ventaActual = data;
+            const facturaTxt = data.con_credito_fiscal
+                ? `${data.factura_razon_social} — ${tiposDoc[data.factura_tipo_documento] || 'Doc'}: ${data.factura_numero_documento}${data.factura_complemento ? '-' + data.factura_complemento : ''}`
+                : 'Sin nombre (S/N)';
             const detalleHtml = `
                 <div class="p-6">
                     <div class="mb-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">${data.codigo_venta}</h3>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-bold text-gray-800">${data.codigo_venta}</h3>
+                            <button onclick="imprimirTicketActual()" title="Reimprimir ticket"
+                                class="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold px-3 py-2 rounded-xl transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                Imprimir
+                            </button>
+                        </div>
                         <div class="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <p class="text-gray-500">Fecha:</p>
@@ -151,6 +165,10 @@ function verDetalle(codigoVenta) {
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                     ${data.estado}
                                 </span>
+                            </div>
+                            <div class="col-span-2">
+                                <p class="text-gray-500">Facturado a:</p>
+                                <p class="font-medium">${facturaTxt}</p>
                             </div>
                         </div>
                     </div>
@@ -185,5 +203,26 @@ function verDetalle(codigoVenta) {
             console.error('Error:', error);
         });
 }
+
+function imprimirTicketActual() {
+    if (!ventaActual) return;
+    const d = ventaActual;
+    imprimirTicketFarmacia({
+        codigo: d.codigo_venta,
+        fecha: d.fecha_venta ? new Date(d.fecha_venta).toLocaleString() : '',
+        cliente: d.cliente || 'Cliente General',
+        metodoPago: d.metodo_pago,
+        requiereReceta: d.requiere_receta,
+        conCreditoFiscal: !!d.con_credito_fiscal,
+        razonSocial: d.factura_razon_social,
+        docLabel: tiposDoc[d.factura_tipo_documento] || 'Doc',
+        docNumero: d.factura_numero_documento,
+        docComplemento: d.factura_complemento,
+        items: (d.detalles || []).map(x => ({ cantidad: x.cantidad, nombre: x.nombre_producto, importe: parseFloat(x.subtotal) })),
+        total: parseFloat(d.total || 0),
+        reimpresion: true
+    });
+}
 </script>
+@include('farmacia.partials.ticket')
 @endsection

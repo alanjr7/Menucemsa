@@ -33,6 +33,20 @@ class AuditMiddleware
         'patients.show',
     ];
 
+    /** Etiquetas legibles de módulo para el texto genérico de respaldo. */
+    protected $moduleLabels = [
+        'recepcion' => 'Recepción',
+        'quirofano' => 'Quirófano',
+        'caja' => 'Caja',
+        'farmacia' => 'Farmacia',
+        'uti' => 'UTI',
+        'consulta_externa' => 'Consulta Externa',
+        'administracion' => 'Administración',
+        'seguridad' => 'Seguridad',
+        'emergencia' => 'Emergencia',
+        'internacion' => 'Internación',
+    ];
+
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
@@ -60,6 +74,11 @@ class AuditMiddleware
             return false;
         }
 
+        // POST de solo lectura (búsquedas, filtros, previsualizaciones): no son acciones.
+        if (in_array($routeName, config('audit.ignore', []), true)) {
+            return false;
+        }
+
         foreach ($this->excludedRoutes as $excluded) {
             if ($this->routeMatches($routeName, $excluded)) {
                 return false;
@@ -74,14 +93,11 @@ class AuditMiddleware
         $routeName = $request->route()->getName();
         $module = $this->getModuleForRoute($routeName);
         $action = $this->getActionFromMethod($request->method());
-        $description = $this->buildDescription($request, $module, $action);
 
+        // Solo se guarda la acción legible; el payload del request no se persiste.
         ActivityLogService::log(
             $action . ($module ? '_' . $module : ''),
-            $description,
-            null,
-            null,
-            $this->sanitizeInput($request->all())
+            $this->buildDescription($routeName, $module, $action)
         );
     }
 
@@ -113,30 +129,26 @@ class AuditMiddleware
         return $actions[$method] ?? 'action';
     }
 
-    protected function buildDescription(Request $request, ?string $module, string $action): string
+    /**
+     * Frase legible de la acción (sin el usuario; la vista ya lo antepone).
+     * Usa el mapa de config/audit.php y, si la ruta no está, un texto genérico
+     * que no expone el nombre técnico de la ruta.
+     */
+    protected function buildDescription(string $routeName, ?string $module, string $action): string
     {
-        $user = $request->user()?->name ?? 'Sistema';
-        $route = $request->route()->getName();
-        $moduleLabel = $module ? ucfirst($module) : 'Sistema';
-
-        return "{$user} realizó {$action} en {$moduleLabel} ({$route})";
-    }
-
-    protected function sanitizeInput(array $input): array
-    {
-        $sensitiveFields = ['password', 'password_confirmation', 'remember_token', 'token', 'credit_card'];
-        $sanitized = [];
-
-        foreach ($input as $key => $value) {
-            if (in_array($key, $sensitiveFields)) {
-                $sanitized[$key] = '***REDACTED***';
-            } elseif (is_array($value)) {
-                $sanitized[$key] = $this->sanitizeInput($value);
-            } else {
-                $sanitized[$key] = $value;
-            }
+        $map = config('audit.descriptions', []);
+        if (isset($map[$routeName])) {
+            return $map[$routeName];
         }
 
-        return $sanitized;
+        $verbo = [
+            'create' => 'registró un elemento',
+            'update' => 'actualizó un elemento',
+            'delete' => 'eliminó un elemento',
+        ][$action] ?? 'realizó una acción';
+
+        $moduleLabel = $module ? ($this->moduleLabels[$module] ?? ucfirst($module)) : null;
+
+        return $moduleLabel ? "{$verbo} en {$moduleLabel}" : $verbo;
     }
 }

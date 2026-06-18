@@ -122,7 +122,7 @@
                 <div class="relative mb-4">
                     <input type="text" x-model="medQ" @input.debounce.300ms="buscar('medicamento')"
                         @focus="medOpen=true" @click.outside="medOpen=false"
-                        placeholder="Buscar medicamento por nombre..."
+                        placeholder="Buscar medicamento por nombre comercial o genérico..."
                         class="w-full border border-slate-500 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
                     <ul x-show="medOpen && medResultados.length" x-cloak
                         class="absolute z-20 bg-white border border-slate-600 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
@@ -131,7 +131,13 @@
                                 class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-400 last:border-0">
                                 <span class="min-w-0">
                                     <span class="font-medium text-slate-900 block truncate" x-text="item.nombre"></span>
-                                    <span class="text-xs text-slate-600" x-show="item.laboratorio || item.codigo_lote">
+                                    <span class="block text-xs text-slate-700" x-show="item.nombre_generico || item.concentracion || item.unidad_medida">
+                                        <span x-show="item.nombre_generico" x-text="item.nombre_generico"></span>
+                                        <span x-show="item.concentracion" x-text="(item.nombre_generico ? ' · ' : '') + item.concentracion"></span>
+                                        <span x-show="item.unidad_medida" x-text="((item.nombre_generico || item.concentracion) ? ' · ' : '') + item.unidad_medida"></span>
+                                    </span>
+                                    <span class="block text-xs text-slate-500" x-show="item.categoria" x-text="'Categoría: ' + item.categoria"></span>
+                                    <span class="block text-xs text-slate-600" x-show="item.laboratorio || item.codigo_lote || item.precio">
                                         <span x-show="item.laboratorio" x-text="'Lab: ' + item.laboratorio"></span>
                                         <span x-show="item.codigo_lote" x-text="' · Lote ' + item.codigo_lote"></span>
                                         <span x-show="item.precio" x-text="' · Bs ' + item.precio"></span>
@@ -190,7 +196,7 @@
                 <div class="relative mb-4">
                     <input type="text" x-model="insQ" @input.debounce.300ms="buscar('insumo')"
                         @focus="insOpen=true" @click.outside="insOpen=false"
-                        placeholder="Buscar insumo por nombre..."
+                        placeholder="Buscar insumo por nombre comercial o genérico..."
                         class="w-full border border-slate-500 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent">
                     <ul x-show="insOpen && insResultados.length" x-cloak
                         class="absolute z-20 bg-white border border-slate-600 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
@@ -199,7 +205,13 @@
                                 class="px-4 py-3 text-base hover:bg-slate-50 cursor-pointer flex justify-between items-center border-b border-slate-400 last:border-0">
                                 <span class="min-w-0">
                                     <span class="font-medium text-slate-900 block truncate" x-text="item.nombre"></span>
-                                    <span class="text-xs text-slate-600" x-show="item.laboratorio || item.codigo_lote">
+                                    <span class="block text-xs text-slate-700" x-show="item.nombre_generico || item.concentracion || item.unidad_medida">
+                                        <span x-show="item.nombre_generico" x-text="item.nombre_generico"></span>
+                                        <span x-show="item.concentracion" x-text="(item.nombre_generico ? ' · ' : '') + item.concentracion"></span>
+                                        <span x-show="item.unidad_medida" x-text="((item.nombre_generico || item.concentracion) ? ' · ' : '') + item.unidad_medida"></span>
+                                    </span>
+                                    <span class="block text-xs text-slate-500" x-show="item.categoria" x-text="'Categoría: ' + item.categoria"></span>
+                                    <span class="block text-xs text-slate-600" x-show="item.laboratorio || item.codigo_lote || item.precio">
                                         <span x-show="item.laboratorio" x-text="'Lab: ' + item.laboratorio"></span>
                                         <span x-show="item.codigo_lote" x-text="' · Lote ' + item.codigo_lote"></span>
                                         <span x-show="item.precio" x-text="' · Bs ' + item.precio"></span>

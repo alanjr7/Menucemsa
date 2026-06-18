@@ -163,7 +163,11 @@ class ReceptionController extends Controller
                 'empresa_trabajo' => $request->empresa_trabajo ?? null,
                 'seguro_id' => $request->seguro_id ?: null,
                 'triage_id' => $this->obenerOCrearTriage(),
-                'registro_codigo' => $this->obtenerOCrearRegistro(),
+                'registro_codigo' => $this->obtenerOCrearRegistro([
+                    'fecha_nacimiento' => $request->fecha_nacimiento,
+                    'sexo'             => $request->sexo,
+                    'nombre'           => $nombreCompleto,
+                ]),
                 'id_garante_referencia' => $request->id_garante_referencia ?? null,
             ]);
         } else {
@@ -255,21 +259,23 @@ class ReceptionController extends Controller
         return $triage->id;
     }
 
-    private function obtenerOCrearRegistro()
+    private function obtenerOCrearRegistro(array $datosPaciente = [])
     {
-        $currentUser = Auth::user();
-        $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-        
+        // Fuente única de verdad del código de paciente: formato canónico
+        // REG-{aa}-{mmdd}-{iniciales} que codifica nacimiento + sexo + iniciales.
+        // Mismo generador que Ingreso general, Hospitalización y Emergencia.
+        $codigo = Registro::generarCodigo($datosPaciente);
+
         $registro = Registro::firstOrCreate(
             ['codigo' => $codigo],
             [
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Consulta Externa',
-                'user_id' => $currentUser->id
+                'user_id' => Auth::id(),
             ]
         );
-        
+
         return $registro->codigo;
     }
 
@@ -359,10 +365,31 @@ class ReceptionController extends Controller
 
     public function confirmacionRegistro($id)
     {
-        $caja = Caja::with(['consulta.paciente.seguro', 'consulta.paciente.triage', 'consulta.paciente.garante', 'consulta.medico.user', 'consulta.especialidad'])
-                     ->findOrFail($id);
+        // El comprobante de registro se resuelve por el código de paciente (registro_codigo),
+        // no por una Caja: los pacientes que ingresan por citas/enfermería todavía no tienen
+        // Caja ni Consulta. Si existe una consulta con su caja, se muestra también el detalle
+        // de consulta y pago; si no, solo los datos del paciente.
+        $paciente = Paciente::with([
+                'seguro', 'triage', 'garante',
+                'consultas.caja', 'consultas.medico.user', 'consultas.especialidad',
+            ])
+            ->where('registro_codigo', $id)
+            ->first();
 
-        return view('reception.confirmacion-registro', compact('caja'));
+        if ($paciente) {
+            $consulta = $paciente->consultas->sortByDesc('id')->first();
+            $caja = $consulta?->caja;
+        } else {
+            // Retrocompatibilidad: el id recibido es un Caja id (redirect de consulta externa).
+            $caja = Caja::with(['consulta.paciente.seguro', 'consulta.paciente.triage', 'consulta.paciente.garante', 'consulta.medico.user', 'consulta.especialidad'])
+                ->findOrFail($id);
+            $consulta = $caja->consulta;
+            $paciente = $consulta?->paciente;
+        }
+
+        abort_if(!$paciente, 404);
+
+        return view('reception.confirmacion-registro', compact('caja', 'paciente', 'consulta'));
     }
 
     public function confirmacion($id)
@@ -1155,14 +1182,18 @@ class ReceptionController extends Controller
 
             DB::beginTransaction();
 
-            // Crear registro y triage automáticos para el paciente
-            $registroCodigo = $this->obtenerOCrearRegistro();
-            $triageId = $this->obenerOCrearTriage();
-
             $nombreCompleto = mb_convert_case(
                 preg_replace('/\s+/', ' ', trim($request->nombres . ' ' . $request->apellidos)),
                 MB_CASE_UPPER, 'UTF-8'
             );
+
+            // Crear registro y triage automáticos para el paciente
+            $registroCodigo = $this->obtenerOCrearRegistro([
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'sexo'             => $request->sexo,
+                'nombre'           => $nombreCompleto,
+            ]);
+            $triageId = $this->obenerOCrearTriage();
 
             $paciente = Paciente::create([
                 'ci' => $request->ci,

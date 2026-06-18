@@ -76,7 +76,7 @@
                                 <select name="nro_quirofano" id="quirofano" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                     <option value="">Seleccionar quirófano...</option>
                                     @foreach($quirofanos as $quirofano)
-                                        <option value="{{ $quirofano->id }}" data-tipo="{{ $quirofano->tipo }}">Quirófano {{ $quirofano->nro }} - {{ $quirofano->tipo }}</option>
+                                        <option value="{{ $quirofano->id }}" data-tipo="{{ $quirofano->tipo }}">Quirófano {{ $quirofano->nombre }} - {{ $quirofano->tipo }}</option>
                                     @endforeach
                                 </select>
                             </div>

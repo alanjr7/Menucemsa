@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
@@ -207,6 +208,14 @@ class AlmacenMedicamentosController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:255',
+            'codigo_barras' => ['nullable', 'string', 'max:50', Rule::unique('almacen_catalogo', 'codigo_barras')->ignore($almacenMedicamento->id)],
+            'nombre_generico' => 'nullable|string|max:255',
+            'concentracion' => 'nullable|string|max:100',
+            'forma_farmaceutica' => 'nullable|string|max:100',
+            'requiere_receta' => 'nullable|boolean',
+            'categoria' => 'nullable|string|max:100',
+            'codigo_atc' => 'nullable|string|max:20',
+            'codigo_liname' => 'nullable|string|max:20',
             'descripcion' => 'nullable|string',
             'unidad_medida' => 'required|string|max:50',
             'tipo' => 'required|in:medicamento,insumo',
@@ -232,9 +241,15 @@ class AlmacenMedicamentosController extends Controller
 
         try {
             DB::transaction(function () use ($request, $almacenMedicamento) {
-                $almacenMedicamento->update($request->only([
-                    'nombre', 'descripcion', 'unidad_medida', 'tipo', 'observaciones',
-                ]));
+                $datosCatalogo = $request->only([
+                    'nombre', 'nombre_generico', 'concentracion', 'forma_farmaceutica',
+                    'categoria', 'codigo_atc', 'codigo_liname',
+                    'descripcion', 'unidad_medida', 'tipo', 'observaciones',
+                ]);
+                $datosCatalogo['codigo_barras'] = $request->filled('codigo_barras') ? $request->codigo_barras : null;
+                $datosCatalogo['requiere_receta'] = $request->boolean('requiere_receta');
+
+                $almacenMedicamento->update($datosCatalogo);
 
                 $dispensacionesPorArea = [];
 

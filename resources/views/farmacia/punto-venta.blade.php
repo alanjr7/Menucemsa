@@ -99,7 +99,7 @@
         {{-- Selector de cliente --}}
         <div class="px-5 py-3 border-b border-gray-50">
             <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Cliente</label>
-            <select x-model="selectedCliente"
+            <select x-model="selectedCliente" @change="onClienteChange()"
                     class="w-full border border-gray-200 rounded-lg py-2 px-3 text-[13px] text-gray-700 shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
                 <option value="">Cliente General</option>
                 @if($clientes->count() > 0)
@@ -213,6 +213,54 @@
                 </div>
             </div>
 
+            {{-- Datos de factura (receptor) --}}
+            <div class="bg-gray-50 rounded-xl border border-gray-100 p-3.5 space-y-3">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox"
+                           x-model="conCreditoFiscal"
+                           class="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500">
+                    <span class="text-[12px] text-gray-700 font-semibold">Factura con datos (crédito fiscal)</span>
+                </label>
+
+                <template x-if="conCreditoFiscal">
+                    <div class="space-y-2.5">
+                        <div>
+                            <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Razón social / Nombre</label>
+                            <input type="text" x-model="factura.razon_social"
+                                   class="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Nombre tal cual va en la factura">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Tipo doc.</label>
+                                <select x-model.number="factura.tipo_documento"
+                                        class="w-full border border-gray-200 rounded-lg py-1.5 px-2 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500">
+                                    <template x-for="t in tiposDocumento" :key="t.code">
+                                        <option :value="t.code" x-text="t.label"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">N° documento</label>
+                                <input type="text" inputmode="numeric" x-model="factura.numero_documento"
+                                       class="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="NIT o CI">
+                            </div>
+                        </div>
+                        <div x-show="factura.tipo_documento === 1">
+                            <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Complemento (opcional)</label>
+                            <input type="text" x-model="factura.complemento" maxlength="5"
+                                   class="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Ej: 1A">
+                        </div>
+                    </div>
+                </template>
+
+                <p x-show="!conCreditoFiscal" class="text-[11px] text-gray-400 leading-snug">
+                    Se emitirá <span class="font-semibold">sin nombre (S/N)</span>. Activá la casilla si el cliente pide factura con su NIT.
+                </p>
+            </div>
+
             {{-- Receta --}}
             <div class="flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl border border-gray-100">
                 <input type="checkbox"
@@ -259,7 +307,7 @@
                 </svg>
                 Procesar Venta
             </button>
-            <button @click="cart = []; mostrarImprimir = false; ultimaVenta = null;"
+            <button @click="cart = []; mostrarImprimir = false; ultimaVenta = null; selectedCliente = ''; resetFactura();"
                     class="w-full text-gray-400 hover:text-red-500 font-medium py-2 text-[12px] transition-colors">
                 Limpiar Carrito
             </button>
@@ -308,10 +356,13 @@
         return {
             productos: @json($productos),
             clientes: @json($clientes),
+            tiposDocumento: @json($tiposDocumento),
             searchQuery: '',
             selectedCliente: '',
             metodoPago: 'tarjeta',
             requiereReceta: false,
+            conCreditoFiscal: false,
+            factura: { razon_social: '', tipo_documento: 5, numero_documento: '', complemento: '' },
             cart: [],
             ultimaVenta: null,
             mostrarImprimir: false,
@@ -359,6 +410,10 @@
                     alert('⚠️ Hay productos que requieren receta médica. Marque la casilla antes de continuar.');
                     return;
                 }
+                if (this.conCreditoFiscal && (!this.factura.razon_social.trim() || !this.factura.numero_documento.trim())) {
+                    alert('⚠️ Para factura con crédito fiscal debe ingresar la razón social y el número de documento (NIT/CI).');
+                    return;
+                }
                 try {
                     const response = await fetch('{{ route("farmacia.pos.procesar") }}', {
                         method: 'POST',
@@ -375,7 +430,12 @@
                             })),
                             cliente_id: this.selectedCliente || null,
                             metodo_pago: this.metodoPago,
-                            requiere_receta: this.requiereReceta
+                            requiere_receta: this.requiereReceta,
+                            con_credito_fiscal: this.conCreditoFiscal,
+                            factura_razon_social: this.factura.razon_social,
+                            factura_tipo_documento: this.factura.tipo_documento,
+                            factura_numero_documento: this.factura.numero_documento,
+                            factura_complemento: this.factura.complemento
                         })
                     });
 
@@ -389,12 +449,14 @@
                             cliente: this.selectedCliente ? this.getClientName(this.selectedCliente) : 'Cliente General',
                             metodo_pago: this.metodoPago,
                             fecha: new Date().toLocaleString(),
-                            requiere_receta: this.requiereReceta
+                            requiere_receta: this.requiereReceta,
+                            factura: result.factura
                         };
                         this.generarTicketHTML(this.ultimaVenta);
                         this.cart = [];
                         this.selectedCliente = '';
                         this.requiereReceta = false;
+                        this.resetFactura();
                         this.mobileView = 'productos';
                     } else {
                         alert('Error: ' + result.message);
@@ -407,55 +469,46 @@
                 const cliente = this.clientes.find(c => c.id == clienteId);
                 return cliente ? cliente.nombre : 'Cliente General';
             },
+            onClienteChange() {
+                const cliente = this.clientes.find(c => c.id == this.selectedCliente);
+                if (cliente && cliente.numero_documento) {
+                    // Cliente registrado con datos fiscales → autocompletar y activar factura
+                    this.conCreditoFiscal = true;
+                    this.factura = {
+                        razon_social: cliente.nombre || '',
+                        tipo_documento: cliente.tipo_documento || 5,
+                        numero_documento: cliente.numero_documento || '',
+                        complemento: cliente.complemento || ''
+                    };
+                } else if (cliente) {
+                    // Cliente sin datos fiscales cargados → solo precarga el nombre
+                    this.factura.razon_social = cliente.nombre || '';
+                }
+            },
+            resetFactura() {
+                this.conCreditoFiscal = false;
+                this.factura = { razon_social: '', tipo_documento: 5, numero_documento: '', complemento: '' };
+            },
             generarTicketHTML(venta) {
-                let itemsHTML = '';
-                venta.items.forEach(item => {
-                    itemsHTML += `<tr>
-                        <td>${item.qty} x ${item.name}</td>
-                        <td style="text-align:right">Bs${(item.price * item.qty).toFixed(2)}</td>
-                    </tr>`;
+                const f = venta.factura || {};
+                imprimirTicketFarmacia({
+                    codigo: venta.codigo,
+                    fecha: venta.fecha,
+                    cliente: venta.cliente,
+                    metodoPago: venta.metodo_pago,
+                    requiereReceta: venta.requiere_receta,
+                    conCreditoFiscal: !!f.con_credito_fiscal,
+                    razonSocial: f.razon_social,
+                    docLabel: f.tipo_documento,        // ya viene como etiqueta desde el backend
+                    docNumero: f.numero_documento,
+                    docComplemento: f.complemento,
+                    items: venta.items.map(i => ({ cantidad: i.qty, nombre: i.name, importe: i.price * i.qty })),
+                    total: venta.total,
+                    reimpresion: false
                 });
-
-                const recetaHTML = venta.requiere_receta
-                    ? '<p style="color:red;font-weight:bold;text-align:center">⚠️ Requiere Receta</p>'
-                    : '';
-
-                const html = `
-                    <style>
-                        body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; width: 80mm; }
-                        h2 { font-size: 14px; margin: 0 0 2px; }
-                        hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
-                        table { width: 100%; border-collapse: collapse; }
-                        td { padding: 1px 0; vertical-align: top; }
-                        .total td { font-weight: bold; font-size: 13px; border-top: 1px dashed #000; padding-top: 4px; }
-                        .center { text-align: center; }
-                    </style>
-                    <div class="center">
-                        <h2>FARMACIA CEMSA</h2>
-                        <p style="margin:0;font-size:10px">Ticket de Venta</p>
-                        <p style="margin:2px 0;font-size:10px">${venta.fecha}</p>
-                    </div>
-                    <hr>
-                    <p style="margin:2px 0"><strong>Código:</strong> ${venta.codigo}</p>
-                    <p style="margin:2px 0"><strong>Cliente:</strong> ${venta.cliente}</p>
-                    <p style="margin:2px 0"><strong>Método:</strong> ${venta.metodo_pago}</p>
-                    ${recetaHTML}
-                    <hr>
-                    <table>${itemsHTML}</table>
-                    <table class="total">
-                        <tr><td>TOTAL</td><td style="text-align:right">Bs${parseFloat(venta.total).toFixed(2)}</td></tr>
-                    </table>
-                    <hr>
-                    <p class="center" style="font-size:10px;margin-top:6px">¡Gracias por su compra!</p>
-                `;
-
-                const win = window.open('', '_blank', 'width=420,height=600,toolbar=0,menubar=0,location=0');
-                win.document.write(html);
-                win.document.close();
-                win.focus();
-                setTimeout(() => win.print(), 300);
             }
         }
     }
 </script>
+@include('farmacia.partials.ticket')
 @endsection

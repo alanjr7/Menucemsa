@@ -89,8 +89,10 @@ window.__PATIENTS_DATA__ = @json($appData);
 @push('scripts')
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="text/babel">
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+/* @jsxRuntime classic — usa React.createElement (React global UMD), no el runtime
+   automático que emite `import react/jsx-runtime` y rompe el script no-module */
 const { useState } = React;
 
 function Pagination({ pagination, total, baseUrl, currentSearch, currentEstado }) {

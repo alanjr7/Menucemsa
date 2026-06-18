@@ -23,4 +23,14 @@ class Quirofano extends Model
     {
         return $this->hasMany(CitaQuirurgica::class, 'quirofano_id');
     }
+
+    /**
+     * Etiqueta legible del quirófano. Fuente ÚNICA del formato "Q{id}" que antes
+     * se construía a mano en cada vista. La tabla no tiene columna de nombre: el
+     * identificador visible se deriva del id.
+     */
+    public function getNombreAttribute(): string
+    {
+        return 'Q'.$this->id;
+    }
 }

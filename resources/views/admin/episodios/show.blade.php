@@ -108,6 +108,49 @@
             </div>
             @endif
 
+            {{-- Cirugías --}}
+            @if($episodio->cirugias->isNotEmpty())
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+                    Cirugías
+                    <span class="ml-1.5 text-blue-600">{{ $episodio->cirugias->count() }}</span>
+                </p>
+                @foreach($episodio->cirugias as $cir)
+                <div class="py-3 border-b border-gray-100 last:border-0">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-sm font-medium text-gray-700 capitalize">
+                            Cirugía {{ $cir->tipo_final ?? $cir->tipo_cirugia }}
+                        </span>
+                        <span class="text-xs px-2 py-0.5 rounded-full font-medium
+                            @if($cir->estado === 'finalizada') bg-green-100 text-green-700
+                            @elseif($cir->estado === 'en_curso') bg-yellow-100 text-yellow-700
+                            @elseif($cir->estado === 'cancelada') bg-gray-100 text-gray-500
+                            @else bg-blue-50 text-blue-600 @endif">
+                            {{ ucfirst(str_replace('_', ' ', $cir->estado)) }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500">
+                        {{ \Carbon\Carbon::parse($cir->fecha)->format('d/m/Y') }} {{ \Carbon\Carbon::parse($cir->hora_inicio_estimada)->format('H:i') }}
+                    </p>
+                    <p class="text-sm text-gray-500">Cirujano: {{ $cir->cirujano?->nombre ?: $cir->cirujano?->user?->name ?? '—' }}</p>
+                    @if($cir->quirofano)
+                        <p class="text-xs text-gray-400 mt-0.5">{{ $cir->quirofano->nombre }}</p>
+                    @endif
+                    @if($cir->descripcion_cirugia)
+                        <p class="text-sm text-gray-600 mt-1">{{ $cir->descripcion_cirugia }}</p>
+                    @endif
+                    @if($cir->estado === 'cancelada' && $cir->motivo_cancelacion)
+                        <p class="text-xs text-red-500 mt-0.5">Motivo: {{ $cir->motivo_cancelacion }}</p>
+                    @endif
+                    @php $montoCir = $cir->costo_final ?? $cir->costo_base; @endphp
+                    @if($montoCir > 0)
+                        <p class="text-sm text-gray-500 mt-1">Costo: <span class="font-medium text-gray-700">Bs. {{ number_format($montoCir, 2) }}</span></p>
+                    @endif
+                </div>
+                @endforeach
+            </div>
+            @endif
+
         </div>
 
         {{-- Columna derecha --}}

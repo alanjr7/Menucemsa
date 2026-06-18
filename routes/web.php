@@ -168,6 +168,11 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
             Route::delete('/quirofanos-management/{quirofano}', [QuirofanoManagementController::class, 'destroy'])->name('quirofanos.management.destroy');
             Route::post('/quirofanos-management/{quirofano}/estado', [QuirofanoManagementController::class, 'cambiarEstado'])->name('quirofanos.management.estado');
 
+            // Tipos de cirugía: precio y duración por defecto (edit-only)
+            Route::get('/tipos-cirugia',              [QuirofanoManagementController::class, 'tiposIndex'])->name('tipos-cirugia.index');
+            Route::get('/tipos-cirugia/{tipo}/edit',  [QuirofanoManagementController::class, 'tiposEdit'])->name('tipos-cirugia.edit');
+            Route::put('/tipos-cirugia/{tipo}',       [QuirofanoManagementController::class, 'tiposUpdate'])->name('tipos-cirugia.update');
+
             // Ruta para ver detalles de cirugía finalizada (solo lectura)
             Route::get('/quirofano/{cita}/detalles', [QuirofanoController::class, 'showDetails'])->name('quirofano.show-details')->where('cita', '[0-9]+');
             // Editar tipo de cirugía y costo extra (solo admin/administrador, no cirujano)
@@ -304,7 +309,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/auditoria', [CajaGestionController::class, 'getAuditoria'])->name('auditoria');
         Route::get('/datos-facturacion', [CajaGestionController::class, 'getDatosFacturacion'])->name('datos-facturacion');
         Route::get('/usuarios-caja', [CajaGestionController::class, 'getUsuariosCaja'])->name('usuarios-caja');
-        Route::delete('/detalles/{detalleId}', [CajaGestionController::class, 'eliminarDetalle'])->name('eliminar-detalle');
+        // Eliminar cargos: usa admin.cargos.anular (fuente única). Aquí sólo se listan.
         Route::get('/detalles-eliminados', [CajaGestionController::class, 'getDetallesEliminados'])->name('detalles-eliminados');
     });
 
@@ -420,8 +425,11 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/ajustes-pacientes', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'index'])->name('ajustes-pacientes.index');
         Route::get('/ajustes-pacientes/{id}/correcciones', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'correcciones'])->name('ajustes-pacientes.correcciones');
         Route::post('/ajustes-pacientes/cuentas/{cuentaId}/cargos', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'agregarCargo'])->name('ajustes-pacientes.cargos.store');
-        Route::patch('/ajustes-pacientes/detalles/{detalleId}/deshabilitar', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'deshabilitarCargo'])->name('ajustes-pacientes.detalles.deshabilitar');
-        Route::patch('/ajustes-pacientes/detalles/{detalleId}/restaurar', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'restaurarCargo'])->name('ajustes-pacientes.detalles.restaurar');
+
+        // Eliminaciones seguras de cargos (fuente ÚNICA, usada por Correcciones,
+        // Cuenta del paciente y Caja-gestión): anular N unidades / revertir.
+        Route::post('/cargos/{detalleId}/anular', [\App\Http\Controllers\Admin\AjusteCargoController::class, 'anular'])->name('cargos.anular');
+        Route::post('/anulaciones/{anulacionId}/revertir', [\App\Http\Controllers\Admin\AjusteCargoController::class, 'revertir'])->name('anulaciones.revertir');
 
         // Episodios
         Route::get('/episodios', [\App\Http\Controllers\Admin\EpisodioController::class, 'index'])->name('episodios.index');
@@ -432,7 +440,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Gestión de cuenta de pacientes (solo admin/administrador)
         Route::get('/pacientes/{id}/cuenta', [\App\Http\Controllers\PatientsController::class, 'verCuenta'])->name('cuentas.show');
-        Route::delete('/cuentas/{cuentaId}/detalles/{detalleId}', [\App\Http\Controllers\PatientsController::class, 'eliminarItemCuenta'])->name('cuentas.eliminar-item');
+        // La eliminación de cargos vive en admin.cargos.anular (fuente única).
 
         Route::get('especialidades', [EspecialidadController::class, 'index'])->name('especialidades.index');
         Route::get('especialidades/create', [EspecialidadController::class, 'create'])->name('especialidades.create');
@@ -523,6 +531,16 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
             Route::post('/accesos', [App\Http\Controllers\Seguridad\AccesosController::class, 'store'])->name('accesos.store');
             Route::delete('/accesos/{acceso}', [App\Http\Controllers\Seguridad\AccesosController::class, 'destroy'])->name('accesos.destroy');
             Route::patch('/accesos/mode', [App\Http\Controllers\Seguridad\AccesosController::class, 'updateMode'])->name('accesos.mode');
+        });
+
+        // Respaldos / Backups (solo admin y administrador: operación crítica)
+        Route::middleware(['role:admin|administrador'])->prefix('backup')->name('backup.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Seguridad\BackupController::class, 'index'])->name('index');
+            Route::post('/crear', [App\Http\Controllers\Seguridad\BackupController::class, 'crear'])->name('crear');
+            Route::get('/{backup}/descargar', [App\Http\Controllers\Seguridad\BackupController::class, 'descargar'])->name('descargar')->where('backup', '[0-9]+');
+            Route::delete('/{backup}', [App\Http\Controllers\Seguridad\BackupController::class, 'eliminar'])->name('eliminar')->where('backup', '[0-9]+');
+            Route::post('/configuracion', [App\Http\Controllers\Seguridad\BackupController::class, 'guardarConfiguracion'])->name('configuracion');
+            Route::post('/restaurar', [App\Http\Controllers\Seguridad\BackupController::class, 'restaurar'])->name('restaurar');
         });
     });
 

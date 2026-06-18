@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Egreso;
 use App\Models\PagoCuenta;
 use App\Models\VentaFarmacia;
+use App\Support\Money;
 use App\Traits\AuditLoggable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -67,6 +68,7 @@ class ContabilidadController extends Controller
             $egresos = Egreso::with('user')->entreFechas($inicio->toDateString(), $fin->toDateString())
                 ->orderBy('fecha', 'desc')->orderBy('id', 'desc')->get();
             $totalEgresos = $egresos->reduce(fn ($acc, $e) => bcadd($acc, $e->monto, 2), '0');
+            $totalCreditoFiscal = $egresos->reduce(fn ($acc, $e) => bcadd($acc, $e->importe_iva, 2), '0');
 
             $egresosPorCategoria = $egresos->groupBy('categoria')->map(fn ($g) => [
                 'label' => $g->first()->categoria_label,
@@ -97,6 +99,7 @@ class ContabilidadController extends Controller
                     'ingresos_caja' => $totalCaja,
                     'ingresos_farmacia' => $totalFarmacia,
                     'egresos' => $totalEgresos,
+                    'credito_fiscal' => $totalCreditoFiscal,
                     'saldo' => bcsub($totalIngresos, $totalEgresos, 2),
                 ],
                 'serie' => $serie,
@@ -143,6 +146,10 @@ class ContabilidadController extends Controller
                     'metodo_pago' => $e->metodo_pago_label,
                     'proveedor' => $e->proveedor,
                     'comprobante_nro' => $e->comprobante_nro,
+                    'con_credito_fiscal' => $e->con_credito_fiscal,
+                    'nit_proveedor' => $e->nit_proveedor,
+                    'nro_factura' => $e->nro_factura,
+                    'importe_iva' => $e->importe_iva,
                     'usuario' => $e->user->name ?? 'N/A',
                 ]),
             ]);
@@ -156,20 +163,45 @@ class ContabilidadController extends Controller
     public function storeEgreso(Request $request): JsonResponse
     {
         try {
-            $request->merge(['monto' => str_replace(',', '.', (string) $request->monto)]);
+            $request->merge([
+                'monto' => str_replace(',', '.', (string) $request->monto),
+                'con_credito_fiscal' => filter_var($request->input('con_credito_fiscal', false), FILTER_VALIDATE_BOOLEAN),
+            ]);
 
-            $data = $request->validate([
+            $rules = [
                 'fecha' => 'required|date',
                 'categoria' => 'required|in:'.implode(',', array_keys(Egreso::CATEGORIAS)),
                 'descripcion' => 'required|string|max:255',
-                'monto' => 'required|numeric|decimal:0,2|min:0.01',
+                'monto' => Money::rules(min: '0.01'),
                 'metodo_pago' => 'required|in:efectivo,transferencia,cheque,tarjeta,qr',
                 'proveedor' => 'nullable|string|max:255',
                 'comprobante_nro' => 'nullable|string|max:50',
                 'observaciones' => 'nullable|string|max:1000',
-            ]);
+                'con_credito_fiscal' => 'boolean',
+                'nit_proveedor' => 'nullable|string|max:20',
+                'nro_factura' => 'nullable|string|max:50',
+                'codigo_autorizacion' => 'nullable|string|max:100',
+            ];
 
+            // Si declara crédito fiscal, los datos de la factura de compra son obligatorios.
+            if ($request->boolean('con_credito_fiscal')) {
+                $rules['nit_proveedor'] = 'required|string|max:20';
+                $rules['nro_factura'] = 'required|string|max:50';
+            }
+
+            $data = $request->validate($rules);
             $data['user_id'] = auth()->id();
+
+            // Crédito fiscal IVA = 13% del total de la factura. Sin factura válida no hay crédito.
+            if ($data['con_credito_fiscal']) {
+                $data['importe_iva'] = Money::mul($data['monto'], '0.13');
+            } else {
+                $data['importe_iva'] = '0';
+                $data['nit_proveedor'] = null;
+                $data['nro_factura'] = null;
+                $data['codigo_autorizacion'] = null;
+            }
+
             $egreso = Egreso::create($data);
 
             $this->logActivity(

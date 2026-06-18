@@ -56,6 +56,8 @@ class EpisodioController extends Controller
             'historialMedico.userMedico',
             'emergencias',
             'hospitalizaciones.medico.user',
+            'cirugias.cirujano.user',
+            'cirugias.quirofano',
             'cuentasCobro.detalles',
         ])->findOrFail($id);
 

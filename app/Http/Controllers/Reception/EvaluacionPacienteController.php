@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reception;
 use App\Http\Controllers\Controller;
 use App\Models\AlmacenStock;
 use App\Models\CamillaUso;
+use App\Models\CitaQuirurgica;
 use App\Models\Evaluacion;
 use App\Models\EvaluacionItem;
 use App\Models\Paciente;
@@ -211,7 +212,15 @@ class EvaluacionPacienteController extends Controller
             ->orderByDesc('fecha_inicio')
             ->get();
 
-        return view('evaluacion.historial', compact('paciente', 'evaluaciones', 'camillaUsos', 'episodio'));
+        $cirugias = CitaQuirurgica::with(['cirujano.user', 'quirofano'])
+            ->where('paciente_id', $paciente->id)
+            ->when($episodio, fn ($q) => $q->where('episodio_id', $episodio->id))
+            ->when(! $episodio && ! $paciente->is_temp, fn ($q) => $q->whereRaw('1=0'))
+            ->orderByDesc('fecha')
+            ->orderByDesc('hora_inicio_estimada')
+            ->get();
+
+        return view('evaluacion.historial', compact('paciente', 'evaluaciones', 'camillaUsos', 'cirugias', 'episodio'));
     }
 
     public function destroy(int $pacienteId, int $evaluacionId): RedirectResponse
@@ -271,7 +280,9 @@ class EvaluacionPacienteController extends Controller
 
         return AlmacenStock::where('ubicacion', $area)
             ->where('cantidad_actual', '>', 0)
-            ->whereHas('lote.catalogo', fn ($qq) => $qq->where('tipo', $tipo)->where('activo', true)->where('nombre', 'like', "%{$q}%"))
+            ->whereHas('lote.catalogo', fn ($qq) => $qq->where('tipo', $tipo)->where('activo', true)
+                ->where(fn ($w) => $w->where('nombre', 'like', "%{$q}%")
+                    ->orWhere('nombre_generico', 'like', "%{$q}%")))
             ->with('lote.catalogo')
             ->limit(30)
             ->get()
@@ -281,6 +292,9 @@ class EvaluacionPacienteController extends Controller
                 'item_id' => $s->lote->catalogo_id,  // catálogo (para facturación/entrega)
                 'lote_id' => $s->lote_id,            // lote exacto a descontar y cobrar
                 'nombre' => $s->lote->catalogo->nombre,
+                'nombre_generico' => $s->lote->catalogo->nombre_generico,
+                'concentracion' => $s->lote->catalogo->concentracion,
+                'categoria' => $s->lote->catalogo->categoria,
                 'laboratorio' => $s->lote->laboratorio,
                 'codigo_lote' => $s->lote->codigo_lote,
                 'unidad_medida' => $s->lote->catalogo->unidad_medida,

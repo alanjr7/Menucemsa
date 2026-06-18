@@ -10,6 +10,8 @@ use App\Models\DetalleVentaFarmacia;
 use App\Models\Cliente;
 use App\Models\CajaDiaria;
 use App\Support\Money;
+use App\Support\TipoDocumento;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -53,10 +55,13 @@ class PuntoVentaController extends Controller
             ];
         });
 
-        // Obtener clientes para el select
-        $clientes = Cliente::orderBy('nombre')->get(['id', 'nombre', 'telefono']);
+        // Obtener clientes para el select (con datos fiscales para autocompletar la factura)
+        $clientes = Cliente::orderBy('nombre')
+            ->get(['id', 'nombre', 'telefono', 'tipo_documento', 'numero_documento', 'complemento']);
 
-        return view('farmacia.punto-venta', compact('productos', 'clientes'));
+        $tiposDocumento = \App\Support\TipoDocumento::options();
+
+        return view('farmacia.punto-venta', compact('productos', 'clientes', 'tiposDocumento'));
     }
 
     public function procesarVenta(Request $request)
@@ -70,7 +75,13 @@ class PuntoVentaController extends Controller
                 'cliente_id' => 'nullable|exists:clientes,id',
                 'metodo_pago' => 'required|string|in:efectivo,tarjeta,transferencia,qr,credito',
                 'requiere_receta' => 'boolean',
-                'observaciones' => 'nullable|string'
+                'observaciones' => 'nullable|string',
+                // Datos fiscales del receptor (factura SFE)
+                'con_credito_fiscal' => 'boolean',
+                'factura_razon_social' => 'nullable|required_if:con_credito_fiscal,true|string|max:255',
+                'factura_tipo_documento' => ['nullable', 'required_if:con_credito_fiscal,true', Rule::in(TipoDocumento::codigos())],
+                'factura_numero_documento' => 'nullable|required_if:con_credito_fiscal,true|string|max:20',
+                'factura_complemento' => 'nullable|string|max:5',
             ]);
 
             DB::beginTransaction();
@@ -136,11 +147,19 @@ class PuntoVentaController extends Controller
                 $clienteNombre = Cliente::find($validated['cliente_id'])->nombre ?? 'Cliente General';
             }
 
+            $receptor = $this->resolverReceptor($validated);
+
             $venta = VentaFarmacia::create([
                 'codigo_venta' => $codigoVenta,
                 'farmacia_id' => $farmacia->id,
                 'usuario_id' => Auth::id(),
+                'cliente_id' => $validated['cliente_id'] ?? null,
                 'cliente' => $clienteNombre,
+                'con_credito_fiscal' => $receptor['con_credito_fiscal'],
+                'factura_razon_social' => $receptor['razon_social'],
+                'factura_tipo_documento' => $receptor['tipo_documento'],
+                'factura_numero_documento' => $receptor['numero_documento'],
+                'factura_complemento' => $receptor['complemento'],
                 'total' => $total,
                 'metodo_pago' => $validated['metodo_pago'],
                 'requiere_receta' => $validated['requiere_receta'] ?? false,
@@ -173,7 +192,14 @@ class PuntoVentaController extends Controller
                 'success' => true,
                 'message' => 'Venta procesada exitosamente',
                 'codigo_venta' => $codigoVenta,
-                'total' => $total
+                'total' => $total,
+                'factura' => [
+                    'con_credito_fiscal' => $receptor['con_credito_fiscal'],
+                    'razon_social' => $receptor['razon_social'],
+                    'tipo_documento' => TipoDocumento::labelFor($receptor['tipo_documento']),
+                    'numero_documento' => $receptor['numero_documento'],
+                    'complemento' => $receptor['complemento'],
+                ],
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -189,6 +215,33 @@ class PuntoVentaController extends Controller
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Resuelve el snapshot fiscal del receptor.
+     * Con crédito fiscal → usa los datos capturados; sin datos → S/N (norma SIN).
+     */
+    private function resolverReceptor(array $validated): array
+    {
+        if (empty($validated['con_credito_fiscal'])) {
+            return [
+                'con_credito_fiscal' => false,
+                'razon_social' => TipoDocumento::SIN_NOMBRE_RAZON,
+                'tipo_documento' => TipoDocumento::SIN_NOMBRE_TIPO->value,
+                'numero_documento' => TipoDocumento::SIN_NOMBRE_DOC,
+                'complemento' => null,
+            ];
+        }
+
+        return [
+            'con_credito_fiscal' => true,
+            'razon_social' => trim($validated['factura_razon_social']),
+            'tipo_documento' => (int) $validated['factura_tipo_documento'],
+            'numero_documento' => trim($validated['factura_numero_documento']),
+            'complemento' => isset($validated['factura_complemento'])
+                ? (trim($validated['factura_complemento']) ?: null)
+                : null,
+        ];
     }
 
     private function obtenerOCrearCajaDiaria()

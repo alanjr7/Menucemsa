@@ -331,6 +331,46 @@
         </table>
     </div>
     @endif
+
+    @if(isset($cirugias) && $cirugias->isNotEmpty())
+    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden no-print">
+        <div class="px-4 py-3 border-b bg-gray-50">
+            <h2 class="text-sm font-semibold text-gray-700">Cirugías</h2>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Fecha</th>
+                    <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Tipo</th>
+                    <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Cirujano</th>
+                    <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Quirófano</th>
+                    <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
+                    <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Costo (Bs.)</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @foreach($cirugias as $cir)
+                <tr>
+                    <td class="px-4 py-2">{{ \Carbon\Carbon::parse($cir->fecha)->format('d/m/Y') }} {{ \Carbon\Carbon::parse($cir->hora_inicio_estimada)->format('H:i') }}</td>
+                    <td class="px-4 py-2 capitalize">{{ $cir->tipo_final ?? $cir->tipo_cirugia }}</td>
+                    <td class="px-4 py-2">{{ $cir->cirujano?->nombre ?: $cir->cirujano?->user?->name ?? '—' }}</td>
+                    <td class="px-4 py-2 text-gray-500">{{ $cir->quirofano?->nombre ?? '—' }}</td>
+                    <td class="px-4 py-2">
+                        <span class="text-xs px-2 py-0.5 rounded-full font-medium
+                            @if($cir->estado === 'finalizada') bg-green-100 text-green-700
+                            @elseif($cir->estado === 'en_curso') bg-yellow-100 text-yellow-700
+                            @elseif($cir->estado === 'cancelada') bg-gray-100 text-gray-500
+                            @else bg-blue-50 text-blue-600 @endif">
+                            {{ ucfirst(str_replace('_', ' ', $cir->estado)) }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-right font-medium">{{ number_format($cir->costo_final ?? $cir->costo_base, 2) }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
 </div>
 
 <!-- === SECCION DE IMPRESION EPSON MATRICIAL === -->
@@ -444,6 +484,19 @@ OBSERVACIONES MEDICAS:
 | {{ str_pad($uso->camilla->nombre, 28, ' ') }} | {{ $uso->fecha_inicio->format('d/m H:i') }}  | {{ $uso->fecha_fin?->format('d/m H:i') ?? '  --   ' }}  | {{ str_pad($uso->calcularHoras(), 4, ' ', STR_PAD_LEFT) }} | {{ str_pad(number_format($uso->costo_calculado, 2), 9, ' ', STR_PAD_LEFT) }} |
 @endforeach
 +------------------------------+-----------+-----------+------+-----------+
+@endif
+
+@if(isset($cirugias) && $cirugias->isNotEmpty())
+================================================================================
+                              CIRUGIAS
+================================================================================
++------------+------------+----------------------+------------+-----------+
+| FECHA      | TIPO       | CIRUJANO             | ESTADO     | COSTO Bs. |
++------------+------------+----------------------+------------+-----------+
+@foreach($cirugias as $cir)
+| {{ str_pad(\Carbon\Carbon::parse($cir->fecha)->format('d/m/Y'), 10, ' ') }} | {{ str_pad(ucfirst($cir->tipo_final ?? $cir->tipo_cirugia), 10, ' ') }} | {{ str_pad(strtoupper(\Illuminate\Support\Str::limit($cir->cirujano?->nombre ?: ($cir->cirujano?->user?->name ?? 'N/A'), 20, '')), 20, ' ') }} | {{ str_pad(ucfirst(str_replace('_', ' ', $cir->estado)), 10, ' ') }} | {{ str_pad(number_format($cir->costo_final ?? $cir->costo_base, 2), 9, ' ', STR_PAD_LEFT) }} |
+@endforeach
++------------+------------+----------------------+------------+-----------+
 @endif
 ================================================================================
                            FIN DEL HISTORIAL

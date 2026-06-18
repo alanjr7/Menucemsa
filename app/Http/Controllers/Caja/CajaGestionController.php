@@ -95,11 +95,21 @@ class CajaGestionController extends Controller
             ->limit(20)
             ->get();
 
+        // Fecha "desde" por defecto de los filtros de gestión: la apertura de la
+        // caja abierta más antigua (cubre la sesión vigente aunque arrancara ayer).
+        // Si no hay caja abierta, hoy. Evita que Control/Auditoría salgan vacíos por
+        // filtrar solo el día actual cuando la sesión cruza la medianoche.
+        $aperturaAbierta = CajaSession::abierta()->min('fecha_apertura');
+        $fechaInicioOperativa = $aperturaAbierta
+            ? \Carbon\Carbon::parse($aperturaAbierta)->toDateString()
+            : $hoy;
+
         return view('caja.gestion', compact(
             'estadisticas',
             'metodosPagoHoy',
             'cajasAbiertas',
-            'transaccionesRecientes'
+            'transaccionesRecientes',
+            'fechaInicioOperativa'
         ));
     }
     public function exportarAuditoria(Request $request)
@@ -330,12 +340,27 @@ class CajaGestionController extends Controller
 
             $query = CajaSession::with(['user', 'movimientos']);
 
+            // Las cajas ABIERTAS son el estado vigente: deben verse siempre, aunque
+            // se hayan abierto fuera del rango (p. ej. una sesión que cruza la
+            // medianoche). Excepción: si se filtra explícitamente por 'cerrada'.
+            $incluirAbiertas = ($request->estado ?? 'todas') !== 'cerrada';
+
             // Filtros de fecha
             if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
                 $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
-                $query->whereBetween('fecha_apertura', [$request->fecha_inicio, $fechaFin]);
+                $query->where(function ($q) use ($request, $fechaFin, $incluirAbiertas) {
+                    $q->whereBetween('fecha_apertura', [$request->fecha_inicio, $fechaFin]);
+                    if ($incluirAbiertas) {
+                        $q->orWhere('estado', 'abierta');
+                    }
+                });
             } elseif ($request->filled('fecha_inicio')) {
-                $query->whereDate('fecha_apertura', $request->fecha_inicio);
+                $query->where(function ($q) use ($request, $incluirAbiertas) {
+                    $q->whereDate('fecha_apertura', $request->fecha_inicio);
+                    if ($incluirAbiertas) {
+                        $q->orWhere('estado', 'abierta');
+                    }
+                });
             }
 
             // Filtro por estado
@@ -649,68 +674,10 @@ class CajaGestionController extends Controller
         }
     }
 
-    /**
-     * Eliminar un detalle de cuenta y guardar en historial
-     */
-    public function eliminarDetalle(Request $request, string $detalleId): JsonResponse
-    {
-        $request->validate(['motivo' => 'required|string|max:500']);
-
-        $user = auth()->user();
-        if (!$user->hasRole('admin') && !$user->hasRole('administrador')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
-        }
-
-        DB::beginTransaction();
-        try {
-            $detalle = CuentaCobroDetalle::with('cuentaCobro')->findOrFail($detalleId);
-            $cuenta = $detalle->cuentaCobro;
-
-            if ($cuenta->estado === 'pagado') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede eliminar ítems de una cuenta ya pagada.'
-                ], 422);
-            }
-
-            CuentaCobroDetalleEliminado::create([
-                'cuenta_cobro_id'        => $detalle->cuenta_cobro_id,
-                'tipo_item'              => $detalle->tipo_item,
-                'descripcion'            => $detalle->descripcion,
-                'cantidad'               => $detalle->cantidad,
-                'precio_unitario'        => $detalle->precio_unitario,
-                'subtotal'               => $detalle->subtotal,
-                'origen_type'            => $detalle->origen_type,
-                'origen_id'              => $detalle->origen_id,
-                'area_origen'            => $detalle->area_origen,
-                'observaciones'          => $detalle->observaciones,
-                'usuario_eliminacion_id' => $user->id,
-                'motivo_eliminacion'     => $request->motivo,
-                'eliminado_en'           => now(),
-            ]);
-
-            $detalle->delete();
-
-            // Recalcular desde la BD para que seguro y totales queden consistentes
-            $cuenta->load('detalles');
-            $cuenta->recalcularTotales();
-
-            \Log::info('Detalle de cuenta eliminado', [
-                'detalle_id'   => $detalleId,
-                'cuenta_id'    => $cuenta->id,
-                'motivo'       => $request->motivo,
-                'user_id'      => $user->id,
-                'subtotal'     => $detalle->subtotal,
-            ]);
-
-            DB::commit();
-            return response()->json(['success' => true, 'message' => 'Ítem eliminado y registrado en historial.']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al eliminar detalle: ' . $e->getMessage(), ['user_id' => $user->id ?? null]);
-            return response()->json(['success' => false, 'message' => 'Error al eliminar el ítem.'], 500);
-        }
-    }
+    // La eliminación de detalles se unificó en
+    // App\Http\Controllers\Admin\AjusteCargoController (admin.cargos.anular),
+    // fuente única de eliminaciones seguras (parciales/totales, reversibles).
+    // Caja-gestión sólo lista los anulados (getDetallesEliminados).
 
     /**
      * Obtener listado de detalles eliminados con filtros
@@ -724,7 +691,7 @@ class CajaGestionController extends Controller
                 'cuenta_cobro_id' => 'nullable|string',
             ]);
 
-            $query = CuentaCobroDetalleEliminado::with(['cuentaCobro.paciente', 'usuarioEliminacion']);
+            $query = CuentaCobroDetalleEliminado::with(['cuentaCobro.paciente', 'usuarioEliminacion', 'detalle']);
 
             if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
                 $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
@@ -755,6 +722,14 @@ class CajaGestionController extends Controller
                         'motivo_eliminacion' => $item->motivo_eliminacion,
                         'usuario' => $item->usuarioEliminacion?->name ?? 'N/A',
                         'eliminado_en' => $item->eliminado_en->format('d/m/Y H:i'),
+                        // Reversibilidad: se puede revertir si no está revertida y la
+                        // línea sigue viva y no liquidada por un pago.
+                        'revertido' => $item->revertido_en !== null,
+                        'revertido_en' => $item->revertido_en?->format('d/m/Y H:i'),
+                        'puede_revertir' => $item->revertido_en === null
+                            && $item->detalle !== null
+                            && $item->detalle->liquidado_en === null,
+                        'detalle_id' => $item->cuenta_cobro_detalle_id,
                     ];
                 });
 

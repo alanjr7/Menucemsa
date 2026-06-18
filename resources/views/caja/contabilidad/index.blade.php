@@ -120,6 +120,39 @@
                                     class="w-full border-gray-300 rounded-md text-sm">
                             </div>
                         </div>
+
+                        <!-- Crédito fiscal IVA (Libro de Compras) -->
+                        <div class="pt-3 border-t border-gray-100">
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" x-model="form.con_credito_fiscal"
+                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span>Tiene factura con crédito fiscal (IVA)</span>
+                            </label>
+                            <div x-show="form.con_credito_fiscal" class="mt-3 space-y-3">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-500 mb-1">NIT proveedor</label>
+                                        <input type="text" x-model="form.nit_proveedor" maxlength="20" inputmode="numeric"
+                                            class="w-full border-gray-300 rounded-md text-sm" placeholder="Ej: 1023456789">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-500 mb-1">N° factura</label>
+                                        <input type="text" x-model="form.nro_factura" maxlength="50"
+                                            class="w-full border-gray-300 rounded-md text-sm">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">Cód. autorización / CUF (opc.)</label>
+                                    <input type="text" x-model="form.codigo_autorizacion" maxlength="100"
+                                        class="w-full border-gray-300 rounded-md text-sm">
+                                </div>
+                                <div class="flex justify-between items-center bg-blue-50 rounded-md px-3 py-2 text-sm">
+                                    <span class="text-gray-600">Crédito fiscal IVA (13%)</span>
+                                    <span class="font-semibold text-blue-700">Bs. <span x-text="fmt(ivaCalculado())"></span></span>
+                                </div>
+                            </div>
+                        </div>
+
                         <button type="submit" :disabled="guardando"
                             class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
                             <span x-text="guardando ? 'Guardando...' : 'Registrar egreso'"></span>
@@ -139,6 +172,11 @@
                                 <span class="font-medium">Bs. <span x-text="fmt(c.total)"></span></span>
                             </div>
                         </template>
+                        <div class="flex justify-between text-sm pt-2 mt-1 border-t border-gray-100"
+                            x-show="parseFloat(totales.credito_fiscal || 0) > 0">
+                            <span class="text-gray-600 font-medium">Crédito fiscal IVA</span>
+                            <span class="font-semibold text-blue-700">Bs. <span x-text="fmt(totales.credito_fiscal)"></span></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -171,6 +209,8 @@
                                         <td class="px-4 py-2">
                                             <span x-text="e.descripcion"></span>
                                             <span class="block text-xs text-gray-400" x-show="e.proveedor" x-text="e.proveedor"></span>
+                                            <span class="block text-xs text-blue-600" x-show="e.con_credito_fiscal"
+                                                x-text="'Fact. ' + e.nro_factura + ' · IVA Bs. ' + fmt(e.importe_iva)"></span>
                                         </td>
                                         <td class="px-4 py-2 whitespace-nowrap text-gray-600" x-text="e.metodo_pago"></td>
                                         <td class="px-4 py-2 whitespace-nowrap text-right font-medium text-red-600">
@@ -197,6 +237,8 @@
                                 <div class="min-w-0">
                                     <p class="font-medium text-gray-900" x-text="e.descripcion"></p>
                                     <p class="text-xs text-gray-400" x-show="e.proveedor" x-text="e.proveedor"></p>
+                                    <p class="text-xs text-blue-600" x-show="e.con_credito_fiscal"
+                                        x-text="'Fact. ' + e.nro_factura + ' · IVA Bs. ' + fmt(e.importe_iva)"></p>
                                     <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-gray-500">
                                         <span x-text="e.fecha"></span>
                                         <span>·</span>
@@ -329,7 +371,7 @@ function contabilidad() {
 
     return {
         filtros: { fecha_inicio: iso(primerDia), fecha_fin: iso(hoy) },
-        totales: { ingresos: '0', egresos: '0', saldo: '0' },
+        totales: { ingresos: '0', egresos: '0', credito_fiscal: '0', saldo: '0' },
         ingresosPorMetodo: {},
         ingresos: [],
         egresosPorCategoria: [],
@@ -340,6 +382,7 @@ function contabilidad() {
             fecha: iso(hoy),
             categoria: '', descripcion: '', monto: '',
             metodo_pago: 'efectivo', proveedor: '', comprobante_nro: '',
+            con_credito_fiscal: false, nit_proveedor: '', nro_factura: '', codigo_autorizacion: '',
         },
 
         formVacio() {
@@ -347,7 +390,12 @@ function contabilidad() {
                 fecha: iso(new Date()),
                 categoria: '', descripcion: '', monto: '',
                 metodo_pago: 'efectivo', proveedor: '', comprobante_nro: '',
+                con_credito_fiscal: false, nit_proveedor: '', nro_factura: '', codigo_autorizacion: '',
             };
+        },
+
+        ivaCalculado() {
+            return parseFloat(this.form.monto || 0) * 0.13;
         },
 
         fmt(v) {
