@@ -84,6 +84,38 @@ class CodigoItemTest extends TestCase
         $this->assertSame(0, CodigoItem::count()); // no tocó el diccionario
     }
 
+    // ── Cargo de admisión → toma el código familia 2 de IngresoPrecio ──
+
+    public function test_cargo_de_admision_toma_codigo_familia_2(): void
+    {
+        $adm = IngresoPrecio::create(['tipo_ingreso' => 'emergencia', 'precio' => '200.00']);
+        $cuenta = $this->cuenta();
+
+        $d = $cuenta->detalles()->create([
+            'tipo_item' => 'servicio', 'descripcion' => 'Admisión de Emergencia',
+            'cantidad' => '1', 'precio_unitario' => '200.00',
+        ]);
+
+        $this->assertSame($adm->fresh()->codigo, $d->codigo_item);
+        $this->assertStringStartsWith('2', $d->codigo_item);
+        $this->assertSame(0, CodigoItem::count()); // no tocó el diccionario familia 9
+    }
+
+    // ── Admisión sin precio configurado → degrada al diccionario familia 9 ──
+
+    public function test_cargo_de_admision_sin_precio_cae_a_diccionario(): void
+    {
+        $cuenta = $this->cuenta(); // ingreso_precios vacío
+
+        $d = $cuenta->detalles()->create([
+            'tipo_item' => 'servicio', 'descripcion' => 'Admisión de Internación',
+            'cantidad' => '1', 'precio_unitario' => '150.00',
+        ]);
+
+        $this->assertStringStartsWith('9', $d->codigo_item);
+        $this->assertSame(1, CodigoItem::count());
+    }
+
     // ── Código explícito se respeta ──
 
     public function test_codigo_explicito_no_se_sobreescribe(): void

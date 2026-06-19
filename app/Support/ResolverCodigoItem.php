@@ -6,6 +6,7 @@ use App\Models\AlmacenCatalogo;
 use App\Models\AlmacenLote;
 use App\Models\CodigoItem;
 use App\Models\CuentaCobroDetalle;
+use App\Models\IngresoPrecio;
 use App\Models\Procedimiento;
 use Illuminate\Support\Facades\Log;
 
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Log;
  *   2. Medicamento con origen AlmacenLote → código del AlmacenCatalogo (familia 1).
  *   3. Coincidencia exacta de descripción contra el catálogo según tipo_item
  *      (medicamento→AlmacenCatalogo, procedimiento→Procedimiento).
+ *   3.5 Admisiones (familia 2): cargo "Admisión de {tipo}" → código de IngresoPrecio.
  *   4. Diccionario CodigoItem (familia 9): auto-registra y devuelve código estable.
  *
  * DEFENSIVO: corre dentro de CuentaCobroDetalle::creating (núcleo de cobro).
@@ -55,6 +57,9 @@ final class ResolverCodigoItem
 
             // 3. Coincidencia exacta contra el catálogo correspondiente.
             $codigo = self::buscarEnCatalogo($tipo, $descripcion);
+
+            // 3.5 Admisiones (familia 2): "Admisión de {tipo}" → código de IngresoPrecio.
+            $codigo ??= IngresoPrecio::codigoPorDescripcion($descripcion);
 
             // 4. Diccionario (familia 9) como red de seguridad.
             $codigo ??= CodigoItem::resolver($tipo, $descripcion);

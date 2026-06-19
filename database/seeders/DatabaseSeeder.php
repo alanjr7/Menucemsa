@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             SeguroSeeder::class,
             EspecialidadMedicoSeeder::class,
             MenuSeeder::class,
+            IngresoPrecioSeeder::class, // 4 tipos de admisión → códigos familia 2
+
             //AlmacenInventarioSeeder::class,
             IpAccessSeeder::class,
             LinameSeeder::class, // precarga catálogo de almacén con la LINAME (sin stock)
