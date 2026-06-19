@@ -10,6 +10,8 @@ return new class extends Migration
     {
         Schema::create('ingreso_precios', function (Blueprint $table) {
             $table->id();
+            // Código interno de servicio (familia 2 = ADMISIONES) para comprobantes.
+            $table->string('codigo', 12)->nullable()->unique();
             $table->string('tipo_ingreso')->unique();
             $table->decimal('precio', 10, 2);
             $table->boolean('activo')->default(true);

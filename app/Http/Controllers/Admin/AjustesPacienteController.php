@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\PatientsController;
+use App\Models\AlmacenCatalogo;
+use App\Models\CodigoItem;
 use App\Models\CuentaCobro;
+use App\Models\IngresoPrecio;
 use App\Models\Paciente;
+use App\Models\Procedimiento;
+use App\Models\TipoCirugia;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -96,6 +102,9 @@ class AjustesPacienteController extends Controller
             'fecha'       => 'required|date',
             'cantidad'    => 'required|numeric|decimal:0,2|min:0.01',
             'monto'       => 'required|numeric|decimal:0,2|min:0',
+            // Opcionales: vienen cuando se elige un ítem del buscador de catálogo.
+            'tipo_item'   => 'nullable|in:servicio,medicamento,procedimiento,estadia,laboratorio,imagenologia,farmacia,material,equipo_medico',
+            'codigo_item' => 'nullable|string|max:12',
         ], [], [
             'descripcion' => 'concepto',
             'monto'       => 'monto unitario',
@@ -104,7 +113,10 @@ class AjustesPacienteController extends Controller
         $subtotal = bcmul((string) $validated['cantidad'], (string) $validated['monto'], 2);
 
         $cuenta->detalles()->create([
-            'tipo_item'       => 'servicio',
+            'tipo_item'       => $validated['tipo_item'] ?? 'servicio',
+            // Código explícito (del buscador o tipeado a mano) se respeta; en blanco
+            // queda null y el resolver le asigna uno del diccionario (familia 9).
+            'codigo_item'     => filled($validated['codigo_item'] ?? null) ? trim($validated['codigo_item']) : null,
             'descripcion'     => $validated['descripcion'],
             'cantidad'        => $validated['cantidad'],
             'precio_unitario' => $validated['monto'],
@@ -120,6 +132,85 @@ class AjustesPacienteController extends Controller
 
         return redirect()->route('admin.ajustes-pacientes.correcciones', $cuenta->paciente_id)
             ->with('success', 'Cargo agregado correctamente.');
+    }
+
+    /**
+     * Autocompletado de ítems facturables para el formulario "Agregar cargo".
+     * Busca por nombre en los catálogos (con su código ya asignado) y en el
+     * diccionario de ítems ya registrados. Devuelve concepto + código + precio
+     * sugerido + tipo_item, para prellenar el formulario.
+     */
+    public function buscarCatalogo(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->get('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $like = '%' . $q . '%';
+        $resultados = [];
+
+        // Medicamentos / insumos (familia 1)
+        foreach (AlmacenCatalogo::where('activo', true)->where('nombre', 'LIKE', $like)
+                     ->whereNotNull('codigo')->orderBy('nombre')->limit(8)->get() as $c) {
+            $resultados[] = [
+                'codigo'      => $c->codigo,
+                'descripcion' => $c->nombre,
+                'precio'      => null, // el precio de almacén vive en el lote; lo fija el cajero
+                'tipo_item'   => $c->tipo === 'insumo' ? 'material' : 'medicamento',
+                'grupo'       => $c->tipo === 'insumo' ? 'Insumo' : 'Medicamento',
+            ];
+        }
+
+        // Procedimientos (familia 5)
+        foreach (Procedimiento::where('activo', true)->where('nombre', 'LIKE', $like)
+                     ->whereNotNull('codigo')->orderBy('nombre')->limit(8)->get() as $p) {
+            $resultados[] = [
+                'codigo'      => $p->codigo,
+                'descripcion' => $p->nombre,
+                'precio'      => (string) $p->precio,
+                'tipo_item'   => 'procedimiento',
+                'grupo'       => 'Procedimiento',
+            ];
+        }
+
+        // Tipos de cirugía (familia 6) — precio sugerido = costo base
+        foreach (TipoCirugia::where('activo', true)->where('nombre', 'LIKE', $like)
+                     ->whereNotNull('codigo')->orderBy('nombre')->limit(5)->get() as $t) {
+            $resultados[] = [
+                'codigo'      => $t->codigo,
+                'descripcion' => 'Cirugía ' . $t->nombre,
+                'precio'      => (string) $t->costo_base,
+                'tipo_item'   => 'procedimiento',
+                'grupo'       => 'Cirugía',
+            ];
+        }
+
+        // Admisiones (familia 2)
+        foreach (IngresoPrecio::where('activo', true)->whereNotNull('codigo')
+                     ->where('tipo_ingreso', 'LIKE', $like)->limit(5)->get() as $i) {
+            $resultados[] = [
+                'codigo'      => $i->codigo,
+                'descripcion' => 'Admisión de ' . ($i->tipo_ingreso_label),
+                'precio'      => (string) $i->precio,
+                'tipo_item'   => 'servicio',
+                'grupo'       => 'Admisión',
+            ];
+        }
+
+        // Ítems ya registrados en el diccionario (familia 9): lab, imagen, etc.
+        foreach (CodigoItem::whereNotNull('codigo')
+                     ->where('descripcion_original', 'LIKE', $like)->orderBy('descripcion_original')->limit(8)->get() as $d) {
+            $resultados[] = [
+                'codigo'      => $d->codigo,
+                'descripcion' => $d->descripcion_original,
+                'precio'      => null,
+                'tipo_item'   => $d->tipo_item,
+                'grupo'       => 'Registrado',
+            ];
+        }
+
+        return response()->json($resultados);
     }
 
     // Anular (deshabilitar parcial/total) y revertir cargos se unificó en

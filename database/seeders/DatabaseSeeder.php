@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseSeeder extends Seeder
 {
@@ -30,5 +31,12 @@ class DatabaseSeeder extends Seeder
             // CuentaCobroSeeder::class,
             //ProcedimientosClinicosSeeder::class,
         ]);
+
+        // Asigna los códigos internos de producto/servicio que los seeders no
+        // pudieron llenar: los inserts raw saltan el trait GeneraCodigoCatalogo,
+        // y WithoutModelEvents (arriba) silencia el evento `created` del que
+        // cuelga el trait incluso en los seeders Eloquent. El backfill es
+        // idempotente y es el chokepoint único de asignación de códigos.
+        Artisan::call('codigos:backfill');
     }
 }

@@ -150,9 +150,10 @@ class MenuSeeder extends Seeder
 
         $pacientes->children()->createMany([
             ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => null, 'order' => 1],
-            ['name' => 'Gestionar Pacientes', 'route' => 'admin.pacientes.gestionar', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Episodios', 'route' => 'admin.episodios.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Cerrar Episodio', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 4],
+            ['name' => 'Agregar Pacientes', 'route' => 'reception', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Gestionar Pacientes', 'route' => 'admin.pacientes.gestionar', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Episodios', 'route' => 'admin.episodios.index', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Cerrar Episodio', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 5],
             ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
         ]);
 

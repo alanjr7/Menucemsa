@@ -2,16 +2,23 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneraCodigoCatalogo;
+use App\Support\CodigoProducto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class AlmacenCatalogo extends Model
 {
+    use GeneraCodigoCatalogo;
+
+    /** Familia del código interno (BIENES). */
+    public const FAMILIA_CODIGO = CodigoProducto::FAMILIA_BIENES;
+
     protected $table = 'almacen_catalogo';
 
     protected $fillable = [
-        'nombre', 'codigo_barras', 'nombre_generico', 'concentracion', 'forma_farmaceutica', 'categoria', 'codigo_atc', 'codigo_liname', 'descripcion', 'unidad_medida', 'tipo', 'activo', 'observaciones', 'requiere_receta',
+        'codigo', 'nombre', 'codigo_barras', 'nombre_generico', 'concentracion', 'forma_farmaceutica', 'categoria', 'codigo_atc', 'codigo_liname', 'descripcion', 'unidad_medida', 'tipo', 'activo', 'observaciones', 'requiere_receta',
     ];
 
     protected $casts = [

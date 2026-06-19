@@ -10,6 +10,9 @@ return new class extends Migration
     {
         Schema::create('almacen_catalogo', function (Blueprint $table) {
             $table->id();
+            // Código interno de producto/servicio (familia 1 = BIENES) para comprobantes.
+            // Formato Incor: familia(1 díg) + id(8 díg). Se autollena en el modelo; editable.
+            $table->string('codigo', 12)->nullable()->unique();
             $table->string('nombre');
             $table->string('codigo_barras', 50)->nullable()->unique();
             $table->string('nombre_generico')->nullable();

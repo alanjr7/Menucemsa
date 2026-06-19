@@ -12,6 +12,9 @@ return new class extends Migration
             $table->id();
             $table->string('cuenta_cobro_id');
             $table->enum('tipo_item', ['servicio', 'medicamento', 'procedimiento', 'estadia', 'laboratorio', 'imagenologia', 'farmacia', 'material', 'equipo_medico']);
+            // Código interno de producto/servicio que se imprime en el comprobante.
+            // Se resuelve en CuentaCobroDetalle::creating (catálogo o diccionario familia 9).
+            $table->string('codigo_item', 12)->nullable();
             $table->string('descripcion');
             $table->decimal('cantidad', 10, 2)->default(1);
             $table->decimal('precio_unitario', 10, 2);
@@ -44,6 +47,7 @@ return new class extends Migration
             // Índices
             $table->index(['cuenta_cobro_id', 'tipo_item']);
             $table->index(['origen_id', 'origen_type']);
+            $table->index('codigo_item');
         });
     }
 

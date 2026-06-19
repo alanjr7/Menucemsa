@@ -5,193 +5,240 @@
     <title>Comprobante {{ $cuenta->id }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 24px; max-width: 480px; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; background: #f3f4f6; }
 
-        .logo-area { text-align: center; border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 12px; }
-        .logo-area h1 { font-size: 20px; font-weight: 900; letter-spacing: 3px; }
-        .logo-area p  { font-size: 10px; color: #555; margin-top: 2px; }
+        .hoja { background: #fff; width: 210mm; max-width: 100%; margin: 0 auto; padding: 14mm 12mm; }
 
-        .badge { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 1px;
-                 text-transform: uppercase; background: #111; color: #fff;
-                 padding: 2px 8px; border-radius: 20px; }
+        /* ── Encabezado ─────────────────────────────────────────────── */
+        .cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+        .cab-izq { display: flex; gap: 10px; align-items: flex-start; }
+        .cab-logo { width: 70px; height: auto; }
+        .cab-clinica { font-size: 13px; font-weight: 800; letter-spacing: .3px; }
+        .cab-linea { font-size: 10px; font-weight: 700; line-height: 1.5; }
+        .cab-der { text-align: right; font-size: 11px; line-height: 1.6; }
+        .cab-der .lbl { font-weight: 700; }
 
-        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin: 10px 0; }
-        .meta-row  { display: flex; justify-content: space-between; padding: 3px 0; }
-        .meta-label { color: #666; }
-        .meta-value { font-weight: 600; text-align: right; }
+        .titulo { text-align: center; margin: 14px 0 4px; }
+        .titulo h1 { font-size: 30px; font-weight: 800; letter-spacing: 1px; }
+        .titulo p  { font-size: 11px; color: #333; margin-top: -2px; }
 
-        .divider     { border-top: 1px dashed #bbb; margin: 10px 0; }
-        .divider-solid { border-top: 1px solid #111; margin: 10px 0; }
+        /* ── Datos del comprobante / paciente ──────────────────────── */
+        .pagina { font-size: 10px; font-weight: 700; margin: 10px 0 4px; }
+        .datos { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 24px; font-size: 11px; }
+        .datos .row { display: flex; gap: 6px; }
+        .datos .k { font-weight: 700; white-space: nowrap; }
+        .datos .v { font-weight: 400; }
 
-        .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase;
-                         letter-spacing: 1px; color: #888; margin: 8px 0 4px; }
+        /* ── Tabla de ítems ─────────────────────────────────────────── */
+        table.items { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        table.items th, table.items td { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
+        table.items thead th { font-size: 10px; font-weight: 700; text-align: center; line-height: 1.25; }
+        table.items td { font-size: 10px; }
+        .c-codigo { width: 12%; }
+        .c-cant   { width: 7%;  text-align: center; }
+        .c-unidad { width: 13%; text-align: center; }
+        .c-desc   { width: 36%; }
+        .c-punit  { width: 11%; text-align: right; }
+        .c-desc2  { width: 10%; text-align: right; }
+        .c-sub    { width: 11%; text-align: right; }
+        .u-sub { display: block; font-size: 9px; color: #333; }
 
-        table { width: 100%; border-collapse: collapse; }
-        .item-row td { padding: 4px 0; vertical-align: top; border-bottom: 1px dotted #e5e5e5; }
-        .item-row:last-child td { border-bottom: none; }
+        /* ── Totales ────────────────────────────────────────────────── */
+        .pie { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-top: 6px; }
+        .son { font-size: 11px; font-weight: 700; padding-top: 6px; max-width: 55%; text-transform: uppercase; }
+        table.tot { border-collapse: collapse; font-size: 11px; min-width: 250px; }
+        table.tot td { padding: 2px 4px; }
+        table.tot td.k { text-align: right; font-weight: 700; }
+        table.tot td.v { text-align: right; width: 90px; }
+        table.tot tr.grande td { font-size: 13px; font-weight: 800; }
+        table.tot tr.saldo td { color: #b91c1c; }
 
-        .item-desc  { font-size: 11px; color: #222; max-width: 300px; }
-        .item-fecha { font-size: 9px; color: #999; margin-top: 1px; }
-        .item-monto { font-size: 11px; font-weight: 600; text-align: right; white-space: nowrap; }
+        /* ── Forma de pago / pie legal ─────────────────────────────── */
+        .pagos { margin-top: 14px; border-top: 1px solid #000; padding-top: 6px; }
+        .pagos h4 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+        .pago-row { display: flex; justify-content: space-between; font-size: 11px; padding: 1px 0; }
+        .pago-row .fecha { color: #666; font-size: 9px; }
 
-        .pago-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
-        .total-row { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900;
-                     border-top: 2px solid #111; padding-top: 8px; margin-top: 6px; }
-        .saldo-row { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;
-                     color: #dc2626; padding-top: 4px; }
+        .legal { margin-top: 18px; text-align: center; font-size: 9px; color: #333; line-height: 1.6; }
+        .legal strong { font-size: 10px; }
 
-        .footer { text-align: center; font-size: 9px; color: #888; margin-top: 14px; line-height: 1.6; }
+        .no-print { text-align: center; margin-top: 18px; }
+        .no-print button { padding: 9px 26px; background: #1e40af; color: #fff; border: none;
+                           border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        .area-badge { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #fff;
-                      padding: 1px 5px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
-        .area-emergencia  { background: #dc2626; }
-        .area-internacion { background: #2563eb; }
-        .area-consulta_externa { background: #16a34a; }
-        .area-enfermeria  { background: #9333ea; }
-        .area-general     { background: #6b7280; }
-
-        @media print { .no-print { display: none; } body { padding: 10px; } }
+        @media print {
+            body { background: #fff; }
+            .hoja { width: auto; margin: 0; padding: 8mm; }
+            .no-print { display: none; }
+        }
     </style>
 </head>
 <body>
+@php
+    // ── Identidad de la clínica (editar aquí cuando se tengan los datos definitivos) ──
+    $CLINICA = [
+        'nombre'    => 'Clínica Santa Cruz',
+        'sucursal'  => 'Sucursal Principal', // ej: 'Sucursal - Santa Cruz'
+        'punto'     => '',   // ej: 'No. Punto de Venta - 0'
+        'direccion' => 'Calle Bumberque esq. MJ Santiestevan 591',   // ej: 'Av. 26 de febrero N° 510'
+        'telefono'  => '75662703',   // ej: 'Telf. 352-0444'
+        'ciudad'    => 'Santa Cruz de la Sierra - Bolivia',
+        'nit'       => '',   // se completará cuando se tenga el NIT definitivo
+    ];
 
-    {{-- Encabezado --}}
-    <div class="logo-area">
-        <h1>CEMSA</h1>
-        <p>Clinica de Especialidades Santa Cruz</p>
-        <p style="margin-top:6px;">
-            <span class="badge">Comprobante de Pago</span>
-        </p>
-    </div>
+    // ── Alcance del recibo = ciclo de cobro actual ──
+    // Si la cuenta está saldada, el recibo muestra los cargos liquidados por el
+    // último pago (el ciclo recién cerrado). Si aún hay saldo, muestra todo lo
+    // pendiente. Nunca re-lista cargos ya pagados en un ciclo anterior.
+    $pagosOrdenados = $cuenta->pagos->sortBy('created_at')->values();
+    $ultimoPago     = $pagosOrdenados->last();
+    $cuentaSaldada  = bccomp((string) $cuenta->saldo_pendiente, '0', 2) <= 0 && $ultimoPago;
 
-    {{-- Datos generales --}}
-    <div class="meta-row"><span class="meta-label">N° Cuenta:</span><span class="meta-value">{{ $cuenta->id }}</span></div>
-    <div class="meta-row"><span class="meta-label">Fecha emisión:</span><span class="meta-value">{{ now()->format('d/m/Y H:i') }}</span></div>
-    <div class="meta-row"><span class="meta-label">Paciente:</span><span class="meta-value">{{ $cuenta->paciente?->nombre ?? 'N/A' }}</span></div>
-    <div class="meta-row"><span class="meta-label">CI:</span><span class="meta-value">{{ $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code ?? 'N/A' }}</span></div>
-    <div class="meta-row"><span class="meta-label">Tipo atención:</span><span class="meta-value">{{ $cuenta->tipo_atencion_label }}</span></div>
-    @if($cuenta->cajaSession?->user)
-    <div class="meta-row"><span class="meta-label">Cajero:</span><span class="meta-value">{{ $cuenta->cajaSession->user->name }}</span></div>
-    @endif
-
-    @if($cuenta->ci_nit_facturacion)
-    <div class="divider"></div>
-    <div class="meta-row"><span class="meta-label">CI/NIT Factura:</span><span class="meta-value">{{ $cuenta->ci_nit_facturacion }}</span></div>
-    <div class="meta-row"><span class="meta-label">Razón Social:</span><span class="meta-value">{{ $cuenta->razon_social ?? 'S/N' }}</span></div>
-    @endif
-
-    {{-- Ítems agrupados por área --}}
-    <div class="divider"></div>
-    <div class="section-title">Detalle de Servicios</div>
-
-    @php
-        // --- Alcance del recibo = ciclo de cobro actual ---
-        // Si la cuenta está saldada, el recibo muestra los cargos liquidados por el
-        // último pago (el ciclo recién cerrado). Si aún hay saldo, muestra todo lo
-        // pendiente. Nunca re-lista cargos ya pagados en un ciclo anterior.
-        $pagosOrdenados = $cuenta->pagos->sortBy('created_at')->values();
-        $ultimoPago     = $pagosOrdenados->last();
-        $cuentaSaldada  = bccomp((string) $cuenta->saldo_pendiente, '0', 2) <= 0 && $ultimoPago;
-
-        if ($cuentaSaldada) {
-            $detallesRecibo = $cuenta->detalles->where('liquidado_pago_id', $ultimoPago->id);
-            // Fallback legacy: cuenta saldada sin ítems liquidados -> mostrar todos
-            if ($detallesRecibo->isEmpty()) {
-                $detallesRecibo = $cuenta->detalles;
-            }
-            // Pago(s) que cierran el ciclo previo (para excluir cobros anteriores)
-            $cortePrevio = $cuenta->detalles
-                ->whereNotNull('liquidado_pago_id')
-                ->where('liquidado_pago_id', '!=', $ultimoPago->id)
-                ->map(fn($d) => optional($d->liquidadoPago)->created_at)
-                ->filter()->max();
-        } else {
-            $detallesRecibo = $cuenta->detalles->whereNull('liquidado_en');
-            $cortePrevio = $cuenta->detalles
-                ->whereNotNull('liquidado_pago_id')
-                ->map(fn($d) => optional($d->liquidadoPago)->created_at)
-                ->filter()->max();
+    if ($cuentaSaldada) {
+        $detallesRecibo = $cuenta->detalles->where('liquidado_pago_id', $ultimoPago->id);
+        if ($detallesRecibo->isEmpty()) {
+            $detallesRecibo = $cuenta->detalles;
         }
+        $cortePrevio = $cuenta->detalles
+            ->whereNotNull('liquidado_pago_id')
+            ->where('liquidado_pago_id', '!=', $ultimoPago->id)
+            ->map(fn($d) => optional($d->liquidadoPago)->created_at)
+            ->filter()->max();
+    } else {
+        $detallesRecibo = $cuenta->detalles->whereNull('liquidado_en');
+        $cortePrevio = $cuenta->detalles
+            ->whereNotNull('liquidado_pago_id')
+            ->map(fn($d) => optional($d->liquidadoPago)->created_at)
+            ->filter()->max();
+    }
 
-        // Pagos del ciclo actual = los posteriores al cierre del ciclo previo
-        $pagosRecibo = $cortePrevio
-            ? $pagosOrdenados->filter(fn($p) => $p->created_at->gt($cortePrevio))->values()
-            : $pagosOrdenados;
+    $pagosRecibo = $cortePrevio
+        ? $pagosOrdenados->filter(fn($p) => $p->created_at->gt($cortePrevio))->values()
+        : $pagosOrdenados;
 
-        $totalRecibo  = $detallesRecibo->sum('subtotal');
-        $pagadoRecibo = $pagosRecibo->sum('monto');
-        $saldoRecibo  = bcsub((string) $totalRecibo, (string) $pagadoRecibo, 2);
+    $totalRecibo  = $detallesRecibo->sum('subtotal');
+    $pagadoRecibo = $pagosRecibo->sum('monto');
+    $saldoRecibo  = bcsub((string) $totalRecibo, (string) $pagadoRecibo, 2);
 
-        $grupos = $detallesRecibo->groupBy('area_origen');
-        $areaLabels = [
-            'emergencia'      => 'Emergencia',
-            'internacion'     => 'Internación',
-            'consulta_externa'=> 'Consulta Externa',
-            'enfermeria'      => 'Enfermería',
-            'uti'             => 'UTI',
-            'general'         => 'General',
-        ];
-    @endphp
+    // ── Unidad de medida: BIENES vs SERVICIOS según el tipo de ítem ──
+    $bienes = ['medicamento', 'material', 'equipo_medico', 'farmacia'];
+    $cantFmt = fn($c) => fmod((float) $c, 1.0) == 0.0 ? (string) (int) $c : rtrim(rtrim(number_format((float) $c, 2), '0'), '.');
 
-    @foreach($grupos as $area => $items)
-    <div class="section-title">
-        <span class="area-badge area-{{ $area }}">{{ $areaLabels[$area] ?? ucfirst($area) }}</span>
-    </div>
-    <table>
-        @foreach($items as $d)
-        <tr class="item-row">
-            <td>
-                <div class="item-desc">{{ $d->descripcion }}</div>
-                <div class="item-fecha">{{ $d->created_at->setTimezone('America/La_Paz')->format('d/m/Y H:i') }}</div>
-            </td>
-            <td class="item-monto">Bs. {{ number_format($d->subtotal, 2) }}</td>
-        </tr>
-        @endforeach
-    </table>
-    @endforeach
+    $pacienteNombre = $cuenta->paciente?->nombre ?? 'N/A';
+    $documento      = $cuenta->ci_nit_facturacion ?: ($cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code ?? '0');
+    $razonSocial    = $cuenta->razon_social ?: $pacienteNombre;
+@endphp
 
-    {{-- Pagos --}}
-    <div class="divider"></div>
-    <div class="section-title">Pagos Realizados</div>
-    @forelse($pagosRecibo as $p)
-    <div class="pago-row">
-        <span>{{ $p->metodo_pago_label }}
-            @if($p->created_at)
-                <span style="color:#999; font-size:9px;">{{ $p->created_at->setTimezone('America/La_Paz')->format('d/m/Y H:i') }}</span>
+    <div class="hoja">
+
+        {{-- ════════ Encabezado ════════ --}}
+        <div class="cab">
+            <div class="cab-izq">
+                <img class="cab-logo" src="{{ asset('images/logocelular.png') }}" alt="" onerror="this.style.display='none'">
+                <div>
+                    <div class="cab-clinica">{{ mb_strtoupper($CLINICA['nombre'], 'UTF-8') }}</div>
+                    @if($CLINICA['sucursal'])<div class="cab-linea">{{ mb_strtoupper($CLINICA['sucursal'], 'UTF-8') }}</div>@endif
+                    @if($CLINICA['punto'])<div class="cab-linea">{{ $CLINICA['punto'] }}</div>@endif
+                    @if($CLINICA['direccion'])<div class="cab-linea">{{ $CLINICA['direccion'] }}</div>@endif
+                    @if($CLINICA['telefono'])<div class="cab-linea">{{ $CLINICA['telefono'] }}</div>@endif
+                    @if($CLINICA['ciudad'])<div class="cab-linea">{{ mb_strtoupper($CLINICA['ciudad'], 'UTF-8') }}</div>@endif
+                </div>
+            </div>
+            <div class="cab-der">
+                @if($CLINICA['nit'])<div><span class="lbl">NIT:</span> {{ $CLINICA['nit'] }}</div>@endif
+                <div><span class="lbl">COMPROBANTE Nº:</span> {{ $cuenta->id }}</div>
+                <div><span class="lbl">FECHA:</span> {{ now()->format('d/m/Y') }}</div>
+            </div>
+        </div>
+
+        {{-- ════════ Título ════════ --}}
+        <div class="titulo">
+            <h1>COMPROBANTE</h1>
+            <p>(Comprobante interno de pago — no válido como factura)</p>
+        </div>
+
+        {{-- ════════ Datos del comprobante / paciente ════════ --}}
+        <div class="pagina">Página 1 de 1</div>
+        <div class="datos">
+            <div class="row"><span class="k">Fecha:</span><span class="v">{{ now()->format('d/m/Y  h:i a') }}</span></div>
+            <div class="row"><span class="k">NIT/CI/CEX:</span><span class="v">{{ $documento }}</span></div>
+            <div class="row"><span class="k">Nombre/Razón Social:</span><span class="v">{{ $razonSocial }}</span></div>
+            <div class="row"><span class="k">Tipo de atención:</span><span class="v">{{ $cuenta->tipo_atencion_label }}</span></div>
+            <div class="row"><span class="k">Paciente:</span><span class="v">{{ $pacienteNombre }}</span></div>
+            @if($cuenta->cajaSession?->user)
+            <div class="row"><span class="k">Cajero:</span><span class="v">{{ $cuenta->cajaSession->user->name }}</span></div>
             @endif
-        </span>
-        <span>Bs. {{ number_format($p->monto, 2) }}</span>
-    </div>
-    @empty
-    <p style="color:#999; font-size:10px;">Sin pagos registrados.</p>
-    @endforelse
+        </div>
 
-    {{-- Totales --}}
-    <div class="divider-solid"></div>
-    <div class="total-row">
-        <span>TOTAL PAGADO</span>
-        <span>Bs. {{ number_format($pagadoRecibo, 2) }}</span>
-    </div>
-    @if(bccomp((string)$saldoRecibo, '0', 2) > 0)
-    <div class="saldo-row">
-        <span>SALDO PENDIENTE</span>
-        <span>Bs. {{ number_format($saldoRecibo, 2) }}</span>
-    </div>
-    @endif
+        {{-- ════════ Tabla de ítems ════════ --}}
+        <table class="items">
+            <thead>
+                <tr>
+                    <th class="c-codigo">CÓDIGO<br>PRODUCTO/<br>SERVICIO</th>
+                    <th class="c-cant">CANTIDAD</th>
+                    <th class="c-unidad">UNIDAD DE<br>MEDIDA</th>
+                    <th class="c-desc">DESCRIPCIÓN</th>
+                    <th class="c-punit">PRECIO<br>UNITARIO</th>
+                    <th class="c-desc2">DESCUENTO</th>
+                    <th class="c-sub">SUBTOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($detallesRecibo as $d)
+                <tr>
+                    <td class="c-codigo">{{ $d->codigo_item ?? '—' }}</td>
+                    <td class="c-cant">{{ $cantFmt($d->cantidad) }}</td>
+                    <td class="c-unidad">UNIDAD<span class="u-sub">({{ in_array($d->tipo_item, $bienes) ? 'BIENES' : 'SERVICIOS' }})</span></td>
+                    <td class="c-desc">{{ mb_strtoupper($d->descripcion, 'UTF-8') }}</td>
+                    <td class="c-punit">{{ number_format($d->precio_unitario, 2) }}</td>
+                    <td class="c-desc2">0.00</td>
+                    <td class="c-sub">{{ number_format($d->subtotal, 2) }}</td>
+                </tr>
+                @empty
+                <tr><td colspan="7" style="text-align:center; color:#666;">Sin cargos en este comprobante.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
 
-    {{-- Footer --}}
-    <div class="divider"></div>
-    <div class="footer">
-        <p>Total de ítems: {{ $detallesRecibo->count() }}</p>
-        <p style="margin-top:6px;">Gracias por su preferencia</p>
-        <p>CEMSA — Clinica de Especialidades Santa Cruz</p>
-    </div>
+        {{-- ════════ Totales ════════ --}}
+        <div class="pie">
+            <div class="son">SON : {{ \App\Support\NumeroALetras::moneda($totalRecibo) }}</div>
+            <table class="tot">
+                <tr><td class="k">SUB TOTAL Bs:</td><td class="v">{{ number_format($totalRecibo, 2) }}</td></tr>
+                <tr><td class="k">DESCUENTO Bs:</td><td class="v">0.00</td></tr>
+                <tr><td class="k">TOTAL Bs:</td><td class="v">{{ number_format($totalRecibo, 2) }}</td></tr>
+                <tr class="grande"><td class="k">MONTO PAGADO Bs:</td><td class="v">{{ number_format($pagadoRecibo, 2) }}</td></tr>
+                @if(bccomp((string) $saldoRecibo, '0', 2) > 0)
+                <tr class="saldo"><td class="k">SALDO PENDIENTE Bs:</td><td class="v">{{ number_format($saldoRecibo, 2) }}</td></tr>
+                @endif
+            </table>
+        </div>
 
-    <div class="no-print" style="margin-top: 20px; text-align: center;">
-        <button onclick="window.print()"
-            style="padding: 8px 24px; background: #1e40af; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
-            Imprimir / Guardar PDF
-        </button>
+        {{-- ════════ Forma(s) de pago ════════ --}}
+        <div class="pagos">
+            <h4>Forma de pago</h4>
+            @forelse($pagosRecibo as $p)
+            <div class="pago-row">
+                <span>{{ $p->metodo_pago_label }}
+                    @if($p->created_at)<span class="fecha">{{ $p->created_at->setTimezone('America/La_Paz')->format('d/m/Y H:i') }}</span>@endif
+                </span>
+                <span>Bs {{ number_format($p->monto, 2) }}</span>
+            </div>
+            @empty
+            <div class="pago-row"><span style="color:#666;">Sin pagos registrados.</span></div>
+            @endforelse
+        </div>
+
+        {{-- ════════ Pie legal ════════ --}}
+        <div class="legal">
+            <strong>Este documento es un comprobante interno de pago.</strong><br>
+            No constituye factura ni documento fiscal válido. Gracias por su preferencia.
+        </div>
+
+        <div class="no-print">
+            <button onclick="window.print()">Imprimir / Guardar PDF</button>
+        </div>
+
     </div>
 
 </body>

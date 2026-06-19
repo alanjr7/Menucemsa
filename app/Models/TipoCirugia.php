@@ -2,16 +2,23 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneraCodigoCatalogo;
+use App\Support\CodigoProducto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class TipoCirugia extends Model
 {
     use HasFactory;
+    use GeneraCodigoCatalogo;
+
+    /** Familia del código interno (CIRUGÍAS). */
+    public const FAMILIA_CODIGO = CodigoProducto::FAMILIA_CIRUGIA;
 
     protected $table = 'tipos_cirugia';
 
     protected $fillable = [
+        'codigo',
         'nombre',
         'descripcion',
         'duracion_minutos',

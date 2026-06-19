@@ -423,6 +423,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         // Ajustes de Paciente (correcciones de cargos/cuenta)
         Route::get('/ajustes-pacientes', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'index'])->name('ajustes-pacientes.index');
+        Route::get('/ajustes-pacientes/buscar-catalogo', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'buscarCatalogo'])->name('ajustes-pacientes.buscar-catalogo');
         Route::get('/ajustes-pacientes/{id}/correcciones', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'correcciones'])->name('ajustes-pacientes.correcciones');
         Route::post('/ajustes-pacientes/cuentas/{cuentaId}/cargos', [\App\Http\Controllers\Admin\AjustesPacienteController::class, 'agregarCargo'])->name('ajustes-pacientes.cargos.store');
 

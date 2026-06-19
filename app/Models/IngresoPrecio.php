@@ -2,14 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneraCodigoCatalogo;
+use App\Support\CodigoProducto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class IngresoPrecio extends Model
 {
     use HasFactory;
+    use GeneraCodigoCatalogo;
+
+    /** Familia del código interno (ADMISIONES). */
+    public const FAMILIA_CODIGO = CodigoProducto::FAMILIA_ADMISION;
 
     protected $fillable = [
+        'codigo',
         'tipo_ingreso',
         'precio',
         'activo',

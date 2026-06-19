@@ -18,6 +18,7 @@ class CuentaCobroDetalle extends Model
     protected $fillable = [
         'cuenta_cobro_id',
         'tipo_item',
+        'codigo_item',
         'descripcion',
         'cantidad',
         'precio_unitario',
@@ -82,6 +83,13 @@ class CuentaCobroDetalle extends Model
         static::creating(function ($detalle) {
             if (empty($detalle->subtotal)) {
                 $detalle->subtotal = Money::mul($detalle->cantidad, $detalle->precio_unitario);
+            }
+
+            // Estampar el código interno de producto/servicio que se imprime en el
+            // comprobante. Chokepoint ÚNICO: todo cargo (venga del camino que venga)
+            // pasa por aquí. El resolver es defensivo y nunca lanza.
+            if (empty($detalle->codigo_item)) {
+                $detalle->codigo_item = \App\Support\ResolverCodigoItem::paraDetalle($detalle);
             }
         });
 

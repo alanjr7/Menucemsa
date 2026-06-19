@@ -194,29 +194,57 @@
                 <div class="mt-6 pt-6 border-t border-gray-200">
                     <h4 class="text-sm font-semibold text-gray-700 mb-3">Agregar cargo</h4>
                     <form action="{{ route('admin.ajustes-pacientes.cargos.store', $cuenta->id) }}" method="POST"
-                          class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                          class="js-cargo-form grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                         @csrf
-                        <div class="md:col-span-3">
+
+                        {{-- Buscador de catálogo --}}
+                        <div class="md:col-span-12 relative">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Buscar en catálogo
+                                <span class="text-gray-400 font-normal">(opcional — autocompleta concepto, tipo, código y precio)</span>
+                            </label>
+                            <input type="text" autocomplete="off"
+                                   class="js-buscar block w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm"
+                                   data-url="{{ route('admin.ajustes-pacientes.buscar-catalogo') }}"
+                                   placeholder="Ej. paracetamol, hemograma, cirugía…">
+                            <div class="js-resultados absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                        </div>
+
+                        <div class="md:col-span-2">
                             <label class="block text-xs font-medium text-gray-500 mb-1">Fecha</label>
                             <input type="date" name="fecha" value="{{ now()->format('Y-m-d') }}" required
                                    class="block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
                         </div>
-                        <div class="md:col-span-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Tipo</label>
+                            <select name="tipo_item" class="js-tipo block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
+                                <option value="servicio">Servicio</option>
+                                <option value="material">Bien</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
                             <label class="block text-xs font-medium text-gray-500 mb-1">Concepto</label>
                             <input type="text" name="descripcion" required maxlength="255" placeholder="Ej. Servicio adicional"
-                                   class="block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
+                                   class="js-descripcion block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Cantidad</label>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Código
+                                <span class="text-gray-400 font-normal">(auto si vacío)</span>
+                            </label>
+                            <input type="text" name="codigo_item" maxlength="12" placeholder="—"
+                                   class="js-codigo block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 font-mono text-xs focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Cant.</label>
                             <input type="number" name="cantidad" value="1" step="1" min="1" required
                                    class="block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
                         </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Monto (Bs.)</label>
+                        <div class="md:col-span-1">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Monto</label>
                             <input type="number" name="monto" step="0.01" min="0" required placeholder="0.00"
-                                   class="block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
+                                   class="js-monto block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm">
                         </div>
                         <div class="md:col-span-1">
+                            <label class="block text-xs font-medium text-transparent mb-1">·</label>
                             <button type="submit" class="w-full inline-flex items-center justify-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors shadow-sm text-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -259,5 +287,76 @@
         form.motivo.value = motivo.trim();
         return true;
     }
+
+    // ── Buscador de catálogo en el formulario "Agregar cargo" ──────────────
+    // Autocompleta concepto + tipo + código + precio. Tras elegir, todos los
+    // campos quedan EDITABLES y el CÓDIGO es independiente del nombre: podés
+    // "tomar prestado" un código de catálogo (familia 1/2/5/6) y cambiar texto
+    // y precio → el comprobante muestra ese código + tu texto + tu precio.
+    // Solo si dejás el código VACÍO (concepto nuevo sin elegir) → diccionario 9.
+    const BIENES = ['medicamento', 'farmacia', 'material', 'equipo_medico'];
+
+    document.querySelectorAll('.js-cargo-form').forEach(function (form) {
+        const buscar      = form.querySelector('.js-buscar');
+        const resultados  = form.querySelector('.js-resultados');
+        const descripcion = form.querySelector('.js-descripcion');
+        const monto       = form.querySelector('.js-monto');
+        const codigo      = form.querySelector('.js-codigo');
+        const tipo        = form.querySelector('.js-tipo');
+        if (!buscar) return;
+
+        let timer = null, ultimo = '';
+
+        const cerrar = function () { resultados.classList.add('hidden'); resultados.innerHTML = ''; };
+
+        const elegir = function (item) {
+            descripcion.value = item.descripcion;
+            codigo.value = item.codigo || '';
+            tipo.value = BIENES.indexOf(item.tipo_item) !== -1 ? 'material' : 'servicio';
+            if (item.precio !== null && item.precio !== undefined && item.precio !== '') {
+                monto.value = parseFloat(item.precio).toFixed(2);
+            }
+            buscar.value = '';
+            cerrar();
+            monto.focus();
+        };
+
+        const render = function (items) {
+            if (!items.length) { resultados.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">Sin coincidencias</div>'; resultados.classList.remove('hidden'); return; }
+            resultados.innerHTML = '';
+            items.forEach(function (item) {
+                const row = document.createElement('button');
+                row.type = 'button';
+                row.className = 'w-full text-left px-3 py-2 hover:bg-purple-50 flex items-center justify-between gap-2 border-b border-gray-50 last:border-0';
+                row.innerHTML =
+                    '<span class="text-sm text-gray-800">' + item.descripcion +
+                    ' <span class="text-[10px] text-gray-400">' + (item.grupo || '') + '</span></span>' +
+                    '<span class="text-[11px] font-mono text-purple-600 whitespace-nowrap">' + (item.codigo || '') +
+                    (item.precio ? ' · Bs ' + parseFloat(item.precio).toFixed(2) : '') + '</span>';
+                row.addEventListener('click', function () { elegir(item); });
+                resultados.appendChild(row);
+            });
+            resultados.classList.remove('hidden');
+        };
+
+        buscar.addEventListener('input', function () {
+            const q = buscar.value.trim();
+            if (q === ultimo) return;
+            ultimo = q;
+            clearTimeout(timer);
+            if (q.length < 2) { cerrar(); return; }
+            timer = setTimeout(function () {
+                fetch(buscar.dataset.url + '?q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (r) { return r.json(); })
+                    .then(render)
+                    .catch(cerrar);
+            }, 250);
+        });
+
+        // Cerrar el dropdown al hacer clic fuera.
+        document.addEventListener('click', function (e) {
+            if (!form.contains(e.target)) cerrar();
+        });
+    });
 </script>
 @endsection

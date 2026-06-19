@@ -10,6 +10,8 @@ return new class extends Migration
     {
         Schema::create('procedimientos', function (Blueprint $table) {
             $table->id();
+            // Código interno de servicio (familia 5 = PROCEDIMIENTOS) para comprobantes.
+            $table->string('codigo', 12)->nullable()->unique();
             $table->string('nombre');
             $table->text('descripcion')->nullable();
             $table->enum('area', ['emergencia', 'uti', 'internacion', 'cirugia', 'hospitalizacion', 'neonato']);

@@ -2,11 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneraCodigoCatalogo;
+use App\Support\CodigoProducto;
 use Illuminate\Database\Eloquent\Model;
 
 class Procedimiento extends Model
 {
-    protected $fillable = ['nombre', 'descripcion', 'area', 'precio', 'activo'];
+    use GeneraCodigoCatalogo;
+
+    /** Familia del código interno (PROCEDIMIENTOS). */
+    public const FAMILIA_CODIGO = CodigoProducto::FAMILIA_PROCEDIMIENTO;
+
+    protected $fillable = ['codigo', 'nombre', 'descripcion', 'area', 'precio', 'activo'];
 
     protected $casts = ['activo' => 'boolean', 'precio' => 'decimal:2'];
 

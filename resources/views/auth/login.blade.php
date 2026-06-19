@@ -118,24 +118,23 @@
     <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-900">
         <img src="/images/fondoDia.png"
              alt="Fondo Clinica CEMSA"
-             class="absolute inset-0 w-full h-full object-cover opacity-85 transition-transform duration-[15s] hover:scale-110">
-        
-        <!-- Overlay oscuro para mejorar la lectura del texto -->
-        <div class="absolute inset-0 bg-gradient-to-t from-[#041a45]/90 via-[#041a45]/40 to-transparent"></div>
+             class="absolute inset-0 w-full h-full object-cover transition-transform duration-[15s] hover:scale-110">
+
+        <!-- Degradado neutro solo en la base para legibilidad del recuadro (sin tinte azul) -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
 
         <!-- Decoración abstracta opcional -->
         <div class="absolute top-0 left-0 w-full h-full opacity-30 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent"></div>
 
-        <div class="absolute bottom-20 left-0 right-0 px-16 text-center">
-            <div class="inline-block p-4 rounded-2xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-2xl mb-4">
-                <h2 class="text-white text-4xl xl:text-5xl font-serif italic drop-shadow-xl leading-tight">
-                    Clínica de Especialidades<br>
-                    <span class="text-blue-200">Medicas Santa Cruz S.R.L.</span>
+        <div class="absolute bottom-6 left-0 right-0 px-6 text-center">
+            <div class="inline-block px-5 py-2 rounded-xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-2xl">
+                <h2 class="text-white text-xl xl:text-2xl font-serif italic drop-shadow-xl whitespace-nowrap">
+                    Clínica de Especialidades <span class="text-blue-200">Medicas Santa Cruz S.R.L.</span>
                 </h2>
             </div>
-            <p class="text-gray-200 text-lg xl:text-xl font-light tracking-wide mt-2 drop-shadow-md">
+            <!-- <p class="text-gray-200 text-sm xl:text-base font-light tracking-wide mt-1 drop-shadow-md">
                 Excelencia médica, tecnología de punta y calidez humana al servicio de su salud.
-            </p>
+            </p> -->
         </div>
     </div>
 
