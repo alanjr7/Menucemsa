@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Crypt;
 use App\Models\User;
 
 class RoleSeeder extends Seeder
@@ -19,6 +20,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Administrador',
                 'password' => bcrypt('admin123'),
+                'password_encrypted' => Crypt::encryptString('admin123'),
                 'role' => 'admin',
                 'is_active' => true,
             ]
@@ -30,6 +32,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Recepción',
                 'password' => bcrypt('recepcion123'),
+                'password_encrypted' => Crypt::encryptString('recepcion123'),
                 'role' => 'reception',
                 'is_active' => true,
             ]
@@ -41,6 +44,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Director Médico',
                 'password' => bcrypt('dirmedico123'),
+                'password_encrypted' => Crypt::encryptString('dirmedico123'),
                 'role' => 'dirmedico',
                 'is_active' => true,
             ]
@@ -52,6 +56,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Emergencia',
                 'password' => bcrypt('emergencia123'),
+                'password_encrypted' => Crypt::encryptString('emergencia123'),
                 'role' => 'emergencia',
                 'is_active' => true,
             ]
@@ -63,6 +68,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Caja',
                 'password' => bcrypt('caja123'),
+                'password_encrypted' => Crypt::encryptString('caja123'),
                 'role' => 'caja',
                 'is_active' => true,
             ]
@@ -74,6 +80,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Gerente',
                 'password' => bcrypt('gerente123'),
+                'password_encrypted' => Crypt::encryptString('gerente123'),
                 'role' => 'gerente',
                 'is_active' => true,
             ]
@@ -85,6 +92,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'UTI',
                 'password' => bcrypt('uti123'),
+                'password_encrypted' => Crypt::encryptString('uti123'),
                 'role' => 'uti',
                 'is_active' => true,
             ]
@@ -96,6 +104,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Internación',
                 'password' => bcrypt('internacion123'),
+                'password_encrypted' => Crypt::encryptString('internacion123'),
                 'role' => 'internacion',
                 'is_active' => true,
             ]
@@ -107,6 +116,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Cirujano',
                 'password' => bcrypt('cirujano123'),
+                'password_encrypted' => Crypt::encryptString('cirujano123'),
                 'role' => 'cirujano',
                 'is_active' => true,
             ]
@@ -118,6 +128,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Doctor',
                 'password' => bcrypt('doctor123'),
+                'password_encrypted' => Crypt::encryptString('doctor123'),
                 'role' => 'doctor',
                 'is_active' => true,
             ]
@@ -129,6 +140,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Farmacia',
                 'password' => bcrypt('farmacia123'),
+                'password_encrypted' => Crypt::encryptString('farmacia123'),
                 'role' => 'farmacia',
                 'is_active' => true,
             ]
@@ -140,6 +152,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Enfermera Emergencia',
                 'password' => bcrypt('enfermera123'),
+                'password_encrypted' => Crypt::encryptString('enfermera123'),
                 'role' => 'enfermera-emergencia',
                 'is_active' => true,
             ]
@@ -151,6 +164,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Enfermera Internación',
                 'password' => bcrypt('enfermera123'),
+                'password_encrypted' => Crypt::encryptString('enfermera123'),
                 'role' => 'enfermera-internacion',
                 'is_active' => true,
             ]
@@ -162,6 +176,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Administrador',
                 'password' => bcrypt('administrador123'),
+                'password_encrypted' => Crypt::encryptString('administrador123'),
                 'role' => 'administrador',
                 'is_active' => true,
             ]

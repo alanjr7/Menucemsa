@@ -42,6 +42,7 @@ use App\Http\Controllers\Admin\AlmacenInventarioController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\ProformaController;
 use App\Http\Controllers\InternacionHabitacionUsoController;
 use App\Http\Controllers\UtiMedicamentosController;
 
@@ -277,6 +278,22 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         });
     });
 
+
+    // Proformas (cotizaciones) - accesible a TODOS los roles autenticados.
+    // Cada usuario ve/gestiona las suyas; admin y administrador ven todas
+    // (control de visibilidad dentro del controlador, no por middleware de rol).
+    Route::prefix('proformas')->name('proformas.')->group(function () {
+        Route::get('/', [ProformaController::class, 'index'])->name('index');
+        // Rutas estáticas ANTES del wildcard {proforma}
+        Route::get('/buscar-catalogo', [ProformaController::class, 'buscarCatalogo'])->name('buscar-catalogo');
+        Route::get('/crear', [ProformaController::class, 'create'])->name('create');
+        Route::post('/', [ProformaController::class, 'store'])->name('store');
+        Route::get('/{proforma}', [ProformaController::class, 'show'])->name('show')->where('proforma', '[0-9]+');
+        Route::get('/{proforma}/editar', [ProformaController::class, 'edit'])->name('edit')->where('proforma', '[0-9]+');
+        Route::put('/{proforma}', [ProformaController::class, 'update'])->name('update')->where('proforma', '[0-9]+');
+        Route::delete('/{proforma}', [ProformaController::class, 'destroy'])->name('destroy')->where('proforma', '[0-9]+');
+        Route::get('/{proforma}/imprimir', [ProformaController::class, 'imprimir'])->name('imprimir')->where('proforma', '[0-9]+');
+    });
 
     // NUEVAS RUTAS DE CAJA - Sistema Integrado (2026)
     // Caja Operativa - Para usuarios con rol CAJA
@@ -555,6 +572,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
         Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
         Route::post('/{user}/temporal-password', [UserManagementController::class, 'generateTemporalPassword'])->name('temporal-password');
+        Route::get('/{user}/reveal-password', [UserManagementController::class, 'revealPassword'])->name('reveal-password');
     });
 
     // Rutas de gestión de emergencias (admin y administrador - SOLO LECTURA)
