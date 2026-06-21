@@ -317,6 +317,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/exportar-auditoria', [CajaGestionController::class, 'exportarAuditoria'])->name('exportar.auditoria');
         Route::get('/exportar-cajas', [CajaGestionController::class, 'exportarCajas'])->name('exportar.cajas');
         Route::get('/exportar-transacciones', [CajaGestionController::class, 'exportarTransacciones'])->name('exportar.transacciones');
+        Route::get('/historial-pagos', [CajaGestionController::class, 'getHistorialPagos'])->name('historial-pagos');
+        Route::get('/exportar-pagos', [CajaGestionController::class, 'exportarPagos'])->name('exportar.pagos');
         Route::get('/', [CajaGestionController::class, 'index'])->name('index');
         Route::get('/transacciones', [CajaGestionController::class, 'getTransacciones'])->name('transacciones');
         Route::get('/transaccion/{id}', [CajaGestionController::class, 'getDetalleTransaccion'])->name('detalle-transaccion');
@@ -335,8 +337,20 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Caja\ContabilidadController::class, 'index'])->name('index');
         Route::get('/resumen', [\App\Http\Controllers\Caja\ContabilidadController::class, 'resumen'])->name('resumen');
         Route::post('/egresos', [\App\Http\Controllers\Caja\ContabilidadController::class, 'storeEgreso'])->name('egresos.store');
-        Route::delete('/egresos/{id}', [\App\Http\Controllers\Caja\ContabilidadController::class, 'destroyEgreso'])->name('egresos.destroy');
+        // Inmutabilidad: el egreso no se borra, se anula (reversible + auditado).
+        Route::post('/egresos/{id}/anular', [\App\Http\Controllers\Caja\ContabilidadController::class, 'anularEgreso'])->name('egresos.anular');
+        Route::post('/egresos/{id}/revertir', [\App\Http\Controllers\Caja\ContabilidadController::class, 'revertirAnulacionEgreso'])->name('egresos.revertir');
+        Route::get('/egresos/{id}/comprobante-retencion', [\App\Http\Controllers\Caja\ContabilidadController::class, 'comprobanteRetencion'])->name('egresos.comprobante-retencion');
         Route::get('/exportar', [\App\Http\Controllers\Caja\ContabilidadController::class, 'exportar'])->name('exportar');
+        Route::get('/exportar-rcv', [\App\Http\Controllers\Caja\ContabilidadController::class, 'exportarRcv'])->name('exportar-rcv');
+        Route::get('/homologacion-sin', [\App\Http\Controllers\Caja\ContabilidadController::class, 'homologacionSin'])->name('homologacion-sin');
+
+        // Cierre de período contable — solo admin|administrador.
+        Route::get('/cierres', [\App\Http\Controllers\Caja\ContabilidadController::class, 'cierres'])->name('cierres.index');
+        Route::middleware('role:admin|administrador')->group(function () {
+            Route::post('/cierres', [\App\Http\Controllers\Caja\ContabilidadController::class, 'cerrarPeriodo'])->name('cierres.store');
+            Route::delete('/cierres/{id}', [\App\Http\Controllers\Caja\ContabilidadController::class, 'reabrirPeriodo'])->name('cierres.destroy');
+        });
     });
 
 
@@ -846,7 +860,8 @@ Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion
     Route::delete('/evaluacion/{pacienteId}/historial/{evaluacion}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'destroy'])->name('evaluacion.destroy')->middleware('role:admin|administrador');
 });
 
-Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano'])->group(function () {
+Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|admin|administrador'])->group(function () {
+    Route::get('/evaluacion/central/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.central');
     Route::get('/evaluacion/emergencia/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.emergencia');
     Route::get('/evaluacion/uti/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.uti');
     Route::get('/evaluacion/internacion/{ci}', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'show'])->name('evaluacion.internacion');

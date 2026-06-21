@@ -10,6 +10,8 @@ $roleAreaRouteMap = [
     'uti'                   => 'evaluacion.uti',
     'internacion'           => 'evaluacion.internacion',
     'enfermera-internacion' => 'evaluacion.internacion',
+    'admin'                 => 'evaluacion.central',
+    'administrador'         => 'evaluacion.central',
 ];
 $evalRouteName = $roleAreaRouteMap[$userRole] ?? null;
 $isAdmin = in_array($userRole, ['admin', 'administrador']);

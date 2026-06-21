@@ -24,7 +24,7 @@ class EgresoCreditoFiscalTest extends TestCase
 
     private function admin(): User
     {
-        return User::where('email', 'admin@menucemsa.com')->firstOrFail();
+        return User::where('email', 'admin@ClinicaSantaCruz.com')->firstOrFail();
     }
 
     private function payload(array $attrs = []): array

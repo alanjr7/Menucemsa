@@ -55,6 +55,8 @@ class CuentaCobroSeeder extends Seeder
                 'episodio_numero' => $faker->numberBetween(1, 5),
                 'razon_social' => $paciente->nombre,
                 'ci_nit_facturacion' => $paciente->ci,
+                'factura_tipo_documento' => \App\Support\TipoDocumento::CI->value,
+                'con_credito_fiscal' => true,
                 // Datos de Seguro
                 'seguro_id' => $paciente->seguro_id,
                 'seguro_estado' => $seguroEstado,

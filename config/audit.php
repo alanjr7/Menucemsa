@@ -65,7 +65,10 @@ return [
 
         // --- Caja ---
         'caja.contabilidad.egresos.store'                  => 'registró un egreso',
-        'caja.contabilidad.egresos.destroy'                => 'eliminó un egreso',
+        'caja.contabilidad.egresos.anular'                 => 'anuló un egreso',
+        'caja.contabilidad.egresos.revertir'               => 'revirtió la anulación de un egreso',
+        'caja.contabilidad.cierres.store'                  => 'cerró un período contable',
+        'caja.contabilidad.cierres.destroy'                => 'reabrió un período contable',
         'caja.gestion.anular'                              => 'anuló un cobro',
         'caja.operativa.abrir'                             => 'abrió la caja',
         'caja.operativa.cerrar'                            => 'cerró la caja',

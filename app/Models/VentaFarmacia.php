@@ -26,6 +26,8 @@ class VentaFarmacia extends Model
         'factura_numero_documento',
         'factura_complemento',
         'total',
+        'base_imponible',
+        'debito_fiscal',
         'metodo_pago',
         'requiere_receta',
         'fecha_venta',
@@ -36,6 +38,8 @@ class VentaFarmacia extends Model
 
     protected $casts = [
         'total' => 'decimal:2',
+        'base_imponible' => 'decimal:2',
+        'debito_fiscal' => 'decimal:2',
         'requiere_receta' => 'boolean',
         'con_credito_fiscal' => 'boolean',
         'factura_tipo_documento' => 'integer',
@@ -45,6 +49,19 @@ class VentaFarmacia extends Model
     ];
 
     public $timestamps = false;
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($venta) {
+            // Débito fiscal IVA (Libro de Ventas): el total ya incluye IVA 13% (por dentro).
+            if (empty($venta->base_imponible) || (float) $venta->base_imponible === 0.0) {
+                $venta->base_imponible = $venta->total;
+                $venta->debito_fiscal = \App\Support\Impuestos::iva((string) $venta->total);
+            }
+        });
+    }
 
     public function detalles()
     {

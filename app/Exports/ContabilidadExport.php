@@ -35,7 +35,10 @@ class ContabilidadExport implements FromCollection, ShouldAutoSize, WithHeadings
                 'categoria' => 'Cobro',
                 'descripcion' => 'Pago cuenta '.$p->cuenta_cobro_id.' - '.($p->cuentaCobro?->paciente?->nombre ?? 'N/A'),
                 'metodo_pago' => $p->metodo_pago_label,
-                'comprobante' => $p->referencia,
+                // El comprobante del cobro es su recibo correlativo (PAGO-AAAAMMDD-NNN).
+                // Si el pago trae referencia externa (transferencia/tarjeta), se conserva
+                // entre paréntesis para conciliar el nro de operación.
+                'comprobante' => $p->referencia ? $p->id.' (Ref. '.$p->referencia.')' : $p->id,
                 'usuario' => $p->user->name ?? 'Sistema',
                 'monto' => $p->monto,
             ]);
@@ -55,7 +58,9 @@ class ContabilidadExport implements FromCollection, ShouldAutoSize, WithHeadings
                 'monto' => $v->total,
             ]);
 
+        // Los anulados no movieron caja: se excluyen del libro de flujo de efectivo.
         $egresos = Egreso::with('user')
+            ->vigentes()
             ->entreFechas($this->inicio->toDateString(), $this->fin->toDateString())
             ->get()
             ->map(fn ($e) => [

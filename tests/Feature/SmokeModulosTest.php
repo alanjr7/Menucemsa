@@ -49,7 +49,7 @@ class SmokeModulosTest extends TestCase
             $this->markTestSkipped("Ruta inexistente: {$routeName}");
         }
 
-        $admin = User::where('email', 'admin@menucemsa.com')->firstOrFail();
+        $admin = User::where('email', 'admin@ClinicaSantaCruz.com')->firstOrFail();
 
         $response = $this->actingAs($admin)->get(route($routeName));
 

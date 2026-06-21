@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             EspecialidadMedicoSeeder::class,
             MenuSeeder::class,
             IngresoPrecioSeeder::class, // 4 tipos de admisión → códigos familia 2
+            DosificacionSeeder::class,  // placeholder de numeración autorizada (SFE)
 
             //AlmacenInventarioSeeder::class,
             IpAccessSeeder::class,

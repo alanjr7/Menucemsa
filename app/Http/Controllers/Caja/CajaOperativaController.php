@@ -16,12 +16,15 @@ use App\Services\CuentaCobroService;
 use App\Services\AplicarSeguroService;
 use App\Services\NotificationService;
 use App\Support\Money;
+use App\Support\TipoDocumento;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CajaOperativaController extends Controller
 {
@@ -459,8 +462,11 @@ class CajaOperativaController extends Controller
                     'total_pagado'       => $totalPagado,
                     'saldo_pendiente'    => $saldoPendiente,
                     'seguro'             => AplicarSeguroService::calcularProyeccion($cuentaPrincipal),
-                    'ci_nit_facturacion' => $cuentaPrincipal->ci_nit_facturacion,
-                    'razon_social'       => $cuentaPrincipal->razon_social,
+                    'ci_nit_facturacion'     => $cuentaPrincipal->ci_nit_facturacion,
+                    'razon_social'           => $cuentaPrincipal->razon_social,
+                    'con_credito_fiscal'     => (bool) $cuentaPrincipal->con_credito_fiscal,
+                    'factura_tipo_documento' => $cuentaPrincipal->factura_tipo_documento,
+                    'factura_complemento'    => $cuentaPrincipal->factura_complemento,
                     'detalles'           => $detallesConsolidados->values(),
                     'pagos'              => $pagosConsolidados->values(),
                 ]
@@ -507,8 +513,13 @@ class CajaOperativaController extends Controller
                 'monto' => Money::rules(min: '0.01'),
                 'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr',
                 'referencia' => 'nullable|string|max:100',
-                'ci_nit_facturacion' => 'nullable|string|max:20',
-                'razon_social' => 'nullable|string|max:100',
+                // Datos fiscales del receptor (SFE-ready). Si pide crédito fiscal, razón
+                // social + tipo doc + número son obligatorios; si no, se emite S/N.
+                'con_credito_fiscal' => 'nullable|boolean',
+                'factura_razon_social' => 'nullable|required_if:con_credito_fiscal,true|string|max:255',
+                'factura_tipo_documento' => ['nullable', 'required_if:con_credito_fiscal,true', Rule::in(TipoDocumento::codigos())],
+                'factura_numero_documento' => 'nullable|required_if:con_credito_fiscal,true|string|max:20',
+                'factura_complemento' => 'nullable|string|max:5',
                 'es_pago_total' => 'nullable|boolean',
                 'idempotency_key' => 'nullable|string|max:64',
             ]);
@@ -576,12 +587,16 @@ class CajaOperativaController extends Controller
                 ], 400);
             }
 
-            // Datos de facturación en la cuenta principal
-            if ($request->ci_nit_facturacion) {
-                $cuenta->ci_nit_facturacion = $request->ci_nit_facturacion;
-            }
-            if ($request->razon_social) {
-                $cuenta->razon_social = $request->razon_social;
+            // Datos fiscales del receptor en la cuenta principal. Sólo se escriben cuando
+            // se declara crédito fiscal, para no pisar datos capturados en un cobro parcial
+            // previo. Sin crédito fiscal la cuenta se emite S/N (ver CuentaCobro::receptorFiscal).
+            $receptor = $this->resolverReceptor($request);
+            if ($receptor['con_credito_fiscal']) {
+                $cuenta->con_credito_fiscal = true;
+                $cuenta->ci_nit_facturacion = $receptor['numero_documento'];
+                $cuenta->razon_social = $receptor['razon_social'];
+                $cuenta->factura_tipo_documento = $receptor['tipo_documento'];
+                $cuenta->factura_complemento = $receptor['complemento'];
             }
             $cuenta->caja_session_id = $cajaAbierta->id;
             $cuenta->save();
@@ -706,6 +721,12 @@ class CajaOperativaController extends Controller
                 ]
             ]);
 
+        } catch (ValidationException $e) {
+            // La validación corre antes de beginTransaction; no hay nada que revertir.
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first()
+            ], 422);
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -713,6 +734,27 @@ class CajaOperativaController extends Controller
                 'message' => 'Error al procesar cobro: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Normaliza los datos fiscales del receptor que llegan del modal de cobro.
+     * Mismo contrato que Farmacia\PuntoVentaController::resolverReceptor.
+     */
+    private function resolverReceptor(Request $request): array
+    {
+        if (! $request->boolean('con_credito_fiscal')) {
+            return ['con_credito_fiscal' => false];
+        }
+
+        $complemento = trim((string) $request->input('factura_complemento'));
+
+        return [
+            'con_credito_fiscal' => true,
+            'razon_social' => trim((string) $request->input('factura_razon_social')),
+            'tipo_documento' => (int) $request->input('factura_tipo_documento'),
+            'numero_documento' => trim((string) $request->input('factura_numero_documento')),
+            'complemento' => $complemento !== '' ? $complemento : null,
+        ];
     }
 
     /**

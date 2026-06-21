@@ -208,15 +208,42 @@
                         <label class="block text-sm font-medium text-gray-700">Referencia / Observación</label>
                         <input type="text" id="referenciaPago" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                     </div>
-                    <div class="grid grid-cols-2 gap-4 border-t pt-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">NIT/CI para Factura</label>
-                            <input type="text" id="ciNitFactura" class="mt-1 block w-full rounded-md border-gray-300">
+                    {{-- Datos fiscales del receptor (SFE-ready). Si no se activa, se emite S/N. --}}
+                    <div class="border-t pt-4 space-y-3">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer select-none">
+                            <input type="checkbox" id="conCreditoFiscal" class="rounded text-blue-600" onchange="toggleDatosFactura()">
+                            Factura con datos (crédito fiscal)
+                        </label>
+                        <div id="bloqueDatosFactura" class="hidden space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Razón social / Nombre</label>
+                                <input type="text" id="razonSocialFactura" class="mt-1 block w-full rounded-md border-gray-300"
+                                    placeholder="Nombre tal cual va en la factura">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Tipo doc.</label>
+                                    <select id="tipoDocumentoFactura" class="mt-1 block w-full rounded-md border-gray-300" onchange="toggleComplemento()">
+                                        @foreach (\App\Support\TipoDocumento::options() as $opt)
+                                            <option value="{{ $opt['code'] }}" @selected($opt['code'] === \App\Support\TipoDocumento::NIT->value)>{{ $opt['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">N° documento</label>
+                                    <input type="text" inputmode="numeric" id="ciNitFactura" class="mt-1 block w-full rounded-md border-gray-300"
+                                        placeholder="NIT o CI">
+                                </div>
+                            </div>
+                            <div id="bloqueComplemento" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700">Complemento (opcional)</label>
+                                <input type="text" id="complementoFactura" maxlength="5" class="mt-1 block w-full rounded-md border-gray-300"
+                                    placeholder="Ej: 1A">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Razón Social</label>
-                            <input type="text" id="razonSocialFactura" class="mt-1 block w-full rounded-md border-gray-300">
-                        </div>
+                        <p id="hintSinNombre" class="text-xs text-gray-400 leading-snug">
+                            Se emitirá <span class="font-semibold">sin nombre (S/N)</span>. Activá la casilla si el cliente pide factura con su NIT.
+                        </p>
                     </div>
                     <label class="flex items-center gap-2 text-sm font-bold text-blue-600 cursor-pointer select-none">
                         <input type="checkbox" id="esPagoTotal" class="rounded text-blue-600"> Marcar como Pago Total
@@ -597,10 +624,29 @@
                 </div>
             `;
             document.getElementById('montoPago').value = parseFloat(cuentaActual.saldo_pendiente).toFixed(2);
-            document.getElementById('ciNitFactura').value = cuentaActual.ci_nit_facturacion || '';
+            // Prefill datos fiscales del receptor
+            document.getElementById('conCreditoFiscal').checked = !!cuentaActual.con_credito_fiscal;
             document.getElementById('razonSocialFactura').value = cuentaActual.razon_social || '';
+            document.getElementById('tipoDocumentoFactura').value = cuentaActual.factura_tipo_documento || {{ \App\Support\TipoDocumento::NIT->value }};
+            document.getElementById('ciNitFactura').value = cuentaActual.ci_nit_facturacion || '';
+            document.getElementById('complementoFactura').value = cuentaActual.factura_complemento || '';
+            toggleDatosFactura();
             document.getElementById('modalCobro').classList.remove('hidden');
         }
+    }
+
+    // Muestra/oculta el bloque de datos fiscales según el toggle de crédito fiscal.
+    function toggleDatosFactura() {
+        const on = document.getElementById('conCreditoFiscal').checked;
+        document.getElementById('bloqueDatosFactura').classList.toggle('hidden', !on);
+        document.getElementById('hintSinNombre').classList.toggle('hidden', on);
+        if (on) toggleComplemento();
+    }
+
+    // El complemento sólo aplica a CI (tipo documento = 1).
+    function toggleComplemento() {
+        const esCI = document.getElementById('tipoDocumentoFactura').value === '1';
+        document.getElementById('bloqueComplemento').classList.toggle('hidden', !esCI);
     }
 
     async function procesarCobro() {
@@ -615,8 +661,11 @@
             monto: document.getElementById('montoPago').value,
             metodo_pago: document.getElementById('metodoPago').value,
             referencia: document.getElementById('referenciaPago').value,
-            ci_nit_facturacion: document.getElementById('ciNitFactura').value,
-            razon_social: document.getElementById('razonSocialFactura').value,
+            con_credito_fiscal: document.getElementById('conCreditoFiscal').checked,
+            factura_razon_social: document.getElementById('razonSocialFactura').value,
+            factura_tipo_documento: document.getElementById('tipoDocumentoFactura').value,
+            factura_numero_documento: document.getElementById('ciNitFactura').value,
+            factura_complemento: document.getElementById('complementoFactura').value,
             es_pago_total: document.getElementById('esPagoTotal').checked,
             idempotency_key: idempotencyKeyCobro
         };

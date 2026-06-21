@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use App\Support\Money;
+use App\Support\TipoDocumento;
 
 class CuentaCobro extends Model
 {
@@ -33,6 +34,9 @@ class CuentaCobro extends Model
         'episodio_id',
         'ci_nit_facturacion',
         'razon_social',
+        'factura_tipo_documento',
+        'factura_complemento',
+        'con_credito_fiscal',
         'caja_session_id',
         'user_caja_id',
         'observaciones',
@@ -50,6 +54,8 @@ class CuentaCobro extends Model
         'total_pagado' => 'decimal:2',
         'es_emergencia' => 'boolean',
         'es_post_pago' => 'boolean',
+        'con_credito_fiscal' => 'boolean',
+        'factura_tipo_documento' => 'integer',
         'seguro_fecha_autorizacion' => 'datetime',
         'seguro_monto_cobertura' => 'decimal:2',
         'seguro_monto_paciente' => 'decimal:2',
@@ -70,6 +76,40 @@ class CuentaCobro extends Model
         $cobertura = $this->seguro_estado === 'autorizado' ? $this->seguro_monto_cobertura : 0;
         $saldo = Money::sub(Money::sub($this->total_calculado, $cobertura), $this->total_pagado);
         return (float) Money::clampZero($saldo);
+    }
+
+    /** Etiqueta SIN del tipo de documento del receptor (CI/NIT/...) o '—'. */
+    public function getTipoDocumentoLabelAttribute(): string
+    {
+        return TipoDocumento::labelFor($this->factura_tipo_documento);
+    }
+
+    /**
+     * Datos fiscales del receptor normalizados (fuente única para comprobante/RCV/SFE).
+     * Si no se pidió crédito fiscal se devuelve el caso "sin nombre" (S/N · NIT · 0),
+     * sin necesidad de materializarlo en la BD. Mismo resultado que ventas_farmacia.
+     */
+    public function receptorFiscal(): array
+    {
+        if (! $this->con_credito_fiscal) {
+            return [
+                'con_credito_fiscal' => false,
+                'razon_social' => TipoDocumento::SIN_NOMBRE_RAZON,
+                'tipo_documento' => TipoDocumento::SIN_NOMBRE_TIPO->value,
+                'tipo_documento_label' => TipoDocumento::SIN_NOMBRE_TIPO->label(),
+                'numero_documento' => TipoDocumento::SIN_NOMBRE_DOC,
+                'complemento' => null,
+            ];
+        }
+
+        return [
+            'con_credito_fiscal' => true,
+            'razon_social' => $this->razon_social,
+            'tipo_documento' => $this->factura_tipo_documento,
+            'tipo_documento_label' => TipoDocumento::labelFor($this->factura_tipo_documento),
+            'numero_documento' => $this->ci_nit_facturacion,
+            'complemento' => $this->factura_complemento,
+        ];
     }
 
     // Relaciones

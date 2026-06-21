@@ -125,8 +125,11 @@
     $cantFmt = fn($c) => fmod((float) $c, 1.0) == 0.0 ? (string) (int) $c : rtrim(rtrim(number_format((float) $c, 2), '0'), '.');
 
     $pacienteNombre = $cuenta->paciente?->nombre ?? 'N/A';
-    $documento      = $cuenta->ci_nit_facturacion ?: ($cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code ?? '0');
-    $razonSocial    = $cuenta->razon_social ?: $pacienteNombre;
+    // Receptor fiscal: solo se muestra cuando el cliente pidió factura con datos.
+    // Sin crédito fiscal NO se rellena con datos del paciente: las filas se omiten.
+    $documento   = trim($cuenta->ci_nit_facturacion . ($cuenta->factura_complemento ? '-' . $cuenta->factura_complemento : ''));
+    $razonSocial = $cuenta->razon_social;
+    $tipoDocLbl  = $cuenta->tipo_documento_label ?: 'NIT/CI/CEX';
 @endphp
 
     <div class="hoja">
@@ -161,8 +164,10 @@
         <div class="pagina">Página 1 de 1</div>
         <div class="datos">
             <div class="row"><span class="k">Fecha:</span><span class="v">{{ now()->format('d/m/Y  h:i a') }}</span></div>
-            <div class="row"><span class="k">NIT/CI/CEX:</span><span class="v">{{ $documento }}</span></div>
+            @if($cuenta->con_credito_fiscal)
+            <div class="row"><span class="k">{{ $tipoDocLbl }}:</span><span class="v">{{ $documento }}</span></div>
             <div class="row"><span class="k">Nombre/Razón Social:</span><span class="v">{{ $razonSocial }}</span></div>
+            @endif
             <div class="row"><span class="k">Tipo de atención:</span><span class="v">{{ $cuenta->tipo_atencion_label }}</span></div>
             <div class="row"><span class="k">Paciente:</span><span class="v">{{ $pacienteNombre }}</span></div>
             @if($cuenta->cajaSession?->user)

@@ -37,12 +37,29 @@ return new class extends Migration
             $table->string('codigo_autorizacion', 100)->nullable();
             $table->decimal('importe_iva', 12, 2)->default(0);
 
+            // Retención de impuestos (la clínica como agente de retención): pagos sin
+            // factura a personas naturales (p.ej. honorarios médicos). Servicios = IUE
+            // 12,5% + IT 3% = 15,5%; bienes = IUE 5% + IT 3% = 8%. Excluyente con crédito
+            // fiscal. El neto al beneficiario = monto - (retencion_iue + retencion_it).
+            $table->boolean('aplica_retencion')->default(false);
+            $table->string('retencion_tipo', 20)->nullable(); // servicios | bienes
+            $table->decimal('retencion_iue', 12, 2)->default(0);
+            $table->decimal('retencion_it', 12, 2)->default(0);
+
             $table->text('observaciones')->nullable();
             $table->foreignId('user_id')->constrained('users');
+
+            // Inmutabilidad: un egreso no se borra, se anula (reversible + auditado).
+            // El registro permanece visible para la auditoría; los anulados no suman al flujo de caja.
+            $table->timestamp('anulado_at')->nullable();
+            $table->foreignId('anulado_por')->nullable()->constrained('users');
+            $table->string('motivo_anulacion')->nullable();
+
             $table->timestamps();
 
             $table->index('fecha');
             $table->index('categoria');
+            $table->index('anulado_at');
         });
     }
 

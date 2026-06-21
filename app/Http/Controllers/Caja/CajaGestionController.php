@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Caja;
 
 use App\Exports\ControlCajasExport;
 use App\Exports\MovimientosCajaExport;
+use App\Exports\PagosExport;
 use App\Exports\TransaccionesExport;
 use App\Http\Controllers\Controller;
 use App\Models\CajaSession;
@@ -290,6 +291,9 @@ class CajaGestionController extends Controller
                     'saldo_pendiente' => $cuenta->saldo_pendiente,
                     'ci_nit_facturacion' => $cuenta->ci_nit_facturacion,
                     'razon_social' => $cuenta->razon_social,
+                    'con_credito_fiscal' => (bool) $cuenta->con_credito_fiscal,
+                    'tipo_documento_label' => $cuenta->con_credito_fiscal ? $cuenta->tipo_documento_label : null,
+                    'factura_complemento' => $cuenta->factura_complemento,
                     'fecha_creacion' => $cuenta->created_at->format('d/m/Y H:i'),
                     'usuario_creacion' => $cuenta->cajaSession?->user?->name ?? 'Sistema',
                     'detalles' => $cuenta->detalles->map(function ($detalle) {
@@ -672,6 +676,60 @@ class CajaGestionController extends Controller
                 'message' => 'Error al cargar usuarios: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * API: Historial de pagos (recibos PAGO-). Devuelve TODOS los pagos sin importar
+     * fecha ni caja; búsqueda libre por nº de recibo/cuenta/referencia/paciente.
+     */
+    public function getHistorialPagos(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'q' => 'nullable|string|max:100',
+                'fecha_inicio' => 'nullable|date',
+                'fecha_fin' => 'nullable|date',
+                'metodo_pago' => 'nullable|in:efectivo,transferencia,tarjeta,qr,todos',
+            ]);
+
+            $pagos = PagoCuenta::with(['cuentaCobro.paciente', 'user'])
+                ->filtrarHistorial($request->all())
+                ->orderBy('created_at', 'desc')
+                ->paginate(25)
+                ->through(function ($pago) {
+                    $paciente = $pago->cuentaCobro?->paciente;
+
+                    return [
+                        'id' => $pago->id,
+                        'cuenta_cobro_id' => $pago->cuenta_cobro_id,
+                        'paciente' => $paciente?->nombre ?? 'N/A',
+                        'ci' => $paciente?->ci ?? $paciente?->temp_code ?? 'N/A',
+                        'monto' => $pago->monto,
+                        'metodo_pago' => $pago->metodo_pago_label,
+                        'referencia' => $pago->referencia,
+                        'usuario' => $pago->user?->name ?? 'Sistema',
+                        'caja_session_id' => $pago->caja_session_id,
+                        'fecha' => $pago->created_at->format('d/m/Y H:i'),
+                    ];
+                });
+
+            return response()->json(['success' => true, 'pagos' => $pagos]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar pagos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Exporta el historial de pagos a Excel. Sin filtros = todos; con filtros = la
+     * vista dinámica actual (mismo scope `filtrarHistorial` que el listado).
+     */
+    public function exportarPagos(Request $request)
+    {
+        $nombre = 'historial_pagos_' . now()->format('d-m-Y_H-i') . '.xlsx';
+        return Excel::download(new PagosExport($request->all()), $nombre);
     }
 
     // La eliminación de detalles se unificó en

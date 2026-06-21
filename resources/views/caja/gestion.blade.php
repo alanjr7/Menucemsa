@@ -100,24 +100,28 @@
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex" aria-label="Tabs">
                         <button onclick="cambiarTab('transacciones')" id="tab-transacciones"
-                            class="w-1/5 py-4 px-1 text-center border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
+                            class="flex-1 py-4 px-1 text-center border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
                             Transacciones
                         </button>
                         <button onclick="cambiarTab('control')" id="tab-control"
-                            class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            class="flex-1 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
                             Control de Cajas
                         </button>
                         <button onclick="cambiarTab('resumen')" id="tab-resumen"
-                            class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            class="flex-1 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
                             Resumen Financiero
                         </button>
                         <button onclick="cambiarTab('auditoria')" id="tab-auditoria"
-                            class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            class="flex-1 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
                             Auditoría
                         </button>
                         <button onclick="cambiarTab('items-eliminados')" id="tab-items-eliminados"
-                            class="w-1/5 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            class="flex-1 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
                             Ítems Eliminados
+                        </button>
+                        <button onclick="cambiarTab('historial')" id="tab-historial"
+                            class="flex-1 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            Historial de Pagos
                         </button>
                     </nav>
                 </div>
@@ -407,6 +411,73 @@
                     </div>
                     <div id="paginacionItemsEliminados" class="mt-4"></div>
                 </div>
+
+                <!-- Tab: Historial de Pagos (todos los recibos, cualquier fecha/caja) -->
+                <div id="panel-historial" class="p-4 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+                        <h4 class="text-md font-medium text-gray-900">Historial de Pagos</h4>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <input type="text" id="filtroPagosBuscar" placeholder="Nº recibo, cuenta o paciente..."
+                                onkeydown="if(event.key==='Enter') cargarHistorialPagos(1)"
+                                class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 w-56">
+                            <input type="date" id="filtroPagosFechaInicio"
+                                class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <span class="text-gray-500">-</span>
+                            <input type="date" id="filtroPagosFechaFin"
+                                class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <select id="filtroPagosMetodo"
+                                class="text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="todos">Todos los métodos</option>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="qr">QR</option>
+                            </select>
+                            <button onclick="cargarHistorialPagos(1)"
+                                class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="verTodosPagos()"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                Ver Todos
+                            </button>
+                            <button onclick="exportarExcelPagos()"
+                                class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-md shadow-sm transition-colors">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                EXCEL
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recibo</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuenta</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referencia</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cajero</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="tablaHistorialPagos">
+                                <tr>
+                                    <td colspan="9" class="px-4 py-4 text-center text-gray-500">Cargando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="paginacionHistorialPagos" class="mt-4"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -464,7 +535,7 @@
             // Cambiar entre tabs
             function cambiarTab(tab) {
                 // Ocultar todos los panels
-                ['transacciones', 'control', 'resumen', 'auditoria', 'items-eliminados'].forEach(t => {
+                ['transacciones', 'control', 'resumen', 'auditoria', 'items-eliminados', 'historial'].forEach(t => {
                     document.getElementById('panel-' + t).classList.add('hidden');
                     document.getElementById('tab-' + t).classList.remove('border-blue-500', 'text-blue-600');
                     document.getElementById('tab-' + t).classList.add('border-transparent', 'text-gray-500');
@@ -479,6 +550,7 @@
                 if (tab === 'control') cargarControlCajas();
                 if (tab === 'auditoria') cargarAuditoria();
                 if (tab === 'items-eliminados') cargarItemsEliminados();
+                if (tab === 'historial') cargarHistorialPagos();
             }
 
             // Cargar estadísticas principales desde el servidor
@@ -789,13 +861,13 @@
                                                                         `).join('')}
                             </div>
                         </div>
-                        ${t.ci_nit_facturacion ? `
+                        ${t.con_credito_fiscal ? `
                                                                     <div class="border-t pt-4">
                                                                         <h5 class="font-medium text-gray-900 mb-2">Datos de Facturación:</h5>
-                                                                        <p class="text-sm"><span class="text-gray-500">CI/NIT:</span> ${t.ci_nit_facturacion}</p>
-                                                                        <p class="text-sm"><span class="text-gray-500">Razón Social:</span> ${t.razon_social}</p>
+                                                                        <p class="text-sm"><span class="text-gray-500">${t.tipo_documento_label || 'CI/NIT'}:</span> ${t.ci_nit_facturacion || ''}${t.factura_complemento ? '-' + t.factura_complemento : ''}</p>
+                                                                        <p class="text-sm"><span class="text-gray-500">Razón Social:</span> ${t.razon_social || ''}</p>
                                                                     </div>
-                                                                ` : '<div class="border-t pt-4"><p class="text-yellow-600 text-sm"><strong>Sin datos de facturación completos</strong></p></div>'}
+                                                                ` : '<div class="border-t pt-4"><p class="text-gray-500 text-sm">Sin crédito fiscal — se emite <strong>S/N</strong></p></div>'}
                     `;
                         document.getElementById('detalleTransaccionContent').dataset.cuentaId = id;
                         document.getElementById('modalDetalle').classList.remove('hidden');
@@ -1013,6 +1085,71 @@
                     `{{ route('caja.gestion.exportar.transacciones') }}?fecha_inicio=${inicio}&fecha_fin=${fin}&estado=${estado}&tipo_flujo=${flujo}`;
 
                 window.location.href = url;
+            }
+
+            // ---- Historial de Pagos (todos los recibos, cualquier fecha/caja) ----
+            function pagosParams(extra = {}) {
+                return new URLSearchParams({
+                    q: document.getElementById('filtroPagosBuscar').value,
+                    fecha_inicio: document.getElementById('filtroPagosFechaInicio').value,
+                    fecha_fin: document.getElementById('filtroPagosFechaFin').value,
+                    metodo_pago: document.getElementById('filtroPagosMetodo').value,
+                    ...extra
+                });
+            }
+
+            async function cargarHistorialPagos(page = 1) {
+                try {
+                    const response = await fetch(`{{ route('caja.gestion.historial-pagos') }}?${pagosParams({ page })}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        renderizarHistorialPagos(data.pagos.data);
+                        renderizarPaginacion('paginacionHistorialPagos', data.pagos, 'cargarHistorialPagos');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('tablaHistorialPagos').innerHTML =
+                        '<tr><td colspan="9" class="px-4 py-4 text-center text-red-500">Error al cargar pagos</td></tr>';
+                }
+            }
+
+            function renderizarHistorialPagos(pagos) {
+                const tbody = document.getElementById('tablaHistorialPagos');
+                if (!pagos.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-4 text-center text-gray-500">No hay pagos</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = pagos.map(p => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">${p.id}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${p.cuenta_cobro_id}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${p.fecha}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${p.paciente}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">${p.metodo_pago}</span></td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${p.referencia ? p.referencia : '<span class="text-gray-400">-</span>'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-green-600">Bs ${parseFloat(p.monto).toFixed(2)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${p.usuario}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            <a href="{{ url('caja-operativa/comprobante') }}/${encodeURIComponent(p.cuenta_cobro_id)}" target="_blank"
+                               class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50" title="Imprimir recibo">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                Recibo
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            function verTodosPagos() {
+                document.getElementById('filtroPagosBuscar').value = '';
+                document.getElementById('filtroPagosFechaInicio').value = '';
+                document.getElementById('filtroPagosFechaFin').value = '';
+                document.getElementById('filtroPagosMetodo').value = 'todos';
+                cargarHistorialPagos(1);
+            }
+
+            function exportarExcelPagos() {
+                window.location.href = `{{ route('caja.gestion.exportar.pagos') }}?${pagosParams()}`;
             }
         </script>
     @endpush

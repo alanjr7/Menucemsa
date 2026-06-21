@@ -12,6 +12,11 @@ return new class extends Migration
             $table->string('id')->primary();
             $table->string('cuenta_cobro_id');
             $table->decimal('monto', 10, 2);
+            // Débito fiscal IVA (Libro de Ventas): el monto cobrado incluye IVA 13% (por
+            // dentro). base_imponible = monto; debito_fiscal = monto * 13%. Es la contraparte
+            // del crédito fiscal de compras (egresos). Aditivo, no altera el cobro.
+            $table->decimal('base_imponible', 10, 2)->default(0);
+            $table->decimal('debito_fiscal', 10, 2)->default(0);
             $table->enum('metodo_pago', ['efectivo', 'transferencia', 'tarjeta', 'qr']);
             $table->string('referencia')->nullable();
             $table->foreignId('user_id')->constrained('users');

@@ -23,8 +23,15 @@ return new class extends Migration
                 ->comment('Número de episodio del paciente, se incrementa en cada nuevo ingreso');
             $table->unsignedBigInteger('episodio_id')->nullable();
             $table->foreign('episodio_id')->references('id')->on('episodios')->nullOnDelete();
+            // Datos fiscales del receptor (SFE-ready). ci_nit_facturacion = N° de documento;
+            // factura_tipo_documento lo desambigua (CI vs NIT vs...). con_credito_fiscal = el
+            // cliente pidió factura con sus datos; si false se emite S/N. Mismo modelo que
+            // ventas_farmacia para uniformar el snapshot fiscal entre canales de venta.
             $table->string('ci_nit_facturacion', 30)->nullable();
             $table->string('razon_social', 255)->nullable();
+            $table->unsignedTinyInteger('factura_tipo_documento')->nullable(); // catálogo SIN: 1=CI,2=CEX,3=Pas,4=Otro,5=NIT
+            $table->string('factura_complemento', 5)->nullable();              // complemento alfanumérico del CI
+            $table->boolean('con_credito_fiscal')->default(false);
             $table->foreignId('caja_session_id')->nullable()->constrained('caja_sessions');
             $table->foreignId('user_caja_id')->nullable()->constrained('users');
             $table->text('observaciones')->nullable();

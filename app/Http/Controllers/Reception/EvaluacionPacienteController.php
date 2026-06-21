@@ -29,11 +29,23 @@ class EvaluacionPacienteController extends Controller
         'enfermera-internacion' => 'internacion',
         'cirujano' => 'cirugia',
         'neonato' => 'neonato',
+        // admin/administrador evalúan contra el almacén central
+        'admin' => 'central',
+        'administrador' => 'central',
     ];
 
     private function areaFromRole(string $role): string
     {
         return self::$roleAreaMap[$role] ?? 'emergencia';
+    }
+
+    /**
+     * Roles que evalúan de forma transversal: medicamentos/insumos del almacén
+     * central y procedimientos de todas las áreas (no se filtra por un área única).
+     */
+    private function verTodasLasAreas(): bool
+    {
+        return in_array(auth()->user()->role, ['admin', 'administrador'], true);
     }
 
     private function resolvePaciente(string $identifier): Paciente
@@ -307,11 +319,11 @@ class EvaluacionPacienteController extends Controller
 
     public function buscarProcedimientos(Request $request): JsonResponse
     {
-        $area = $this->resolveArea($request);
         $q = $request->input('q', '');
 
         $procedimientos = Procedimiento::activos()
-            ->porArea($area)
+            // admin/administrador ven procedimientos de todas las áreas; el resto, solo su área
+            ->when(! $this->verTodasLasAreas(), fn ($query) => $query->porArea($this->resolveArea($request)))
             ->where('nombre', 'like', "%{$q}%")
             ->select('id', 'nombre', 'precio')
             ->get();

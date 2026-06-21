@@ -272,7 +272,7 @@ class MenuSeeder extends Seeder
         // 7. Administración (Financiera - admin y administrador)
         $admin = Menu::create([
             'name' => 'Administración',
-            'active_pattern' => 'caja.gestion*,caja.contabilidad*,admin.seguros*,admin.ingreso-precios*,admin.almacen-inventario*,admin.cuentas*,admin.ajustes-pacientes*',
+            'active_pattern' => 'caja.gestion*,admin.seguros*,admin.ingreso-precios*,admin.almacen-inventario*,admin.cuentas*,admin.ajustes-pacientes*',
             'icon_path' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
             'color' => 'purple',
             'roles' => 'admin,administrador',
@@ -289,9 +289,28 @@ class MenuSeeder extends Seeder
             ['name' => 'Almacén Inventario', 'route' => 'admin.almacen-inventario.index', 'roles' => 'admin,administrador', 'order' => 10],
             ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 11],
             ['name' => 'Cobro de Pacientes', 'route' => 'caja.operativa.index', 'order' => 12],
-            ['name' => 'Contabilidad', 'route' => 'caja.contabilidad.index', 'roles' => 'admin,administrador', 'order' => 13],
-           
             ]);
+
+        // 7.4 Contabilidad — módulo financiero/contable propio (antes vivía como un hijo
+        // suelto dentro de "Administración"). Es la capa de consolidación/respaldo sobre
+        // caja + almacén: libro de caja (ingresos automáticos + egresos con crédito fiscal
+        // y retenciones), cierre de período inmutable y homologación SIN. Incluye al rol
+        // `gerente` a paridad con las rutas `caja.contabilidad.*` (audiencia contable).
+        $contabilidad = Menu::create([
+            'name' => 'Contabilidad',
+            'active_pattern' => 'caja.contabilidad*',
+            'icon_path' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
+            'color' => 'emerald',
+            'roles' => 'admin,administrador,gerente',
+            'order' => 55,
+        ]);
+        // NOTA: el "Cierre de Período" NO es submenú — es un modal + panel dentro del
+        // Libro de Caja (botón "Cerrar Período"). Su ruta `cierres.index` es un endpoint
+        // JSON que alimenta ese panel vía fetch, no una vista navegable.
+        $contabilidad->children()->createMany([
+            ['name' => 'Libro de Caja',    'route' => 'caja.contabilidad.index',           'roles' => 'admin,administrador,gerente', 'order' => 1],
+            ['name' => 'Homologación SIN', 'route' => 'caja.contabilidad.homologacion-sin', 'roles' => 'admin,administrador,gerente', 'order' => 2],
+        ]);
 
         // 7.5 Proformas (Cotizaciones) — TODOS los roles.
         // Es una herramienta administrativa pero accesible a todo el personal:
