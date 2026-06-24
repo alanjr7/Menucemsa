@@ -114,9 +114,7 @@
                     <option value="central" {{ request('area', 'central') == 'central' ? 'selected' : '' }}>Central</option>
                     <option value="emergencia" {{ request('area') == 'emergencia' ? 'selected' : '' }}>Emergencia</option>
                     <option value="cirugia" {{ request('area') == 'cirugia' ? 'selected' : '' }}>Cirugía</option>
-                    <option value="hospitalizacion" {{ request('area') == 'hospitalizacion' ? 'selected' : '' }}>Hospitalización</option>
-                    <option value="uti" {{ request('area') == 'uti' ? 'selected' : '' }}>UTI</option>
-                    <option value="usi" {{ request('area') == 'usi' ? 'selected' : '' }}>USI</option>
+                     <option value="uti" {{ request('area') == 'uti' ? 'selected' : '' }}>UTI</option>
                     <option value="farmacia" {{ request('area') == 'farmacia' ? 'selected' : '' }}>Farmacia</option>
                     <option value="neonato" {{ request('area') == 'neonato' ? 'selected' : '' }}>Neonato</option>
                     <option value="internacion" {{ request('area') == 'internacion' ? 'selected' : '' }}>Internación</option>
@@ -195,7 +193,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">P. Compra (ref.)</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">P. Venta</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ganancia (ref.)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ganancia (Bs)</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento (próx.)</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                     </tr>
@@ -263,7 +261,7 @@
                             'stock' => $l->stocks->where('ubicacion', $ubicFila)->sum('cantidad_actual'),
                             'precio_compra' => $l->precio_compra,
                             'precio_venta' => $l->precio_venta,
-                            'ganancia' => $l->porcentaje_ganancia,
+                            'ganancia' => $l->ganancia,
                             'vencimiento' => $l->fecha_vencimiento,
                         ])
                         ->filter(fn($l) => $l->stock > 0)
@@ -272,7 +270,7 @@
 
                     $aggCompra = $aggPrecio($lotesFila->pluck('precio_compra'));
                     $aggVenta = $aggPrecio($lotesFila->pluck('precio_venta'));
-                    $aggGanancia = $aggPrecio($lotesFila->pluck('ganancia'), '%', '');
+                    $aggGanancia = $aggPrecio($lotesFila->pluck('ganancia'));
                 @endphp
                 <tbody class="bg-white divide-y divide-gray-200" x-data="{ open: false }">
                     <tr class="hover:bg-gray-50">
@@ -419,7 +417,7 @@
                                             <td class="px-3 py-1.5 text-right font-medium">{{ $l->stock }} {{ $item->unidad_medida }}</td>
                                             <td class="px-3 py-1.5 text-right">{{ $l->precio_compra !== null ? 'Bs. '.number_format($l->precio_compra, 2) : '—' }}</td>
                                             <td class="px-3 py-1.5 text-right font-semibold text-emerald-700">{{ $l->precio_venta !== null ? 'Bs. '.number_format($l->precio_venta, 2) : '—' }}</td>
-                                            <td class="px-3 py-1.5 text-right">{{ $l->ganancia !== null ? number_format($l->ganancia, 2).'%' : '—' }}</td>
+                                            <td class="px-3 py-1.5 text-right">{{ $l->ganancia !== null ? 'Bs. '.number_format($l->ganancia, 2) : '—' }}</td>
                                             <td class="px-3 py-1.5">
                                                 @if($l->vencimiento)
                                                     <span class="{{ $l->vencimiento->diffInDays(now()) <= 30 && $l->vencimiento->isFuture() ? 'text-amber-600 font-medium' : 'text-gray-600' }}">{{ $l->vencimiento->format('d/m/Y') }}</span>

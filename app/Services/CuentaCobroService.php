@@ -553,10 +553,8 @@ class CuentaCobroService
                     if ($lote->precio_venta && $lote->precio_venta > 0) {
                         $precioUnitario = (float) $lote->precio_venta;
                     } elseif ($lote->precio_compra !== null) {
-                        // precio_compra * (1 + ganancia/100) = precio_compra + (precio_compra * ganancia)/100
-                        $g = $lote->porcentaje_ganancia ?? 0;
-                        $margen = Money::div(Money::mul($lote->precio_compra, $g), 100);
-                        $precioUnitario = (float) Money::add($lote->precio_compra, $margen);
+                        // precio_venta = precio_compra + ganancia (Bs). La ganancia es un monto absoluto.
+                        $precioUnitario = (float) Money::add($lote->precio_compra, $lote->ganancia ?? 0);
                     } else {
                         // fallback al precio_unitario pasado por quien llamó
                         $precioUnitario = (float) ($med['precio_unitario'] ?? 0);

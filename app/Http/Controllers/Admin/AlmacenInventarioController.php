@@ -11,7 +11,7 @@ class AlmacenInventarioController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin|administrador');
+        $this->middleware('role:admin|administrador|almacenista');
     }
 
     public function index(Request $request)

@@ -666,9 +666,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-a
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="porcentaje_ganancia_{INDEX}">% Ganancia</label>
-                <input type="number" id="porcentaje_ganancia_{INDEX}" name="lotes[{INDEX}][porcentaje_ganancia]"
-                       step="0.01" min="0" max="999" placeholder="0"
+                <label class="form-label" for="ganancia_{INDEX}">Ganancia (Bs)</label>
+                <input type="number" id="ganancia_{INDEX}" name="lotes[{INDEX}][ganancia]"
+                       step="0.01" min="0" placeholder="0.00"
                        class="form-input"
                        onchange="calcularPrecioVenta({INDEX})">
             </div>
@@ -678,7 +678,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-a
                 <input type="number" id="precio_venta_{INDEX}" name="lotes[{INDEX}][precio_venta]"
                        step="0.01" min="0" placeholder="0.00"
                        class="form-input"
-                       onchange="calcularPorcentaje({INDEX})">
+                       onchange="calcularGanancia({INDEX})">
             </div>
         </div>
 
@@ -889,10 +889,10 @@ function crearLoteHtml(lote, index) {
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="porcentaje_ganancia_${index}">% Ganancia</label>
-                    <input type="number" id="porcentaje_ganancia_${index}" name="lotes[${index}][porcentaje_ganancia]"
-                           step="0.01" min="0" max="999" placeholder="0"
-                           value="${lote.porcentaje_ganancia || ''}"
+                    <label class="form-label" for="ganancia_${index}">Ganancia (Bs)</label>
+                    <input type="number" id="ganancia_${index}" name="lotes[${index}][ganancia]"
+                           step="0.01" min="0" placeholder="0.00"
+                           value="${lote.ganancia || ''}"
                            class="form-input"
                            onchange="calcularPrecioVenta(${index})">
                 </div>
@@ -903,7 +903,7 @@ function crearLoteHtml(lote, index) {
                            step="0.01" min="0" placeholder="0.00"
                            value="${lote.precio_venta || ''}"
                            class="form-input"
-                           onchange="calcularPorcentaje(${index})">
+                           onchange="calcularGanancia(${index})">
                 </div>
             </div>
 
@@ -946,8 +946,8 @@ function eliminarLote(button) {
 
 function calcularPrecioVenta(index) {
     const precioCompra = parseFloat(document.querySelector(`input[name="lotes[${index}][precio_compra]"]`).value) || 0;
-    const porcentaje = parseFloat(document.querySelector(`input[name="lotes[${index}][porcentaje_ganancia]"]`).value) || 0;
-    const precioVenta = precioCompra * (1 + porcentaje / 100);
+    const ganancia = parseFloat(document.querySelector(`input[name="lotes[${index}][ganancia]"]`).value) || 0;
+    const precioVenta = precioCompra + ganancia;
 
     const precioVentaInput = document.querySelector(`input[name="lotes[${index}][precio_venta]"]`);
     if (precioVenta > 0) {
@@ -955,14 +955,14 @@ function calcularPrecioVenta(index) {
     }
 }
 
-function calcularPorcentaje(index) {
+function calcularGanancia(index) {
     const precioCompra = parseFloat(document.querySelector(`input[name="lotes[${index}][precio_compra]"]`).value) || 0;
     const precioVenta = parseFloat(document.querySelector(`input[name="lotes[${index}][precio_venta]"]`).value) || 0;
 
-    if (precioCompra <= 0 || precioVenta <= 0) return;
+    if (precioVenta <= 0) return;
 
-    const porcentaje = ((precioVenta - precioCompra) / precioCompra) * 100;
-    document.querySelector(`input[name="lotes[${index}][porcentaje_ganancia]"]`).value = porcentaje.toFixed(2);
+    const ganancia = precioVenta - precioCompra;
+    document.querySelector(`input[name="lotes[${index}][ganancia]"]`).value = ganancia.toFixed(2);
 }
 </script>
 @endsection

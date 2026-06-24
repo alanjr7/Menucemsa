@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AlmacenCatalogo;
 use App\Models\AlmacenLote;
 use App\Models\AlmacenStock;
+use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,7 @@ class EmergencyMedicamentosController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin|emergencia|administrador|enfermera-emergencia');
+        $this->middleware('role:admin|emergencia|administrador|enfermera-emergencia|almacenista');
     }
 
     public function index(Request $request)
@@ -89,7 +90,7 @@ class EmergencyMedicamentosController extends Controller
             'laboratorio' => 'nullable|string|max:150',
             'fecha_vencimiento' => 'nullable|date|after:today',
             'precio_compra' => 'required|numeric|decimal:0,2|min:0',
-            'porcentaje_ganancia' => 'required|numeric|decimal:0,2|min:0|max:100',
+            'ganancia' => Money::rules(),
             'cantidad_inicial' => 'required|integer|min:1',
             'stock_minimo' => 'required|integer|min:0',
         ]);
@@ -109,8 +110,8 @@ class EmergencyMedicamentosController extends Controller
                 ]);
             }
 
-            // Calcular precio de venta
-            $precio_venta = $request->precio_compra * (1 + $request->porcentaje_ganancia / 100);
+            // precio_venta = precio_compra + ganancia (Bs)
+            $precio_venta = Money::add($request->precio_compra, $request->ganancia);
 
             // Crear lote
             $lote = AlmacenLote::create([
@@ -120,7 +121,7 @@ class EmergencyMedicamentosController extends Controller
                 'laboratorio' => $request->laboratorio,
                 'fecha_vencimiento' => $request->fecha_vencimiento,
                 'precio_compra' => $request->precio_compra,
-                'porcentaje_ganancia' => $request->porcentaje_ganancia,
+                'ganancia' => $request->ganancia,
                 'precio_venta' => $precio_venta,
                 'cantidad_inicial' => $request->cantidad_inicial,
             ]);

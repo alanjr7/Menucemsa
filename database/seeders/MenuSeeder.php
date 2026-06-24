@@ -138,13 +138,15 @@ class MenuSeeder extends Seeder
             ['name' => 'Camillas',         'route' => 'emergency-staff.camillas.index',  'roles' => 'emergencia', 'order' => 5],
         ]);
 
-        // 5. Pacientes (Con Submenús) - Todos los roles
+        // 5. Pacientes (Con Submenús) - todos los roles EXCEPTO almacenista
+        // (el almacenista es inventario; no gestiona pacientes). Lista explícita en vez
+        // de `null` porque canBeSeenBy es allowlist. admin igual lo ve por isAdmin().
         $pacientes = Menu::create([
             'name' => 'Pacientes',
             'active_pattern' => 'patients*,consulta*,uti*,quirofano*,admin/emergencies*',
             'icon_path' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
             'color' => 'blue',
-            'roles' => null, // Todos los roles
+            'roles' => 'admin,administrador,reception,dirmedico,doctor,caja,gerente,farmacia,emergencia,enfermera-emergencia,internacion,enfermera-internacion,cirujano,uti,neonato',
             'order' => 20,
         ]);
 
@@ -312,17 +314,18 @@ class MenuSeeder extends Seeder
             ['name' => 'Homologación SIN', 'route' => 'caja.contabilidad.homologacion-sin', 'roles' => 'admin,administrador,gerente', 'order' => 2],
         ]);
 
-        // 7.5 Proformas (Cotizaciones) — TODOS los roles.
-        // Es una herramienta administrativa pero accesible a todo el personal:
-        // por eso es un menú propio (el menú "Administración" es solo admin).
-        // La visibilidad de datos (propias vs. todas) se controla en el controlador.
+        // 7.5 Proformas (Cotizaciones) — todos los roles EXCEPTO almacenista.
+        // Es una herramienta administrativa accesible a todo el personal clínico/admin;
+        // el almacenista (inventario) no la usa, así que se lista explícitamente el resto
+        // de roles en vez de `null`. La visibilidad de datos (propias vs. todas) se
+        // controla en el controlador. (admin igual la ve siempre por isAdmin()).
         Menu::create([
             'name' => 'Proformas',
             'route' => 'proformas.index',
             'active_pattern' => 'proformas.*',
             'icon_path' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
             'color' => 'emerald',
-            'roles' => null, // Todos los roles
+            'roles' => 'admin,administrador,reception,dirmedico,doctor,caja,gerente,farmacia,emergencia,enfermera-emergencia,internacion,enfermera-internacion,cirujano,uti,neonato',
             'order' => 48,
         ]);
 
@@ -343,6 +346,28 @@ class MenuSeeder extends Seeder
             ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin,administrador', 'order' => 4],
             ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin,administrador', 'order' => 5],
             ['name' => 'Reporte', 'route' => 'farmacia.reporte', 'roles' => 'farmacia,admin,administrador', 'order' => 6],
+        ]);
+
+        // 9. Almacén — Medicamentos e Insumos (rol almacenista)
+        // Punto único de acceso del almacenista a la gestión de medicamentos/insumos de
+        // TODAS las áreas. Cada hijo apunta al índice de medicamentos de su área; el control
+        // de acceso real lo aplican los grupos de rutas (role:...|almacenista).
+        $almacen = Menu::create([
+            'name' => 'Almacén',
+            'active_pattern' => 'admin.almacen-medicamentos*,admin.almacen-inventario*,emergency-staff.medicamentos*,quirofano.medicamentos*,internacion-staff.medicamentos*,uti.operativa.medicamentos*,neonato.medicamentos',
+            'icon_path' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+            'color' => 'orange',
+            'roles' => 'almacenista',
+            'order' => 38,
+        ]);
+        $almacen->children()->createMany([
+            ['name' => 'Almacén Central',  'route' => 'admin.almacen-medicamentos.index',     'roles' => 'almacenista', 'order' => 1],
+           // ['name' => 'Inventario / Insumos', 'route' => 'admin.almacen-inventario.index',    'roles' => 'almacenista', 'order' => 2],
+            ['name' => 'Emergencias',      'route' => 'emergency-staff.medicamentos.index',    'roles' => 'almacenista', 'order' => 3],
+            ['name' => 'Quirófano',        'route' => 'quirofano.medicamentos.index',          'roles' => 'almacenista', 'order' => 4],
+            ['name' => 'Internación',      'route' => 'internacion-staff.medicamentos.index',  'roles' => 'almacenista', 'order' => 5],
+            ['name' => 'UTI',              'route' => 'uti.operativa.medicamentos.readonly',   'roles' => 'almacenista', 'order' => 6],
+            ['name' => 'Neonatología',     'route' => 'neonato.medicamentos',                  'roles' => 'almacenista', 'order' => 7],
         ]);
 
         // 10. Quirófano (Cirujano)

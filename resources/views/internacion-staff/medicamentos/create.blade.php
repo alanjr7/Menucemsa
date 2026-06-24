@@ -27,7 +27,7 @@
         <input type="text" name="proveedor" placeholder="Proveedor (opcional)" class="w-full px-3 py-2 border rounded mb-4">
         <input type="text" name="laboratorio" placeholder="Laboratorio (ej: Genérico, Bagó)" class="w-full px-3 py-2 border rounded mb-4">
         <input type="number" name="precio_compra" step="0.01" placeholder="Precio Compra" class="w-full px-3 py-2 border rounded mb-4" required>
-        <input type="number" name="porcentaje_ganancia" step="0.01" placeholder="% Ganancia" class="w-full px-3 py-2 border rounded mb-4" required>
+        <input type="number" name="ganancia" step="0.01" min="0" placeholder="Ganancia (Bs)" class="w-full px-3 py-2 border rounded mb-4" required>
         <input type="number" name="cantidad_inicial" placeholder="Cantidad" class="w-full px-3 py-2 border rounded mb-4" required>
         <input type="number" name="stock_minimo" placeholder="Stock Mínimo" class="w-full px-3 py-2 border rounded mb-4" required>
         <input type="date" name="fecha_vencimiento" class="w-full px-3 py-2 border rounded mb-4">

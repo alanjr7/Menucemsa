@@ -28,8 +28,8 @@
         </button>
     </div>
 
-    {{-- ===== DRAWER: Registrar Egreso ===== --}}
-    <div x-show="drawer" class="fixed inset-0 z-40" style="display:none">
+    {{-- ===== MODAL: Registrar Egreso ===== --}}
+    <div x-show="drawer" class="fixed inset-0 z-40 flex items-center justify-center p-4" style="display:none">
         <div class="absolute inset-0 bg-black/40"
              @click="drawer=false"
              x-transition:enter="transition-opacity ease-out duration-300"
@@ -38,14 +38,14 @@
              x-transition:leave="transition-opacity ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"></div>
-        <div class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="translate-x-full"
-             x-transition:enter-end="translate-x-0"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="translate-x-0"
-             x-transition:leave-end="translate-x-full">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+        <div class="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white shrink-0">
                 <div>
                     <h2 class="text-base font-semibold text-gray-900">Registrar Egreso</h2>
                     <p class="text-xs text-gray-500 mt-0.5">Salida de dinero del período</p>
@@ -56,143 +56,153 @@
                     </svg>
                 </button>
             </div>
-            <form @submit.prevent="guardarEgreso()" class="p-5 space-y-4 flex-1">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
-                        <input type="date" x-model="form.fecha" required
-                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Método de pago</label>
-                        <select x-model="form.metodo_pago" required
-                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia</option>
-                            <option value="cheque">Cheque</option>
-                            <option value="tarjeta">Tarjeta</option>
-                            <option value="qr">QR</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
-                    <select x-model="form.categoria" required
-                        class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                        <option value="">Seleccionar categoría...</option>
-                        @foreach ($categorias as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
-                    <input type="text" x-model="form.descripcion" required maxlength="255"
-                        class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                        placeholder="Ej: Pago sueldo enfermería">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Monto (Bs)</label>
-                        <input type="text" inputmode="decimal" x-model="form.monto" required
-                            class="w-full border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Comprobante N° (opc.)</label>
-                        <input type="text" x-model="form.comprobante_nro" maxlength="50"
-                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Proveedor (opc.)</label>
-                    <input type="text" x-model="form.proveedor" maxlength="255"
-                        class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                </div>
+            <form @submit.prevent="guardarEgreso()" class="p-5 flex flex-col gap-4 flex-1 overflow-y-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 items-start">
 
-                {{-- Crédito fiscal --}}
-                <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
-                    <label class="flex items-center gap-3 cursor-pointer select-none">
-                        <input type="checkbox" x-model="form.con_credito_fiscal"
-                            @change="if (form.con_credito_fiscal) form.aplica_retencion = false"
-                            class="rounded border-gray-300 text-green-80h0focus:ring-green-500 w-4 h-4">
-                        <span class="text-sm text-gray-700 font-medium">Factura con crédito fiscal (IVA)</span>
-                    </label>
-                    <div x-show="form.con_credito_fiscal" class="mt-3 space-y-3">
-                        <div class="grid grid-cols-2 gap-2">
+                    {{-- Columna izquierda: datos del egreso --}}
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">NIT proveedor</label>
-                                <input type="text" x-model="form.nit_proveedor" maxlength="20" inputmode="numeric"
-                                    class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                    placeholder="1023456789">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
+                                <input type="date" x-model="form.fecha" required
+                                    class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">N° factura</label>
-                                <input type="text" x-model="form.nro_factura" maxlength="50"
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Método de pago</label>
+                                <select x-model="form.metodo_pago" required
+                                    class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="tarjeta">Tarjeta</option>
+                                    <option value="qr">QR</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+                            <select x-model="form.categoria" required
+                                class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="">Seleccionar categoría...</option>
+                                @foreach ($categorias as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
+                            <input type="text" x-model="form.descripcion" required maxlength="255"
+                                class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                placeholder="Ej: Pago sueldo enfermería">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Monto (Bs)</label>
+                                <input type="text" inputmode="decimal" x-model="form.monto" required
+                                    class="w-full border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                    placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Comprobante N° (opc.)</label>
+                                <input type="text" x-model="form.comprobante_nro" maxlength="50"
                                     class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Cód. autorización / CUF (opc.)</label>
-                            <input type="text" x-model="form.codigo_autorizacion" maxlength="100"
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Proveedor (opc.)</label>
+                            <input type="text" x-model="form.proveedor" maxlength="255"
                                 class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
                         </div>
-                        <div class="flex justify-between items-center bg-cyan-50 border border-cyan-100 rounded-lg px-3 py-2 text-sm">
-                            <span class="text-gray-600">Crédito fiscal IVA (13%)</span>
-                            <span class="font-semibold text-cyan-700 font-mono">Bs. <span x-text="fmt(ivaCalculado())"></span></span>
-                        </div>
                     </div>
-                </div>
 
-                {{-- Retención --}}
-                <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
-                    <label class="flex items-center gap-3 cursor-pointer select-none">
-                        <input type="checkbox" x-model="form.aplica_retencion"
-                            @change="if (form.aplica_retencion) form.con_credito_fiscal = false"
-                            class="rounded border-gray-300 text-amber-600 focus:ring-amber-500 w-4 h-4">
-                        <span class="text-sm text-gray-700 font-medium">Retención (pago sin factura)</span>
-                    </label>
-                    <div x-show="form.aplica_retencion" class="mt-3 space-y-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de retención</label>
-                            <select x-model="form.retencion_tipo"
-                                class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
-                                <option value="servicios">Servicios — IUE 12,5% + IT 3% = 15,5%</option>
-                                <option value="bienes">Bienes — IUE 5% + IT 3% = 8%</option>
-                            </select>
+                    {{-- Columna derecha: opciones fiscales --}}
+                    <div class="space-y-4">
+                        {{-- Crédito fiscal --}}
+                        <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
+                            <label class="flex items-center gap-3 cursor-pointer select-none">
+                                <input type="checkbox" x-model="form.con_credito_fiscal"
+                                    @change="if (form.con_credito_fiscal) form.aplica_retencion = false"
+                                    class="rounded border-gray-300 text-green-600 focus:ring-green-500 w-4 h-4">
+                                <span class="text-sm text-gray-700 font-medium">Factura con crédito fiscal (IVA)</span>
+                            </label>
+                            <div x-show="form.con_credito_fiscal" class="mt-3 space-y-3">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">NIT proveedor</label>
+                                        <input type="text" x-model="form.nit_proveedor" maxlength="20" inputmode="numeric"
+                                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                            placeholder="1023456789">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">N° factura</label>
+                                        <input type="text" x-model="form.nro_factura" maxlength="50"
+                                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Cód. autorización / CUF (opc.)</label>
+                                    <input type="text" x-model="form.codigo_autorizacion" maxlength="100"
+                                        class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                </div>
+                                <div class="flex justify-between items-center bg-cyan-50 border border-cyan-100 rounded-lg px-3 py-2 text-sm">
+                                    <span class="text-gray-600">Crédito fiscal IVA (13%)</span>
+                                    <span class="font-semibold text-cyan-700 font-mono">Bs. <span x-text="fmt(ivaCalculado())"></span></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Beneficiario</label>
-                                <input type="text" x-model="form.proveedor" maxlength="255"
-                                    class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                    placeholder="Nombre completo">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">NIT/CI</label>
-                                <input type="text" x-model="form.nit_proveedor" maxlength="20" inputmode="numeric"
-                                    class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
-                            </div>
-                        </div>
-                        <div class="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 text-sm space-y-1.5">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Retención IUE</span>
-                                <span class="font-medium font-mono">Bs. <span x-text="fmt(retencionCalc().iue)"></span></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Retención IT</span>
-                                <span class="font-medium font-mono">Bs. <span x-text="fmt(retencionCalc().it)"></span></span>
-                            </div>
-                            <div class="flex justify-between border-t border-amber-200 pt-1.5">
-                                <span class="font-medium text-gray-700">Total retenido</span>
-                                <span class="font-semibold text-amber-700 font-mono">Bs. <span x-text="fmt(retencionCalc().total)"></span></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium text-gray-700">Neto al beneficiario</span>
-                                <span class="font-semibold text-emerald-700 font-mono">Bs. <span x-text="fmt(retencionCalc().neto)"></span></span>
+
+                        {{-- Retención --}}
+                        <div class="rounded-xl border border-gray-200 bg-slate-50 p-4">
+                            <label class="flex items-center gap-3 cursor-pointer select-none">
+                                <input type="checkbox" x-model="form.aplica_retencion"
+                                    @change="if (form.aplica_retencion) form.con_credito_fiscal = false"
+                                    class="rounded border-gray-300 text-amber-600 focus:ring-amber-500 w-4 h-4">
+                                <span class="text-sm text-gray-700 font-medium">Retención (pago sin factura)</span>
+                            </label>
+                            <div x-show="form.aplica_retencion" class="mt-3 space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de retención</label>
+                                    <select x-model="form.retencion_tipo"
+                                        class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                        <option value="servicios">Servicios — IUE 12,5% + IT 3% = 15,5%</option>
+                                        <option value="bienes">Bienes — IUE 5% + IT 3% = 8%</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Beneficiario</label>
+                                        <input type="text" x-model="form.proveedor" maxlength="255"
+                                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                            placeholder="Nombre completo">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">NIT/CI</label>
+                                        <input type="text" x-model="form.nit_proveedor" maxlength="20" inputmode="numeric"
+                                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                    </div>
+                                </div>
+                                <div class="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 text-sm space-y-1.5">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Retención IUE</span>
+                                        <span class="font-medium font-mono">Bs. <span x-text="fmt(retencionCalc().iue)"></span></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Retención IT</span>
+                                        <span class="font-medium font-mono">Bs. <span x-text="fmt(retencionCalc().it)"></span></span>
+                                    </div>
+                                    <div class="flex justify-between border-t border-amber-200 pt-1.5">
+                                        <span class="font-medium text-gray-700">Total retenido</span>
+                                        <span class="font-semibold text-amber-700 font-mono">Bs. <span x-text="fmt(retencionCalc().total)"></span></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="font-medium text-gray-700">Neto al beneficiario</span>
+                                        <span class="font-semibold text-emerald-700 font-mono">Bs. <span x-text="fmt(retencionCalc().neto)"></span></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
 
                 <div x-show="periodoCerrado(form.fecha)"

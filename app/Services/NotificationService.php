@@ -100,6 +100,9 @@ class NotificationService
             'cirugia' => 'calendar',
             'pago' => 'credit-card',
             'stock_bajo' => 'exclamation-triangle',
+            'stock_agotado' => 'exclamation-triangle',
+            'medicamento_vencido' => 'alert-circle',
+            'medicamento_por_vencer' => 'clock',
             'resultados' => 'clipboard-list',
             'turno_cambiado' => 'clock',
             'cuenta_vencida' => 'dollar-sign',
@@ -112,8 +115,8 @@ class NotificationService
     private static function getColorForType(string $type): string
     {
         return match ($type) {
-            'emergencia', 'demora', 'stock_bajo' => 'danger',
-            'paciente_nuevo', 'turno_cambiado', 'cuenta_vencida' => 'warning',
+            'emergencia', 'demora', 'stock_bajo', 'stock_agotado', 'medicamento_vencido' => 'danger',
+            'paciente_nuevo', 'turno_cambiado', 'cuenta_vencida', 'medicamento_por_vencer' => 'warning',
             'pago', 'resultados', 'cirugia' => 'success',
             'derivacion' => 'info',
             default => 'info',

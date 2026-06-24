@@ -112,19 +112,19 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Precio de compra (Bs)</label>
-                        <input type="number" name="precio_compra" x-model="precioCompra" @input="calcVentaDesdePorcentaje()" @blur="precioCompra = round2(precioCompra); calcVentaDesdePorcentaje()" step="0.01" min="0"
+                        <input type="number" name="precio_compra" x-model="precioCompra" @input="calcVentaDesdeGanancia()" @blur="precioCompra = round2(precioCompra); calcVentaDesdeGanancia()" step="0.01" min="0"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">% Ganancia</label>
-                        <input type="number" name="porcentaje_ganancia" x-model="porcentaje" @input="calcVentaDesdePorcentaje()" @blur="porcentaje = round2(porcentaje); calcVentaDesdePorcentaje()" step="0.01" min="0" max="999"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ganancia (Bs)</label>
+                        <input type="number" name="ganancia" x-model="ganancia" @input="calcVentaDesdeGanancia()" @blur="ganancia = round2(ganancia); calcVentaDesdeGanancia()" step="0.01" min="0"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Precio de venta (Bs)</label>
-                        <input type="number" name="precio_venta" x-model="precioVenta" @input="calcPorcentajeDesdeVenta()" @blur="precioVenta = round2(precioVenta); calcPorcentajeDesdeVenta()" step="0.01" min="0"
+                        <input type="number" name="precio_venta" x-model="precioVenta" @input="calcGananciaDesdeVenta()" @blur="precioVenta = round2(precioVenta); calcGananciaDesdeVenta()" step="0.01" min="0"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                        <p class="text-xs text-gray-500 mt-1">El % y el precio de venta se ajustan entre sí.</p>
+                        <p class="text-xs text-gray-500 mt-1">La ganancia y el precio de venta se ajustan entre sí.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad a ingresar <span class="text-red-500">*</span></label>
@@ -163,29 +163,29 @@ function loteForm() {
         abierto: false,
         seleccionado: null,
         precioCompra: {{ old('precio_compra', 0) }},
-        porcentaje: {{ old('porcentaje_ganancia', 0) }},
+        ganancia: {{ old('ganancia', 0) }},
         precioVenta: '0.00',
         init() {
             const pre = {{ $preseleccion ?? 'null' }};
             if (pre) this.seleccionado = this.catalogos.find(c => c.id === pre) || null;
-            this.calcVentaDesdePorcentaje(); // inicializa venta a partir de compra y %
+            this.calcVentaDesdeGanancia(); // inicializa venta a partir de compra y ganancia
         },
         get filtrados() {
             const q = this.busqueda.toLowerCase().trim();
             if (q.length < 2) return [];
             return this.catalogos.filter(c => c.nombre.toLowerCase().includes(q)).slice(0, 50);
         },
-        // venta = compra * (1 + % / 100). Se dispara al editar compra o %.
-        calcVentaDesdePorcentaje() {
+        // venta = compra + ganancia (Bs). Se dispara al editar compra o ganancia.
+        calcVentaDesdeGanancia() {
             const p = parseFloat(this.precioCompra) || 0;
-            const g = parseFloat(this.porcentaje) || 0;
-            this.precioVenta = this.round2(p * (1 + g / 100));
+            const g = parseFloat(this.ganancia) || 0;
+            this.precioVenta = this.round2(p + g);
         },
-        // % = (venta / compra - 1) * 100. Se dispara al editar la venta.
-        calcPorcentajeDesdeVenta() {
+        // ganancia = venta - compra. Se dispara al editar la venta.
+        calcGananciaDesdeVenta() {
             const p = parseFloat(this.precioCompra) || 0;
             const v = parseFloat(this.precioVenta) || 0;
-            this.porcentaje = p > 0 ? this.round2((v / p - 1) * 100) : '0.00';
+            this.ganancia = this.round2(v - p);
         },
         // Redondeo half-up a 2 decimales (espeja Money::round del backend).
         round2(v) {

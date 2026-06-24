@@ -16,3 +16,10 @@ Schedule::command('backup:auto')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Alertas de vencimiento de medicamentos al almacenista: una vez al día. El servicio
+// deduplica por lote para no repetir la misma alerta a diario. (Stock bajo/agotado NO va
+// aquí: se notifica en tiempo real desde el evento de AlmacenStock al descontar.)
+Schedule::command('almacen:notificar-vencimientos')
+    ->dailyAt('07:00')
+    ->withoutOverlapping();

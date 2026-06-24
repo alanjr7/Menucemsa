@@ -13,6 +13,7 @@ use App\Models\AlmacenEntregaPaciente;
 use App\Models\AlmacenLote;
 use App\Models\AlmacenStock;
 use App\Models\Paciente;
+use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +28,7 @@ class AlmacenMedicamentosController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin|administrador');
+        $this->middleware('role:admin|administrador|almacenista');
     }
 
     public function index(Request $request)
@@ -107,7 +108,7 @@ class AlmacenMedicamentosController extends Controller
             'fecha_vencimiento' => 'nullable|date|after:today',
             'numero_lote_fabricante' => 'nullable|string|max:150',
             'precio_compra' => 'nullable|numeric|decimal:0,2|min:0',
-            'porcentaje_ganancia' => 'nullable|numeric|decimal:0,2|min:0|max:999',
+            'ganancia' => Money::rules(false),
             'precio_venta' => 'nullable|numeric|decimal:0,2|min:0',
             'cantidad_inicial' => 'required|integer|min:0',
             'cantidad_recibida' => 'nullable|integer|min:0',
@@ -139,7 +140,7 @@ class AlmacenMedicamentosController extends Controller
                 'laboratorio' => $request->laboratorio,
                 'fecha_vencimiento' => $request->fecha_vencimiento,
                 'precio_compra' => $request->precio_compra,
-                'porcentaje_ganancia' => $request->porcentaje_ganancia,
+                'ganancia' => $request->ganancia,
                 'precio_venta' => $request->precio_venta,
                 'cantidad_inicial' => $request->cantidad_inicial,
                 'cantidad_recibida' => $request->cantidad_recibida ?? $request->cantidad_inicial,
@@ -228,7 +229,7 @@ class AlmacenMedicamentosController extends Controller
             'lotes.*.laboratorio' => 'nullable|string|max:150',
             'lotes.*.fecha_vencimiento' => 'nullable|date|after:today',
             'lotes.*.precio_compra' => 'nullable|numeric|decimal:0,2|min:0',
-            'lotes.*.porcentaje_ganancia' => 'nullable|numeric|decimal:0,2|min:0|max:999',
+            'lotes.*.ganancia' => Money::rules(false),
             'lotes.*.precio_venta' => 'nullable|numeric|decimal:0,2|min:0',
             'lotes.*.cantidad_inicial' => 'required|integer|min:0',
             'lotes.*.cantidad_recibida' => 'nullable|integer|min:0',
@@ -265,7 +266,7 @@ class AlmacenMedicamentosController extends Controller
                                 'laboratorio' => $loteData['laboratorio'] ?? null,
                                 'fecha_vencimiento' => $loteData['fecha_vencimiento'],
                                 'precio_compra' => $loteData['precio_compra'],
-                                'porcentaje_ganancia' => $loteData['porcentaje_ganancia'],
+                                'ganancia' => $loteData['ganancia'],
                                 'precio_venta' => $loteData['precio_venta'],
                                 'cantidad_inicial' => $loteData['cantidad_inicial'],
                                 'cantidad_recibida' => $loteData['cantidad_recibida'] ?? $loteData['cantidad_inicial'],
@@ -279,7 +280,7 @@ class AlmacenMedicamentosController extends Controller
                                 'laboratorio' => $loteData['laboratorio'] ?? null,
                                 'fecha_vencimiento' => $loteData['fecha_vencimiento'],
                                 'precio_compra' => $loteData['precio_compra'],
-                                'porcentaje_ganancia' => $loteData['porcentaje_ganancia'],
+                                'ganancia' => $loteData['ganancia'],
                                 'precio_venta' => $loteData['precio_venta'],
                                 'cantidad_inicial' => $loteData['cantidad_inicial'],
                                 'cantidad_recibida' => $loteData['cantidad_recibida'] ?? $loteData['cantidad_inicial'],
@@ -963,7 +964,7 @@ class AlmacenMedicamentosController extends Controller
             'laboratorio' => 'nullable|string|max:150',
             'fecha_vencimiento' => 'nullable|date|after:today',
             'precio_compra' => 'nullable|numeric|decimal:0,2|min:0',
-            'porcentaje_ganancia' => 'nullable|numeric|decimal:0,2|min:0|max:999',
+            'ganancia' => Money::rules(false),
             'precio_venta' => 'nullable|numeric|decimal:0,2|min:0',
             'cantidad' => 'required|integer|min:0',
             'cantidad_recibida' => 'nullable|integer|min:0',
@@ -981,7 +982,7 @@ class AlmacenMedicamentosController extends Controller
                 'laboratorio' => $request->laboratorio,
                 'fecha_vencimiento' => $request->fecha_vencimiento,
                 'precio_compra' => $request->precio_compra,
-                'porcentaje_ganancia' => $request->porcentaje_ganancia,
+                'ganancia' => $request->ganancia,
                 'precio_venta' => $request->precio_venta,
                 'cantidad_inicial' => $request->cantidad,
                 'cantidad_recibida' => $request->cantidad_recibida ?? $request->cantidad,

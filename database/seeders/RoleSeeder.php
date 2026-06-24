@@ -181,5 +181,17 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // Crear usuario Almacenista (gestión de medicamentos e insumos de todas las áreas)
+        User::firstOrCreate(
+            ['email' => 'almacenista@ClinicaSantaCruz.com'],
+            [
+                'name' => 'Almacenista',
+                'password' => bcrypt('almacenista123'),
+                'password_encrypted' => Crypt::encryptString('almacenista123'),
+                'role' => 'almacenista',
+                'is_active' => true,
+            ]
+        );
     }
 }

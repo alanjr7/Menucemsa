@@ -80,13 +80,21 @@ source of truth for context — read the relevant file before touching a feature
 - Monetary inputs in Blade are **`type=text inputmode=decimal`** (never `type=number` —
   it rejects the decimal point in `es` locale). Use the `data-decimal` saneador.
 
-### Migrations (HARD RULE — not in production)
-- The DB is rebuilt with **`migrate:fresh`**. To remove/change a table or column,
-  **edit or delete the original `create` migration** (Option A) and let `migrate:fresh`
-  rebuild clean. **Never** create separate `drop_*` / `alter_*` migrations.
-- Before removing schema, `grep` to confirm no other migration or code references it.
-- Testing engine is **MySQL** (db `cemsa_testing`), not SQLite. `migrate:fresh --env=testing`
-  can wipe `cemsa2` — be careful.
+### Migrations (HARD RULE — PRODUCTION since 2026-06-23)
+- The app is **LIVE IN PRODUCTION**. **`migrate:fresh` (and `migrate:refresh`/`db:wipe`)
+  is FORBIDDEN** — by anyone, in any env that can reach prod data. It would destroy real
+  data. Never run it, never suggest it.
+- Schema changes must be **incremental, additive and non-destructive NEW migration files**
+  (`add_*`, `alter_*`, `change_*`) applied with **`php artisan migrate`**. Do NOT edit the
+  original `create_*` migration to change live schema — it already ran on prod and editing
+  it is a no-op against the live DB (only matters for fresh installs).
+- For enum widening / column tweaks on the live DB, the canonical pattern is an additive
+  migration running a non-destructive `ALTER TABLE ... MODIFY/ADD COLUMN ...` (e.g. the
+  `users.role` enum gained `almacenista` via `ALTER`, never a fresh). Keep the `create_*`
+  migration in sync too so fresh installs match, but the live change goes through `migrate`.
+- Prefer reversible migrations with a real `down()`; back up before structural changes.
+- Testing engine is **MySQL** (db `cemsa_testing`), not SQLite — and even there avoid
+  `migrate:fresh --env=testing`, it can wipe `cemsa2`.
 
 ### Single source of truth for codes / correlativos
 - Correlative codes live in **one** model static with retry on unique-index collision

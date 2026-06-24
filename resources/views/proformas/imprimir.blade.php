@@ -77,12 +77,12 @@
 @php
     // ── Identidad de la clínica (mismo bloque que el comprobante de caja) ──
     $CLINICA = [
-        'nombre'    => 'Clínica Santa Cruz',
-        'sucursal'  => 'Sucursal Principal',
-        'direccion' => 'Calle Bumberque esq. MJ Santiestevan 591',
+        'nombre'    => 'CEMSA - Clínica de Especialidades Medicas Santa Cruz S.R.L.',
+        'sucursal'  => 'Sucursal Central',
+        'direccion' => 'Av. Monseñor Santistevan #591 Esquina Caller Bumberque',
         'telefono'  => '75662703',
         'ciudad'    => 'Santa Cruz de la Sierra - Bolivia',
-        'nit'       => '',
+        'nit'       => '497970026',
     ];
 
     $bienes  = \App\Models\ProformaItem::TIPOS_BIENES;

@@ -27,11 +27,11 @@
     <form method="POST" action="{{ route('admin.almacen-medicamentos.store') }}"
           x-data="{
               precioCompra: {{ old('precio_compra', 0) }},
-              porcentaje: {{ old('porcentaje_ganancia', 0) }},
+              ganancia: {{ old('ganancia', 0) }},
               get precioVenta() {
                   const p = parseFloat(this.precioCompra) || 0;
-                  const g = parseFloat(this.porcentaje) || 0;
-                  return (p * (1 + g / 100)).toFixed(2);
+                  const g = parseFloat(this.ganancia) || 0;
+                  return (p + g).toFixed(2);
               }
           }">
         @csrf
@@ -151,9 +151,9 @@
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">% Ganancia <span class="text-red-500">*</span></label>
-                        <input type="number" name="porcentaje_ganancia" x-model="porcentaje" step="0.1" min="0" max="999" required
-                               value="{{ old('porcentaje_ganancia') }}"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ganancia (Bs) <span class="text-red-500">*</span></label>
+                        <input type="number" name="ganancia" x-model="ganancia" step="0.01" min="0" required
+                               value="{{ old('ganancia') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     </div>
                     <div>

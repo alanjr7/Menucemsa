@@ -9,7 +9,20 @@
       "Bash(cp -r c:/Menucemsa/resources/views/emergency-staff/medicamentos/* c:/Menucemsa/resources/views/internacion-staff/medicamentos/)",
       "mcp__plugin_engram_engram__mem_save",
       "mcp__plugin_engram_engram__mem_judge",
-      "Bash(curl -s http://127.0.0.1:8000/reception/ingreso-general)"
+      "Bash(curl -s http://127.0.0.1:8000/reception/ingreso-general)",
+      "PowerShell(php artisan route:list --name=medicamentos --columns=uri,name,middleware 2>&1)",
+      "PowerShell(php artisan route:list --path=medicamentos -v 2>&1)",
+      "PowerShell(php artisan route:clear)",
+      "PowerShell(php artisan config:clear)",
+      "PowerShell(php artisan route:list --path=emergency-staff/medicamentos -v 2>&1)",
+      "PowerShell(php artisan db:seed --class=RoleSeeder --force 2>&1)",
+      "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\alter_role.php\" 2>&1)",
+      "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\verify.php\" 2>&1)",
+      "Edit(/.claude/skills/laravel-expert/**)",
+      "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\verify_menu.php\" 2>&1)",
+      "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\verify_menu2.php\" 2>&1)",
+      "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\test_alertas.php\" 2>&1)",
+      "Bash(php -l database/migrations/2026_06_24_000001_rename_porcentaje_ganancia_a_ganancia_en_almacen_lotes.php)"
     ],
     "additionalDirectories": [
       "c:\\Menucemsa\\database\\migrations"

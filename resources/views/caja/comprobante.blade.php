@@ -77,13 +77,13 @@
 @php
     // ── Identidad de la clínica (editar aquí cuando se tengan los datos definitivos) ──
     $CLINICA = [
-        'nombre'    => 'Clínica Santa Cruz',
-        'sucursal'  => 'Sucursal Principal', // ej: 'Sucursal - Santa Cruz'
+        'nombre'    => 'Clínica de Especialidades Medicas Santa Cruz S.R.L.',
+        'sucursal'  => 'Sucursal Central', // ej: 'Sucursal - Santa Cruz'
         'punto'     => '',   // ej: 'No. Punto de Venta - 0'
-        'direccion' => 'Calle Bumberque esq. MJ Santiestevan 591',   // ej: 'Av. 26 de febrero N° 510'
+        'direccion' => 'Av. Monseñor Santistevan #591 Esquina Caller Bumberque',   // ej: 'Av. 26 de febrero N° 510'
         'telefono'  => '75662703',   // ej: 'Telf. 352-0444'
         'ciudad'    => 'Santa Cruz de la Sierra - Bolivia',
-        'nit'       => '',   // se completará cuando se tenga el NIT definitivo
+        'nit'       => '497970026',  
     ];
 
     // ── Alcance del recibo = ciclo de cobro actual ──

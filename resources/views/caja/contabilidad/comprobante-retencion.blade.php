@@ -58,12 +58,12 @@
 <body>
 @php
     $CLINICA = [
-        'nombre'    => 'Clínica Santa Cruz',
-        'sucursal'  => 'Sucursal Principal',
-        'direccion' => 'Calle Bumberque esq. MJ Santiestevan 591',
+        'nombre'    => 'Clínica de Especialidades Santa Cruz S.R.L.',
+        'sucursal'  => 'Sucursal Central',
+        'direccion' => 'Av. Monseñor Santiesteban #591 esq. Calle Bumberque',
         'telefono'  => '75662703',
         'ciudad'    => 'Santa Cruz de la Sierra - Bolivia',
-        'nit'       => '',   // NIT del agente de retención (completar al tenerlo)
+        'nit'       => '497970026',   // NIT del agente de retención (completar al tenerlo)
     ];
 
     $tasas = \App\Models\Egreso::RETENCION_TASAS[$egreso->retencion_tipo] ?? \App\Models\Egreso::RETENCION_TASAS['servicios'];

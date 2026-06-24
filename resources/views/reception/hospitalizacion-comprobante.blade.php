@@ -7,7 +7,7 @@
     <!-- Page Header -->
     <div class="flex justify-between items-end mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Comprobante de Hospitalización</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Comprobante de Internación</h1>
             <p class="text-sm text-gray-500">Ficha de ingreso del paciente</p>
         </div>
         <div class="flex gap-3">
@@ -29,7 +29,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
                 <div>
-                    <p class="text-sm opacity-90">Código de Hospitalización</p>
+                    <p class="text-sm opacity-90">Código de Internación</p>
                     <p class="text-xl font-bold">{{ $hospitalizacion->id }}</p>
                 </div>
             </div>
@@ -37,7 +37,7 @@
                 <p class="text-sm opacity-90">Estado</p>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-400 text-yellow-900">
                     <span class="w-2 h-2 bg-yellow-700 rounded-full mr-2 animate-pulse"></span>
-                    Hospitalizado
+                    Internado
                 </span>
             </div>
         </div>
@@ -413,8 +413,9 @@
             </div>
         </div>
 
-        <h4 class="section-title text-center" style="margin-top: 25pt; text-align: center; font-size: 9pt;">ACTA DE RECONOCIMIENTO DE FIRMAS</h4>
-        
+        <div class="acta-page">
+        <h4 class="section-title text-center" style="text-align: center; font-size: 9pt;">ACTA DE RECONOCIMIENTO DE FIRMAS</h4>
+
         <div style="font-size: 8pt; margin-top: 10pt; line-height: 1.8;">
             <div style="display: flex; justify-content: space-between;">
                 <div>En esta Ciudad de Santa Cruz, a horas <span class="inline-val" style="width: 50px;">{{ \Carbon\Carbon::now()->format('H:i') }}</span> del día <span class="inline-val" style="width: 100px;">{{ \Carbon\Carbon::now()->format('d \d\e F') }}</span> de dos</div>
@@ -460,6 +461,7 @@
                 Clínica Médica CEMSA Ltda.
             </div>
         </div>
+        </div>
 
     </div>
 </div>
@@ -473,7 +475,7 @@ function imprimir() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Imprimir Comprobante Hospitalización CEMSA</title>
+            <title>Imprimir Comprobante Internación CEMSA</title>
             <style>
                 /* Estilos base y de reseteo para impresión */
                 @page {
@@ -539,6 +541,15 @@ function imprimir() {
                     font-weight: bold;
                     margin: 10pt 0 5pt 0;
                     text-transform: uppercase;
+                }
+
+                /* El Acta de Reconocimiento de Firmas siempre arranca en hoja nueva */
+                .acta-page {
+                    page-break-before: always;
+                    break-before: page;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                    padding-top: 10pt;
                 }
 
                 /* Sistema de filas tipo formulario (Líneas punteadas) */

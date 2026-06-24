@@ -99,8 +99,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         return response()->json(['alertas' => $alertas, 'total' => $count]);
     })->name('sistema.alertas');
 
-    // Rutas para medicamentos de quirófano (admin, cirujano y administrador) - PRIMERO para evitar conflicto con /quirofano/{cita}
-    Route::middleware(['auth', 'role:admin|cirujano|administrador'])->group(function () {
+    // Rutas para medicamentos de quirófano (admin, cirujano, administrador y almacenista) - PRIMERO para evitar conflicto con /quirofano/{cita}
+    Route::middleware(['auth', 'role:admin|cirujano|administrador|almacenista'])->group(function () {
         Route::get('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'index'])->name('quirofano.medicamentos.index');
         Route::get('/quirofano/medicamentos/create', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'create'])->name('quirofano.medicamentos.create');
         Route::post('/quirofano/medicamentos', [\App\Http\Controllers\QuirofanoMedicamentosController::class, 'store'])->name('quirofano.medicamentos.store');
@@ -597,7 +597,11 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // API routes para admin (solo lectura)
         Route::get('/api/emergencias', [AdminEmergencyController::class, 'apiIndex'])->name('emergencies.api.index');
         Route::get('/api/emergencias/{emergency}', [AdminEmergencyController::class, 'apiShow'])->name('emergencies.api.show');
+    });
 
+    // Almacén central de medicamentos e insumos — admin, administrador y almacenista (rol de inventario).
+    // Separado del grupo de emergencias para no exponer la gestión de emergencias al almacenista.
+    Route::middleware(['role:admin|administrador|almacenista'])->prefix('admin')->name('admin.')->group(function () {
         // Rutas para almacén de medicamentos
         Route::get('/almacen-medicamentos', [AlmacenMedicamentosController::class, 'index'])->name('almacen-medicamentos.index');
         Route::get('/almacen-medicamentos/create', [AlmacenMedicamentosController::class, 'create'])->name('almacen-medicamentos.create');
@@ -644,7 +648,7 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     });
 
     // Detalle y registro de paciente en dispensación — accesible por admin y personal de área
-    Route::middleware(['role:admin|administrador|emergencia|enfermera-emergencia|cirujano|internacion|enfermera-internacion|uti|doctor|farmacia|dirmedico'])
+    Route::middleware(['role:admin|administrador|emergencia|enfermera-emergencia|cirujano|internacion|enfermera-internacion|uti|doctor|farmacia|dirmedico|almacenista'])
         ->prefix('admin')->name('admin.')->group(function () {
             Route::get('/almacen-medicamentos/historial/dispensaciones/{dispensacion}', [AlmacenMedicamentosController::class, 'detalleDispensacion'])->name('almacen-medicamentos.detalle-dispensacion');
             Route::post('/almacen-medicamentos/historial/dispensaciones/{dispensacion}/registrar-paciente', [AlmacenMedicamentosController::class, 'registrarPaciente'])->name('almacen-medicamentos.registrar-paciente');
@@ -654,6 +658,21 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     Route::middleware(['auth'])->prefix('api')->group(function () {
         Route::get('/emergencias-temporales', [EmergencyStaffController::class, 'apiEmergenciasTemporales']);
         Route::get('/buscar-paciente', [AlmacenMedicamentosController::class, 'buscarPacienteApi']);
+    });
+
+    // Medicamentos de emergencia — gestión de inventario (admin, emergencia, enfermera-emergencia,
+    // administrador y almacenista). Extraído del panel de emergencia para no exponer funciones
+    // clínicas (crear emergencias, altas, derivaciones) al almacenista. Va ANTES del grupo
+    // emergency-staff para que /medicamentos no lo capture el wildcard /{emergency}.
+    Route::middleware(['role:admin|emergencia|enfermera-emergencia|administrador|almacenista'])->prefix('emergency-staff')->name('emergency-staff.')->group(function () {
+        Route::get('/medicamentos', [EmergencyMedicamentosController::class, 'index'])->name('medicamentos.index');
+        Route::get('/medicamentos/create', [EmergencyMedicamentosController::class, 'create'])->name('medicamentos.create');
+        Route::post('/medicamentos', [EmergencyMedicamentosController::class, 'store'])->name('medicamentos.store');
+        Route::get('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'show'])->name('medicamentos.show');
+        Route::get('/medicamentos/{medicamento}/edit', [EmergencyMedicamentosController::class, 'edit'])->name('medicamentos.edit');
+        Route::put('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'update'])->name('medicamentos.update');
+        Route::delete('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
+        Route::post('/medicamentos/{medicamento}/stock', [EmergencyMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
     });
 
     // Rutas para personal de emergencias - EMERGENCIA, ENFERMERA-EMERGENCIA, ADMIN, DIR MEDICO Y ADMINISTRADOR
@@ -671,17 +690,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/camillas', [\App\Http\Controllers\EmergencyStaff\CamillaUsoController::class, 'index'])->name('camillas.index');
         Route::post('/camillas', [\App\Http\Controllers\EmergencyStaff\CamillaUsoController::class, 'store'])->name('camillas.store');
 
-        // Rutas para gestión de medicamentos de emergencia (admin, emergencia, enfermera-emergencia y administrador)
-        Route::middleware(['role:admin|emergencia|enfermera-emergencia|administrador'])->group(function () {
-            Route::get('/medicamentos', [EmergencyMedicamentosController::class, 'index'])->name('medicamentos.index');
-            Route::get('/medicamentos/create', [EmergencyMedicamentosController::class, 'create'])->name('medicamentos.create');
-            Route::post('/medicamentos', [EmergencyMedicamentosController::class, 'store'])->name('medicamentos.store');
-            Route::get('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'show'])->name('medicamentos.show');
-            Route::get('/medicamentos/{medicamento}/edit', [EmergencyMedicamentosController::class, 'edit'])->name('medicamentos.edit');
-            Route::put('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'update'])->name('medicamentos.update');
-            Route::delete('/medicamentos/{medicamento}', [EmergencyMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
-            Route::post('/medicamentos/{medicamento}/stock', [EmergencyMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
-        });
+        // (Las rutas de medicamentos de emergencia se movieron a su propio grupo, ANTES de
+        // este bloque, para incluir al rol almacenista sin exponerle el panel clínico.)
 
         // Rutas para gestión de enfermeras de emergencia (admin, emergencia y administrador)
         Route::middleware(['role:admin|emergencia|administrador'])->group(function () {
@@ -720,6 +730,20 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/{emergency}/edit', [EmergencyStaffController::class, 'edit'])->name('edit');
     });
 
+    // Medicamentos de internación — gestión de inventario (admin, internacion, administrador,
+    // enfermera-internacion y almacenista). Extraído del panel de internación para no exponer
+    // funciones clínicas/operativas (catering, habitaciones, enfermeras) al almacenista.
+    Route::middleware(['role:admin|internacion|administrador|enfermera-internacion|almacenista'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
+        Route::get('/medicamentos', [InternacionMedicamentosController::class, 'index'])->name('medicamentos.index');
+        Route::get('/medicamentos/create', [InternacionMedicamentosController::class, 'create'])->name('medicamentos.create');
+        Route::post('/medicamentos', [InternacionMedicamentosController::class, 'store'])->name('medicamentos.store');
+        Route::get('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'show'])->name('medicamentos.show');
+        Route::get('/medicamentos/{medicamento}/edit', [InternacionMedicamentosController::class, 'edit'])->name('medicamentos.edit');
+        Route::put('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'update'])->name('medicamentos.update');
+        Route::delete('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
+        Route::post('/medicamentos/{medicamento}/stock', [InternacionMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
+    });
+
     // Rutas para personal de internación - INTERNACION, ADMIN, DIR MEDICO, ENFERMERAS Y ADMINISTRADOR
     Route::middleware(['role:internacion|admin|dirmedico|enfermera-internacion|administrador'])->prefix('internacion-staff')->name('internacion-staff.')->group(function () {
         // Dashboard principal
@@ -750,17 +774,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         // API Evolución
         Route::post('/api/internacion/{hospitalizacion}/evolucion', [MedicalHospitalizacionController::class, 'guardarEvolucion'])->name('api.internacion.evolucion');
 
-        // Rutas para gestión de medicamentos de internación (admin, internacion, administrador y enfermera-internacion)
-        Route::middleware(['role:admin|internacion|administrador|enfermera-internacion'])->group(function () {
-            Route::get('/medicamentos', [InternacionMedicamentosController::class, 'index'])->name('medicamentos.index');
-            Route::get('/medicamentos/create', [InternacionMedicamentosController::class, 'create'])->name('medicamentos.create');
-            Route::post('/medicamentos', [InternacionMedicamentosController::class, 'store'])->name('medicamentos.store');
-            Route::get('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'show'])->name('medicamentos.show');
-            Route::get('/medicamentos/{medicamento}/edit', [InternacionMedicamentosController::class, 'edit'])->name('medicamentos.edit');
-            Route::put('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'update'])->name('medicamentos.update');
-            Route::delete('/medicamentos/{medicamento}', [InternacionMedicamentosController::class, 'destroy'])->name('medicamentos.destroy');
-            Route::post('/medicamentos/{medicamento}/stock', [InternacionMedicamentosController::class, 'actualizarStock'])->name('medicamentos.stock');
-        });
+        // (Las rutas de medicamentos de internación se movieron a su propio grupo, ANTES de
+        // este bloque, para incluir al rol almacenista sin exponerle el panel operativo.)
 
         // Registrar uso de habitación/cama (cargo a cuenta del paciente)
         Route::get('/habitaciones/registro-uso', [InternacionHabitacionUsoController::class, 'index'])->name('habitaciones.registro-uso');
@@ -847,7 +862,7 @@ Route::get('/test-cirujano-access', function () {
 
 
 // Inventario de medicamentos UTI (solo lectura)
-Route::middleware(['auth', 'role:admin|uti|administrador|dirmedico|doctor'])->get('/uti/medicamentos', [UtiMedicamentosController::class, 'index'])->name('uti.operativa.medicamentos.readonly');
+Route::middleware(['auth', 'role:admin|uti|administrador|dirmedico|doctor|almacenista'])->get('/uti/medicamentos', [UtiMedicamentosController::class, 'index'])->name('uti.operativa.medicamentos.readonly');
 
 // Dashboard UTI - Terapia Intensiva
 Route::middleware(['auth', 'role:uti|admin|dirmedico|administrador'])->get('/uti/dashboard', [\App\Http\Controllers\UtiController::class, 'dashboard'])->name('uti.dashboard');
@@ -927,7 +942,7 @@ Route::middleware(['auth', 'role:neonato|admin|administrador|dirmedico'])
         Route::get('/',               [\App\Http\Controllers\Neonato\NeonatoController::class, 'index'])->name('index');
         Route::get('/add',            [\App\Http\Controllers\Neonato\NeonatoController::class, 'create'])->name('create');
         Route::post('/add',           [\App\Http\Controllers\Neonato\NeonatoController::class, 'store'])->name('store');
-        Route::get('/medicamentos',        [\App\Http\Controllers\Neonato\NeonatoController::class, 'medicamentos'])->name('medicamentos');
+        // (medicamentos se movió a su propio grupo abajo para incluir al rol almacenista)
         Route::get('/procedimientos',     [\App\Http\Controllers\Neonato\NeonatoController::class, 'procedimientos'])->name('procedimientos');
         Route::get('/{neonato}/datos',    [\App\Http\Controllers\Neonato\NeonatoController::class, 'show'])->name('show');
         Route::patch('/{neonato}/status', [\App\Http\Controllers\Neonato\NeonatoController::class, 'updateStatus'])->name('status');
@@ -936,5 +951,13 @@ Route::middleware(['auth', 'role:neonato|admin|administrador|dirmedico'])
         Route::post('/{neonato}/evaluar',                  [\App\Http\Controllers\Neonato\NeonatoController::class, 'storeEvaluacion'])->name('evaluar.store');
         Route::delete('/{neonato}/evaluar/{evaluacion}',   [\App\Http\Controllers\Neonato\NeonatoController::class, 'destroyEvaluacion'])->name('evaluar.destroy');
     });
+
+// Medicamentos de neonatología — gestión de inventario (incluye rol almacenista).
+// Extraído del panel operativo de neonato para no exponerle funciones clínicas
+// (recién nacidos, evaluaciones, cunas).
+Route::middleware(['auth', 'role:neonato|admin|administrador|dirmedico|almacenista'])
+    ->prefix('neonato')->name('neonato.')
+    ->get('/medicamentos', [\App\Http\Controllers\Neonato\NeonatoController::class, 'medicamentos'])
+    ->name('medicamentos');
 
 require __DIR__ . '/auth.php';

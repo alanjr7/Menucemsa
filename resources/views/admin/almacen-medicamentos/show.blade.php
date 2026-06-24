@@ -106,7 +106,7 @@
                     @endif
                     @if($lote->precio_compra)
                         <div>Costo: Bs {{ number_format($lote->precio_compra, 2) }}
-                            @if($lote->porcentaje_ganancia) ({{ $lote->porcentaje_ganancia }}%) @endif
+                            @if($lote->ganancia) (Ganancia: Bs {{ number_format($lote->ganancia, 2) }}) @endif
                         </div>
                     @endif
                 </div>
