@@ -350,7 +350,7 @@
             </div>
 
             {{-- Activar el cron en la nube --}}
-            <div class="bg-amber-50 rounded-2xl border border-amber-200 p-6" x-data="{ copiado: false }">
+            <!-- <div class="bg-amber-50 rounded-2xl border border-amber-200 p-6" x-data="{ copiado: false }">
                 <div class="flex items-center gap-2 mb-2 text-amber-800">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -377,7 +377,7 @@
                 <p class="text-[11px] text-amber-700/80 mt-2">
                     El cron corre cada minuto, pero el respaldo solo se genera cuando vence la frecuencia configurada.
                 </p>
-            </div>
+            </div> -->
         </div>
     </div>
 </div>
