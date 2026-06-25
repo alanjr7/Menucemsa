@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Egreso;
 use App\Models\PagoCuenta;
+use App\Models\SeguroCobro;
 use App\Models\VentaFarmacia;
 use App\Support\Impuestos;
 use App\Support\Money;
@@ -37,15 +38,21 @@ class RcvResumenImpuestosSheet implements FromArray, ShouldAutoSize, WithHeading
         $pagos = PagoCuenta::whereBetween('created_at', [$this->inicio, $this->fin])->get();
         $ventas = VentaFarmacia::where('estado', 'COMPLETADA')
             ->whereBetween('fecha_venta', [$this->inicio, $this->fin])->get();
+        // Cobertura de seguros: venta devengada (por cobrar a la aseguradora) con débito
+        // fiscal IVA. Cuenta como venta para IVA e IT, igual que caja y farmacia.
+        $seguros = SeguroCobro::vigentes()
+            ->whereBetween('created_at', [$this->inicio, $this->fin])->get();
         $egresos = Egreso::vigentes()
             ->whereBetween('fecha', [$this->inicio->toDateString(), $this->fin->toDateString()])->get();
 
         $ventasCaja = $pagos->reduce(fn ($a, $p) => Money::add($a, $p->monto), '0');
         $ventasFarmacia = $ventas->reduce(fn ($a, $v) => Money::add($a, $v->total), '0');
-        $totalVentas = Money::add($ventasCaja, $ventasFarmacia);
+        $ventasSeguro = $seguros->reduce(fn ($a, $s) => Money::add($a, $s->monto), '0');
+        $totalVentas = Money::add(Money::add($ventasCaja, $ventasFarmacia), $ventasSeguro);
 
         $debito = $pagos->reduce(fn ($a, $p) => Money::add($a, $p->debito_fiscal), '0');
         $debito = Money::add($debito, $ventas->reduce(fn ($a, $v) => Money::add($a, $v->debito_fiscal), '0'));
+        $debito = Money::add($debito, $seguros->reduce(fn ($a, $s) => Money::add($a, $s->debito_fiscal), '0'));
 
         $comprasCf = $egresos->where('con_credito_fiscal', true);
         $totalCompras = $comprasCf->reduce(fn ($a, $e) => Money::add($a, $e->monto), '0');

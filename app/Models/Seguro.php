@@ -18,6 +18,7 @@ class Seguro extends Model
     protected $fillable = [
         'nombre_empresa',
         'tipo',
+        'nit',
         'telefono',
         'formulario',
         'estado',
@@ -48,7 +49,13 @@ class Seguro extends Model
         };
     }
 
-    public function calcularCobertura(float $montoTotal): array
+    /**
+     * @param  float       $montoTotal      Monto a cubrir.
+     * @param  float|null  $topeDisponible  Saldo del tope aún no consumido por el paciente
+     *                                       en el período (para tope_monto). Si es null usa
+     *                                       el tope completo (caso sin agregación / cálculo puro).
+     */
+    public function calcularCobertura(float $montoTotal, ?float $topeDisponible = null): array
     {
         $montoCubierto = '0';
         $montoPaciente = Money::format($montoTotal);
@@ -67,7 +74,11 @@ class Seguro extends Model
                 break;
 
             case 'tope_monto':
-                $montoCubierto = Money::min($montoTotal, $this->tope_monto);
+                // El tope es un límite AGREGADO del período: se cubre hasta el saldo del
+                // tope que el paciente aún no consumió. Sin dato de consumo se usa el tope
+                // completo. Nunca negativo.
+                $disponible = $topeDisponible !== null ? max(0, $topeDisponible) : (float) $this->tope_monto;
+                $montoCubierto = Money::min($montoTotal, $disponible);
                 $montoPaciente = Money::sub($montoTotal, $montoCubierto);
                 break;
         }

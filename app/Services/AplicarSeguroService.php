@@ -26,34 +26,29 @@ class AplicarSeguroService
             return ['cubierto' => 0, 'paciente' => $cuenta->saldo_pendiente, 'aplicado' => false];
         }
 
+        // No se aplica una póliza vencida (o aún no vigente).
+        if (!$cuenta->paciente->seguroVigente()) {
+            return ['cubierto' => 0, 'paciente' => $cuenta->saldo_pendiente, 'aplicado' => false];
+        }
+
         $tiposAplicables = ['porcentaje', 'tope_monto'];
         if (!in_array($seguro->tipo_cobertura, $tiposAplicables, true)) {
             return ['cubierto' => 0, 'paciente' => $cuenta->saldo_pendiente, 'aplicado' => false];
         }
 
-        $montoBase = max(0, (float) $cuenta->total_calculado - (float) $cuenta->total_pagado);
-        $calculo = $seguro->calcularCobertura($montoBase);
+        // Modelo abierto: la cobertura es sobre el TOTAL del episodio (no el saldo).
+        $calculo = $seguro->calcularCobertura((float) $cuenta->total_calculado);
 
-        $montoCubierto = (float) $calculo['monto_cubierto'];
-        $montoPaciente = (float) $calculo['monto_paciente'];
-
-        if ($montoCubierto <= 0) {
+        if ((float) $calculo['monto_cubierto'] <= 0) {
             return ['cubierto' => 0, 'paciente' => $cuenta->saldo_pendiente, 'aplicado' => false];
         }
 
-        $cuenta->update([
-            'seguro_id' => $seguro->id,
-            'seguro_estado' => 'autorizado',
-            'seguro_fecha_autorizacion' => now(),
-            'seguro_autorizado_por' => auth()->id(),
-            'seguro_monto_cobertura' => $montoCubierto,
-            'seguro_monto_paciente' => $montoPaciente,
-        ]);
-        $cuenta->recalcularTotales();
+        // Autoriza (abierta por episodio) + crea la venta devengada a la aseguradora.
+        $resultado = $cuenta->autorizarSeguro($seguro);
 
         return [
-            'cubierto' => $montoCubierto,
-            'paciente' => $montoPaciente,
+            'cubierto' => $resultado['cubierto'],
+            'paciente' => $resultado['paciente'],
             'aplicado' => true,
         ];
     }
@@ -78,13 +73,16 @@ class AplicarSeguroService
             return null;
         }
 
+        if (!$cuenta->paciente->seguroVigente()) {
+            return null;
+        }
+
         $tiposAplicables = ['porcentaje', 'tope_monto'];
         if (!in_array($seguro->tipo_cobertura, $tiposAplicables, true)) {
             return null;
         }
 
-        $montoBase = max(0, (float) $cuenta->total_calculado - (float) $cuenta->total_pagado);
-        $calculo = $seguro->calcularCobertura($montoBase);
+        $calculo = $seguro->calcularCobertura((float) $cuenta->total_calculado);
 
         if ((float) $calculo['monto_cubierto'] <= 0) {
             return null;

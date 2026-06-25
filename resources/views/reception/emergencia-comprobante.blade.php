@@ -292,7 +292,7 @@
             <div class="f-row">
                 <div class="f-field w-100">
                     <span class="f-label">Seguro</span>
-                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->seguro->nombre ?? 'SIN SEGURO') }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($emergencia->paciente->seguro->nombre_empresa ?? 'SIN SEGURO') }}</span>
                 </div>
             </div>
             @endif

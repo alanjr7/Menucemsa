@@ -20,6 +20,13 @@
                     afiliados</p>
             </div>
             <div class="flex gap-2">
+                <a href="{{ route('admin.seguros.cobranza') }}"
+                    class="bg-white hover:bg-gray-50 text-slate-700 px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold shadow-sm border border-slate-200 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" stroke-width="2" />
+                    </svg>
+                    Cobranza
+                </a>
                 <a href="{{ route('admin.seguros.historial') }}"
                     class="bg-white hover:bg-gray-50 text-slate-700 px-6 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold shadow-sm border border-slate-200 transition-all">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,7 +56,7 @@
                 <p class="text-[#0ca678] text-[32px] font-black tracking-tighter">{{ $stats['aprobadas'] ?? 0 }}</p>
             </div>
             <div class="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 text-center">
-                <p class="text-slate-400 text-[13px] font-medium mb-1">Monto Total</p>
+                <p class="text-slate-400 text-[13px] font-medium mb-1">Cobertura total</p>
                 <p class="text-slate-800 text-[32px] font-black tracking-tighter">Bs.
                     {{ number_format($stats['monto_total'] ?? 0, 2) }}</p>
             </div>
@@ -130,6 +137,93 @@
                     <!-- Los botones se generarán con JavaScript -->
                 </div>
                 <span class="text-sm text-slate-500" id="infoFiltro">Mostrando todos los registros</span>
+            </div>
+        </div>
+
+        <!-- Autorizaciones resueltas (aceptadas / rechazadas) -->
+        <div class="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden mb-8">
+            <div class="p-8 border-b border-slate-50 flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg">Autorizaciones</h3>
+                    <p class="text-slate-400 text-sm">Solicitudes aceptadas y rechazadas — ver o imprimir los datos del seguro</p>
+                </div>
+                <a href="{{ route('admin.seguros.historial.excel') }}"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-[12px] font-bold shadow-sm transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" />
+                    </svg>
+                    Exportar Excel
+                </a>
+            </div>
+
+            <!-- Filtros -->
+            <div class="px-8 py-5 flex flex-wrap items-center gap-3 border-b border-slate-50">
+                <div class="relative flex-1 min-w-[240px]">
+                    <input type="text" id="buscarAutorizacion" onkeyup="filtrarAutorizaciones()"
+                        placeholder="Buscar por paciente, CI, seguro, servicio..."
+                        class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-50 outline-none placeholder:text-slate-300">
+                    <svg class="w-5 h-5 absolute left-3.5 top-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" />
+                    </svg>
+                </div>
+                <select id="filtroEstadoAutorizacion" onchange="filtrarAutorizaciones()"
+                    class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-50 outline-none">
+                    <option value="">Todos los estados</option>
+                    <option value="autorizado">Autorizados</option>
+                    <option value="rechazado">Rechazados</option>
+                </select>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left" id="tablaAutorizaciones">
+                    <thead class="text-slate-400 text-[11px] uppercase font-bold tracking-widest border-b border-slate-50">
+                        <tr>
+                            <th class="px-8 py-5">Fecha</th>
+                            <th class="px-8 py-5">Paciente</th>
+                            <th class="px-8 py-5">CI</th>
+                            <th class="px-8 py-5">Seguro</th>
+                            <th class="px-8 py-5">Servicio</th>
+                            <th class="px-8 py-5 text-right">Cobertura</th>
+                            <th class="px-8 py-5 text-right">Copago</th>
+                            <th class="px-8 py-5 text-center">Estado</th>
+                            <th class="px-8 py-5 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-[14px] divide-y divide-slate-50" id="cuerpoAutorizaciones">
+                        @forelse($autorizaciones as $a)
+                            <tr class="hover:bg-slate-50/50 transition-all aut-row" data-estado="{{ $a['estado'] }}"
+                                data-search="{{ strtolower($a['paciente'] . ' ' . $a['paciente_ci'] . ' ' . $a['seguro'] . ' ' . $a['servicio'] . ' ' . $a['id']) }}">
+                                <td class="px-8 py-5 text-slate-500">{{ $a['fecha'] }}</td>
+                                <td class="px-8 py-5 text-slate-700 font-medium">{{ $a['paciente'] }}</td>
+                                <td class="px-8 py-5 text-slate-500">{{ $a['paciente_ci'] }}</td>
+                                <td class="px-8 py-5 text-slate-600">{{ $a['seguro'] }}</td>
+                                <td class="px-8 py-5 text-slate-600">{{ $a['servicio'] }}</td>
+                                <td class="px-8 py-5 text-right font-medium text-green-600">Bs. {{ number_format($a['cobertura'], 2) }}</td>
+                                <td class="px-8 py-5 text-right font-medium text-orange-600">Bs. {{ number_format($a['copago'], 2) }}</td>
+                                <td class="px-8 py-5 text-center">
+                                    @if($a['estado'] === 'autorizado')
+                                        <span class="bg-green-50 text-green-600 border border-green-100 px-3 py-1.5 rounded-lg text-[12px] font-bold">Autorizado</span>
+                                    @else
+                                        <span class="bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-lg text-[12px] font-bold">Rechazado</span>
+                                    @endif
+                                </td>
+                                <td class="px-8 py-5 text-right whitespace-nowrap">
+                                    <button onclick="verAutorizacion('{{ $a['id'] }}')"
+                                        class="text-blue-600 hover:text-blue-800 text-xs font-bold mr-4">Ver</button>
+                                    <button onclick="imprimirAutorizacion('{{ $a['id'] }}')"
+                                        class="text-slate-600 hover:text-slate-900 text-xs font-bold">Imprimir</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr id="autEmptyRow">
+                                <td colspan="9" class="px-8 py-12 text-center text-slate-400 italic">No hay autorizaciones registradas</td>
+                            </tr>
+                        @endforelse
+                        <tr id="autSinResultados" class="hidden">
+                            <td colspan="9" class="px-8 py-12 text-center text-slate-400 italic">Sin resultados para la búsqueda</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -247,6 +341,11 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">NIT de la aseguradora</label>
+                        <input type="text" name="nit" id="seguroNit" placeholder="Para el Libro de Ventas / RCV"
+                            class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none">
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Tipo de Cobertura *</label>
                         <select name="tipo_cobertura" id="seguroTipoCobertura" required
                             onchange="mostrarCamposCobertura()"
@@ -343,6 +442,12 @@
                         <p class="text-sm font-medium text-blue-800" id="textoCobertura"></p>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">N° de autorización de la aseguradora</label>
+                        <input type="text" name="nro_autorizacion"
+                            class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                            placeholder="Código emitido por el seguro (para conciliación)">
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Observaciones</label>
                         <textarea name="observaciones" rows="3"
                             class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none resize-none"
@@ -360,6 +465,27 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Ver Autorización (detalle completo del seguro) -->
+    <div id="modalVerAutorizacion" class="fixed inset-0 bg-black/50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div class="bg-white rounded-[24px] w-full max-w-3xl shadow-2xl max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center px-8 py-6 border-b border-slate-100">
+                    <h3 class="text-xl font-bold text-slate-800">Detalle de la autorización</h3>
+                    <div class="flex items-center gap-2">
+                        <button id="btnImprimirDesdeModal"
+                            class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors">Imprimir</button>
+                        <button onclick="cerrarModalVerAutorizacion()" class="text-slate-400 hover:text-slate-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M6 18L18 6M6 6l12 12" stroke-width="2" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="autorizacionContent" class="px-8 py-6 overflow-y-auto"></div>
+            </div>
         </div>
     </div>
 
@@ -600,6 +726,7 @@
                         '';
                     document.getElementById('seguroCopagoPorcentaje').value = result.seguro.copago_porcentaje || '';
                     document.getElementById('seguroTopeMonto').value = result.seguro.tope_monto || '';
+                    document.getElementById('seguroNit').value = result.seguro.nit || '';
                     document.getElementById('seguroTelefono').value = result.seguro.telefono || '';
                     document.getElementById('seguroFormulario').value = result.seguro.formulario || '';
 
@@ -656,6 +783,85 @@
             } catch (error) {
                 alert('Error al procesar autorización.');
             }
+        }
+
+        // --- Autorizaciones resueltas: filtro, ver (modal) e imprimir ---
+        function filtrarAutorizaciones() {
+            const texto = (document.getElementById('buscarAutorizacion').value || '').toLowerCase().trim();
+            const estado = document.getElementById('filtroEstadoAutorizacion').value;
+            const filas = document.querySelectorAll('#cuerpoAutorizaciones .aut-row');
+            let visibles = 0;
+            filas.forEach(fila => {
+                const coincideTexto = (fila.dataset.search || '').includes(texto);
+                const coincideEstado = !estado || fila.dataset.estado === estado;
+                const mostrar = coincideTexto && coincideEstado;
+                fila.classList.toggle('hidden', !mostrar);
+                if (mostrar) visibles++;
+            });
+            const sinResultados = document.getElementById('autSinResultados');
+            if (sinResultados) sinResultados.classList.toggle('hidden', visibles > 0 || filas.length === 0);
+        }
+
+        function imprimirAutorizacion(cuentaId) {
+            window.open(`/admin/seguros/autorizacion/${encodeURIComponent(cuentaId)}/imprimir`, '_blank');
+        }
+
+        function cerrarModalVerAutorizacion() {
+            document.getElementById('modalVerAutorizacion').classList.add('hidden');
+        }
+
+        async function verAutorizacion(cuentaId) {
+            const cont = document.getElementById('autorizacionContent');
+            cont.innerHTML = '<p class="text-slate-400 text-center py-8">Cargando...</p>';
+            document.getElementById('modalVerAutorizacion').classList.remove('hidden');
+            document.getElementById('btnImprimirDesdeModal').onclick = () => imprimirAutorizacion(cuentaId);
+            try {
+                const res = await fetch(`/admin/api/seguros/autorizacion/${encodeURIComponent(cuentaId)}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    cont.innerHTML = renderAutorizacion(result.datos);
+                } else {
+                    cont.innerHTML = '<p class="text-red-500 text-center py-8">No se pudo cargar el detalle.</p>';
+                }
+            } catch (e) {
+                cont.innerHTML = '<p class="text-red-500 text-center py-8">Error de red.</p>';
+            }
+        }
+
+        function renderAutorizacion(d) {
+            const fila = (label, valor) => `
+                <div class="flex justify-between gap-4 py-1.5 border-b border-slate-50">
+                    <span class="text-sm font-semibold text-slate-500">${label}</span>
+                    <span class="text-sm text-slate-800 text-right">${valor ?? '—'}</span>
+                </div>`;
+            const seccion = (titulo, filas) => `
+                <div class="mb-5">
+                    <h4 class="text-[12px] font-bold uppercase tracking-wider text-slate-400 mb-2">${titulo}</h4>
+                    ${filas}
+                </div>`;
+            const badge = d.autorizacion.estado === 'autorizado'
+                ? '<span class="bg-green-50 text-green-600 border border-green-100 px-3 py-1 rounded-lg text-xs font-bold">Autorizado</span>'
+                : '<span class="bg-red-50 text-red-600 border border-red-100 px-3 py-1 rounded-lg text-xs font-bold">Rechazado</span>';
+
+            const cargos = (d.cargos && d.cargos.length)
+                ? d.cargos.map(c => `<div class="flex justify-between text-sm py-1"><span class="text-slate-600">${c.descripcion} <span class="text-slate-400">x${c.cantidad}</span></span><span class="font-medium text-slate-800">Bs. ${c.subtotal}</span></div>`).join('')
+                : '<p class="text-sm text-slate-400">Sin cargos</p>';
+
+            return `
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <p class="text-xs text-slate-400">Cuenta ${d.cuenta.id} · ${d.cuenta.servicio}</p>
+                        <p class="text-sm text-slate-500">${d.cuenta.fecha}</p>
+                    </div>
+                    ${badge}
+                </div>
+                ${seccion('Paciente', fila('Nombre', d.paciente.nombre) + fila('CI / Código', d.paciente.ci) + fila('Sexo', d.paciente.sexo) + fila('Teléfono', d.paciente.telefono) + fila('Dirección', d.paciente.direccion))}
+                ${seccion('Seguro', fila('Aseguradora', d.seguro.nombre) + fila('NIT', d.seguro.nit) + fila('Tipo', d.seguro.tipo) + fila('Cobertura', d.seguro.tipo_cobertura) + fila('N° Póliza / Carnet', d.seguro.poliza) + fila('Vigencia', d.seguro.vigencia_desde + ' a ' + d.seguro.vigencia_hasta) + fila('Teléfono aseguradora', d.seguro.telefono))}
+                ${seccion('Autorización', fila('Estado', d.autorizacion.estado_label) + fila('N° autorización aseguradora', d.autorizacion.nro_autorizacion) + fila('Monto total', 'Bs. ' + d.cuenta.monto_total) + fila('Cubierto por el seguro', 'Bs. ' + d.autorizacion.cobertura) + fila('Copago paciente', 'Bs. ' + d.autorizacion.copago) + fila('Débito fiscal (venta ' + d.autorizacion.venta_id + ')', 'Bs. ' + d.autorizacion.debito_fiscal) + fila('Estado de cobro al seguro', d.autorizacion.estado_cobro) + fila('Autorizado por', d.autorizacion.autorizado_por) + fila('Fecha', d.autorizacion.fecha) + fila('Observaciones', d.autorizacion.observaciones))}
+                ${seccion('Cargos', cargos)}
+            `;
         }
     </script>
 @endsection

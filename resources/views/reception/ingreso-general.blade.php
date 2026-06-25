@@ -579,6 +579,23 @@
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
                         <p class="text-sm text-blue-800 font-medium" id="descripcion_seguro"></p>
                     </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">N° de póliza / carnet</label>
+                            <input type="text" name="seguro_poliza"
+                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Vigencia desde</label>
+                            <input type="date" name="seguro_vigencia_desde"
+                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Vigencia hasta</label>
+                            <input type="date" name="seguro_vigencia_hasta"
+                                class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                        </div>
+                    </div>
                 </div>
             </div>
 

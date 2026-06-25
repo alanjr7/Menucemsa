@@ -222,6 +222,23 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">N° de póliza / carnet</label>
+                            <input type="text" name="seguro_poliza"
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Vigencia desde</label>
+                                <input type="date" name="seguro_vigencia_desde"
+                                    class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Vigencia hasta</label>
+                                <input type="date" name="seguro_vigencia_hasta"
+                                    class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all">
+                            </div>
+                        </div>
                     </div>
 
                     </div>{{-- /#camposNuevoPaciente --}}

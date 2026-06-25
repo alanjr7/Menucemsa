@@ -67,6 +67,39 @@ class CompletarDatosPacienteTest extends TestCase
         $this->assertEquals($temp->id, $emergency->paciente_id);
     }
 
+    public function test_captura_poliza_y_vigencia_del_seguro_al_promover(): void
+    {
+        $user = $this->receptionUser();
+        [$temp, $emergency] = $this->emergenciaTemporal($user);
+
+        $seguro = \App\Models\Seguro::create([
+            'formulario' => 'FORM', 'nombre_empresa' => 'ASEG Reg', 'tipo' => 'privado',
+            'estado' => 'activo', 'tipo_cobertura' => 'porcentaje',
+            'cobertura_porcentaje' => '80.00', 'copago_porcentaje' => '20.00',
+        ]);
+
+        $this->actingAs($user)->postJson(route('reception.completar-datos-paciente.store'), [
+            'emergency_id'          => $emergency->id,
+            'ci'                    => 77665544,
+            'nombres'               => 'Ana',
+            'apellidos'             => 'López',
+            'sexo'                  => 'Femenino',
+            'seguro_id'             => $seguro->id,
+            'seguro_poliza'         => 'POL-12345',
+            'seguro_vigencia_desde' => '2026-01-01',
+            'seguro_vigencia_hasta' => '2026-12-31',
+        ])->assertOk()->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('pacientes', [
+            'id'            => $temp->id,
+            'seguro_id'     => $seguro->id,
+            'seguro_poliza' => 'POL-12345',
+        ]);
+        $paciente = Paciente::find($temp->id);
+        $this->assertSame('2026-12-31', $paciente->seguro_vigencia_hasta->toDateString());
+        $this->assertTrue($paciente->seguroVigente(\Illuminate\Support\Carbon::parse('2026-06-15')));
+    }
+
     public function test_fusiona_con_paciente_existente_cuando_el_ci_ya_esta_registrado(): void
     {
         $user = $this->receptionUser();

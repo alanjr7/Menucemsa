@@ -162,6 +162,7 @@ class ReceptionController extends Controller
                 'profesion' => $request->profesion ?? null,
                 'empresa_trabajo' => $request->empresa_trabajo ?? null,
                 'seguro_id' => $request->seguro_id ?: null,
+                ...Paciente::datosSeguroDesdeRequest($request),
                 'triage_id' => $this->obenerOCrearTriage(),
                 'registro_codigo' => $this->obtenerOCrearRegistro([
                     'fecha_nacimiento' => $request->fecha_nacimiento,

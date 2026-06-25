@@ -351,6 +351,7 @@ class EmergencyIngresoController extends Controller
                     'profesion'        => $validated['profesion'] ?? null,
                     'empresa_trabajo'  => $validated['empresa_trabajo'] ?? null,
                     'seguro_id'        => $seguroId,
+                    ...Paciente::datosSeguroDesdeRequest($request),
                     'registro_codigo'  => $registroCodigo,
                     'triage_id'        => $this->obtenerOCrearTriage(),
                     'is_temp'          => false,

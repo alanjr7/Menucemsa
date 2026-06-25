@@ -59,10 +59,26 @@ class ContabilidadController extends Controller
 
             $totalIngresos = bcadd($totalCaja, $totalFarmacia, 2);
 
-            // Débito fiscal IVA de las ventas del período (caja + farmacia).
+            // Cobertura de seguros del período (DEVENGADO): la porción que paga la
+            // aseguradora es una VENTA con débito fiscal IVA, pero NO es caja todavía
+            // (es cuenta por cobrar hasta que el seguro liquide). Por eso suma al débito
+            // fiscal y a la base imponible IT/IUE (ventas brutas), pero NO al flujo de
+            // efectivo (ingresos_caja / saldo).
+            $seguroCobros = \App\Models\SeguroCobro::with(['seguro', 'cuentaCobro.paciente'])
+                ->vigentes()
+                ->whereBetween('created_at', [$inicio, $fin])
+                ->orderBy('created_at', 'desc')->get();
+            $ventasSeguro = $seguroCobros->reduce(fn ($acc, $s) => bcadd($acc, $s->monto, 2), '0');
+            $debitoSeguro = $seguroCobros->reduce(fn ($acc, $s) => bcadd($acc, $s->debito_fiscal, 2), '0');
+
+            // Ventas brutas (devengado) = ingresos de caja/farmacia + cobertura de seguros.
+            // Es la base imponible de IT e IUE; los "ingresos" de caja siguen siendo solo efectivo.
+            $ventasBrutas = bcadd($totalIngresos, $ventasSeguro, 2);
+
+            // Débito fiscal IVA de las ventas del período (caja + farmacia + seguros).
             $debitoCaja = $pagos->reduce(fn ($acc, $p) => bcadd($acc, $p->debito_fiscal, 2), '0');
             $debitoFarmacia = $ventasFarmacia->reduce(fn ($acc, $v) => bcadd($acc, $v->debito_fiscal, 2), '0');
-            $totalDebitoFiscal = bcadd($debitoCaja, $debitoFarmacia, 2);
+            $totalDebitoFiscal = bcadd(bcadd($debitoCaja, $debitoFarmacia, 2), $debitoSeguro, 2);
 
             // Ingresos por método: combina caja + farmacia
             $ingresosPorMetodo = $pagos->groupBy('metodo_pago')->map(
@@ -111,6 +127,10 @@ class ContabilidadController extends Controller
                     'ingresos' => $totalIngresos,
                     'ingresos_caja' => $totalCaja,
                     'ingresos_farmacia' => $totalFarmacia,
+                    // Cobertura de seguros (devengado, por cobrar a la aseguradora) y
+                    // ventas brutas (caja + farmacia + seguros) = base imponible IT/IUE.
+                    'ventas_seguro' => $ventasSeguro,
+                    'ventas_brutas' => $ventasBrutas,
                     'egresos' => $totalEgresos,
                     'credito_fiscal' => $totalCreditoFiscal,
                     'debito_fiscal' => $totalDebitoFiscal,
@@ -120,14 +140,16 @@ class ContabilidadController extends Controller
                     'retencion_iue' => $totalRetencionIue,
                     'retencion_it' => $totalRetencionIt,
                     'retencion_total' => bcadd($totalRetencionIue, $totalRetencionIt, 2),
-                    // Bases IT / IUE. IT = 3% sobre ingresos brutos. IUE = 25% sobre la
-                    // utilidad estimada (ingresos - egresos); referencial — el F-500 lo arma
-                    // el contador con la contabilidad completa.
-                    'it_3' => Impuestos::it($totalIngresos),
-                    'utilidad_estimada' => bcsub($totalIngresos, $totalEgresos, 2),
-                    'iue_estimado' => bccomp(bcsub($totalIngresos, $totalEgresos, 2), '0', 2) > 0
-                        ? Money::mul(bcsub($totalIngresos, $totalEgresos, 2), Impuestos::IUE)
+                    // Bases IT / IUE. IT = 3% sobre ventas brutas (devengado, incl. seguros).
+                    // IUE = 25% sobre la utilidad estimada (ventas brutas - egresos);
+                    // referencial — el F-500 lo arma el contador con la contabilidad completa.
+                    'it_3' => Impuestos::it($ventasBrutas),
+                    'utilidad_estimada' => bcsub($ventasBrutas, $totalEgresos, 2),
+                    'iue_estimado' => bccomp(bcsub($ventasBrutas, $totalEgresos, 2), '0', 2) > 0
+                        ? Money::mul(bcsub($ventasBrutas, $totalEgresos, 2), Impuestos::IUE)
                         : '0.00',
+                    // Saldo de CAJA del período = efectivo cobrado − egresos (no incluye
+                    // ventas a seguro aún no cobradas).
                     'saldo' => bcsub($totalIngresos, $totalEgresos, 2),
                 ],
                 'serie' => $serie,
@@ -164,6 +186,16 @@ class ContabilidadController extends Controller
                         'usuario' => $v->usuario->name ?? 'N/A',
                     ];
                 }))->sortByDesc('fecha_orden')->values(),
+                'cobertura_seguros' => $seguroCobros->map(fn ($s) => [
+                    'id' => $s->id,
+                    'fecha' => $s->created_at->format('d/m/Y H:i'),
+                    'paciente' => $s->cuentaCobro?->paciente?->nombre ?? 'N/A',
+                    'aseguradora' => $s->seguro?->nombre_empresa ?? 'N/A',
+                    'cuenta_id' => $s->cuenta_cobro_id,
+                    'monto' => $s->monto,
+                    'debito_fiscal' => $s->debito_fiscal,
+                    'estado' => $s->estado_label,
+                ]),
                 'egresos_por_categoria' => $egresosPorCategoria,
                 'egresos' => $egresos->map(fn ($e) => [
                     'id' => $e->id,

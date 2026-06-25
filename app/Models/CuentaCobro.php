@@ -45,6 +45,7 @@ class CuentaCobro extends Model
         'seguro_autorizado_por',
         'seguro_fecha_autorizacion',
         'seguro_observaciones',
+        'seguro_nro_autorizacion',
         'seguro_monto_cobertura',
         'seguro_monto_paciente',
     ];
@@ -151,6 +152,12 @@ class CuentaCobro extends Model
     public function seguroAutorizadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'seguro_autorizado_por');
+    }
+
+    /** Ventas devengadas a la aseguradora por la porción cubierta de esta cuenta. */
+    public function seguroCobros(): HasMany
+    {
+        return $this->hasMany(SeguroCobro::class);
     }
 
     public function episodio(): BelongsTo
@@ -301,10 +308,24 @@ class CuentaCobro extends Model
             ->whereNull('deshabilitado_en')
             ->reduce(fn ($acc, $d) => Money::add($acc, $d->subtotal), '0');
 
+        // Autorización ABIERTA por episodio: mientras la venta a la aseguradora siga
+        // PENDIENTE de liquidación, la cobertura sigue al total en vivo (cubre todos los
+        // cargos nuevos según la regla %/tope) y se sincroniza la venta devengada. Una vez
+        // LIQUIDADA (cobrada a la aseguradora) la cobertura queda congelada: cargos
+        // posteriores los paga el paciente / requieren nueva autorización. El guard
+        // `seguro_monto_cobertura === null` cubre el caso de autorización sin venta creada.
         if ($this->seguro_estado === 'autorizado' && $this->seguro) {
-            $calculo = $this->seguro->calcularCobertura((float)$this->total_calculado);
-            $this->seguro_monto_cobertura = $calculo['monto_cubierto'];
-            $this->seguro_monto_paciente = $calculo['monto_paciente'];
+            $cobroAbierto = $this->seguroCobros()->where('estado', 'pendiente')->first();
+
+            if ($cobroAbierto || $this->seguro_monto_cobertura === null) {
+                $calculo = $this->seguro->calcularCobertura((float) $this->total_calculado, $this->topeDisponibleSeguro($this->seguro));
+                $this->seguro_monto_cobertura = $calculo['monto_cubierto'];
+                $this->seguro_monto_paciente = $calculo['monto_paciente'];
+
+                if ($cobroAbierto) {
+                    $cobroAbierto->actualizarMonto($calculo['monto_cubierto']);
+                }
+            }
         }
 
         $cobertura = $this->seguro_estado === 'autorizado' ? $this->seguro_monto_cobertura : 0;
@@ -319,6 +340,66 @@ class CuentaCobro extends Model
         }
         
         $this->save();
+    }
+
+    /**
+     * Autoriza el seguro sobre esta cuenta y materializa la venta devengada a la
+     * aseguradora. Fuente única de autorización (la usan el cobro automático en caja
+     * y la pre-autorización manual de admin), para que toda autorización deje:
+     *   - el snapshot congelado en la cuenta (seguro_monto_cobertura / _paciente),
+     *   - la cuenta por cobrar a la aseguradora ({@see SeguroCobro}) con débito fiscal.
+     *
+     * Autorización ABIERTA por episodio: la cobertura se calcula sobre el TOTAL del
+     * episodio y queda abierta (la venta se sincroniza con el total en vivo) hasta que se
+     * liquide a la aseguradora. Re-autorizar por cargo no es necesario en este modelo.
+     *
+     * @param  float  $montoBase  Compatibilidad: ya no determina la cobertura (se usa el
+     *                            total del episodio). Se conserva por la firma existente.
+     * @return array{cubierto: float, paciente: float}
+     */
+    public function autorizarSeguro(Seguro $seguro, float $montoBase = 0, array $meta = []): array
+    {
+        $calculo = $seguro->calcularCobertura((float) $this->total_calculado, $this->topeDisponibleSeguro($seguro));
+
+        $this->forceFill([
+            'seguro_id'                 => $seguro->id,
+            'seguro_estado'             => 'autorizado',
+            'seguro_autorizado_por'     => $meta['autorizado_por'] ?? auth()->id(),
+            'seguro_fecha_autorizacion' => now(),
+            'seguro_observaciones'      => $meta['observaciones'] ?? $this->seguro_observaciones,
+            'seguro_nro_autorizacion'   => $meta['nro_autorizacion'] ?? $this->seguro_nro_autorizacion,
+            'seguro_monto_cobertura'    => $calculo['monto_cubierto'],
+            'seguro_monto_paciente'     => $calculo['monto_paciente'],
+        ])->save();
+
+        SeguroCobro::registrarPara($this, $seguro, $calculo['monto_cubierto'], $meta['autorizado_por'] ?? auth()->id());
+
+        // recalcular sincroniza cobertura + venta con el total en vivo (modelo abierto).
+        $this->recalcularTotales();
+
+        return [
+            'cubierto' => (float) $this->seguro_monto_cobertura,
+            'paciente' => (float) $this->seguro_monto_paciente,
+        ];
+    }
+
+    /**
+     * Saldo del tope (seguro tipo tope_monto) que el paciente aún no consumió este período.
+     * Devuelve null cuando no aplica (otro tipo de cobertura, o cuenta sin paciente): en ese
+     * caso el cálculo usa el tope completo. Hace que el tope sea un límite AGREGADO por
+     * paciente/gestión y no un límite que se reinicia en cada cuenta.
+     */
+    private function topeDisponibleSeguro(Seguro $seguro): ?float
+    {
+        if ($seguro->tipo_cobertura !== 'tope_monto' || ! $this->paciente_id) {
+            return null;
+        }
+
+        // Excluye la cobertura de ESTA cuenta: al recomputarla en el modelo abierto no debe
+        // descontarse de su propio tope disponible (se contaría dos veces).
+        $consumido = SeguroCobro::consumoPaciente($this->paciente_id, $seguro->id, (int) now()->year, $this->id);
+
+        return max(0.0, (float) Money::sub($seguro->tope_monto, $consumido));
     }
 
     // Registrar un pago.

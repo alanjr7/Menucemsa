@@ -80,7 +80,7 @@
             </div>
             <div>
                 <label class="text-sm font-medium text-gray-500">Seguro</label>
-                <p class="font-semibold text-gray-900">{{ $cita->paciente->seguro->nombre ?? 'N/A' }}</p>
+                <p class="font-semibold text-gray-900">{{ $cita->paciente->seguro->nombre_empresa ?? 'N/A' }}</p>
             </div>
             <div>
                 <label class="text-sm font-medium text-gray-500">Edad</label>

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\PagoCuenta;
+use App\Models\SeguroCobro;
 use App\Models\VentaFarmacia;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -75,6 +76,28 @@ class RcvVentasSheet implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 'total' => (float) $v->total,
                 'base' => (float) $v->base_imponible,
                 'debito' => (float) $v->debito_fiscal,
+            ]);
+        }
+
+        // Cobertura de seguros (venta devengada a la aseguradora). El receptor de la
+        // factura es la aseguradora; mismo débito fiscal IVA que cualquier otra venta.
+        $seguros = SeguroCobro::with(['seguro', 'cuentaCobro'])->vigentes()
+            ->whereBetween('created_at', [$this->inicio, $this->fin])
+            ->orderBy('created_at')->get();
+        foreach ($seguros as $s) {
+            $r = $s->receptorFiscal();
+            $rows->push([
+                'n' => ++$n,
+                'fecha' => $s->created_at->format('d/m/Y'),
+                'origen' => 'Seguro',
+                'recibo' => $s->id,
+                'autorizacion' => $s->cuentaCobro?->seguro_nro_autorizacion ?? '',
+                'tipo_doc' => $r['tipo_documento_label'],
+                'documento' => $r['numero_documento'],
+                'razon' => $r['razon_social'],
+                'total' => (float) $s->monto,
+                'base' => (float) $s->base_imponible,
+                'debito' => (float) $s->debito_fiscal,
             ]);
         }
 

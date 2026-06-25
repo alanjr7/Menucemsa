@@ -89,8 +89,24 @@
                                 </div>
                                 <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
                                     <span class="text-sm font-bold text-gray-800">Seguro:</span>
-                                    <span class="text-sm text-gray-900">{{ $paciente->seguro->nombre ?? 'Sin seguro' }}</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->seguro->nombre_empresa ?? 'Sin seguro' }}</span>
                                 </div>
+                                @if($paciente->seguro && strtolower($paciente->seguro->tipo) !== 'particular')
+                                    <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                        <span class="text-sm font-bold text-gray-800">N° Póliza/Carnet:</span>
+                                        <span class="text-sm text-gray-900">{{ $paciente->seguro_poliza ?? 'No registrado' }}</span>
+                                    </div>
+                                    <div class="flex justify-between md:col-span-2 border-b border-gray-200 pb-1 px-2">
+                                        <span class="text-sm font-bold text-gray-800">Vigencia:</span>
+                                        <span class="text-sm text-gray-900">
+                                            @if($paciente->seguro_vigencia_desde || $paciente->seguro_vigencia_hasta)
+                                                {{ optional($paciente->seguro_vigencia_desde)->format('d/m/Y') ?? '—' }} a {{ optional($paciente->seguro_vigencia_hasta)->format('d/m/Y') ?? '—' }}
+                                            @else
+                                                Sin fecha de vigencia
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endif
                                 <div class="flex justify-between md:col-span-2 border-b border-gray-200 pb-1 px-2">
                                     <span class="text-sm font-bold text-gray-800">Dirección:</span>
                                     <span class="text-sm text-gray-900 text-right max-w-xs">{{ $paciente->direccion ?? 'No registrada' }}</span>
@@ -382,9 +398,22 @@
             <div class="f-row">
                 <div class="f-field w-100">
                     <span class="f-label">Seguro</span>
-                    <span class="f-value font-bold">{{ strtoupper($paciente->seguro->nombre ?? 'SIN SEGURO') }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->seguro->nombre_empresa ?? 'SIN SEGURO') }}</span>
                 </div>
             </div>
+
+            @if($paciente->seguro && strtolower($paciente->seguro->tipo) !== 'particular')
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">N° Póliza/Carnet</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->seguro_poliza ?? '—') }}</span>
+                </div>
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Vigencia</span>
+                    <span class="f-value font-bold">{{ optional($paciente->seguro_vigencia_desde)->format('d/m/Y') ?? '—' }} - {{ optional($paciente->seguro_vigencia_hasta)->format('d/m/Y') ?? '—' }}</span>
+                </div>
+            </div>
+            @endif
         </div>
         @endif
 

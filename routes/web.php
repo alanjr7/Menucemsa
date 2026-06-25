@@ -16,6 +16,7 @@ use App\Http\Controllers\HabitacionApiController;
 use App\Http\Controllers\HabitacionGestionController;
 use App\Http\Controllers\InternacionNurseController;
 use App\Http\Controllers\Admin\SeguroController;
+use App\Http\Controllers\Admin\SeguroCobranzaController;
 use App\Http\Controllers\Admin\CuentaCobrarController;
 use App\Http\Controllers\Admin\EspecialidadController;
 use App\Http\Controllers\Admin\DoctorController;
@@ -415,6 +416,12 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
 
         Route::get('/seguros', [SeguroController::class, 'index'])->name('seguros');
         Route::get('/seguros/historial', [SeguroController::class, 'historial'])->name('seguros.historial');
+
+        // Sub-mayor de cobranza a aseguradoras (cuentas por cobrar a seguros + aging)
+        Route::get('/seguros/cobranza', [SeguroCobranzaController::class, 'index'])->name('seguros.cobranza');
+        Route::post('/seguros/cobranza/{seguroCobro}/liquidar', [SeguroCobranzaController::class, 'liquidar'])->name('seguros.cobranza.liquidar');
+        Route::post('/seguros/cobranza/{seguroCobro}/anular', [SeguroCobranzaController::class, 'anular'])->name('seguros.cobranza.anular');
+        Route::post('/seguros/cobranza/aseguradora/{seguro}/liquidar-lote', [SeguroCobranzaController::class, 'liquidarLote'])->name('seguros.cobranza.liquidar-lote');
         Route::post('/seguros', [SeguroController::class, 'store'])->name('seguros.store');
         Route::put('/seguros/{seguro}', [SeguroController::class, 'update'])->name('seguros.update');
         Route::delete('/seguros/{seguro}', [SeguroController::class, 'destroy'])->name('seguros.destroy');
@@ -427,6 +434,10 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/seguros/{seguro}', [SeguroController::class, 'show'])->name('seguros.api.show');
         Route::get('/api/preautorizaciones', [SeguroController::class, 'getPreautorizaciones'])->name('seguros.api.preautorizaciones');
         Route::post('/api/preautorizaciones/{cuentaId}/estado', [SeguroController::class, 'cambiarEstadoPreautorizacion'])->name('seguros.api.cambiar-estado');
+
+        // Autorizaciones resueltas: detalle (modal) e impresión de la hoja del seguro
+        Route::get('/api/seguros/autorizacion/{cuentaId}', [SeguroController::class, 'verAutorizacion'])->name('seguros.autorizacion.ver');
+        Route::get('/seguros/autorizacion/{cuentaId}/imprimir', [SeguroController::class, 'imprimirAutorizacion'])->name('seguros.autorizacion.imprimir');
 
         Route::get('/cuentas-por-cobrar', [CuentaCobrarController::class, 'index'])->name('cuentas');
 

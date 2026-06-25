@@ -92,7 +92,7 @@
                 <dl class="space-y-2">
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Seguro:</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->seguro->nombre ?? 'Particular' }}</dd>
+                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->seguro->nombre_empresa ?? 'Particular' }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Triage:</dt>

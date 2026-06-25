@@ -200,6 +200,7 @@ class HospitalizacionController extends Controller
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
                 'seguro_id' => $request->seguro_id ?? $this->obtenerOCrearSeguro('particular'),
+                ...Paciente::datosSeguroDesdeRequest($request),
                 'id_triage' => null,
                 'registro_codigo' => $this->obtenerOCrearRegistro([
                     'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
@@ -218,6 +219,7 @@ class HospitalizacionController extends Controller
             // Actualizar seguro solo si se envió explicitamente
             if ($request->has('seguro_id') && $request->seguro_id !== null) {
                 $updateData['seguro_id'] = $request->seguro_id;
+                $updateData = array_merge($updateData, Paciente::datosSeguroDesdeRequest($request));
             }
 
             $paciente->update($updateData);

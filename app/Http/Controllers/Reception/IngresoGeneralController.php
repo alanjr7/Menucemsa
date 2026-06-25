@@ -310,6 +310,7 @@ class IngresoGeneralController extends Controller
                 'profesion'        => $request->profesion ?? null,
                 'empresa_trabajo'  => $request->empresa_trabajo ?? null,
                 'seguro_id'        => $seguroId,
+                ...Paciente::datosSeguroDesdeRequest($request),
                 'registro_codigo'  => $this->crearRegistro('Registro desde Ingreso General', [
                     'fecha_nacimiento' => $request->fecha_nacimiento,
                     'sexo'             => in_array($request->sexo, ['Femenino', 'F']) ? 'F' : 'M',

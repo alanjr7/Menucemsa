@@ -27,6 +27,9 @@ class Paciente extends Model
         'profesion',
         'empresa_trabajo',
         'seguro_id',
+        'seguro_poliza',
+        'seguro_vigencia_desde',
+        'seguro_vigencia_hasta',
         'triage_id',
         'registro_codigo',
         'garante_id',
@@ -39,7 +42,48 @@ class Paciente extends Model
         'fecha_nacimiento' => 'date',
         'sexo' => 'string',
         'lugar_expedicion' => 'string',
+        'seguro_vigencia_desde' => 'date',
+        'seguro_vigencia_hasta' => 'date',
     ];
+
+    /**
+     * ¿La póliza del paciente está vigente? Sin fechas de vigencia se asume abierta
+     * (true). Si hay fecha de fin, debe ser hoy o futura; si hay fecha de inicio, debe
+     * haber comenzado. Lo usa el cobro para no aplicar un seguro vencido.
+     */
+    public function seguroVigente(?\DateTimeInterface $fecha = null): bool
+    {
+        $hoy = \Illuminate\Support\Carbon::parse($fecha)->startOfDay();
+
+        if ($this->seguro_vigencia_desde && $hoy->lt($this->seguro_vigencia_desde->copy()->startOfDay())) {
+            return false;
+        }
+        if ($this->seguro_vigencia_hasta && $hoy->gt($this->seguro_vigencia_hasta->copy()->endOfDay())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Datos de la póliza (nº + vigencia) tomados del request, SOLO cuando se eligió un
+     * seguro. Fuente única para que todos los formularios de registro capturen lo mismo;
+     * sin seguro seleccionado devuelve nulls (no se inventan datos de póliza).
+     *
+     * @return array{seguro_poliza: ?string, seguro_vigencia_desde: ?string, seguro_vigencia_hasta: ?string}
+     */
+    public static function datosSeguroDesdeRequest($request): array
+    {
+        if (! $request->filled('seguro_id')) {
+            return ['seguro_poliza' => null, 'seguro_vigencia_desde' => null, 'seguro_vigencia_hasta' => null];
+        }
+
+        return [
+            'seguro_poliza'         => $request->input('seguro_poliza') ?: null,
+            'seguro_vigencia_desde' => $request->input('seguro_vigencia_desde') ?: null,
+            'seguro_vigencia_hasta' => $request->input('seguro_vigencia_hasta') ?: null,
+        ];
+    }
 
     /**
      * Calcula el siguiente código temporal correlativo del día (TEMP-Ymd-NNN).
