@@ -3,6 +3,20 @@
 @section('content')
 <div class="w-full p-4 bg-gray-50/50 min-h-screen">
 
+    @php
+        $isEditor = in_array(auth()->user()->role, ['admin', 'administrador']);
+        $costoBase = (float) ($cita->costo_base ?? 0);
+        // Fuente real del cobro de la cirugía: el detalle 'procedimiento' de la cuenta
+        $costoCirugia = $detalleProcedimiento ? (float) $detalleProcedimiento->subtotal : $costoBase;
+        $costoExtra = max(0, round($costoCirugia - $costoBase, 2));
+        $totalMedicamentos = $medicamentosUsados->sum('subtotal');
+        $totalMateriales = $materialesUsados->sum('subtotal');
+        $totalEquipos = $equiposUsados->sum('subtotal');
+        // Total en vivo desde los detalles de ESTA cita. Fuente única para el header
+        // y el resumen: evita el drift del campo denormalizado cita->costo_final.
+        $totalGeneral = round($costoCirugia + $totalMedicamentos + $totalMateriales + $totalEquipos, 2);
+    @endphp
+
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
@@ -52,10 +66,10 @@
                     @endswitch
                 </div>
             </div>
-            @if($cita->estado === 'finalizada' && $cita->costo_final && auth()->user()->role !== 'cirujano')
+            @if($cita->estado === 'finalizada' && auth()->user()->role !== 'cirujano')
                 <div class="text-right">
                     <span class="text-sm text-gray-500">Costo Total</span>
-                    <div class="text-2xl font-bold text-green-600">${{ number_format($cita->costo_final, 2) }}</div>
+                    <div class="text-2xl font-bold text-green-600">${{ number_format($totalGeneral, 2) }}</div>
                 </div>
             @endif
         </div>
@@ -218,6 +232,47 @@
         @endif
     </div>
 
+    <!-- Sección 3b: Insumos / Materiales -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            Insumos Utilizados
+        </h2>
+
+        @if($materialesUsados && count($materialesUsados) > 0)
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Insumo</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                            @if(auth()->user()->role !== 'cirujano')
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Unitario</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($materialesUsados as $mat)
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">{{ $mat->descripcion }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">{{ $mat->cantidad }}</td>
+                                @if(auth()->user()->role !== 'cirujano')
+                                <td class="px-4 py-3 text-sm text-gray-900">${{ number_format($mat->precio_unitario, 2) }}</td>
+                                <td class="px-4 py-3 text-sm font-semibold text-gray-900">${{ number_format($mat->subtotal, 2) }}</td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <p class="text-gray-500 text-sm text-center py-4">No se registraron insumos</p>
+        @endif
+    </div>
+
     <!-- Sección 4: Equipos y Procedimientos -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -260,16 +315,6 @@
     </div>
 
     @if(auth()->user()->role !== 'cirujano')
-    @php
-        $isEditor = in_array(auth()->user()->role, ['admin', 'administrador']);
-        $costoBase = (float) ($cita->costo_base ?? 0);
-        // Fuente real del cobro de la cirugía: el detalle 'procedimiento' de la cuenta
-        $costoCirugia = $detalleProcedimiento ? (float) $detalleProcedimiento->subtotal : $costoBase;
-        $costoExtra = max(0, round($costoCirugia - $costoBase, 2));
-        $totalMedicamentos = $medicamentosUsados->sum('subtotal');
-        $totalEquipos = $equiposUsados->sum('subtotal');
-        $totalGeneral = round($costoCirugia + $totalMedicamentos + $totalEquipos, 2);
-    @endphp
     <!-- Sección 5: Resumen de Costos -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -327,6 +372,10 @@
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-600">Medicamentos</span>
                 <span class="font-semibold text-green-600">Bs. {{ number_format($totalMedicamentos, 2) }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                <span class="text-sm text-gray-600">Insumos</span>
+                <span class="font-semibold text-teal-600">Bs. {{ number_format($totalMateriales, 2) }}</span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-600">Equipos y Procedimientos</span>

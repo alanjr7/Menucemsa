@@ -16,6 +16,10 @@
     </style>
 </head>
 <body>
+    @php
+        // Los precios solo los ven admin o administrador (coherente con el historial).
+        $puedeVerPrecios = in_array(auth()->user()->role, ['admin', 'administrador'], true);
+    @endphp
     <h1>Evaluación Clínica</h1>
     <div class="meta">
         <strong>Paciente:</strong> {{ $paciente->nombre }} &nbsp;|&nbsp;
@@ -52,14 +56,16 @@
     @if($evaluacion->items->where('tipo','procedimiento')->count())
         <h2>Procedimientos</h2>
         <table>
-            <thead><tr><th>Nombre</th><th>Cantidad</th><th>Precio unit.</th><th>Subtotal</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Cantidad</th>@if($puedeVerPrecios)<th>Precio unit.</th><th>Subtotal</th>@endif</tr></thead>
             <tbody>
                 @foreach($evaluacion->items->where('tipo','procedimiento') as $item)
                     <tr>
                         <td>{{ $item->nombre_snapshot }}</td>
                         <td>{{ $item->cantidad }}</td>
+                        @if($puedeVerPrecios)
                         <td>Bs. {{ number_format($item->precio_snapshot, 2) }}</td>
                         <td>Bs. {{ number_format($item->precio_snapshot * $item->cantidad, 2) }}</td>
+                        @endif
                     </tr>
                 @endforeach
             </tbody>

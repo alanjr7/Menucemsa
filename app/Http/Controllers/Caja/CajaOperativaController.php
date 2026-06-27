@@ -903,12 +903,20 @@ class CajaOperativaController extends Controller
     /**
      * Vista de comprobante de pago imprimible
      */
-    public function comprobante(string $cuentaId): View
+    public function comprobante(string $cuentaId, Request $request): View
     {
         $cuenta = CuentaCobro::with([
             'paciente', 'detalles.liquidadoPago', 'pagos.user', 'cajaSession.user'
         ])->findOrFail($cuentaId);
 
-        return view('caja.comprobante', compact('cuenta'));
+        // Recibo por pago: con ?pago=PAGO-... el comprobante se ancla en ese pago
+        // (y el ciclo de cobro que cerró). Sin parámetro toma el último pago, que
+        // es el comportamiento histórico que usa /caja-operativa tras cobrar.
+        $pagoRecibo = $request->query('pago');
+        if ($pagoRecibo !== null && ! $cuenta->pagos->contains('id', $pagoRecibo)) {
+            $pagoRecibo = null; // un pago ajeno a esta cuenta se ignora
+        }
+
+        return view('caja.comprobante', compact('cuenta', 'pagoRecibo'));
     }
 }

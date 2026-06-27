@@ -513,7 +513,7 @@
                 </td>
                 <td class="px-6 py-4 text-right text-sm font-black text-gray-900">Bs ${parseFloat(c.monto).toFixed(2)}</td>
                 <td class="px-6 py-4 text-center">
-                    <button onclick="imprimirRecibo('${c.cuenta_id}')" class="inline-flex items-center gap-1 px-4 py-1.5 bg-gray-700 text-white text-[11px] font-black rounded shadow hover:bg-gray-800 transition-all uppercase">
+                    <button onclick="imprimirRecibo('${c.cuenta_id}', '${c.id}')" class="inline-flex items-center gap-1 px-4 py-1.5 bg-gray-700 text-white text-[11px] font-black rounded shadow hover:bg-gray-800 transition-all uppercase">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                         Recibo
                     </button>
@@ -530,8 +530,9 @@
         renderizarCobros(filtrados);
     }
 
-    function imprimirRecibo(cuentaId) {
-        const url = '{{ url('/caja-operativa/comprobante') }}' + '/' + cuentaId;
+    function imprimirRecibo(cuentaId, pagoId) {
+        let url = '{{ url('/caja-operativa/comprobante') }}' + '/' + encodeURIComponent(cuentaId);
+        if (pagoId) url += '?pago=' + encodeURIComponent(pagoId);
         window.open(url, '_blank');
     }
 

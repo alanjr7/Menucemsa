@@ -98,6 +98,39 @@ class CuentaCobroDetalle extends Model
                 $detalle->subtotal = Money::mul($detalle->cantidad, $detalle->precio_unitario);
             }
         });
+
+        // Mantener al día el total denormalizado de la cirugía dueña del cargo.
+        // Chokepoint ÚNICO: cualquier alta/edición/anulación de un cargo cuyo origen
+        // sea una CitaQuirurgica —venga de ejecutar, actualizarDetalles, agregar en
+        // tiempo real, anulación de cargos o ajustes de paciente— resincroniza
+        // CitaQuirurgica->costo_final. Resuelve el drift del cache de raíz.
+        static::saved(function ($detalle) {
+            if ($detalle->wasRecentlyCreated
+                || $detalle->wasChanged(['subtotal', 'cantidad', 'deshabilitado_en', 'origen_id', 'origen_type'])) {
+                $detalle->sincronizarCostoCirugia();
+            }
+        });
+
+        static::deleted(function ($detalle) {
+            $detalle->sincronizarCostoCirugia();
+        });
+    }
+
+    /**
+     * Si este cargo pertenece a una cirugía, recalcula su total denormalizado.
+     * Defensivo: nunca interrumpe la operación de facturación que lo disparó.
+     */
+    protected function sincronizarCostoCirugia(): void
+    {
+        if ($this->origen_type !== CitaQuirurgica::class) {
+            return;
+        }
+
+        try {
+            CitaQuirurgica::find($this->origen_id)?->recalcularCostoFinal();
+        } catch (\Throwable $e) {
+            \Log::warning('No se pudo sincronizar costo_final de cirugía: '.$e->getMessage());
+        }
     }
 
     /**

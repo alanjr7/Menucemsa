@@ -86,35 +86,62 @@
         'nit'       => '497970026',  
     ];
 
-    // ── Alcance del recibo = ciclo de cobro actual ──
-    // Si la cuenta está saldada, el recibo muestra los cargos liquidados por el
-    // último pago (el ciclo recién cerrado). Si aún hay saldo, muestra todo lo
-    // pendiente. Nunca re-lista cargos ya pagados en un ciclo anterior.
-    $pagosOrdenados = $cuenta->pagos->sortBy('created_at')->values();
+    // ── Alcance del recibo = ciclo de cobro de UN pago objetivo ──
+    // El comprobante se ancla en un pago (el indicado por ?pago= o, por defecto, el
+    // último). Cada pago que salda la cuenta cierra un "ciclo": estampa su id en
+    // liquidado_pago_id de los cargos que liquidó. El recibo de ese pago muestra
+    // SOLO los cargos de su ciclo y los pagos de ese ciclo, nunca lo de otro pago.
+    $pagosOrdenados = $cuenta->pagos->sortBy([['created_at', 'asc'], ['id', 'asc']])->values();
     $ultimoPago     = $pagosOrdenados->last();
-    $cuentaSaldada  = bccomp((string) $cuenta->saldo_pendiente, '0', 2) <= 0 && $ultimoPago;
+    $tieneSaldo     = bccomp((string) $cuenta->saldo_pendiente, '0', 2) > 0;
 
-    if ($cuentaSaldada) {
-        $detallesRecibo = $cuenta->detalles->where('liquidado_pago_id', $ultimoPago->id);
-        if ($detallesRecibo->isEmpty()) {
-            $detallesRecibo = $cuenta->detalles;
-        }
-        $cortePrevio = $cuenta->detalles
-            ->whereNotNull('liquidado_pago_id')
-            ->where('liquidado_pago_id', '!=', $ultimoPago->id)
-            ->map(fn($d) => optional($d->liquidadoPago)->created_at)
-            ->filter()->max();
+    // Pago objetivo del recibo:
+    //  - con ?pago= : ese pago (recibo individual desde historial / cobros realizados).
+    //  - sin parámetro: el último pago SOLO si la cuenta está saldada (recibo del
+    //    último ciclo). Si aún hay saldo no hay pago objetivo y el comprobante
+    //    muestra lo pendiente (caso "imprimir pendiente"). Esto preserva el
+    //    comportamiento previo de /caja-operativa.
+    $pagoObjetivo = ($pagoRecibo ?? null) ? $pagosOrdenados->firstWhere('id', $pagoRecibo) : null;
+    if (! $pagoObjetivo && ! $tieneSaldo) {
+        $pagoObjetivo = $ultimoPago;
+    }
+    $objetivoIdx = $pagoObjetivo ? $pagosOrdenados->search(fn($p) => $p->id === $pagoObjetivo->id) : false;
+
+    // Cargos liquidados por el pago objetivo (si es un pago de cierre).
+    $liquidadosObjetivo = $pagoObjetivo
+        ? $cuenta->detalles->where('liquidado_pago_id', $pagoObjetivo->id)
+        : collect();
+
+    // Corte previo = fecha del último cierre anterior al ciclo en curso. Con pago
+    // objetivo es el último cierre ANTERIOR a ese pago; sin él (mostrando pendiente)
+    // es el último cierre que exista. Delimita el inicio del ciclo.
+    $cortePrevio = $cuenta->detalles
+        ->whereNotNull('liquidado_pago_id')
+        ->map(fn($d) => optional($d->liquidadoPago)->created_at)
+        ->filter(fn($t) => $t && (! $pagoObjetivo || $t->lt($pagoObjetivo->created_at)))
+        ->max();
+
+    if ($liquidadosObjetivo->isNotEmpty()) {
+        // Pago de cierre: los cargos que él mismo liquidó.
+        $detallesRecibo = $liquidadosObjetivo;
+    } elseif ($pagoObjetivo) {
+        // Pago parcial clickeado: los cargos del ciclo abierto a ese momento
+        // (no liquidados, o liquidados después del corte previo).
+        $detallesRecibo = $cuenta->detalles->filter(function ($d) use ($cortePrevio) {
+            $t = optional($d->liquidadoPago)->created_at;
+            return $t === null || $cortePrevio === null || $t->gt($cortePrevio);
+        });
     } else {
+        // Sin pago objetivo (cuenta con saldo): lo pendiente.
         $detallesRecibo = $cuenta->detalles->whereNull('liquidado_en');
-        $cortePrevio = $cuenta->detalles
-            ->whereNotNull('liquidado_pago_id')
-            ->map(fn($d) => optional($d->liquidadoPago)->created_at)
-            ->filter()->max();
     }
 
-    $pagosRecibo = $cortePrevio
-        ? $pagosOrdenados->filter(fn($p) => $p->created_at->gt($cortePrevio))->values()
-        : $pagosOrdenados;
+    // Pagos del recibo: posteriores al corte previo y hasta el pago objetivo.
+    $pagosRecibo = $pagosOrdenados->filter(function ($p, $i) use ($cortePrevio, $objetivoIdx) {
+        $despuesDelCorte = $cortePrevio === null || $p->created_at->gt($cortePrevio);
+        $hastaObjetivo   = $objetivoIdx === false || $i <= $objetivoIdx;
+        return $despuesDelCorte && $hastaObjetivo;
+    })->values();
 
     $totalRecibo  = $detallesRecibo->sum('subtotal');
     $pagadoRecibo = $pagosRecibo->sum('monto');
@@ -149,8 +176,9 @@
             </div>
             <div class="cab-der">
                 @if($CLINICA['nit'])<div><span class="lbl">NIT:</span> {{ $CLINICA['nit'] }}</div>@endif
-                <div><span class="lbl">COMPROBANTE Nº:</span> {{ $cuenta->id }}</div>
-                <div><span class="lbl">FECHA:</span> {{ now()->format('d/m/Y') }}</div>
+                <div><span class="lbl">CUENTA Nº:</span> {{ $cuenta->id }}</div>
+                @if($pagoObjetivo)<div><span class="lbl">RECIBO Nº:</span> {{ $pagoObjetivo->id }}</div>@endif
+                <div><span class="lbl">FECHA:</span> {{ optional($pagoObjetivo?->created_at)->setTimezone('America/La_Paz')?->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
             </div>
         </div>
 
@@ -163,7 +191,7 @@
         {{-- ════════ Datos del comprobante / paciente ════════ --}}
         <div class="pagina">Página 1 de 1</div>
         <div class="datos">
-            <div class="row"><span class="k">Fecha:</span><span class="v">{{ now()->format('d/m/Y  h:i a') }}</span></div>
+            <div class="row"><span class="k">Fecha:</span><span class="v">{{ optional($pagoObjetivo?->created_at)->setTimezone('America/La_Paz')?->format('d/m/Y  h:i a') ?? now()->format('d/m/Y  h:i a') }}</span></div>
             @if($cuenta->con_credito_fiscal)
             <div class="row"><span class="k">{{ $tipoDocLbl }}:</span><span class="v">{{ $documento }}</span></div>
             <div class="row"><span class="k">Nombre/Razón Social:</span><span class="v">{{ $razonSocial }}</span></div>

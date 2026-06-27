@@ -1,140 +1,188 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    // Los precios/costos del historial clínico solo los ven admin o administrador.
+    // El personal médico ve el historial sin importes (pantalla e impresión).
+    $puedeVerPrecios = in_array(auth()->user()->role, ['admin', 'administrador'], true);
+@endphp
 <style>
     /* === ESTILOS PARA PANTALLA === */
     @media screen {
         .print-only { display: none !important; }
     }
 
-    /* === ESTILOS PARA IMPRESION EPSON MATRICIAL === */
+    /* === IMPRESIÓN: documento serio y minimalista (solo líneas, sin color) === */
     @media print {
         @page {
             size: letter;
-            margin: 10mm;
+            margin: 14mm;
         }
 
-        * {
-            margin: 0 !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-        }
+        /* A prueba de balas: colapsa el contenido de pantalla (evita páginas en blanco)
+           y oculta el chrome del layout (header/sidebar), independiente del layout.
+           Solo el documento de impresión queda visible. */
+        .historial-screen { display: none !important; }
 
-        body {
-            font-family: 'Courier New', 'Courier', monospace !important;
-            font-size: 10pt !important;
-            line-height: 1.2 !important;
-            color: #000 !important;
-            background: #fff !important;
-            width: 100% !important;
-        }
-
-        .no-print,
-        .p-6,
-        .bg-gray-50,
-        .rounded-xl,
-        .shadow-sm,
-        .border,
-        .mt-4,
-        nav,
-        header,
-        footer {
-            display: none !important;
-        }
+        body * { visibility: hidden; }
 
         .print-only {
             display: block !important;
-            width: 100% !important;
-            max-width: 172mm !important; /* 80 columnas a 10 CPI */
-            margin: 0 auto !important;
-            padding: 0 !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
         }
+
+        .print-only,
+        .print-only * { visibility: visible; }
     }
 
-    /* === FORMATO EPSON ASCII PURO === */
-    .epson-page {
-        font-family: 'Courier New', 'Courier', monospace;
-        font-size: 10pt;
-        line-height: 1.2;
+    /* === DOCUMENTO TIPOGRÁFICO (negrita / normal, líneas horizontales) === */
+    .hx-doc {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10.5pt;
+        line-height: 1.45;
         color: #000;
-        max-width: 172mm; /* Ancho para 80 columnas */
+        max-width: 180mm;
         margin: 0 auto;
-        padding: 10mm;
-        white-space: pre-wrap;
+        padding: 4mm;
     }
 
-    .epson-header {
+    .hx-title {
+        font-size: 15pt;
+        font-weight: 700;
+        letter-spacing: 4px;
         text-align: center;
-        margin-bottom: 12px;
+        margin: 0;
     }
 
-    .epson-line {
-        border: none;
-        border-top: 1px dashed #666;
+    .hx-subtitle {
+        font-size: 9.5pt;
+        font-weight: 400;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        text-align: center;
+        margin: 3px 0 0;
+    }
+
+    .hx-rule {
+        border: 0;
+        border-top: 1.5px solid #000;
+        margin: 10px 0;
+    }
+
+    .hx-hairline {
+        border: 0;
+        border-top: 1px solid #c8c8c8;
         margin: 8px 0;
     }
 
-    .epson-double-line {
-        border: none;
-        border-top: 2px solid #000;
+    .hx-meta {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10pt;
         margin: 8px 0;
     }
 
-    .epson-section {
-        margin-bottom: 10px;
+    .hx-meta td {
+        padding: 1px 0;
+        vertical-align: top;
+    }
+
+    .hx-section {
+        font-size: 11pt;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        text-align: center;
+        margin: 18px 0 4px;
+    }
+
+    .hx-block {
+        margin: 10px 0;
         page-break-inside: avoid;
     }
 
-    .epson-table {
+    .hx-block-head { font-weight: 700; font-size: 10.5pt; }
+    .hx-block-sub { font-size: 9.5pt; margin-top: 1px; }
+
+    .hx-group {
+        font-weight: 700;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 8px 0 2px;
+    }
+
+    .hx-items {
         width: 100%;
         border-collapse: collapse;
-        font-size: 9pt;
-        margin: 6px 0;
+        table-layout: fixed; /* rejilla fija: todas las sub-tablas alinean Cant. / Importe */
+        font-size: 9.5pt;
+        margin-bottom: 4px;
     }
 
-    .epson-table th,
-    .epson-table td {
-        border: 1px solid #000;
-        padding: 2px 4px;
+    .hx-items th {
         text-align: left;
-        font-family: 'Courier New', 'Courier', monospace;
+        font-weight: 700;
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #000;
+        padding: 2px 0;
     }
 
-    .epson-table th {
-        background: #e0e0e0;
-        font-weight: bold;
-    }
-
-    .epson-totals {
-        margin-top: 15px;
-        border-top: 2px solid #000;
-        padding-top: 8px;
-    }
-
-    .epson-footer {
-        text-align: center;
-        margin-top: 20px;
-        font-size: 9pt;
-    }
-
-    .epson-pre {
-        font-family: 'Courier New', 'Courier', monospace;
-        font-size: 10pt;
-        line-height: 1.2;
-        white-space: pre-wrap;
+    .hx-items td {
+        padding: 2px 0;
+        border-bottom: 1px solid #dcdcdc;
         word-wrap: break-word;
-        margin: 0;
+        overflow-wrap: break-word;
+    }
+
+    /* La 1.ª columna (Detalle) absorbe el resto; las numéricas tienen ancho fijo
+       para que Cant. e Importe queden alineadas entre todas las tablas. */
+    .hx-items .num {
+        text-align: right;
+        white-space: nowrap;
+        padding-left: 12px;
+        width: 80px;
+    }
+
+    .hx-items .num-importe { width: 110px; }
+
+    .hx-note { font-size: 9.5pt; margin: 3px 0; }
+
+    .hx-total {
+        text-align: right;
+        font-weight: 700;
+        font-size: 10pt;
+        margin: 5px 0 2px;
+    }
+
+    .hx-empty {
+        text-align: center;
+        font-style: italic;
+        margin: 14px 0;
+    }
+
+    .hx-foot {
+        text-align: center;
+        font-size: 9pt;
+        font-weight: 700;
+        letter-spacing: 3px;
+        margin-top: 18px;
     }
 </style>
 
-<div class="p-6 bg-gray-50 min-h-screen">
+<div class="historial-screen p-6 bg-gray-50 min-h-screen">
     <div class="flex items-center justify-between mb-6 no-print">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Historial de Evaluaciones</h1>
             <p class="text-sm text-gray-500">{{ $paciente->nombre }} &bull; CI: {{ $paciente->ci }}</p>
         </div>
         <div class="flex gap-2 no-print">
-            <button onclick="printEpson()"
+            <button onclick="window.print()"
                 class="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800">
                 Imprimir Historial
             </button>
@@ -274,7 +322,9 @@
                                     @foreach($ev->items->where('tipo','procedimiento') as $item)
                                         <li class="text-sm flex justify-between">
                                             <span>{{ $item->nombre_snapshot }} &times; {{ $item->cantidad }}</span>
+                                            @if($puedeVerPrecios)
                                             <span class="text-gray-400">Bs. {{ number_format($item->precio_snapshot, 2) }}</span>
+                                            @endif
                                         </li>
                                     @endforeach
                                 </ul>
@@ -311,7 +361,9 @@
                     <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Inicio</th>
                     <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Fin</th>
                     <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Horas</th>
+                    @if($puedeVerPrecios)
                     <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Costo (Bs.)</th>
+                    @endif
                     <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Registrado por</th>
                 </tr>
             </thead>
@@ -323,7 +375,9 @@
                     <td class="px-4 py-2">{{ $uso->fecha_inicio->format('d/m/Y H:i') }}</td>
                     <td class="px-4 py-2">{{ $uso->fecha_fin?->format('d/m/Y H:i') ?? '—' }}</td>
                     <td class="px-4 py-2 text-right">{{ $uso->calcularHoras() }}</td>
+                    @if($puedeVerPrecios)
                     <td class="px-4 py-2 text-right font-medium">{{ number_format($uso->costo_calculado, 2) }}</td>
+                    @endif
                     <td class="px-4 py-2 text-gray-500">{{ $uso->registradoPor->name ?? '—' }}</td>
                 </tr>
                 @endforeach
@@ -345,11 +399,20 @@
                     <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Cirujano</th>
                     <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Quirófano</th>
                     <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Estado</th>
+                    @if($puedeVerPrecios)
                     <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Costo (Bs.)</th>
+                    @endif
+                    <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Detalle</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-                @foreach($cirugias as $cir)
+            @foreach($cirugias as $cir)
+            @php
+                $cirProc = $cir->cargos->where('tipo_item', 'procedimiento');
+                $cirMeds = $cir->cargos->where('tipo_item', 'medicamento');
+                $cirInsumos = $cir->cargos->where('tipo_item', 'material');
+                $cirEquipos = $cir->cargos->where('tipo_item', 'equipo_medico');
+            @endphp
+            <tbody x-data="{ open: false }" class="divide-y divide-gray-100">
                 <tr>
                     <td class="px-4 py-2">{{ \Carbon\Carbon::parse($cir->fecha)->format('d/m/Y') }} {{ \Carbon\Carbon::parse($cir->hora_inicio_estimada)->format('H:i') }}</td>
                     <td class="px-4 py-2 capitalize">{{ $cir->tipo_final ?? $cir->tipo_cirugia }}</td>
@@ -364,198 +427,235 @@
                             {{ ucfirst(str_replace('_', ' ', $cir->estado)) }}
                         </span>
                     </td>
+                    @if($puedeVerPrecios)
                     <td class="px-4 py-2 text-right font-medium">{{ number_format($cir->costo_final ?? $cir->costo_base, 2) }}</td>
+                    @endif
+                    <td class="px-4 py-2 text-right">
+                        <button @click="open = !open" class="px-3 py-1 border rounded text-xs text-gray-700">
+                            <span x-show="!open">Ver</span><span x-show="open" x-cloak>Ocultar</span>
+                        </button>
+                    </td>
                 </tr>
-                @endforeach
+                <tr x-show="open" x-cloak class="bg-gray-50">
+                    <td colspan="{{ $puedeVerPrecios ? 7 : 6 }}" class="px-6 py-4">
+                        @if($cir->descripcion_cirugia)
+                            <p class="text-xs font-semibold text-gray-500 mb-1">Descripción de la cirugía</p>
+                            <p class="text-sm text-gray-700 mb-3">{{ $cir->descripcion_cirugia }}</p>
+                        @endif
+                        @if($cir->observaciones)
+                            <p class="text-xs font-semibold text-gray-500 mb-1">Observaciones</p>
+                            <p class="text-sm text-gray-700 mb-3">{{ $cir->observaciones }}</p>
+                        @endif
+                        @if($cirProc->count())
+                            <p class="text-xs font-semibold text-gray-500 mb-1">Procedimiento quirúrgico</p>
+                            <ul class="mb-3 space-y-1">
+                                @foreach($cirProc as $item)
+                                    <li class="text-sm flex justify-between">
+                                        <span>{{ $item->descripcion }}</span>
+                                        @if($puedeVerPrecios)<span class="text-gray-400">Bs. {{ number_format($item->subtotal, 2) }}</span>@endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($cirMeds->count())
+                            <p class="text-xs font-semibold text-gray-500 mb-1">Medicamentos administrados</p>
+                            <ul class="mb-3 space-y-1">
+                                @foreach($cirMeds as $item)
+                                    <li class="text-sm flex justify-between">
+                                        <span>{{ $item->descripcion }} &times; {{ (int) $item->cantidad }}</span>
+                                        @if($puedeVerPrecios)<span class="text-gray-400">Bs. {{ number_format($item->subtotal, 2) }}</span>@endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($cirInsumos->count())
+                            <p class="text-xs font-semibold text-gray-500 mb-1">Insumos utilizados</p>
+                            <ul class="mb-3 space-y-1">
+                                @foreach($cirInsumos as $item)
+                                    <li class="text-sm flex justify-between">
+                                        <span>{{ $item->descripcion }} &times; {{ (int) $item->cantidad }}</span>
+                                        @if($puedeVerPrecios)<span class="text-gray-400">Bs. {{ number_format($item->subtotal, 2) }}</span>@endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($cirEquipos->count())
+                            <p class="text-xs font-semibold text-gray-500 mb-1">Equipos médicos</p>
+                            <ul class="mb-3 space-y-1">
+                                @foreach($cirEquipos as $item)
+                                    <li class="text-sm flex justify-between">
+                                        <span>{{ $item->descripcion }} &times; {{ (int) $item->cantidad }}</span>
+                                        @if($puedeVerPrecios)<span class="text-gray-400">Bs. {{ number_format($item->subtotal, 2) }}</span>@endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if(!$cir->descripcion_cirugia && !$cir->observaciones && $cir->cargos->isEmpty())
+                            <p class="text-sm text-gray-400 italic">Sin detalles registrados para esta cirugía.</p>
+                        @endif
+                    </td>
+                </tr>
             </tbody>
+            @endforeach
         </table>
     </div>
     @endif
 </div>
 
-<!-- === SECCION DE IMPRESION EPSON MATRICIAL === -->
-<div class="print-only epson-page">
-<pre class="epson-pre">
-================================================================================
-                              C E M S A
-                    HISTORIAL DE EVALUACIONES CLINICAS
-================================================================================
-@php
-    if (isset($paciente->is_temporal) && $paciente->is_temporal) {
-        $codigoPaciente = $paciente->emergency_code ?? $paciente->ci;
-    } elseif (isset($paciente->consultas)) {
-        $codigoPaciente = $paciente->consultas->first()?->caja?->id ?? ($paciente->registro_codigo ?? '—');
-    } else {
-        $codigoPaciente = $paciente->ci;
-    }
-@endphp
-PACIENTE: {{ str_pad(strtoupper($paciente->nombre), 46, ' ') }}  CI: {{ $paciente->ci }}
-CODIGO:   {{ $codigoPaciente }}
-FECHA IMP: {{ now()->format('d/m/Y H:i') }}
-================================================================================
-@php
-    $totalMedicamentos = 0;
-    $totalInsumos = 0;
-    $totalProcedimientos = 0;
-@endphp
-@forelse($evaluaciones as $index => $evaluacion)
-@php
-    $meds = $evaluacion->items->where('tipo', 'medicamento');
-    $insumos = $evaluacion->items->where('tipo', 'insumo');
-    $procs = $evaluacion->items->where('tipo', 'procedimiento');
+<!-- === DOCUMENTO DE IMPRESIÓN (serio / minimalista) === -->
+<div class="print-only hx-doc">
+    @php
+        if (isset($paciente->is_temporal) && $paciente->is_temporal) {
+            $codigoPaciente = $paciente->emergency_code ?? $paciente->ci;
+        } elseif (isset($paciente->consultas)) {
+            $codigoPaciente = $paciente->consultas->first()?->caja?->id ?? ($paciente->registro_codigo ?? '—');
+        } else {
+            $codigoPaciente = $paciente->ci;
+        }
+    @endphp
 
-    $totalMedicamentos += $meds->sum('cantidad');
-    $totalInsumos += $insumos->sum('cantidad');
-    $totalProcedimientos += $procs->sum('cantidad');
-@endphp
-EVALUACION #{{ str_pad($index + 1, 3, '0', STR_PAD_LEFT) }} | {{ $evaluacion->created_at->format('d/m/Y H:i') }}
---------------------------------------------------------------------------------
-AREA: {{ strtoupper(str_pad($evaluacion->area, 15, ' ')) }} | MEDICO: {{ strtoupper($evaluacion->user->name ?? 'N/A') }}
-@if(!empty($evaluacion->signos_vitales))
-@php
-    $sv = $evaluacion->signos_vitales;
-    $svLinea1 = trim(
-        (!empty($sv['presion_arterial'])        ? '  PA: '.str_pad($sv['presion_arterial'].' mmHg', 18) : '') .
-        (!empty($sv['frecuencia_cardiaca'])     ? '  FC: '.str_pad($sv['frecuencia_cardiaca'].' lpm', 12) : '') .
-        (!empty($sv['frecuencia_respiratoria']) ? '  FR: '.$sv['frecuencia_respiratoria'].' rpm' : '')
-    );
-    $svLinea2 = trim(
-        (!empty($sv['temperatura'])   ? '  TEMP: '.str_pad($sv['temperatura'].' C', 14) : '') .
-        (!empty($sv['saturacion_o2']) ? '  SAT O2: '.str_pad($sv['saturacion_o2'].' %', 8) : '') .
-        (!empty($sv['glucosa'])       ? '  GLUCOSA: '.$sv['glucosa'].' mg/dL' : '')
-    );
-    $svLinea3 = trim(
-        (!empty($sv['peso'])   ? '  PESO: '.$sv['peso'].' kg' : '') .
-        (!empty($sv['altura']) ? '   TALLA: '.$sv['altura'].' cm' : '') .
-        (!empty($sv['imc'])    ? '   IMC: '.$sv['imc'].' kg/m2' : '')
-    );
-@endphp
-{{ $svLinea1 ? "\nSIGNOS VITALES:\n".$svLinea1 : '' }}{{ $svLinea2 ? "\n".$svLinea2 : '' }}{{ $svLinea3 ? "\n".$svLinea3 : '' }}
-@endif
-@if($meds->count())
-MEDICAMENTOS ADMINISTRADOS:
-+----------------------------------------+------+
-| NOMBRE                                 | CANT |
-+----------------------------------------+------+
-@foreach($meds as $item)
-| {{ str_pad($item->nombre_snapshot, 38, ' ') }} | {{ str_pad($item->cantidad, 4, ' ') }} |
-@endforeach
-+----------------------------------------+------+
-@endif
-@if($insumos->count())
-INSUMOS UTILIZADOS:
-+----------------------------------------+------+
-| NOMBRE                                 | CANT |
-+----------------------------------------+------+
-@foreach($insumos as $item)
-| {{ str_pad($item->nombre_snapshot, 38, ' ') }} | {{ str_pad($item->cantidad, 4, ' ') }} |
-@endforeach
-+----------------------------------------+------+
-@endif
-@if($procs->count())
-PROCEDIMIENTOS REALIZADOS:
-+----------------------------------------+------+
-| NOMBRE                                 | CANT |
-+----------------------------------------+------+
-@foreach($procs as $item)
-| {{ str_pad($item->nombre_snapshot, 38, ' ') }} | {{ str_pad($item->cantidad, 4, ' ') }} |
-@endforeach
-+----------------------------------------+------+
-@endif
-@if($evaluacion->observaciones)
-OBSERVACIONES MEDICAS:
-    {{ wordwrap($evaluacion->observaciones, 76, "\n    ") }}
-@endif
---------------------------------------------------------------------------------
+    <div class="hx-title">CEMSA</div>
+    <div class="hx-subtitle">Historial de Evaluaciones Clínicas</div>
+    <hr class="hx-rule">
+    <table class="hx-meta">
+        <tr>
+            <td>Paciente: <strong>{{ strtoupper($paciente->nombre) }}</strong></td>
+            <td style="text-align:right">C.I.: <strong>{{ $paciente->ci }}</strong></td>
+        </tr>
+        <tr>
+            <td>Código: <strong>{{ $codigoPaciente }}</strong></td>
+            <td style="text-align:right">Impreso: <strong>{{ now()->format('d/m/Y H:i') }}</strong></td>
+        </tr>
+    </table>
+    <hr class="hx-rule">
 
-@empty
-                    *** SIN EVALUACIONES REGISTRADAS ***
+    <div class="hx-section">Evaluaciones</div>
+    @forelse($evaluaciones as $index => $evaluacion)
+        @php
+            $gruposEv = [
+                'Medicamentos administrados' => $evaluacion->items->where('tipo', 'medicamento'),
+                'Insumos utilizados'         => $evaluacion->items->where('tipo', 'insumo'),
+                'Procedimientos realizados'  => $evaluacion->items->where('tipo', 'procedimiento'),
+            ];
+            $svParts = [];
+            if (!empty($evaluacion->signos_vitales)) {
+                $sv = $evaluacion->signos_vitales;
+                if (!empty($sv['presion_arterial']))        $svParts[] = 'PA '.$sv['presion_arterial'].' mmHg';
+                if (!empty($sv['frecuencia_cardiaca']))     $svParts[] = 'FC '.$sv['frecuencia_cardiaca'].' lpm';
+                if (!empty($sv['frecuencia_respiratoria'])) $svParts[] = 'FR '.$sv['frecuencia_respiratoria'].' rpm';
+                if (!empty($sv['temperatura']))             $svParts[] = 'T° '.$sv['temperatura'].' °C';
+                if (!empty($sv['saturacion_o2']))           $svParts[] = 'SatO₂ '.$sv['saturacion_o2'].' %';
+                if (!empty($sv['glucosa']))                 $svParts[] = 'Glucosa '.$sv['glucosa'].' mg/dL';
+                if (!empty($sv['peso']))                    $svParts[] = 'Peso '.$sv['peso'].' kg';
+                if (!empty($sv['altura']))                  $svParts[] = 'Talla '.$sv['altura'].' cm';
+                if (!empty($sv['imc']))                     $svParts[] = 'IMC '.$sv['imc'];
+            }
+        @endphp
+        <div class="hx-block">
+            <div class="hx-block-head">Evaluación #{{ str_pad($index + 1, 3, '0', STR_PAD_LEFT) }} · {{ $evaluacion->created_at->format('d/m/Y H:i') }}</div>
+            <div class="hx-block-sub">Área: <strong>{{ ucfirst($evaluacion->area) }}</strong> · Médico: <strong>{{ $evaluacion->user->name ?? 'N/A' }}</strong></div>
+            @if(!empty($svParts))
+                <div class="hx-note"><strong>Signos vitales:</strong> {{ implode(' · ', $svParts) }}</div>
+            @endif
+            @foreach($gruposEv as $titulo => $grupo)
+                @if($grupo->count())
+                    <div class="hx-group">{{ $titulo }}</div>
+                    <table class="hx-items">
+                        <thead><tr><th>Detalle</th><th class="num">Cant.</th></tr></thead>
+                        <tbody>
+                            @foreach($grupo as $item)
+                                <tr><td>{{ $item->nombre_snapshot }}</td><td class="num">{{ (int) $item->cantidad }}</td></tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            @endforeach
+            @if($evaluacion->observaciones)
+                <div class="hx-note"><strong>Observaciones:</strong> {{ $evaluacion->observaciones }}</div>
+            @endif
+        </div>
+        @if(!$loop->last)<hr class="hx-hairline">@endif
+    @empty
+        <div class="hx-empty">Sin evaluaciones registradas.</div>
+    @endforelse
 
-@endforelse
+    @if(isset($camillaUsos) && $camillaUsos->isNotEmpty())
+        <div class="hx-section">Usos de Camilla</div>
+        <table class="hx-items">
+            <thead>
+                <tr>
+                    <th>Camilla</th>
+                    <th class="num">Inicio</th>
+                    <th class="num">Fin</th>
+                    <th class="num">Hrs</th>
+                    @if($puedeVerPrecios)
+                    <th class="num">Costo Bs.</th>
+                    @endif
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($camillaUsos as $uso)
+                    <tr>
+                        <td>{{ $uso->camilla->nombre }}</td>
+                        <td class="num">{{ $uso->fecha_inicio->format('d/m H:i') }}</td>
+                        <td class="num">{{ $uso->fecha_fin?->format('d/m H:i') ?? '—' }}</td>
+                        <td class="num">{{ $uso->calcularHoras() }}</td>
+                        @if($puedeVerPrecios)
+                        <td class="num">{{ number_format($uso->costo_calculado, 2) }}</td>
+                        @endif
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 
-@if(isset($camillaUsos) && $camillaUsos->isNotEmpty())
-================================================================================
-                         USOS DE CAMILLA
-================================================================================
-+------------------------------+-----------+-----------+------+-----------+
-| CAMILLA                      | INICIO    | FIN       | HRS  | COSTO Bs. |
-+------------------------------+-----------+-----------+------+-----------+
-@foreach($camillaUsos as $uso)
-| {{ str_pad($uso->camilla->nombre, 28, ' ') }} | {{ $uso->fecha_inicio->format('d/m H:i') }}  | {{ $uso->fecha_fin?->format('d/m H:i') ?? '  --   ' }}  | {{ str_pad($uso->calcularHoras(), 4, ' ', STR_PAD_LEFT) }} | {{ str_pad(number_format($uso->costo_calculado, 2), 9, ' ', STR_PAD_LEFT) }} |
-@endforeach
-+------------------------------+-----------+-----------+------+-----------+
-@endif
+    @if(isset($cirugias) && $cirugias->isNotEmpty())
+        <div class="hx-section">Cirugías</div>
+        @foreach($cirugias as $cir)
+            @php
+                $gruposCir = [
+                    'Procedimiento quirúrgico'   => $cir->cargos->where('tipo_item', 'procedimiento'),
+                    'Medicamentos administrados' => $cir->cargos->where('tipo_item', 'medicamento'),
+                    'Insumos utilizados'         => $cir->cargos->where('tipo_item', 'material'),
+                    'Equipos médicos'            => $cir->cargos->where('tipo_item', 'equipo_medico'),
+                ];
+            @endphp
+            <div class="hx-block">
+                <div class="hx-block-head">Cirugía {{ ucfirst($cir->tipo_final ?? $cir->tipo_cirugia) }} · {{ \Carbon\Carbon::parse($cir->fecha)->format('d/m/Y') }} · {{ ucfirst(str_replace('_', ' ', $cir->estado)) }}</div>
+                <div class="hx-block-sub">Cirujano: <strong>{{ $cir->cirujano?->nombre ?: ($cir->cirujano?->user?->name ?? 'N/A') }}</strong> · Quirófano: <strong>{{ $cir->quirofano?->nombre ?? '—' }}</strong></div>
+                @if($cir->descripcion_cirugia)
+                    <div class="hx-note"><strong>Descripción:</strong> {{ $cir->descripcion_cirugia }}</div>
+                @endif
+                @if($cir->observaciones)
+                    <div class="hx-note"><strong>Observaciones:</strong> {{ $cir->observaciones }}</div>
+                @endif
+                @foreach($gruposCir as $titulo => $grupo)
+                    @if($grupo->count())
+                        <div class="hx-group">{{ $titulo }}</div>
+                        <table class="hx-items">
+                            <thead><tr><th>Detalle</th><th class="num">Cant.</th>@if($puedeVerPrecios)<th class="num num-importe">Importe Bs.</th>@endif</tr></thead>
+                            <tbody>
+                                @foreach($grupo as $item)
+                                    <tr>
+                                        <td>{{ $item->descripcion }}</td>
+                                        <td class="num">{{ (int) $item->cantidad }}</td>
+                                        @if($puedeVerPrecios)<td class="num num-importe">{{ number_format($item->subtotal, 2) }}</td>@endif
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                @endforeach
+                @if($puedeVerPrecios)
+                <div class="hx-total">Costo total cirugía: Bs. {{ number_format($cir->costo_final ?? $cir->costo_base, 2) }}</div>
+                @endif
+            </div>
+            @if(!$loop->last)<hr class="hx-hairline">@endif
+        @endforeach
+    @endif
 
-@if(isset($cirugias) && $cirugias->isNotEmpty())
-================================================================================
-                              CIRUGIAS
-================================================================================
-+------------+------------+----------------------+------------+-----------+
-| FECHA      | TIPO       | CIRUJANO             | ESTADO     | COSTO Bs. |
-+------------+------------+----------------------+------------+-----------+
-@foreach($cirugias as $cir)
-| {{ str_pad(\Carbon\Carbon::parse($cir->fecha)->format('d/m/Y'), 10, ' ') }} | {{ str_pad(ucfirst($cir->tipo_final ?? $cir->tipo_cirugia), 10, ' ') }} | {{ str_pad(strtoupper(\Illuminate\Support\Str::limit($cir->cirujano?->nombre ?: ($cir->cirujano?->user?->name ?? 'N/A'), 20, '')), 20, ' ') }} | {{ str_pad(ucfirst(str_replace('_', ' ', $cir->estado)), 10, ' ') }} | {{ str_pad(number_format($cir->costo_final ?? $cir->costo_base, 2), 9, ' ', STR_PAD_LEFT) }} |
-@endforeach
-+------------+------------+----------------------+------------+-----------+
-@endif
-================================================================================
-                           FIN DEL HISTORIAL
-================================================================================
-
-
-
-
-</pre>
+    <hr class="hx-rule">
+    <div class="hx-foot">FIN DEL HISTORIAL</div>
 </div>
 
-<script>
-function printEpson() {
-    // Abrir ventana de impresión optimizada para Epson
-    var printWindow = window.open('', '_blank');
-    var content = document.querySelector('.epson-page').innerHTML;
-
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>HISTORIAL - {{ $paciente->ci }}</title>
-            <style>
-                @page { size: letter; margin: 10mm; }
-                body {
-                    font-family: 'Courier New', 'Courier', monospace;
-                    font-size: 10pt;
-                    line-height: 1.2;
-                    color: #000;
-                    background: #fff;
-                    margin: 0;
-                    padding: 10mm;
-                    width: 172mm;
-                }
-                pre {
-                    font-family: 'Courier New', 'Courier', monospace;
-                    font-size: 10pt;
-                    line-height: 1.2;
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                    margin: 0;
-                }
-            </style>
-        </head>
-        <body>
-            <pre>${content}</pre>
-            <script>
-                window.onload = function() {
-                    window.print();
-                };
-                window.onafterprint = function() {
-                    window.close();
-                };
-            <\/script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-}
-</script>
 @endsection

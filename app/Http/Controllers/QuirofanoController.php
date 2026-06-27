@@ -661,6 +661,7 @@ class QuirofanoController extends Controller
 
         // Filtrar detalles de esta cita específica (la cuenta puede ser compartida/maestra)
         $medicamentosUsados = collect();
+        $materialesUsados = collect();
         $equiposUsados = collect();
 
         if ($cuentaCobro) {
@@ -668,6 +669,13 @@ class QuirofanoController extends Controller
                 ->where('origen_type', CitaQuirurgica::class)
                 ->where('origen_id', (string) $cita->id)
                 ->where('tipo_item', 'medicamento')
+                ->get();
+
+            // Insumos: se graban como 'material' en la ejecución (procesarItemsAlmacen)
+            $materialesUsados = CuentaCobroDetalle::where('cuenta_cobro_id', $cuentaCobro->id)
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'material')
                 ->get();
 
             $equiposUsados = CuentaCobroDetalle::where('cuenta_cobro_id', $cuentaCobro->id)
@@ -694,6 +702,7 @@ class QuirofanoController extends Controller
             'tiposCirugia',
             'medicamentos',
             'medicamentosUsados',
+            'materialesUsados',
             'equiposUsados',
             'cuentaCobro',
             'detalleProcedimiento'
@@ -739,22 +748,10 @@ class QuirofanoController extends Controller
                 $detalle->cuentaCobro?->recalcularTotales();
             }
 
-            // Mantener consistente el resumen denormalizado de la cita
-            $totalMedicamentos = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
-                ->where('origen_id', (string) $cita->id)
-                ->where('tipo_item', 'medicamento')
-                ->sum('subtotal');
-            $totalEquipos = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
-                ->where('origen_id', (string) $cita->id)
-                ->where('tipo_item', 'equipo_medico')
-                ->sum('subtotal');
-
-            $cita->costo_final = bcadd(
-                bcadd($costoCirugiaStr, (string) $totalMedicamentos, 2),
-                (string) $totalEquipos,
-                2
-            );
             $cita->save();
+
+            // Total denormalizado desde los cargos reales de la cuenta (fuente única).
+            $cita->recalcularCostoFinal();
 
             $this->logActivity(
                 'editar_costos_cirugia',
@@ -942,7 +939,6 @@ class QuirofanoController extends Controller
             }
 
             // Recalcular total de la cuenta desde la suma real de sus detalles
-            $costoTotal = $costoCirugia + $costoMedicamentos + $costoInsumos + $costoEquipos;
             $cuenta->total_calculado = $cuenta->detalles()->sum('subtotal');
             $cuenta->save();
 
@@ -958,9 +954,11 @@ class QuirofanoController extends Controller
             $cita->timestamp_fin = $tsFin;
             $cita->estado = 'finalizada';
             $cita->tipo_final = $tipoFinal;
-            $cita->costo_final = $costoTotal;
-            $cita->costo_minuto_extra = $costoMinuto;
             $cita->save();
+
+            // Total denormalizado desde los cargos reales de la cuenta (fuente única
+            // recalcularCostoFinal); reemplaza la suma manual que omitía insumos.
+            $cita->recalcularCostoFinal();
 
             if ($cita->quirofano_id) {
                 Quirofano::where('id', $cita->quirofano_id)->update(['estado' => 'disponible']);
@@ -1991,7 +1989,7 @@ class QuirofanoController extends Controller
      */
     public function exportHistorial(Request $request)
     {
-        $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano']);
+        $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'instrumentista.user', 'anestesiologo.user', 'quirofano']);
 
         // Aplicar filtros igual que en historial()
         if ($request->filled('estado')) {
@@ -2044,6 +2042,8 @@ class QuirofanoController extends Controller
                 'Paciente',
                 'CI',
                 'Cirujano',
+                'Instrumentista',
+                'Anestesiologo',
                 'Quirofano',
                 'Tipo',
                 'Estado',
@@ -2062,12 +2062,21 @@ class QuirofanoController extends Controller
                     ? ($this->formatearDuracionExport($cita->duracion_real))
                     : '-';
 
+                // Mismo criterio que /detalles: nombre denormalizado y, si una cita
+                // vieja sólo guardó el CI, fallback al médico relacionado.
+                $instrumentista = $cita->nombre_instrumentista
+                    ?: (optional(optional($cita->instrumentista)->user)->name ?? '-');
+                $anestesiologo = $cita->nombre_anestesiologo
+                    ?: (optional(optional($cita->anestesiologo)->user)->name ?? '-');
+
                 $fila = [
                     $cita->fecha->format('d/m/Y'),
                     $cita->hora_inicio_estimada->format('H:i'),
                     $cita->paciente->nombre,
                     $cita->paciente->ci,
                     optional($cita->cirujano->user)->name ?? 'N/A',
+                    $instrumentista,
+                    $anestesiologo,
                     'Q'.$cita->quirofano->id,
                     $cita->tipo_cirugia,
                     ucfirst($cita->estado),

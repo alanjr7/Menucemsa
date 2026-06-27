@@ -224,7 +224,7 @@ class EvaluacionPacienteController extends Controller
             ->orderByDesc('fecha_inicio')
             ->get();
 
-        $cirugias = CitaQuirurgica::with(['cirujano.user', 'quirofano'])
+        $cirugias = CitaQuirurgica::with(['cirujano.user', 'quirofano', 'cargos'])
             ->where('paciente_id', $paciente->id)
             ->when($episodio, fn ($q) => $q->where('episodio_id', $episodio->id))
             ->when(! $episodio && ! $paciente->is_temp, fn ($q) => $q->whereRaw('1=0'))

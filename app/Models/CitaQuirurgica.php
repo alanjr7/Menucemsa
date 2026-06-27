@@ -116,6 +116,18 @@ class CitaQuirurgica extends Model
         return $this->belongsTo(Quirofano::class, 'quirofano_id');
     }
 
+    /**
+     * Cargos de la cuenta originados por ESTA cirugía (medicamentos, insumos,
+     * equipos y el procedimiento quirúrgico). Fuente única de "qué se le dio /
+     * usó en la cirugía": son las mismas filas de cuenta_cobro_detalles que
+     * graba la ejecución (QuirofanoController::ejecutar) y de las que se deriva
+     * costo_final. El global scope `habilitado` excluye los cargos anulados.
+     */
+    public function cargos(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(CuentaCobroDetalle::class, 'origen');
+    }
+
     public function usuarioRegistro()
     {
         return $this->belongsTo(User::class, 'user_registro_id');
@@ -165,15 +177,15 @@ class CitaQuirurgica extends Model
         $this->timestamp_fin = now();
         $this->hora_fin_real = now()->format('H:i:s');
         $this->estado = 'finalizada';
-        
+
         // Calcular duración real y tipo final
         $duracionReal = $this->duracion_real;
         $this->tipo_final = $this->determinarTipoFinal($duracionReal);
-        
-        // Calcular costo final
-        $this->calcularCostoFinal();
-        
+
         $this->save();
+
+        // El total se deriva de los cargos reales de la cuenta (fuente única).
+        $this->recalcularCostoFinal();
     }
 
     private function determinarTipoFinal($duracionReal)
@@ -206,31 +218,39 @@ class CitaQuirurgica extends Model
         return ['base' => $base, 'extra' => $extra, 'cirugia' => $cirugia];
     }
 
-    private function calcularCostoFinal()
+    /**
+     * Fuente ÚNICA del total denormalizado de la cirugía.
+     *
+     * `costo_final` es un cache de la suma real de los cargos de ESTA cita en la
+     * cuenta del paciente (procedimiento + medicamentos + insumos + equipos). El
+     * global scope `habilitado` de CuentaCobroDetalle ya excluye los cargos
+     * anulados, así que el cache coincide siempre con lo facturable.
+     *
+     * Reemplaza las fórmulas que estaban duplicadas y divergentes en el controlador
+     * (ejecutar/actualizarDetalles) y aquí (la vieja calcularCostoFinal, que solo
+     * sumaba cirugía + medicamentos y omitía insumos/equipos). Se mantiene al día
+     * solo, vía el evento de dominio en CuentaCobroDetalle, ante cualquier cambio
+     * de cargos (incluidos los caminos genéricos: anular cargos y ajustes de paciente).
+     */
+    public function recalcularCostoFinal(): string
     {
-        $duracionReal = $this->duracion_real;
-        $costoBaseStr = (string) ($this->costo_base ?? '0');
-
-        // Duración de referencia = tipo originalmente programado
-        $tipoOriginal     = TipoCirugia::where('nombre', $this->tipo_cirugia)->first();
-        $duracionBaseStr  = (string) ($tipoOriginal ? $tipoOriginal->duracion_minutos : $duracionReal);
-
-        $cobro = self::calcularCobroCirugia($costoBaseStr, $duracionReal, $duracionBaseStr);
-
-        $costoMedicamentos = '0';
-        $cuentaCobro = \App\Models\CuentaCobro::where('referencia_type', self::class)
-            ->where('referencia_id', $this->id)
-            ->first();
-        if ($cuentaCobro) {
-            $costoMedicamentos = (string) $cuentaCobro->detalles()
-                ->where('tipo_item', 'medicamento')
-                ->sum('subtotal');
+        if (empty($this->id)) {
+            return Money::format($this->costo_final ?? '0');
         }
 
-        $this->costo_final        = Money::add($cobro['cirugia'], $costoMedicamentos);
-        $this->costo_minuto_extra = ((int) $duracionBaseStr) > 0
-            ? bcdiv($costoBaseStr, $duracionBaseStr, 4)
-            : '0.0000';
+        $total = (string) CuentaCobroDetalle::where('origen_type', self::class)
+            ->where('origen_id', (string) $this->id)
+            ->sum('subtotal');
+
+        $nuevo = Money::format($total);
+
+        // Sólo persiste si cambió (evita writes/queries innecesarios en cascada).
+        if (Money::cmp($nuevo, (string) ($this->costo_final ?? '0')) !== 0) {
+            $this->costo_final = $nuevo;
+            $this->saveQuietly();
+        }
+
+        return $nuevo;
     }
 
     public function validarDisponibilidadQuirofano()

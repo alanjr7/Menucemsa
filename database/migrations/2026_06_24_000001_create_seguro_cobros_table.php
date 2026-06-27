@@ -22,7 +22,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('seguro_cobros', function (Blueprint $table) {
-            // Correlativo legible SEG-AAAA-NNNNNN (mismo estilo que REC-/PAGO-).
+            // Correlativo legible SEG-AAAA-NNNNNN (mismo estilo que CTA-/PAGO-).
             $table->string('id')->primary();
             $table->string('cuenta_cobro_id');
             $table->foreignId('seguro_id')->constrained('seguros');

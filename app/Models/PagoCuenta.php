@@ -85,7 +85,7 @@ class PagoCuenta extends Model
 
     /**
      * Filtros del historial de pagos (fuente única, compartida por el listado JSON y
-     * el export Excel). Búsqueda libre por nº de recibo (PAGO-), nº de cuenta (REC-),
+     * el export Excel). Búsqueda libre por nº de recibo (PAGO-), nº de cuenta (CTA-),
      * referencia o paciente (nombre/CI). La fecha es OPCIONAL: sin rango devuelve TODOS
      * los pagos, sin importar la caja en que se cobraron.
      *

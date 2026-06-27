@@ -462,11 +462,14 @@ class CuentaCobro extends Model
     }
 
     /**
-     * Siguiente número de cuenta: REC-AAAA-NNNNNN (p. ej. REC-2026-000123).
+     * Siguiente número de cuenta: CTA-AAAA-NNNNNN (p. ej. CTA-2026-000123).
+     *
+     * El prefijo CTA- (CuentA) identifica la CUENTA por cobrar / episodio del
+     * paciente; no confundir con el recibo de pago (PAGO-) ni con otros prefijos
+     * del sistema (Receta REC-, Retención RET-, Proforma PRF-).
      *
      * Correlativo incremental por gestión fiscal (año): reinicia en 000001 cada
-     * 1° de enero. Reemplaza al antiguo CC-{timestamp}-{random}, ilegible y no
-     * secuencial. Un correlativo limpio y sin saltos es lo que exige el control
+     * 1° de enero. Un correlativo limpio y sin saltos es lo que exige el control
      * interno (poder auditar comprobantes faltantes). Solo considera los ids con
      * este formato para no inflar el contador con registros de otro esquema.
      *
@@ -476,10 +479,10 @@ class CuentaCobro extends Model
      */
     public static function generarNumero(): string
     {
-        $prefijo = 'REC-' . now()->format('Y') . '-';
+        $prefijo = 'CTA-' . now()->format('Y') . '-';
 
         do {
-            $ultimo = static::where('id', 'REGEXP', '^REC-[0-9]{4}-[0-9]{6}$')
+            $ultimo = static::where('id', 'REGEXP', '^CTA-[0-9]{4}-[0-9]{6}$')
                 ->where('id', 'like', $prefijo . '%')
                 ->max(\DB::raw("CAST(SUBSTRING_INDEX(id, '-', -1) AS UNSIGNED)")) ?? 0;
 
