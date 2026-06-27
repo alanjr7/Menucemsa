@@ -149,6 +149,44 @@ class AnulacionCargoTest extends TestCase
         $d->anular('1', 'ya pagado', $user->id);
     }
 
+    /**
+     * Hueco del pago PARCIAL: ningún cargo queda "liquidado" hasta saldar del todo,
+     * así que el flag liquidado_en no protege el dinero ya pagado de una cuenta a
+     * medio pagar. El guard del saldo pendiente sí lo protege.
+     */
+    public function test_no_se_puede_anular_mas_que_el_saldo_pendiente_en_pago_parcial(): void
+    {
+        $user = User::factory()->create();
+        $cuenta = $this->cuenta();
+        $d = $this->detalle($cuenta, '1', '150.00'); // total 150
+        $cuenta->total_pagado = '100.00';            // pago parcial: saldo 50
+        $this->recalcular($cuenta);
+        $this->assertSame('parcial', $cuenta->fresh()->estado);
+
+        // Anular el cargo (150) tocaría dinero ya pagado: solo hay 50 de saldo.
+        $this->expectException(\RuntimeException::class);
+        $d->anular('1', 'intento sobre lo pagado', $user->id);
+    }
+
+    public function test_se_puede_anular_dentro_del_saldo_pendiente_en_pago_parcial(): void
+    {
+        $user = User::factory()->create();
+        $cuenta = $this->cuenta();
+        $grande  = $this->detalle($cuenta, '1', '100.00');
+        $pequeno = $this->detalle($cuenta, '1', '30.00'); // total 130
+        $cuenta->total_pagado = '100.00';                 // pago parcial: saldo 30
+        $this->recalcular($cuenta);
+
+        // El cargo de 30 cabe en el saldo de 30 → se anula.
+        $evento = $pequeno->anular('1', 'cargo no pagado', $user->id);
+        $this->assertSame('30.00', (string) $evento->subtotal);
+        $this->assertNull(CuentaCobroDetalle::find($pequeno->id)); // deshabilitado
+
+        // El cargo de 100 excede el saldo ya consumido → bloqueado.
+        $this->expectException(\RuntimeException::class);
+        $grande->fresh()->anular('1', 'sobre lo pagado', $user->id);
+    }
+
     // --- Reversión ---
 
     public function test_revertir_anulacion_total_reactiva_la_linea(): void

@@ -304,6 +304,9 @@ class CajaGestionController extends Controller
                             'cantidad' => $detalle->cantidad,
                             'precio_unitario' => $detalle->precio_unitario,
                             'subtotal' => $detalle->subtotal,
+                            // Un cargo liquidado por un pago ya está pagado: no se anula
+                            // (la UI oculta el botón; el dominio lo bloquea igual).
+                            'liquidado' => $detalle->liquidado_en !== null,
                         ];
                     }),
                     'pagos' => $cuenta->pagos->map(function ($pago) {

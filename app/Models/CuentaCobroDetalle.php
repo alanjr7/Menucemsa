@@ -159,7 +159,8 @@ class CuentaCobroDetalle extends Model
      * Anula `cantidad` unidades de este cargo (clamp a [0.01, cantidad actual]).
      * Devuelve el evento de anulación creado.
      *
-     * @throws \RuntimeException si el cargo ya fue liquidado por un pago.
+     * @throws \RuntimeException si el cargo ya fue liquidado por un pago, o si la
+     *         anulación tocaría dinero ya pagado/cubierto (excede el saldo pendiente).
      * @throws \InvalidArgumentException si la cantidad es <= 0.
      */
     public function anular($cantidad, string $motivo, int $userId): CuentaCobroDetalleEliminado
@@ -176,9 +177,34 @@ class CuentaCobroDetalle extends Model
             ? (string) $this->cantidad
             : Money::format($cantidad);
 
-        return DB::transaction(function () use ($cant, $motivo, $userId) {
-            $subtotalAnulado = Money::mul($cant, $this->precio_unitario);
+        $subtotalAnulado = Money::mul($cant, $this->precio_unitario);
 
+        // Invariante de caja: nunca anular dinero ya respaldado. En pago PARCIAL
+        // ningún cargo queda "liquidado" (liquidado_en solo se sella al saldar del
+        // todo), así que ese flag no protege los cargos ya pagados de una cuenta a
+        // medio pagar. El máximo anulable = saldo pendiente = total − cobertura −
+        // pagado (misma fórmula que recalcularTotales). Quitar un cargo por encima
+        // de eso dejaría dinero pagado sin respaldo (requeriría una devolución).
+        if ($cuenta = $this->cuentaCobro) {
+            $cobertura = $cuenta->seguro_estado === 'autorizado'
+                ? ($cuenta->seguro_monto_cobertura ?? '0')
+                : '0';
+            $comprometido = Money::add($cuenta->total_pagado, $cobertura);
+            $anulable     = Money::sub($cuenta->total_calculado, $comprometido);
+
+            if (Money::cmp($subtotalAnulado, $anulable) > 0) {
+                throw new \RuntimeException(sprintf(
+                    'No se puede anular Bs %s: la cuenta ya tiene Bs %s pagados/cubiertos por seguro. '
+                    . 'Solo se puede anular hasta el saldo pendiente (Bs %s). Para quitar un cargo ya '
+                    . 'pagado primero debe gestionarse la devolución.',
+                    number_format((float) $subtotalAnulado, 2),
+                    number_format((float) $comprometido, 2),
+                    number_format(max(0, (float) $anulable), 2)
+                ));
+            }
+        }
+
+        return DB::transaction(function () use ($cant, $subtotalAnulado, $motivo, $userId) {
             // 1) Registrar el evento (snapshot + lo anulado en este movimiento).
             $evento = CuentaCobroDetalleEliminado::create([
                 'cuenta_cobro_id'         => $this->cuenta_cobro_id,
