@@ -19,6 +19,7 @@ class VentaFarmacia extends Model
         'farmacia_id',
         'usuario_id',
         'cliente_id',
+        'paciente_id',
         'cliente',
         'con_credito_fiscal',
         'factura_razon_social',
@@ -86,6 +87,11 @@ class VentaFarmacia extends Model
     public function clienteRegistrado()
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
+    }
+
+    public function paciente()
+    {
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     // Etiqueta legible del tipo de documento de la factura (catálogo SIN)

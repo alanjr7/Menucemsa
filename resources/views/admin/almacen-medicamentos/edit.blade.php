@@ -867,16 +867,17 @@ function crearLoteHtml(lote, index) {
                 <div class="form-group">
                     <label class="form-label" for="fecha_vencimiento_${index}">Fecha Vencimiento</label>
                     <input type="date" id="fecha_vencimiento_${index}" name="lotes[${index}][fecha_vencimiento]"
-                           value="${lote.fecha_vencimiento || ''}"
+                           value="${lote.fecha_vencimiento ? lote.fecha_vencimiento.substring(0, 10) : ''}"
                            class="form-input">
                 </div>
 
                 <input type="hidden" name="lotes[${index}][cantidad_inicial]" value="${lote.cantidad_inicial || 0}">
                 <div class="form-group">
-                    <label class="form-label" for="stock_actual_${index}">Stock Actual</label>
+                    <label class="form-label" for="stock_actual_${index}">Stock Actual (Central)</label>
                     <input type="number" id="stock_actual_${index}"
+                           name="lotes[${index}][stocks][0][cantidad_actual]"
                            min="0" value="${centralCantidadActual}"
-                           class="form-input" readonly tabindex="-1">
+                           class="form-input">
                 </div>
 
                 <div class="form-group">

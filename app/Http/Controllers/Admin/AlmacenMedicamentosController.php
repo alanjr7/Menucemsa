@@ -227,7 +227,7 @@ class AlmacenMedicamentosController extends Controller
             'lotes.*.numero_lote_fabricante' => 'nullable|string|max:150',
             'lotes.*.proveedor' => 'nullable|string|max:150',
             'lotes.*.laboratorio' => 'nullable|string|max:150',
-            'lotes.*.fecha_vencimiento' => 'nullable|date|after:today',
+            'lotes.*.fecha_vencimiento' => 'nullable|date',
             'lotes.*.precio_compra' => 'nullable|numeric|decimal:0,2|min:0',
             'lotes.*.ganancia' => Money::rules(false),
             'lotes.*.precio_venta' => 'nullable|numeric|decimal:0,2|min:0',
@@ -302,7 +302,10 @@ class AlmacenMedicamentosController extends Controller
                                 'ubicacion' => 'central',
                             ]);
 
-                            if (! $stockCentral->exists) {
+                            // Si el formulario envió cantidad_actual directamente, se usa ese valor
+                            if (isset($stockData['cantidad_actual']) && $stockData['cantidad_actual'] !== null && $stockData['cantidad_actual'] !== '') {
+                                $stockCentral->cantidad_actual = (int) $stockData['cantidad_actual'];
+                            } elseif (! $stockCentral->exists) {
                                 $stockCentral->cantidad_actual = $loteData['cantidad_inicial'];
                             }
 
@@ -595,7 +598,7 @@ class AlmacenMedicamentosController extends Controller
         $request->validate([
             'lote_id' => 'required|integer|exists:almacen_lotes,id',
             'cantidad' => 'required|integer|min:1',
-            'ubicacion_destino' => 'required|in:emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
+            'ubicacion_destino' => 'required|in:farmacia,emergencia,cirugia,hospitalizacion,uti,usi,neonato,internacion',
             'recibido_por' => 'nullable|string|max:150',
             'observaciones' => 'nullable|string|max:1000',
         ]);

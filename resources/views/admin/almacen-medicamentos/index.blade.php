@@ -261,7 +261,11 @@
                             'stock' => $l->stocks->where('ubicacion', $ubicFila)->sum('cantidad_actual'),
                             'precio_compra' => $l->precio_compra,
                             'precio_venta' => $l->precio_venta,
-                            'ganancia' => $l->ganancia,
+                            'ganancia' => $l->ganancia ?? (
+                                ($l->precio_venta !== null && $l->precio_compra !== null)
+                                    ? bcsub((string) $l->precio_venta, (string) $l->precio_compra, 2)
+                                    : null
+                            ),
                             'vencimiento' => $l->fecha_vencimiento,
                         ])
                         ->filter(fn($l) => $l->stock > 0)
@@ -481,11 +485,10 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">Área destino <span class="text-red-500">*</span></label>
                             <select name="ubicacion_destino" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required>
                                 <option value="">Seleccione un área</option>
+                                <option value="farmacia">Farmacia</option>
                                 <option value="emergencia">Emergencia</option>
                                 <option value="cirugia">Cirugía</option>
-                                <option value="hospitalizacion">Hospitalización</option>
                                 <option value="uti">UTI</option>
-                                <option value="usi">USI</option>
                                 <option value="neonato">Neonato</option>
                                 <option value="internacion">Internación</option>
                             </select>

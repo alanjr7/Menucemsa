@@ -22,7 +22,8 @@
       "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\verify_menu.php\" 2>&1)",
       "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\verify_menu2.php\" 2>&1)",
       "PowerShell(php \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Menucemsa\\\\3e84ca23-6b40-4511-acd7-3e6b2b8c41fd\\\\scratchpad\\\\test_alertas.php\" 2>&1)",
-      "Bash(php -l database/migrations/2026_06_24_000001_rename_porcentaje_ganancia_a_ganancia_en_almacen_lotes.php)"
+      "Bash(php -l database/migrations/2026_06_24_000001_rename_porcentaje_ganancia_a_ganancia_en_almacen_lotes.php)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Menucemsa\\\\lang\\\\es\")"
     ],
     "additionalDirectories": [
       "c:\\Menucemsa\\database\\migrations"

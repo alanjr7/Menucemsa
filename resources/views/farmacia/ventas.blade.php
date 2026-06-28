@@ -218,9 +218,9 @@ function imprimirTicketActual() {
         docLabel: tiposDoc[d.factura_tipo_documento] || 'Doc',
         docNumero: d.factura_numero_documento,
         docComplemento: d.factura_complemento,
-        items: (d.detalles || []).map(x => ({ cantidad: x.cantidad, nombre: x.nombre_producto, importe: parseFloat(x.subtotal) })),
+        items: (d.detalles || []).map(x => ({ cantidad: x.cantidad, nombre: x.nombre_producto, precioUnitario: parseFloat(x.precio_unitario), descuento: 0, importe: parseFloat(x.subtotal) })),
         total: parseFloat(d.total || 0),
-        reimpresion: true
+        reimpresion: false
     });
 }
 </script>

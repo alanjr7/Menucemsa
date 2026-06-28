@@ -519,13 +519,14 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
     });
 
     // Rutas de farmacia (admin, farmacia y administrador)
-    Route::middleware(['auth', 'role:admin|farmacia|administrador'])->prefix('farmacia')->name('farmacia.')->group(function () {
+    Route::middleware(['auth', 'role:admin|farmacia|administrador|almacenista'])->prefix('farmacia')->name('farmacia.')->group(function () {
 
         // URL: /farmacia -> Llama a FarmaciaDashboardController
         Route::get('/', [FarmaciaDashboardController::class, 'index'])->name('index');
 
         // URL: /farmacia/punto-de-venta -> Llama a PuntoVentaController
         Route::get('/punto-de-venta', [PuntoVentaController::class, 'index'])->name('pos');
+        Route::get('/punto-de-venta/buscar-receptor', [PuntoVentaController::class, 'buscarReceptor'])->name('pos.buscar-receptor');
         Route::post('/punto-de-venta/procesar', [PuntoVentaController::class, 'procesarVenta'])->name('pos.procesar');
 
         // URL: /farmacia/inventario -> Llama a InventarioController

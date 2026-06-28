@@ -335,17 +335,17 @@ class MenuSeeder extends Seeder
             'active_pattern' => 'farmacia*',
             'icon_path' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
             'color' => 'yellow',
-            'roles' => 'farmacia,admin,administrador',
+            'roles' => 'farmacia,admin,administrador,almacenista',
             'order' => 40,
         ]);
 
         $farmacia->children()->createMany([
-            ['name' => 'Dashboard', 'route' => 'farmacia.index', 'roles' => 'farmacia,admin,administrador', 'order' => 1],
-            ['name' => 'Punto de Venta', 'route' => 'farmacia.pos', 'roles' => 'farmacia,admin,administrador', 'order' => 2],
-            ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia,admin,administrador', 'order' => 3],
-            ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin,administrador', 'order' => 4],
-            ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin,administrador', 'order' => 5],
-            ['name' => 'Reporte', 'route' => 'farmacia.reporte', 'roles' => 'farmacia,admin,administrador', 'order' => 6],
+            ['name' => 'Dashboard', 'route' => 'farmacia.index', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 1],
+            ['name' => 'Punto de Venta', 'route' => 'farmacia.pos', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 2],
+            ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 3],
+            ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 4],
+            ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 5],
+            ['name' => 'Reporte', 'route' => 'farmacia.reporte', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 6],
         ]);
 
         // 9. Almacén — Medicamentos e Insumos (rol almacenista)

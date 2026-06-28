@@ -69,7 +69,7 @@
             @if($cita->estado === 'finalizada' && auth()->user()->role !== 'cirujano')
                 <div class="text-right">
                     <span class="text-sm text-gray-500">Costo Total</span>
-                    <div class="text-2xl font-bold text-green-600">${{ number_format($totalGeneral, 2) }}</div>
+                    <div class="text-2xl font-bold text-green-600">Bs{{ number_format($totalGeneral, 2) }}</div>
                 </div>
             @endif
         </div>

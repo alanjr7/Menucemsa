@@ -19,7 +19,7 @@ class ReporteController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
-            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin', 'administrador'])) {
+            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin', 'administrador', 'almacenista'])) {
                 abort(403);
             }
             return $next($request);

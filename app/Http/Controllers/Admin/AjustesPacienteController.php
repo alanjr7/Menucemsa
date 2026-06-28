@@ -9,6 +9,7 @@ use App\Models\Paciente;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 /**
@@ -100,10 +101,21 @@ class AjustesPacienteController extends Controller
             // Opcionales: vienen cuando se elige un ítem del buscador de catálogo.
             'tipo_item'   => 'nullable|in:servicio,medicamento,procedimiento,estadia,laboratorio,imagenologia,farmacia,material,equipo_medico',
             'codigo_item' => 'nullable|string|max:12',
+            // Token anti-duplicado: único por render del formulario.
+            'submit_token' => 'nullable|string|max:64',
         ], [], [
             'descripcion' => 'concepto',
             'monto'       => 'monto unitario',
         ]);
+
+        // Idempotencia: un doble click (o reenvío) manda el MISMO submit_token.
+        // Cache::add es atómico (solo el primer request gana la clave), así que
+        // el segundo no crea un cargo duplicado. Driver de cache: database.
+        $token = (string) ($validated['submit_token'] ?? '');
+        if ($token !== '' && ! Cache::add('cargo_submit:'.$token, true, now()->addMinutes(10))) {
+            return redirect()->route('admin.ajustes-pacientes.correcciones', $cuenta->paciente_id)
+                ->with('info', 'El cargo ya se había agregado; se ignoró el envío duplicado.');
+        }
 
         $subtotal = bcmul((string) $validated['cantidad'], (string) $validated['monto'], 2);
 

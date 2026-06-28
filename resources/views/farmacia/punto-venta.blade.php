@@ -1,8 +1,34 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="flex flex-col lg:grid lg:grid-cols-3 h-[calc(100vh-64px)] overflow-hidden font-sans"
-     x-data="posSystem()">
+<!-- Toast flotante -->
+<div x-data="posSystem()">
+<div
+    x-show="toast.show"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 -translate-y-3"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 translate-y-0"
+    x-transition:leave-end="opacity-0 -translate-y-3"
+    :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'"
+    class="fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl text-white text-sm font-medium max-w-sm pointer-events-none"
+    style="display:none;"
+>
+    <template x-if="toast.type === 'success'">
+        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+    </template>
+    <template x-if="toast.type === 'error'">
+        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </template>
+    <span x-text="toast.message" class="leading-snug"></span>
+</div>
+
+<div class="flex flex-col lg:grid lg:grid-cols-3 h-[calc(100vh-64px)] overflow-hidden font-sans">
 
     {{-- ══════════════════════════════════════════════════════
          COLUMNA 1: Catálogo de productos
@@ -96,25 +122,135 @@
             <span class="ml-auto bg-blue-100 text-blue-600 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="cart.length + ' items'"></span>
         </div>
 
-        {{-- Selector de cliente --}}
-        <div class="px-5 py-3 border-b border-gray-50">
-            <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Cliente</label>
-            <select x-model="selectedCliente" @change="onClienteChange()"
-                    class="w-full border border-gray-200 rounded-lg py-2 px-3 text-[13px] text-gray-700 shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50">
-                <option value="">Cliente General</option>
-                @if($clientes->count() > 0)
-                    @foreach($clientes as $cliente)
-                        <option value="{{ $cliente->id }}">{{ $cliente->nombre }} - {{ $cliente->telefono ?: 'Sin teléfono' }}</option>
-                    @endforeach
-                @else
-                    <option value="" disabled>No hay clientes registrados</option>
-                @endif
-            </select>
-            @if($clientes->count() === 0)
-                <p class="text-[10px] text-gray-400 mt-1">
-                    <a href="{{ route('farmacia.clientes') }}" class="text-blue-500 hover:underline">Agregar clientes →</a>
-                </p>
-            @endif
+        {{-- Selector de cliente / paciente (buscador unificado) --}}
+        <div class="px-5 py-3 border-b border-gray-50" @click.outside="receptorOpen = false">
+            <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Cliente / Paciente</label>
+
+            {{-- Modo búsqueda (oculto al registrar un nuevo cliente) --}}
+            <div x-show="!nuevoCliente">
+                {{-- Receptor seleccionado --}}
+                <template x-if="receptor">
+                    <div class="flex items-center justify-between gap-2 border border-blue-200 bg-blue-50 rounded-lg py-2 px-3">
+                        <div class="min-w-0">
+                            <p class="text-[13px] font-bold text-gray-800 truncate" x-text="receptor.nombre"></p>
+                            <p class="text-[10px] text-gray-500">
+                                <span class="font-semibold"
+                                      :class="receptor.tipo === 'paciente' ? 'text-green-600' : 'text-blue-600'"
+                                      x-text="receptor.tipo === 'paciente' ? 'Paciente' : 'Cliente'"></span>
+                                <span x-show="receptor.numero_documento" x-text="' · ' + receptor.documento_label + ' ' + receptor.numero_documento"></span>
+                            </p>
+                        </div>
+                        <button @click="limpiarReceptor()" type="button"
+                                class="text-gray-400 hover:text-red-500 shrink-0 p-1" title="Quitar">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+
+                {{-- Buscador --}}
+                <div class="relative" x-show="!receptor">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </span>
+                        <input type="text"
+                               x-model="receptorQuery"
+                               @input.debounce.300ms="buscarReceptor()"
+                               @focus="receptorOpen = true"
+                               class="w-full border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-[13px] text-gray-700 shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                               placeholder="Buscar por nombre o CI/NIT...">
+                    </div>
+
+                    {{-- Dropdown de resultados --}}
+                    <div x-show="receptorOpen && (receptorQuery.length >= 2)"
+                         x-transition.opacity
+                         class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto custom-scrollbar"
+                         style="display:none;">
+                        <button type="button" @click="limpiarReceptor()"
+                                class="w-full text-left px-3 py-2 text-[12px] text-gray-500 hover:bg-gray-50 border-b border-gray-100">
+                            Cliente General (sin receptor)
+                        </button>
+
+                        <template x-if="receptorLoading">
+                            <p class="px-3 py-3 text-[12px] text-gray-400 text-center">Buscando...</p>
+                        </template>
+
+                        <template x-if="!receptorLoading && receptorResults.length === 0">
+                            <p class="px-3 py-3 text-[12px] text-gray-400 text-center">Sin coincidencias</p>
+                        </template>
+
+                        <template x-for="r in receptorResults" :key="r.tipo + '-' + r.id">
+                            <button type="button" @click="elegirReceptor(r)"
+                                    class="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-[13px] font-medium text-gray-800 truncate" x-text="r.nombre"></span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                                          :class="r.tipo === 'paciente' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'"
+                                          x-text="r.tipo === 'paciente' ? 'Paciente' : 'Cliente'"></span>
+                                </div>
+                                <p class="text-[10px] text-gray-400 mt-0.5">
+                                    <span x-show="r.numero_documento" x-text="r.documento_label + ' ' + r.numero_documento"></span>
+                                    <span x-show="r.telefono" x-text="(r.numero_documento ? ' · ' : '') + 'Tel: ' + r.telefono"></span>
+                                </p>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Checkbox: registrar nuevo cliente al vuelo --}}
+            <label class="flex items-center gap-2 cursor-pointer mt-2.5">
+                <input type="checkbox" x-model="nuevoCliente" @change="toggleNuevoCliente()"
+                       class="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500">
+                <span class="text-[12px] text-gray-700 font-semibold">Registrar nuevo cliente</span>
+            </label>
+
+            {{-- Campos del nuevo cliente (se guardan en clientes y van a la factura) --}}
+            <div x-show="nuevoCliente" class="mt-2.5 space-y-2 bg-blue-50/60 rounded-xl border border-blue-100 p-3">
+                <div>
+                    <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Nombre / Razón social <span class="text-red-500">*</span></label>
+                    <input type="text" x-model="clienteNuevo.nombre"
+                           class="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Nombre tal cual va en la factura">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Tipo doc.</label>
+                        <select x-model.number="clienteNuevo.tipo_documento"
+                                class="w-full border border-gray-200 rounded-lg py-1.5 px-2 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500">
+                            <template x-for="t in tiposDocumento" :key="t.code">
+                                <option :value="t.code" x-text="t.label"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">N° documento <span class="text-red-500">*</span></label>
+                        <input type="text" inputmode="numeric" x-model="clienteNuevo.numero_documento"
+                               class="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="NIT o CI">
+                    </div>
+                </div>
+                <div x-show="clienteNuevo.tipo_documento === 1">
+                    <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Complemento (opcional)</label>
+                    <input type="text" x-model="clienteNuevo.complemento" maxlength="5"
+                           class="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Ej: 1A">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">Teléfono (opcional)</label>
+                    <input type="text" inputmode="numeric" x-model="clienteNuevo.telefono"
+                           class="w-full border border-gray-200 rounded-lg py-1.5 px-2.5 text-[13px] text-gray-700 bg-white focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Teléfono de contacto">
+                </div>
+            </div>
+
+            <p class="text-[10px] text-gray-400 mt-1">
+                <a href="{{ route('farmacia.clientes') }}" class="text-blue-500 hover:underline">Administrar clientes →</a>
+            </p>
         </div>
 
         {{-- Lista de items --}}
@@ -213,8 +349,15 @@
                 </div>
             </div>
 
+            {{-- Aviso: cuando se registra un nuevo cliente, sus datos ya son los de la factura --}}
+            <div x-show="nuevoCliente" class="bg-blue-50 rounded-xl border border-blue-100 p-3.5">
+                <p class="text-[11px] text-blue-700 leading-snug">
+                    Se facturará al <span class="font-semibold">nuevo cliente</span> con los datos ingresados arriba (se guardará en clientes).
+                </p>
+            </div>
+
             {{-- Datos de factura (receptor) --}}
-            <div class="bg-gray-50 rounded-xl border border-gray-100 p-3.5 space-y-3">
+            <div x-show="!nuevoCliente" class="bg-gray-50 rounded-xl border border-gray-100 p-3.5 space-y-3">
                 <label class="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox"
                            x-model="conCreditoFiscal"
@@ -307,7 +450,7 @@
                 </svg>
                 Procesar Venta
             </button>
-            <button @click="cart = []; mostrarImprimir = false; ultimaVenta = null; selectedCliente = ''; resetFactura();"
+            <button @click="cart = []; mostrarImprimir = false; ultimaVenta = null; limpiarReceptor(); resetClienteNuevo(); resetFactura();"
                     class="w-full text-gray-400 hover:text-red-500 font-medium py-2 text-[12px] transition-colors">
                 Limpiar Carrito
             </button>
@@ -355,10 +498,15 @@
     function posSystem() {
         return {
             productos: @json($productos),
-            clientes: @json($clientes),
             tiposDocumento: @json($tiposDocumento),
             searchQuery: '',
-            selectedCliente: '',
+            receptor: null,
+            receptorQuery: '',
+            receptorResults: [],
+            receptorLoading: false,
+            receptorOpen: false,
+            nuevoCliente: false,
+            clienteNuevo: { nombre: '', telefono: '', tipo_documento: 5, numero_documento: '', complemento: '' },
             metodoPago: 'tarjeta',
             requiereReceta: false,
             conCreditoFiscal: false,
@@ -367,7 +515,68 @@
             ultimaVenta: null,
             mostrarImprimir: false,
             mobileView: 'productos',
+            toast: { show: false, type: 'success', message: '' },
+            _toastTimer: null,
             init() {},
+            showToast(type, message, duration = 3000) {
+                clearTimeout(this._toastTimer);
+                this.toast = { show: true, type, message };
+                this._toastTimer = setTimeout(() => { this.toast.show = false; }, duration);
+            },
+            async buscarReceptor() {
+                const term = this.receptorQuery.trim();
+                if (term.length < 2) {
+                    this.receptorResults = [];
+                    return;
+                }
+                this.receptorLoading = true;
+                this.receptorOpen = true;
+                try {
+                    const url = '{{ route("farmacia.pos.buscar-receptor") }}?q=' + encodeURIComponent(term);
+                    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    this.receptorResults = res.ok ? await res.json() : [];
+                } catch (e) {
+                    this.receptorResults = [];
+                } finally {
+                    this.receptorLoading = false;
+                }
+            },
+            elegirReceptor(r) {
+                this.receptor = r;
+                this.receptorOpen = false;
+                this.receptorQuery = '';
+                this.receptorResults = [];
+                // Autocompletar datos fiscales para la factura con crédito fiscal
+                if (r.numero_documento) {
+                    this.conCreditoFiscal = true;
+                    this.factura = {
+                        razon_social: r.nombre || '',
+                        tipo_documento: r.tipo_documento || 5,
+                        numero_documento: r.numero_documento || '',
+                        complemento: r.complemento || ''
+                    };
+                } else {
+                    this.factura.razon_social = r.nombre || '';
+                }
+            },
+            limpiarReceptor() {
+                this.receptor = null;
+                this.receptorOpen = false;
+                this.receptorQuery = '';
+                this.receptorResults = [];
+            },
+            toggleNuevoCliente() {
+                if (this.nuevoCliente) {
+                    // Modo nuevo cliente: descarta el receptor buscado para no mezclar.
+                    this.limpiarReceptor();
+                } else {
+                    this.resetClienteNuevo();
+                }
+            },
+            resetClienteNuevo() {
+                this.nuevoCliente = false;
+                this.clienteNuevo = { nombre: '', telefono: '', tipo_documento: 5, numero_documento: '', complemento: '' };
+            },
             get filteredProducts() {
                 if (!this.searchQuery) return this.productos;
                 const query = this.searchQuery.toLowerCase();
@@ -402,16 +611,20 @@
             },
             async procesarVenta() {
                 if (this.cart.length === 0) {
-                    alert('El carrito está vacío');
+                    this.showToast('error', 'El carrito está vacío.');
                     return;
                 }
                 const productosConReceta = this.cart.filter(item => item.requiereReceta);
                 if (productosConReceta.length > 0 && !this.requiereReceta) {
-                    alert('⚠️ Hay productos que requieren receta médica. Marque la casilla antes de continuar.');
+                    this.showToast('error', 'Hay productos que requieren receta médica. Marque la casilla antes de continuar.');
                     return;
                 }
                 if (this.conCreditoFiscal && (!this.factura.razon_social.trim() || !this.factura.numero_documento.trim())) {
-                    alert('⚠️ Para factura con crédito fiscal debe ingresar la razón social y el número de documento (NIT/CI).');
+                    this.showToast('error', 'Para factura con crédito fiscal debe ingresar la razón social y el número de documento.');
+                    return;
+                }
+                if (this.nuevoCliente && (!this.clienteNuevo.nombre.trim() || !this.clienteNuevo.numero_documento.trim())) {
+                    this.showToast('error', 'Para registrar un nuevo cliente ingrese el nombre y el número de documento.');
                     return;
                 }
                 try {
@@ -428,14 +641,21 @@
                                 cantidad: item.qty,
                                 precio: item.price
                             })),
-                            cliente_id: this.selectedCliente || null,
+                            receptor_tipo: this.receptor ? this.receptor.tipo : null,
+                            receptor_id: this.receptor ? this.receptor.id : null,
                             metodo_pago: this.metodoPago,
                             requiere_receta: this.requiereReceta,
                             con_credito_fiscal: this.conCreditoFiscal,
                             factura_razon_social: this.factura.razon_social,
                             factura_tipo_documento: this.factura.tipo_documento,
                             factura_numero_documento: this.factura.numero_documento,
-                            factura_complemento: this.factura.complemento
+                            factura_complemento: this.factura.complemento,
+                            nuevo_cliente: this.nuevoCliente,
+                            nuevo_cliente_nombre: this.clienteNuevo.nombre,
+                            nuevo_cliente_telefono: this.clienteNuevo.telefono,
+                            nuevo_cliente_tipo_documento: this.clienteNuevo.tipo_documento,
+                            nuevo_cliente_numero_documento: this.clienteNuevo.numero_documento,
+                            nuevo_cliente_complemento: this.clienteNuevo.complemento
                         })
                     });
 
@@ -446,43 +666,25 @@
                             codigo: result.codigo_venta,
                             total: result.total,
                             items: this.cart,
-                            cliente: this.selectedCliente ? this.getClientName(this.selectedCliente) : 'Cliente General',
+                            cliente: this.nuevoCliente ? this.clienteNuevo.nombre : (this.receptor ? this.receptor.nombre : 'Cliente General'),
                             metodo_pago: this.metodoPago,
                             fecha: new Date().toLocaleString(),
                             requiere_receta: this.requiereReceta,
                             factura: result.factura
                         };
+                        this.showToast('success', 'Venta exitosa · ' + result.codigo_venta + ' · Bs ' + parseFloat(result.total).toFixed(2));
                         this.generarTicketHTML(this.ultimaVenta);
                         this.cart = [];
-                        this.selectedCliente = '';
+                        this.limpiarReceptor();
+                        this.resetClienteNuevo();
                         this.requiereReceta = false;
                         this.resetFactura();
                         this.mobileView = 'productos';
                     } else {
-                        alert('Error: ' + result.message);
+                        this.showToast('error', result.message);
                     }
                 } catch (error) {
-                    alert('Error al procesar la venta: ' + error.message);
-                }
-            },
-            getClientName(clienteId) {
-                const cliente = this.clientes.find(c => c.id == clienteId);
-                return cliente ? cliente.nombre : 'Cliente General';
-            },
-            onClienteChange() {
-                const cliente = this.clientes.find(c => c.id == this.selectedCliente);
-                if (cliente && cliente.numero_documento) {
-                    // Cliente registrado con datos fiscales → autocompletar y activar factura
-                    this.conCreditoFiscal = true;
-                    this.factura = {
-                        razon_social: cliente.nombre || '',
-                        tipo_documento: cliente.tipo_documento || 5,
-                        numero_documento: cliente.numero_documento || '',
-                        complemento: cliente.complemento || ''
-                    };
-                } else if (cliente) {
-                    // Cliente sin datos fiscales cargados → solo precarga el nombre
-                    this.factura.razon_social = cliente.nombre || '';
+                    this.showToast('error', 'Error al procesar la venta: ' + error.message);
                 }
             },
             resetFactura() {
@@ -502,7 +704,7 @@
                     docLabel: f.tipo_documento,        // ya viene como etiqueta desde el backend
                     docNumero: f.numero_documento,
                     docComplemento: f.complemento,
-                    items: venta.items.map(i => ({ cantidad: i.qty, nombre: i.name, importe: i.price * i.qty })),
+                    items: venta.items.map(i => ({ cantidad: i.qty, nombre: i.name, precioUnitario: i.price, descuento: 0, importe: i.price * i.qty })),
                     total: venta.total,
                     reimpresion: false
                 });
@@ -511,4 +713,5 @@
     }
 </script>
 @include('farmacia.partials.ticket')
+</div>{{-- cierre x-data="posSystem()" --}}
 @endsection

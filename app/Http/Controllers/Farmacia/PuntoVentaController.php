@@ -8,6 +8,7 @@ use App\Models\AlmacenStock;
 use App\Models\VentaFarmacia;
 use App\Models\DetalleVentaFarmacia;
 use App\Models\Cliente;
+use App\Models\Paciente;
 use App\Models\CajaDiaria;
 use App\Support\Money;
 use App\Support\TipoDocumento;
@@ -23,7 +24,7 @@ class PuntoVentaController extends Controller
         $this->middleware('auth');
         // Verificar que el usuario tenga rol farmacia o admin
         $this->middleware(function ($request, $next) {
-            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin', 'administrador'])) {
+            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin', 'administrador', 'almacenista'])) {
                 abort(403, 'No tienes permisos para acceder a este módulo.');
             }
             return $next($request);
@@ -55,13 +56,61 @@ class PuntoVentaController extends Controller
             ];
         });
 
-        // Obtener clientes para el select (con datos fiscales para autocompletar la factura)
-        $clientes = Cliente::orderBy('nombre')
-            ->get(['id', 'nombre', 'telefono', 'tipo_documento', 'numero_documento', 'complemento']);
-
         $tiposDocumento = \App\Support\TipoDocumento::options();
 
-        return view('farmacia.punto-venta', compact('productos', 'clientes', 'tiposDocumento'));
+        return view('farmacia.punto-venta', compact('productos', 'tiposDocumento'));
+    }
+
+    /**
+     * Buscador unificado de receptores para el punto de venta: devuelve clientes
+     * registrados Y pacientes del sistema que coincidan por nombre o documento/CI.
+     * Permite venderle a un paciente sin re-registrarlo como cliente.
+     */
+    public function buscarReceptor(Request $request)
+    {
+        $term = trim((string) $request->get('q', ''));
+
+        if (mb_strlen($term) < 2) {
+            return response()->json([]);
+        }
+
+        $like = '%' . $term . '%';
+
+        $clientes = Cliente::query()
+            ->where(fn ($q) => $q->where('nombre', 'like', $like)
+                ->orWhere('numero_documento', 'like', $like))
+            ->orderBy('nombre')
+            ->limit(15)
+            ->get(['id', 'nombre', 'telefono', 'tipo_documento', 'numero_documento', 'complemento'])
+            ->map(fn ($c) => [
+                'tipo' => 'cliente',
+                'id' => $c->id,
+                'nombre' => $c->nombre,
+                'telefono' => $c->telefono,
+                'tipo_documento' => $c->tipo_documento ?? TipoDocumento::NIT->value,
+                'numero_documento' => $c->numero_documento,
+                'complemento' => $c->complemento,
+                'documento_label' => TipoDocumento::labelFor($c->tipo_documento),
+            ]);
+
+        $pacientes = Paciente::query()
+            ->where(fn ($q) => $q->where('nombre', 'like', $like)
+                ->orWhere('ci', 'like', $like))
+            ->orderBy('nombre')
+            ->limit(15)
+            ->get(['id', 'nombre', 'telefono', 'ci'])
+            ->map(fn ($p) => [
+                'tipo' => 'paciente',
+                'id' => $p->id,
+                'nombre' => $p->nombre,
+                'telefono' => $p->telefono,
+                'tipo_documento' => TipoDocumento::CI->value,
+                'numero_documento' => $p->ci ? (string) $p->ci : '',
+                'complemento' => null,
+                'documento_label' => 'CI',
+            ]);
+
+        return response()->json($clientes->concat($pacientes)->values());
     }
 
     public function procesarVenta(Request $request)
@@ -72,7 +121,8 @@ class PuntoVentaController extends Controller
                 'items.*.id' => 'required|integer',
                 'items.*.cantidad' => 'required|integer|min:1',
                 'items.*.precio' => Money::rules(),
-                'cliente_id' => 'nullable|exists:clientes,id',
+                'receptor_tipo' => 'nullable|in:cliente,paciente',
+                'receptor_id' => 'nullable|integer|required_with:receptor_tipo',
                 'metodo_pago' => 'required|string|in:efectivo,tarjeta,transferencia,qr,credito',
                 'requiere_receta' => 'boolean',
                 'observaciones' => 'nullable|string',
@@ -82,6 +132,13 @@ class PuntoVentaController extends Controller
                 'factura_tipo_documento' => ['nullable', 'required_if:con_credito_fiscal,true', Rule::in(TipoDocumento::codigos())],
                 'factura_numero_documento' => 'nullable|required_if:con_credito_fiscal,true|string|max:20',
                 'factura_complemento' => 'nullable|string|max:5',
+                // Nuevo cliente registrado al vuelo (se guarda en clientes + factura nominativa)
+                'nuevo_cliente' => 'boolean',
+                'nuevo_cliente_nombre' => 'nullable|required_if:nuevo_cliente,true|string|max:255',
+                'nuevo_cliente_telefono' => 'nullable|string|max:20',
+                'nuevo_cliente_tipo_documento' => ['nullable', 'required_if:nuevo_cliente,true', Rule::in(TipoDocumento::codigos())],
+                'nuevo_cliente_numero_documento' => 'nullable|required_if:nuevo_cliente,true|string|max:20',
+                'nuevo_cliente_complemento' => 'nullable|string|max:5',
             ]);
 
             DB::beginTransaction();
@@ -142,18 +199,75 @@ class PuntoVentaController extends Controller
             $total = collect($validated['items'])
                 ->reduce(fn($acc, $item) => Money::add($acc, Money::mul($item['cantidad'], $item['precio'])), '0');
 
+            // Resuelve el receptor: nuevo cliente, cliente registrado, paciente del sistema, o general.
+            $clienteId = null;
+            $pacienteId = null;
             $clienteNombre = 'Cliente General';
-            if ($validated['cliente_id']) {
-                $clienteNombre = Cliente::find($validated['cliente_id'])->nombre ?? 'Cliente General';
+            $receptorTipo = $validated['receptor_tipo'] ?? null;
+            $receptorId = $validated['receptor_id'] ?? null;
+
+            if (!empty($validated['nuevo_cliente'])) {
+                $datosNuevo = [
+                    'nombre' => trim($validated['nuevo_cliente_nombre']),
+                    'telefono' => $validated['nuevo_cliente_telefono'] ?? null,
+                    'tipo_documento' => (int) $validated['nuevo_cliente_tipo_documento'],
+                    'numero_documento' => trim($validated['nuevo_cliente_numero_documento']),
+                    'complemento' => isset($validated['nuevo_cliente_complemento'])
+                        ? (trim($validated['nuevo_cliente_complemento']) ?: null)
+                        : null,
+                ];
+                // Reusa un cliente con el mismo documento si ya existe (evita duplicados); si no, lo crea.
+                $cliente = Cliente::where('numero_documento', $datosNuevo['numero_documento'])->first();
+                if ($cliente) {
+                    $cliente->fill($datosNuevo)->save();
+                } else {
+                    $cliente = Cliente::create($datosNuevo);
+                }
+                $clienteId = $cliente->id;
+                $clienteNombre = $cliente->nombre;
+            } elseif ($receptorTipo === 'cliente' && $receptorId) {
+                $cliente = Cliente::find($receptorId);
+                if (!$cliente) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El cliente seleccionado ya no existe.'
+                    ], 400);
+                }
+                $clienteId = $cliente->id;
+                $clienteNombre = $cliente->nombre;
+            } elseif ($receptorTipo === 'paciente' && $receptorId) {
+                $paciente = Paciente::find($receptorId);
+                if (!$paciente) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El paciente seleccionado ya no existe.'
+                    ], 400);
+                }
+                $pacienteId = $paciente->id;
+                $clienteNombre = $paciente->nombre;
             }
 
-            $receptor = $this->resolverReceptor($validated);
+            // Snapshot fiscal: el nuevo cliente factura nominativo con sus propios datos.
+            if (!empty($validated['nuevo_cliente'])) {
+                $receptor = [
+                    'con_credito_fiscal' => true,
+                    'razon_social' => $datosNuevo['nombre'],
+                    'tipo_documento' => $datosNuevo['tipo_documento'],
+                    'numero_documento' => $datosNuevo['numero_documento'],
+                    'complemento' => $datosNuevo['complemento'],
+                ];
+            } else {
+                $receptor = $this->resolverReceptor($validated);
+            }
 
             $venta = VentaFarmacia::create([
                 'codigo_venta' => $codigoVenta,
                 'farmacia_id' => $farmacia->id,
                 'usuario_id' => Auth::id(),
-                'cliente_id' => $validated['cliente_id'] ?? null,
+                'cliente_id' => $clienteId,
+                'paciente_id' => $pacienteId,
                 'cliente' => $clienteNombre,
                 'con_credito_fiscal' => $receptor['con_credito_fiscal'],
                 'factura_razon_social' => $receptor['razon_social'],

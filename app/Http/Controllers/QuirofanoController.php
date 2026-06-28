@@ -292,7 +292,9 @@ class QuirofanoController extends Controller
                 'ci_cirujano' => 'required|exists:medicos,ci',
                 'nro_quirofano' => 'required|exists:quirofanos,id',
                 'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
-                'fecha' => 'required|date|after_or_equal:today',
+                // La fecha se guarda tal cual como dato: se permite cualquier horario
+                // (pasado o futuro), sin validar disponibilidad del quirófano.
+                'fecha' => 'required|date',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
                 'costo_base' => 'required|numeric|decimal:0,2|min:0',
                 'ci_instrumentista' => 'nullable|integer',

@@ -22,6 +22,11 @@
             {{ session('success') }}
         </div>
     @endif
+    @if(session('info'))
+        <div class="mb-6 px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-sm">
+            {{ session('info') }}
+        </div>
+    @endif
     @if($errors->any())
         <div class="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
             <ul class="list-disc list-inside">
@@ -196,6 +201,10 @@
                     <form action="{{ route('admin.ajustes-pacientes.cargos.store', $cuenta->id) }}" method="POST"
                           class="js-cargo-form grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                         @csrf
+                        {{-- Token anti-duplicado: único por render; bloquea doble submit en el backend --}}
+                        <input type="hidden" name="submit_token" value="{{ \Illuminate\Support\Str::uuid() }}">
+
+
 
                         {{-- Buscador de catálogo --}}
                         <div class="md:col-span-12 relative">
@@ -303,6 +312,21 @@
         const monto       = form.querySelector('.js-monto');
         const codigo      = form.querySelector('.js-codigo');
         const tipo        = form.querySelector('.js-tipo');
+
+        // Guard anti doble-click: tras el primer submit, bloquea los siguientes
+        // y deshabilita el botón hasta que la navegación termine (capa de UX;
+        // el backend ya es idempotente por submit_token).
+        let enviando = false;
+        form.addEventListener('submit', function (e) {
+            if (enviando) { e.preventDefault(); return; }
+            enviando = true;
+            const btn = form.querySelector('button[type=submit]');
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+        });
+
         if (!buscar) return;
 
         let timer = null, ultimo = '';
