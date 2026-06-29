@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reception;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlmacenCatalogo;
 use App\Models\AlmacenStock;
 use App\Models\CamillaUso;
 use App\Models\CitaQuirurgica;
@@ -84,6 +85,9 @@ class EvaluacionPacienteController extends Controller
             'items.*.nombre' => ['required', 'string'],
             'items.*.cantidad' => ['required', 'integer', 'min:1'],
             'items.*.precio' => ['nullable', 'numeric', 'min:0'],
+            // Medicamento externo (lo trae/compra el paciente): no descuenta stock ni cobra.
+            'items.*.facturable' => ['nullable', 'boolean'],
+            'items.*.observacion' => ['nullable', 'string', 'max:255'],
         ]);
 
         $paciente = $this->resolvePaciente($ci);
@@ -136,6 +140,25 @@ class EvaluacionPacienteController extends Controller
                 $precio = (float) ($item['precio'] ?? 0);
                 $cantidad = (int) $item['cantidad'];
                 $tipo = $item['tipo'];
+
+                // Medicamento externo (lo trae/compra el paciente): solo registro
+                // clínico para el historial. NO descuenta stock, NO genera cargo,
+                // NO registra entrega de almacén.
+                $facturable = ! array_key_exists('facturable', $item) || $item['facturable'];
+                if (! $facturable) {
+                    EvaluacionItem::create([
+                        'evaluacion_id' => $evaluacion->id,
+                        'tipo' => $tipo,
+                        'item_id' => $item['item_id'],
+                        'nombre_snapshot' => $item['nombre'],
+                        'cantidad' => $cantidad,
+                        'precio_snapshot' => null,
+                        'facturable' => false,
+                        'observacion' => $item['observacion'] ?? null,
+                    ]);
+
+                    continue;
+                }
 
                 if (in_array($tipo, ['medicamento', 'insumo'])) {
                     // Si viene lote_id, descontar ese lote exacto (el laboratorio elegido); si no, el primero disponible
@@ -275,6 +298,26 @@ class EvaluacionPacienteController extends Controller
     public function buscarMedicamentos(Request $request): JsonResponse
     {
         return response()->json($this->buscarStockPorTipo('medicamento', $this->resolveArea($request), $request->input('q') ?? ''));
+    }
+
+    /**
+     * Buscador de medicamentos EXTERNOS (los compra/trae el paciente): se busca
+     * sobre el catálogo LINAME completo (AlmacenCatalogo), sin depender de stock
+     * ni del área. Solo registro clínico; no descuenta inventario ni cobra.
+     */
+    public function buscarMedicamentosCatalogo(Request $request): JsonResponse
+    {
+        $q = $request->input('q', '');
+
+        $medicamentos = AlmacenCatalogo::medicamentos()->activos()
+            ->where(fn ($w) => $w->where('nombre', 'like', "%{$q}%")
+                ->orWhere('nombre_generico', 'like', "%{$q}%"))
+            ->orderBy('nombre')
+            ->limit(30)
+            ->get(['id', 'nombre', 'nombre_generico', 'concentracion', 'codigo_liname', 'unidad_medida'])
+            ->all();
+
+        return response()->json($medicamentos);
     }
 
     public function buscarInsumos(Request $request): JsonResponse

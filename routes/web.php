@@ -898,6 +898,7 @@ Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion
 // AJAX endpoints de evaluacion — todos los roles con formulario de evaluación
 Route::middleware(['auth', 'role:emergencia|enfermera-emergencia|uti|internacion|enfermera-internacion|cirujano|neonato|admin|administrador|dirmedico'])->group(function () {
     Route::get('/api/evaluacion/medicamentos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarMedicamentos']);
+    Route::get('/api/evaluacion/medicamentos-catalogo', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarMedicamentosCatalogo']);
     Route::get('/api/evaluacion/insumos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarInsumos']);
     Route::get('/api/evaluacion/procedimientos', [\App\Http\Controllers\Reception\EvaluacionPacienteController::class, 'buscarProcedimientos']);
 });

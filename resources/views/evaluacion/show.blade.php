@@ -187,6 +187,73 @@
             </div>
         </div>
 
+        {{-- Medicamentos externos (los compra/trae el paciente — sin cargo) --}}
+        <div class="bg-white rounded-xl border border-amber-400 overflow-visible">
+            <div class="px-6 py-4 border-b border-amber-300 bg-amber-50">
+                <h2 class="text-lg font-semibold text-amber-900">Medicamentos externos (sin cargo)</h2>
+                <p class="text-sm text-amber-800 mt-0.5">Los compra o trae el paciente. No descuentan inventario ni se cobran; solo quedan en el historial para no repetir la dosis.</p>
+            </div>
+            <div class="px-6 py-5">
+                <div class="relative mb-4">
+                    <input type="text" x-model="medExtQ" @input.debounce.300ms="buscarExterno()"
+                        @focus="medExtOpen=true" @click.outside="medExtOpen=false"
+                        placeholder="Buscar medicamento en el catálogo (nombre comercial o genérico)..."
+                        class="w-full border border-slate-500 rounded-lg px-4 py-3 text-base text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent">
+                    <ul x-show="medExtOpen && medExtResultados.length" x-cloak
+                        class="absolute z-20 bg-white border border-slate-600 rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto">
+                        <template x-for="item in medExtResultados" :key="item.id">
+                            <li @click="agregarExterno(item)"
+                                class="px-4 py-3 text-base hover:bg-amber-50 cursor-pointer border-b border-slate-400 last:border-0">
+                                <span class="font-medium text-slate-900 block truncate" x-text="item.nombre"></span>
+                                <span class="block text-xs text-slate-700" x-show="item.nombre_generico || item.concentracion || item.unidad_medida">
+                                    <span x-show="item.nombre_generico" x-text="item.nombre_generico"></span>
+                                    <span x-show="item.concentracion" x-text="(item.nombre_generico ? ' · ' : '') + item.concentracion"></span>
+                                    <span x-show="item.unidad_medida" x-text="((item.nombre_generico || item.concentracion) ? ' · ' : '') + item.unidad_medida"></span>
+                                </span>
+                                <span class="block text-xs text-slate-500" x-show="item.codigo_liname" x-text="'LINAME: ' + item.codigo_liname"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
+                <template x-if="medExternos.length === 0">
+                    <p class="text-base text-slate-700 py-2">Sin medicamentos externos agregados.</p>
+                </template>
+                <table x-show="medExternos.length > 0" class="w-full">
+                    <thead>
+                        <tr class="border-b-2 border-slate-800">
+                            <th class="pb-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Medicamento</th>
+                            <th class="pb-3 text-center text-sm font-semibold text-slate-900 uppercase tracking-wide w-28">Cantidad</th>
+                            <th class="pb-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Observación</th>
+                            <th class="pb-3 w-12"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(item, i) in medExternos" :key="item.id">
+                            <tr class="border-b border-slate-400 last:border-0">
+                                <td class="py-3 text-base text-slate-900 font-medium" x-text="item.nombre"></td>
+                                <td class="py-3 text-center">
+                                    <input type="number" x-model.number="item.cantidad" min="1"
+                                        class="w-20 border border-slate-500 rounded-lg px-3 py-2 text-center text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                </td>
+                                <td class="py-3">
+                                    <input type="text" x-model="item.observacion" maxlength="255"
+                                        placeholder="Ej. traído por el paciente, dosis administrada..."
+                                        class="w-full border border-slate-500 rounded-lg px-3 py-2 text-base text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                </td>
+                                <td class="py-3 text-center">
+                                    <button type="button" @click="medExternos.splice(i,1)"
+                                        class="w-8 h-8 flex items-center justify-center rounded-md text-slate-700 hover:text-red-600 hover:bg-red-50 transition-colors text-xl font-light mx-auto">
+                                        &times;
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         {{-- Insumos --}}
         <div class="bg-white rounded-xl border border-slate-600 overflow-visible">
             <div class="px-6 py-4 border-b border-slate-400">
@@ -355,11 +422,13 @@ function evaluacion(area, storeUrl) {
         medicamentos: [],
         insumos: [],
         procedimientos: [],
+        medExternos: [],
         observaciones: '',
         sv: { presion_arterial: '', frecuencia_cardiaca: '', frecuencia_respiratoria: '', temperatura: '', saturacion_o2: '', glucosa: '', peso: null, altura: null, imc: null },
         medQ: '', insQ: '', procQ: '',
         medResultados: [], insResultados: [], procResultados: [],
         medOpen: false, insOpen: false, procOpen: false,
+        medExtQ: '', medExtResultados: [], medExtOpen: false,
         saving: false,
         error: '',
 
@@ -399,6 +468,23 @@ function evaluacion(area, storeUrl) {
             else { this.procQ = ''; this.procOpen = false; }
         },
 
+        async buscarExterno() {
+            try {
+                const res = await axios.get('/api/evaluacion/medicamentos-catalogo', { params: { q: this.medExtQ } });
+                this.medExtResultados = res.data;
+                this.medExtOpen = true;
+            } catch(e) {}
+        },
+
+        agregarExterno(item) {
+            const existente = this.medExternos.find(i => i.id === item.id);
+            if (!existente) {
+                this.medExternos.push({ ...item, cantidad: 1, observacion: '' });
+            }
+            this.medExtQ = '';
+            this.medExtOpen = false;
+        },
+
         async guardar() {
             this.error = '';
             this.saving = true;
@@ -406,6 +492,7 @@ function evaluacion(area, storeUrl) {
                 ...this.medicamentos.map(i => ({ tipo: 'medicamento', item_id: i.item_id, lote_id: i.lote_id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
                 ...this.insumos.map(i => ({ tipo: 'insumo', item_id: i.item_id, lote_id: i.lote_id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
                 ...this.procedimientos.map(i => ({ tipo: 'procedimiento', item_id: i.id, nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+                ...this.medExternos.map(i => ({ tipo: 'medicamento', item_id: i.id, nombre: i.nombre, cantidad: i.cantidad, facturable: false, observacion: i.observacion })),
             ];
             try {
                 const res = await axios.post(this.storeUrl, {

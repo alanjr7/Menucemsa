@@ -29,13 +29,25 @@
         <strong>Evaluado por:</strong> {{ $evaluacion->user->name ?? '-' }}
     </div>
 
-    @if($evaluacion->items->where('tipo','medicamento')->count())
+    @if($evaluacion->items->where('tipo','medicamento')->where('facturable','!=',false)->count())
         <h2>Medicamentos</h2>
         <table>
             <thead><tr><th>Nombre</th><th>Cantidad</th></tr></thead>
             <tbody>
-                @foreach($evaluacion->items->where('tipo','medicamento') as $item)
+                @foreach($evaluacion->items->where('tipo','medicamento')->where('facturable','!=',false) as $item)
                     <tr><td>{{ $item->nombre_snapshot }}</td><td>{{ $item->cantidad }}</td></tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    @if($evaluacion->items->where('tipo','medicamento')->where('facturable',false)->count())
+        <h2>Medicamentos externos (los trae el paciente — sin cargo)</h2>
+        <table>
+            <thead><tr><th>Nombre</th><th>Cantidad</th><th>Observación</th></tr></thead>
+            <tbody>
+                @foreach($evaluacion->items->where('tipo','medicamento')->where('facturable',false) as $item)
+                    <tr><td>{{ $item->nombre_snapshot }}</td><td>{{ $item->cantidad }}</td><td>{{ $item->observacion }}</td></tr>
                 @endforeach
             </tbody>
         </table>

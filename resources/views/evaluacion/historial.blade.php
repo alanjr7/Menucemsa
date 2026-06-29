@@ -300,11 +300,23 @@
                                 @endif
                             </div>
                             @endif
-                            @if($ev->items->where('tipo','medicamento')->count())
+                            @if($ev->items->where('tipo','medicamento')->where('facturable','!=',false)->count())
                                 <p class="text-xs font-semibold text-gray-500 mb-1">Medicamentos</p>
                                 <ul class="mb-3 space-y-1">
-                                    @foreach($ev->items->where('tipo','medicamento') as $item)
+                                    @foreach($ev->items->where('tipo','medicamento')->where('facturable','!=',false) as $item)
                                         <li class="text-sm">{{ $item->nombre_snapshot }} &times; {{ $item->cantidad }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                            @if($ev->items->where('tipo','medicamento')->where('facturable',false)->count())
+                                <p class="text-xs font-semibold text-amber-700 mb-1">Medicamentos externos (los trae el paciente)</p>
+                                <ul class="mb-3 space-y-1">
+                                    @foreach($ev->items->where('tipo','medicamento')->where('facturable',false) as $item)
+                                        <li class="text-sm">
+                                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 mr-1">Externo · sin cargo</span>
+                                            {{ $item->nombre_snapshot }} &times; {{ $item->cantidad }}
+                                            @if($item->observacion)<span class="text-gray-500 italic"> — {{ $item->observacion }}</span>@endif
+                                        </li>
                                     @endforeach
                                 </ul>
                             @endif
@@ -533,10 +545,11 @@
     @forelse($evaluaciones as $index => $evaluacion)
         @php
             $gruposEv = [
-                'Medicamentos administrados' => $evaluacion->items->where('tipo', 'medicamento'),
+                'Medicamentos administrados' => $evaluacion->items->where('tipo', 'medicamento')->where('facturable', '!=', false),
                 'Insumos utilizados'         => $evaluacion->items->where('tipo', 'insumo'),
                 'Procedimientos realizados'  => $evaluacion->items->where('tipo', 'procedimiento'),
             ];
+            $medExternosEv = $evaluacion->items->where('tipo', 'medicamento')->where('facturable', false);
             $svParts = [];
             if (!empty($evaluacion->signos_vitales)) {
                 $sv = $evaluacion->signos_vitales;
@@ -570,6 +583,17 @@
                     </table>
                 @endif
             @endforeach
+            @if($medExternosEv->count())
+                <div class="hx-group">Medicamentos externos (los trae el paciente — sin cargo)</div>
+                <table class="hx-items">
+                    <thead><tr><th>Detalle</th><th class="num">Cant.</th><th>Observación</th></tr></thead>
+                    <tbody>
+                        @foreach($medExternosEv as $item)
+                            <tr><td>{{ $item->nombre_snapshot }}</td><td class="num">{{ (int) $item->cantidad }}</td><td>{{ $item->observacion }}</td></tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
             @if($evaluacion->observaciones)
                 <div class="hx-note"><strong>Observaciones:</strong> {{ $evaluacion->observaciones }}</div>
             @endif
