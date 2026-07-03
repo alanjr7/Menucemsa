@@ -26,6 +26,7 @@ class CuentaCobroDetalleEliminado extends Model
         'observaciones',
         'usuario_eliminacion_id',
         'motivo_eliminacion',
+        'devolucion_id',
         'eliminado_en',
         'revertido_en',
         'revertido_por',

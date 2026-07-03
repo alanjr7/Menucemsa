@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Models\Devolucion;
 use App\Models\PagoCuenta;
 use App\Models\SeguroCobro;
 use App\Models\VentaFarmacia;
@@ -98,6 +99,31 @@ class RcvVentasSheet implements FromCollection, ShouldAutoSize, WithHeadings, Wi
                 'total' => (float) $s->monto,
                 'base' => (float) $s->base_imponible,
                 'debito' => (float) $s->debito_fiscal,
+            ]);
+        }
+
+        // Devoluciones / Notas de Crédito: documento de ajuste que REVIERTE débito
+        // fiscal. Van con signo negativo, como las carga el contador en el RCV del
+        // SIAT. El receptor fiscal es el mismo del cobro original (la cuenta).
+        $devoluciones = Devolucion::with('cuentaCobro')->vigentes()
+            ->whereBetween('created_at', [$this->inicio, $this->fin])
+            ->orderBy('created_at')->get();
+        foreach ($devoluciones as $d) {
+            $r = $d->cuentaCobro?->receptorFiscal() ?? [
+                'razon_social' => 'S/N', 'tipo_documento_label' => 'NIT', 'numero_documento' => '0', 'complemento' => null,
+            ];
+            $rows->push([
+                'n' => ++$n,
+                'fecha' => $d->created_at->format('d/m/Y'),
+                'origen' => 'Nota Crédito',
+                'recibo' => $d->id.' (ref. '.$d->pago_cuenta_id.')',
+                'autorizacion' => '',
+                'tipo_doc' => $r['tipo_documento_label'],
+                'documento' => $r['numero_documento'].($r['complemento'] ? '-'.$r['complemento'] : ''),
+                'razon' => $r['razon_social'],
+                'total' => -1 * (float) $d->monto,
+                'base' => -1 * (float) $d->base_imponible,
+                'debito' => -1 * (float) $d->debito_fiscal,
             ]);
         }
 

@@ -162,12 +162,26 @@ class FarmaciaLimpiezaTest extends TestCase
 
         $this->assertEquals(46, $stock->fresh()->cantidad_actual);
 
+        // Anular es operación administrativa: el rol farmacia vende pero NO anula.
         $this->actingAs($user)
-            ->deleteJson(route('farmacia.ventas.destroy', $venta->json('codigo_venta')))
+            ->postJson(route('farmacia.ventas.anular', $venta->json('codigo_venta')), [
+                'motivo' => 'Devolución de prueba',
+            ])
+            ->assertStatus(403);
+
+        $admin = User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        $this->actingAs($admin)
+            ->postJson(route('farmacia.ventas.anular', $venta->json('codigo_venta')), [
+                'motivo' => 'Devolución de prueba',
+            ])
             ->assertOk()
             ->assertJson(['success' => true]);
 
         $this->assertEquals(50, $stock->fresh()->cantidad_actual);
-        $this->assertDatabaseMissing('ventas_farmacia', ['codigo_venta' => $venta->json('codigo_venta')]);
+        // La venta ya NO se borra: queda ANULADA (auditada) y fuera de los ingresos.
+        $this->assertDatabaseHas('ventas_farmacia', [
+            'codigo_venta' => $venta->json('codigo_venta'),
+            'estado' => 'ANULADA',
+        ]);
     }
 }

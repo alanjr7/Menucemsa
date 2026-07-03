@@ -300,7 +300,10 @@ class MenuSeeder extends Seeder
         // `gerente` a paridad con las rutas `caja.contabilidad.*` (audiencia contable).
         $contabilidad = Menu::create([
             'name' => 'Contabilidad',
-            'active_pattern' => 'caja.contabilidad*',
+            // Incluye caja.gestion.devoluciones* : la página propia de Devoluciones/NC
+            // vive bajo el prefijo caja-gestion (reusa sus endpoints) pero pertenece
+            // a este menú contable.
+            'active_pattern' => 'caja.contabilidad*,caja.gestion.devoluciones*',
             'icon_path' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
             'color' => 'emerald',
             'roles' => 'admin,administrador,gerente',
@@ -309,9 +312,12 @@ class MenuSeeder extends Seeder
         // NOTA: el "Cierre de Período" NO es submenú — es un modal + panel dentro del
         // Libro de Caja (botón "Cerrar Período"). Su ruta `cierres.index` es un endpoint
         // JSON que alimenta ese panel vía fetch, no una vista navegable.
+        // Devoluciones/NC solo para admin|administrador (emiten); gerente no la ve
+        // porque las rutas caja-gestion están cerradas a ese rol.
         $contabilidad->children()->createMany([
             ['name' => 'Libro de Caja',    'route' => 'caja.contabilidad.index',           'roles' => 'admin,administrador,gerente', 'order' => 1],
-            ['name' => 'Homologación SIN', 'route' => 'caja.contabilidad.homologacion-sin', 'roles' => 'admin,administrador,gerente', 'order' => 2],
+            ['name' => 'Devoluciones / N. Crédito', 'route' => 'caja.gestion.devoluciones.index', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Homologación SIN', 'route' => 'caja.contabilidad.homologacion-sin', 'roles' => 'admin,administrador,gerente', 'order' => 3],
         ]);
 
         // 7.5 Proformas (Cotizaciones) — todos los roles EXCEPTO almacenista.

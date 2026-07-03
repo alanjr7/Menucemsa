@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Models\Devolucion;
 use App\Models\Egreso;
 use App\Models\PagoCuenta;
 use App\Models\VentaFarmacia;
@@ -58,6 +59,46 @@ class ContabilidadExport implements FromCollection, ShouldAutoSize, WithHeadings
                 'monto' => $v->total,
             ]);
 
+        // Devoluciones (NC): contra-ingreso. Van en la columna Ingreso con signo
+        // NEGATIVO para que la suma de la columna dé el ingreso neto del período
+        // (no son egresos/gastos). Solo las vigentes: una NC anulada no movió caja.
+        $devoluciones = Devolucion::with('cuentaCobro.paciente', 'user')
+            ->vigentes()
+            ->whereBetween('created_at', [$this->inicio, $this->fin])
+            ->get()
+            ->map(fn ($d) => [
+                'fecha' => $d->created_at,
+                'tipo' => 'Ingreso',
+                'categoria' => 'Devolución (NC)',
+                'descripcion' => 'Devolución del recibo '.$d->pago_cuenta_id.' - '
+                    .($d->cuentaCobro?->paciente?->nombre ?? 'N/A').' - '.$d->motivo,
+                'metodo_pago' => $d->metodo_devolucion_label,
+                'comprobante' => $d->referencia ? $d->id.' (Ref. '.$d->referencia.')' : $d->id,
+                'usuario' => $d->user->name ?? 'N/A',
+                'monto' => '-'.$d->monto,
+            ]);
+
+        // Devoluciones de FARMACIA (ventas anuladas por anulado_at): fila de RASTRO
+        // sin monto en las columnas — la venta anulada ya quedó excluida de la
+        // sección de ingresos (filtro COMPLETADA), así que un monto negativo aquí
+        // descontaría dos veces. El importe devuelto va en la descripción.
+        $anuladasFarmacia = VentaFarmacia::with('anuladoPor')
+            ->where('estado', 'ANULADA')
+            ->whereBetween('anulado_at', [$this->inicio, $this->fin])
+            ->get()
+            ->map(fn ($v) => [
+                'fecha' => $v->anulado_at,
+                'tipo' => 'Ingreso',
+                'categoria' => 'Devolución farmacia',
+                'descripcion' => 'Venta '.$v->codigo_venta.' ANULADA — Bs '.number_format((float) $v->total, 2)
+                    .' devueltos, stock reingresado ('.($v->motivo_anulacion ?? 'sin motivo').'). '
+                    .'La venta ya no suma en los ingresos de este libro.',
+                'metodo_pago' => ucfirst($v->metodo_pago),
+                'comprobante' => $v->codigo_venta,
+                'usuario' => $v->anuladoPor->name ?? 'N/A',
+                'monto' => '',
+            ]);
+
         // Los anulados no movieron caja: se excluyen del libro de flujo de efectivo.
         $egresos = Egreso::with('user')
             ->vigentes()
@@ -74,7 +115,7 @@ class ContabilidadExport implements FromCollection, ShouldAutoSize, WithHeadings
                 'monto' => $e->monto,
             ]);
 
-        return $ingresos->concat($farmacia)->concat($egresos)->sortBy('fecha')->values();
+        return $ingresos->concat($farmacia)->concat($devoluciones)->concat($anuladasFarmacia)->concat($egresos)->sortBy('fecha')->values();
     }
 
     public function headings(): array

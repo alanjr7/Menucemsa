@@ -32,9 +32,14 @@ class KpiController extends Controller
             'hospitalizados'          => Hospitalizacion::where('estado', 'activo')->count(),
             'cirugias_hoy'            => CitaQuirurgica::whereDate('fecha', $hoy)->count(),
             'cirugias_mes'            => CitaQuirurgica::whereDate('fecha', '>=', $mesActual)->count(),
-            'ingresos_hoy'            => PagoCuenta::whereDate('created_at', $hoy)->sum('monto'),
-            'ingresos_mes'            => PagoCuenta::whereDate('created_at', '>=', $mesActual)->sum('monto'),
-            'ingresos_mes_anterior'   => PagoCuenta::whereBetween('created_at', [$mesAnterior, $finMesAnterior])->sum('monto'),
+            // Netos de devoluciones (NC): el dinero devuelto no es ingreso.
+            'ingresos_hoy'            => (float) bcsub((string) PagoCuenta::whereDate('created_at', $hoy)->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy), 2),
+            'ingresos_mes'            => (float) bcsub(
+                (string) PagoCuenta::whereDate('created_at', '>=', $mesActual)->sum('monto'),
+                (string) \App\Models\Devolucion::vigentes()->whereDate('created_at', '>=', $mesActual)->sum('monto'),
+                2
+            ),
+            'ingresos_mes_anterior'   => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$mesAnterior, $finMesAnterior])->sum('monto'), \App\Models\Devolucion::sumaVigente($mesAnterior, $finMesAnterior), 2),
             'cuentas_pendientes'      => CuentaCobro::whereIn('estado', ['pendiente', 'parcial'])->count(),
             'monto_pendiente'         => CuentaCobro::whereIn('estado', ['pendiente', 'parcial'])
                                             ->selectRaw("SUM(total_calculado - CASE WHEN seguro_estado = 'autorizado' THEN COALESCE(seguro_monto_cobertura, 0) ELSE 0 END - total_pagado) as total")
@@ -70,9 +75,13 @@ class KpiController extends Controller
             // Pacientes atendidos (Consultas en el mes)
             $chartPacientes[] = Consulta::whereBetween('fecha', [$mes_inicio, $mes_fin])->count();
             
-            // Ingresos en el mes
-            $ingresos = PagoCuenta::whereBetween('created_at', [$mes_inicio, $mes_fin])->sum('monto');
-            $chartIngresos[] = round($ingresos, 2);
+            // Ingresos en el mes (netos de devoluciones)
+            $ingresos = bcsub(
+                (string) PagoCuenta::whereBetween('created_at', [$mes_inicio, $mes_fin])->sum('monto'),
+                \App\Models\Devolucion::sumaVigente($mes_inicio, $mes_fin),
+                2
+            );
+            $chartIngresos[] = (float) $ingresos;
         }
 
         // Actividad Reciente

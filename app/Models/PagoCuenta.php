@@ -51,6 +51,19 @@ class PagoCuenta extends Model
         return $this->belongsTo(CajaSession::class);
     }
 
+    /** Notas de crédito (devoluciones) emitidas sobre este pago. */
+    public function devoluciones(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Devolucion::class, 'pago_cuenta_id');
+    }
+
+    /** Total devuelto vigente de este pago (suma de NC no anuladas). */
+    public function getMontoDevueltoAttribute(): string
+    {
+        return $this->devoluciones->whereNull('anulado_at')
+            ->reduce(fn ($acc, $d) => \App\Support\Money::add($acc, $d->monto), '0');
+    }
+
     // Scopes
     public function scopePorMetodo($query, $metodo)
     {

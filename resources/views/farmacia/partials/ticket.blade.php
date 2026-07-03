@@ -28,7 +28,8 @@
      *  { codigo, fecha, cliente, metodoPago, requiereReceta,
      *    conCreditoFiscal, razonSocial, docLabel, docNumero, docComplemento,
      *    items: [{ cantidad, nombre, precioUnitario, descuento, importe }],
-     *    total, reimpresion }
+     *    total, reimpresion,
+     *    anulada, motivoAnulacion, fechaAnulacion }   // venta devuelta/anulada
      */
     function imprimirTicketFarmacia(t) {
         const num = (n) => parseFloat(n) || 0;
@@ -79,6 +80,15 @@
         const nitEmpresa = TICKET_CLINICA.nit ? TICKET_CLINICA.nit : '—';
 
         const tituloTicket = t.reimpresion ? 'COMPROBANTE DE VENTA (REIMPRESIÓN)' : 'COMPROBANTE DE VENTA';
+
+        // Venta anulada (devolución con reingreso de stock): el ticket reimpreso
+        // DEBE decirlo — sin esto parecería un comprobante de venta válido.
+        const anuladaHTML = t.anulada
+            ? `<div class="t-anulada">*** VENTA ANULADA ***
+                   <div class="t-anulada-sub">${t.fechaAnulacion ? 'Anulada el ' + t.fechaAnulacion : ''}${t.motivoAnulacion ? ' — ' + t.motivoAnulacion : ''}</div>
+                   <div class="t-anulada-sub">Dinero devuelto · Stock reingresado · No representa un ingreso</div>
+               </div>`
+            : '';
         const descuentoFila = descuentoTotal > 0
             ? `<div class="t-trow"><span>Descuento</span><span>${money(descuentoTotal)}</span></div>`
             : '';
@@ -129,6 +139,8 @@
                 .t-total-final { display: flex; justify-content: space-between; align-items: baseline; margin-top: 5px; padding-top: 5px; border-top: 2px solid #111; font-weight: 800; font-size: 15px; letter-spacing: 0.5px; }
 
                 .t-receta { text-align: center; font-weight: 700; font-size: 10px; margin: 6px 0; padding: 3px; border: 1px dashed #111; }
+                .t-anulada { text-align: center; font-weight: 800; font-size: 12.5px; letter-spacing: 1px; margin: 7px 0; padding: 5px 3px; border: 2px solid #111; }
+                .t-anulada-sub { font-weight: 400; font-size: 8.5px; letter-spacing: 0; margin-top: 2px; }
                 .t-foot { font-size: 8.5px; text-align: center; margin-top: 10px; line-height: 1.5; color: #333; font-weight: 400; }
                 .t-foot .t-gracias { font-weight: 400; font-size: 9.5px; color: #111; margin-top: 3px; }
             </style>
@@ -148,7 +160,7 @@
             </div>
 
             <hr class="t-rule">
-
+            ${anuladaHTML}
             <div class="t-datos">
                 <div class="t-row"><span>Comprobante N°:</span><span class="t-bignum">${t.codigo || ''}</span></div>
                 <div class="t-row"><span>Cliente:</span><span class="t-strong">${t.cliente || 'Cliente General'}</span></div>

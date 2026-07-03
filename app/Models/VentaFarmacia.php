@@ -34,6 +34,9 @@ class VentaFarmacia extends Model
         'fecha_venta',
         'estado',
         'observaciones',
+        'anulado_at',
+        'anulado_por',
+        'motivo_anulacion',
         'caja_diaria_id'
     ];
 
@@ -45,9 +48,16 @@ class VentaFarmacia extends Model
         'con_credito_fiscal' => 'boolean',
         'factura_tipo_documento' => 'integer',
         'fecha_venta' => 'datetime',
+        'anulado_at' => 'datetime',
         'metodo_pago' => 'string',
         'estado' => 'string',
     ];
+
+    /** Ventas que cuentan como ingreso (excluye anuladas/pendientes). */
+    public function scopeCompletadas($query)
+    {
+        return $query->where('estado', 'COMPLETADA');
+    }
 
     public $timestamps = false;
 
@@ -92,6 +102,11 @@ class VentaFarmacia extends Model
     public function paciente()
     {
         return $this->belongsTo(Paciente::class, 'paciente_id');
+    }
+
+    public function anuladoPor()
+    {
+        return $this->belongsTo(User::class, 'anulado_por');
     }
 
     // Etiqueta legible del tipo de documento de la factura (catálogo SIN)

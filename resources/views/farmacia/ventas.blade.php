@@ -87,7 +87,9 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="venta.cliente || 'Cliente General'"></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold" x-text="'Bs' + parseFloat(venta.total || 0).toFixed(2)"></td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800" x-text="venta.estado"></span>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                                :class="venta.estado === 'ANULADA' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'"
+                                                x-text="venta.estado"></span>
                                         </td>
                                     </tr>
                                 </template>
@@ -127,6 +129,8 @@
 <script>
 const tiposDoc = { 1: 'CI', 2: 'CEX', 3: 'Pasaporte', 4: 'Otro', 5: 'NIT' };
 let ventaActual = null;
+// Anular una venta (devolución) es operación administrativa: el backend también lo exige.
+const PUEDE_ANULAR = @json(in_array(auth()->user()->role, ['admin', 'administrador']));
 
 function verDetalle(codigoVenta) {
     fetch(`/farmacia/ventas/${codigoVenta}`)
@@ -136,17 +140,27 @@ function verDetalle(codigoVenta) {
             const facturaTxt = data.con_credito_fiscal
                 ? `${data.factura_razon_social} — ${tiposDoc[data.factura_tipo_documento] || 'Doc'}: ${data.factura_numero_documento}${data.factura_complemento ? '-' + data.factura_complemento : ''}`
                 : 'Sin nombre (S/N)';
+            const esAnulada = data.estado === 'ANULADA';
             const detalleHtml = `
                 <div class="p-6">
                     <div class="mb-6">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-lg font-bold text-gray-800">${data.codigo_venta}</h3>
-                            <button onclick="imprimirTicketActual()" title="Reimprimir ticket"
-                                class="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold px-3 py-2 rounded-xl transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                Imprimir
-                            </button>
+                            <div class="flex items-center gap-2">
+                                ${!esAnulada && PUEDE_ANULAR ? `
+                                <button onclick="anularVentaActual()" title="Devolución: anula la venta y reingresa el stock"
+                                    class="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-xl transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a4 4 0 014 4v1m-14-5l4-4m-4 4l4 4"/></svg>
+                                    Anular / Devolver
+                                </button>` : ''}
+                                <button onclick="imprimirTicketActual()" title="Reimprimir ticket"
+                                    class="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold px-3 py-2 rounded-xl transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                    Imprimir
+                                </button>
+                            </div>
                         </div>
+                        ${esAnulada ? `<p class="text-xs text-red-600 font-semibold mb-2">ANULADA${data.motivo_anulacion ? ' — ' + data.motivo_anulacion : ''}</p>` : ''}
                         <div class="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <p class="text-gray-500">Fecha:</p>
@@ -162,7 +176,7 @@ function verDetalle(codigoVenta) {
                             </div>
                             <div>
                                 <p class="text-gray-500">Estado:</p>
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${esAnulada ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
                                     ${data.estado}
                                 </span>
                             </div>
@@ -204,6 +218,27 @@ function verDetalle(codigoVenta) {
         });
 }
 
+function anularVentaActual() {
+    if (!ventaActual) return;
+    const motivo = prompt(`Anular la venta ${ventaActual.codigo_venta}: el stock volverá a farmacia y la venta dejará de contar como ingreso.\n\nMotivo de la anulación/devolución:`);
+    if (!motivo || !motivo.trim()) return;
+
+    fetch(`/farmacia/ventas/${ventaActual.codigo_venta}/anular`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ motivo: motivo.trim() })
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.reload();
+    })
+    .catch(() => alert('Error de red al anular la venta'));
+}
+
 function imprimirTicketActual() {
     if (!ventaActual) return;
     const d = ventaActual;
@@ -220,7 +255,10 @@ function imprimirTicketActual() {
         docComplemento: d.factura_complemento,
         items: (d.detalles || []).map(x => ({ cantidad: x.cantidad, nombre: x.nombre_producto, precioUnitario: parseFloat(x.precio_unitario), descuento: 0, importe: parseFloat(x.subtotal) })),
         total: parseFloat(d.total || 0),
-        reimpresion: false
+        reimpresion: true,
+        anulada: d.estado === 'ANULADA',
+        motivoAnulacion: d.motivo_anulacion || '',
+        fechaAnulacion: d.anulado_at ? new Date(d.anulado_at).toLocaleString('es-BO') : ''
     });
 }
 </script>

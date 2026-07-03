@@ -31,3 +31,4 @@ Thumbs.db
 /composer.json
 /composer.lock
 /package-lock.json
+.claude

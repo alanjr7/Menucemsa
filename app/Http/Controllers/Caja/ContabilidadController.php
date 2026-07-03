@@ -6,6 +6,7 @@ use App\Exports\ContabilidadExport;
 use App\Exports\RegistroComprasVentasExport;
 use App\Http\Controllers\Controller;
 use App\Models\CierreContable;
+use App\Models\Devolucion;
 use App\Models\Dosificacion;
 use App\Models\Egreso;
 use App\Models\PagoCuenta;
@@ -71,22 +72,53 @@ class ContabilidadController extends Controller
             $ventasSeguro = $seguroCobros->reduce(fn ($acc, $s) => bcadd($acc, $s->monto, 2), '0');
             $debitoSeguro = $seguroCobros->reduce(fn ($acc, $s) => bcadd($acc, $s->debito_fiscal, 2), '0');
 
+            // Devoluciones / Notas de Crédito del período (contra-ingreso): se listan
+            // todas (incl. anuladas, marcadas) pero solo las vigentes restan de los
+            // ingresos, del débito fiscal y de las ventas brutas. NO son egresos.
+            $devoluciones = Devolucion::with(['user', 'anuladoPor', 'cuentaCobro.paciente'])
+                ->whereBetween('created_at', [$inicio, $fin])
+                ->orderBy('created_at', 'desc')->get();
+            $devolucionesVigentes = $devoluciones->whereNull('anulado_at');
+            $totalDevoluciones = $devolucionesVigentes->reduce(fn ($acc, $d) => bcadd($acc, $d->monto, 2), '0');
+            $debitoDevoluciones = $devolucionesVigentes->reduce(fn ($acc, $d) => bcadd($acc, $d->debito_fiscal, 2), '0');
+
+            // Devoluciones de FARMACIA del período (ventas anuladas por anulado_at):
+            // se LISTAN junto a las NC para visibilidad, pero NO se restan de los
+            // totales — la venta anulada ya quedó excluida de ingresos/débito por el
+            // filtro estado=COMPLETADA (restarla aquí sería doble descuento).
+            $devolucionesFarmacia = VentaFarmacia::with(['anuladoPor', 'paciente'])
+                ->where('estado', 'ANULADA')
+                ->whereBetween('anulado_at', [$inicio, $fin])
+                ->orderBy('anulado_at', 'desc')->get();
+            $totalDevolucionesFarmacia = $devolucionesFarmacia->reduce(fn ($acc, $v) => bcadd($acc, $v->total, 2), '0');
+
+            // Ingresos netos de caja = cobrado − devuelto (la NC ajusta el período corriente).
+            $totalCaja = bcsub($totalCaja, $totalDevoluciones, 2);
+            $totalIngresos = bcsub($totalIngresos, $totalDevoluciones, 2);
+
             // Ventas brutas (devengado) = ingresos de caja/farmacia + cobertura de seguros.
             // Es la base imponible de IT e IUE; los "ingresos" de caja siguen siendo solo efectivo.
             $ventasBrutas = bcadd($totalIngresos, $ventasSeguro, 2);
 
-            // Débito fiscal IVA de las ventas del período (caja + farmacia + seguros).
+            // Débito fiscal IVA de las ventas del período (caja + farmacia + seguros),
+            // menos el débito revertido por las notas de crédito.
             $debitoCaja = $pagos->reduce(fn ($acc, $p) => bcadd($acc, $p->debito_fiscal, 2), '0');
             $debitoFarmacia = $ventasFarmacia->reduce(fn ($acc, $v) => bcadd($acc, $v->debito_fiscal, 2), '0');
             $totalDebitoFiscal = bcadd(bcadd($debitoCaja, $debitoFarmacia, 2), $debitoSeguro, 2);
+            $totalDebitoFiscal = bcsub($totalDebitoFiscal, $debitoDevoluciones, 2);
 
-            // Ingresos por método: combina caja + farmacia
+            // Ingresos por método: combina caja + farmacia, neto de devoluciones
+            // (el dinero devuelto salió por ese método y no debe contarse como ingresado).
             $ingresosPorMetodo = $pagos->groupBy('metodo_pago')->map(
                 fn ($g) => $g->reduce(fn ($acc, $p) => bcadd($acc, $p->monto, 2), '0')
             )->toArray();
             foreach ($ventasFarmacia->groupBy('metodo_pago') as $metodo => $g) {
                 $sumF = $g->reduce(fn ($acc, $v) => bcadd($acc, $v->total, 2), '0');
                 $ingresosPorMetodo[$metodo] = bcadd($ingresosPorMetodo[$metodo] ?? '0', $sumF, 2);
+            }
+            foreach ($devolucionesVigentes->groupBy('metodo_devolucion') as $metodo => $g) {
+                $sumD = $g->reduce(fn ($acc, $d) => bcadd($acc, $d->monto, 2), '0');
+                $ingresosPorMetodo[$metodo] = bcsub($ingresosPorMetodo[$metodo] ?? '0', $sumD, 2);
             }
 
             // Egresos manuales — se listan todos (incl. anulados, marcados) pero solo
@@ -104,9 +136,19 @@ class ContabilidadController extends Controller
                 'total' => $g->reduce(fn ($acc, $e) => bcadd($acc, $e->monto, 2), '0'),
             ])->values();
 
-            // Serie diaria para el gráfico (ingresos caja vs farmacia vs egresos por día)
+            // Serie diaria para el gráfico (ingresos caja vs farmacia vs egresos por día).
+            // La serie de caja se muestra NETA de devoluciones del día.
+            $devolucionesPorDia = $devolucionesVigentes->groupBy(fn ($d) => $d->created_at->toDateString())
+                ->map(fn ($g) => $g->reduce(fn ($acc, $d) => bcadd($acc, $d->monto, 2), '0'));
             $ingresosPorDia = $pagos->groupBy(fn ($p) => $p->created_at->toDateString())
-                ->map(fn ($g) => $g->reduce(fn ($acc, $p) => bcadd($acc, $p->monto, 2), '0'));
+                ->map(fn ($g) => $g->reduce(fn ($acc, $p) => bcadd($acc, $p->monto, 2), '0'))
+                ->map(fn ($v, $dia) => bcsub($v, $devolucionesPorDia[$dia] ?? '0', 2));
+            // Días con devolución pero sin cobros: la serie debe reflejar el neto negativo.
+            foreach ($devolucionesPorDia as $dia => $monto) {
+                if (! isset($ingresosPorDia[$dia])) {
+                    $ingresosPorDia[$dia] = bcsub('0', $monto, 2);
+                }
+            }
             $farmaciaPorDia = $ventasFarmacia->groupBy(fn ($v) => $v->fecha_venta->toDateString())
                 ->map(fn ($g) => $g->reduce(fn ($acc, $v) => bcadd($acc, $v->total, 2), '0'));
             $egresosPorDia = $egresosVigentes->groupBy(fn ($e) => $e->fecha->toDateString())
@@ -131,6 +173,13 @@ class ContabilidadController extends Controller
                     // ventas brutas (caja + farmacia + seguros) = base imponible IT/IUE.
                     'ventas_seguro' => $ventasSeguro,
                     'ventas_brutas' => $ventasBrutas,
+                    // Devoluciones (NC) vigentes del período: ya restadas de ingresos,
+                    // ventas brutas y débito fiscal; se exponen para la tarjeta propia.
+                    'devoluciones' => $totalDevoluciones,
+                    'debito_devoluciones' => $debitoDevoluciones,
+                    // Ventas de farmacia anuladas en el período (informativo: ya
+                    // excluidas de ingresos por estado, no se restan de nuevo).
+                    'devoluciones_farmacia' => $totalDevolucionesFarmacia,
                     'egresos' => $totalEgresos,
                     'credito_fiscal' => $totalCreditoFiscal,
                     'debito_fiscal' => $totalDebitoFiscal,
@@ -196,6 +245,45 @@ class ContabilidadController extends Controller
                     'debito_fiscal' => $s->debito_fiscal,
                     'estado' => $s->estado_label,
                 ]),
+                'devoluciones' => $devoluciones->map(fn ($d) => [
+                    'id' => $d->id,
+                    'origen' => 'Caja',
+                    'fecha' => $d->created_at->format('d/m/Y H:i'),
+                    'fecha_orden' => $d->created_at->toDateTimeString(),
+                    'paciente' => $d->cuentaCobro?->paciente?->nombre ?? 'N/A',
+                    'pago_id' => $d->pago_cuenta_id,
+                    'cuenta_id' => $d->cuenta_cobro_id,
+                    'monto' => $d->monto,
+                    'debito_fiscal' => $d->debito_fiscal,
+                    'metodo' => $d->metodo_devolucion_label,
+                    'referencia' => $d->referencia,
+                    'motivo' => $d->motivo,
+                    'tipo_label' => $d->tipo_label,
+                    'usuario' => $d->user->name ?? 'N/A',
+                    'anulado' => $d->anulado,
+                    'motivo_anulacion' => $d->motivo_anulacion,
+                    'anulado_por' => $d->anuladoPor->name ?? null,
+                    'anulado_at' => $d->anulado_at?->format('d/m/Y H:i'),
+                ])->concat($devolucionesFarmacia->map(fn ($v) => [
+                    'id' => $v->codigo_venta,
+                    'origen' => 'Farmacia',
+                    'fecha' => $v->anulado_at->format('d/m/Y H:i'),
+                    'fecha_orden' => $v->anulado_at->toDateTimeString(),
+                    'paciente' => $v->cliente ?: ($v->paciente?->nombre ?? 'Consumidor final'),
+                    'pago_id' => $v->codigo_venta,
+                    'cuenta_id' => 'Venta '.$v->fecha_venta->format('d/m/Y'),
+                    'monto' => $v->total,
+                    'debito_fiscal' => $v->debito_fiscal,
+                    'metodo' => ucfirst($v->metodo_pago),
+                    'referencia' => null,
+                    'motivo' => $v->motivo_anulacion ?? 'Venta anulada',
+                    'tipo_label' => 'Venta anulada (stock reingresado)',
+                    'usuario' => $v->anuladoPor->name ?? 'N/A',
+                    'anulado' => false,
+                    'motivo_anulacion' => null,
+                    'anulado_por' => null,
+                    'anulado_at' => null,
+                ]))->sortByDesc('fecha_orden')->values(),
                 'egresos_por_categoria' => $egresosPorCategoria,
                 'egresos' => $egresos->map(fn ($e) => [
                     'id' => $e->id,

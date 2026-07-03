@@ -20,8 +20,11 @@
         <div class="flex gap-3">
             <a href="{{ route('admin.almacen-medicamentos.lote.form', ['catalogo_id' => $catalogo->id]) }}"
                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">+ Registrar Lote</a>
+            {{-- Editar catálogo: solo admin|administrador (ruta también restringida) --}}
+            @if(in_array(auth()->user()->role, ['admin', 'administrador']))
             <a href="{{ route('admin.almacen-medicamentos.edit', $catalogo) }}"
                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">Editar</a>
+            @endif
             <a href="{{ route('admin.almacen-medicamentos.index') }}"
                class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Volver</a>
         </div>

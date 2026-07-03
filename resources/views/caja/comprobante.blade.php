@@ -52,6 +52,14 @@
         table.tot td.v { text-align: right; width: 90px; }
         table.tot tr.grande td { font-size: 13px; font-weight: 800; }
         table.tot tr.saldo td { color: #b91c1c; }
+        table.tot tr.devuelto td { color: #b45309; font-weight: 700; }
+
+        /* Sello de pago devuelto (reimpresión posterior a una Nota de Crédito) */
+        .sello-wrap { text-align: center; margin-top: 6px; }
+        .sello-devuelto { display: inline-block; font-size: 14px; font-weight: 800; color: #b91c1c;
+                          border: 2px solid #b91c1c; padding: 2px 14px; transform: rotate(-2deg);
+                          letter-spacing: 1px; }
+        .pago-row.dev { color: #b45309; }
 
         /* ── Forma de pago / pie legal ─────────────────────────────── */
         .pagos { margin-top: 14px; border-top: 1px solid #000; padding-top: 6px; }
@@ -145,7 +153,21 @@
 
     $totalRecibo  = $detallesRecibo->sum('subtotal');
     $pagadoRecibo = $pagosRecibo->sum('monto');
-    $saldoRecibo  = bcsub((string) $totalRecibo, (string) $pagadoRecibo, 2);
+
+    // ── Devoluciones (NC) vigentes sobre los pagos de este recibo ──
+    // El pago es inmutable, pero si fue devuelto (total o parcialmente) el
+    // comprobante DEBE decirlo: sin esto, una reimpresión post-devolución
+    // mostraría "MONTO PAGADO Bs X" como si la clínica retuviera ese dinero.
+    $devolucionesRecibo = $pagosRecibo
+        ->flatMap(fn ($p) => $p->devoluciones->whereNull('anulado_at'))
+        ->sortBy('created_at')->values();
+    $devueltoRecibo = $devolucionesRecibo->reduce(fn ($acc, $d) => bcadd($acc, (string) $d->monto, 2), '0');
+    $pagadoNeto     = bcsub((string) $pagadoRecibo, $devueltoRecibo, 2);
+    $hayDevolucion  = bccomp($devueltoRecibo, '0', 2) > 0;
+    // Sello grande solo cuando TODO lo pagado del recibo fue devuelto.
+    $selloDevuelto  = $hayDevolucion && bccomp($pagadoNeto, '0', 2) === 0;
+
+    $saldoRecibo  = bcsub((string) $totalRecibo, $pagadoNeto, 2);
 
     // ── Unidad de medida: BIENES vs SERVICIOS según el tipo de ítem ──
     $bienes = ['medicamento', 'material', 'equipo_medico', 'farmacia'];
@@ -187,6 +209,12 @@
             <h1>COMPROBANTE</h1>
             <p>(Comprobante interno de pago — no válido como factura)</p>
         </div>
+
+        @if($selloDevuelto)
+            <div class="sello-wrap">
+                <span class="sello-devuelto">PAGO DEVUELTO — {{ $devolucionesRecibo->pluck('id')->implode(', ') }}</span>
+            </div>
+        @endif
 
         {{-- ════════ Datos del comprobante / paciente ════════ --}}
         <div class="pagina">Página 1 de 1</div>
@@ -241,8 +269,12 @@
                 <tr><td class="k">DESCUENTO Bs:</td><td class="v">0.00</td></tr>
                 <tr><td class="k">TOTAL Bs:</td><td class="v">{{ number_format($totalRecibo, 2) }}</td></tr>
                 <tr class="grande"><td class="k">MONTO PAGADO Bs:</td><td class="v">{{ number_format($pagadoRecibo, 2) }}</td></tr>
+                @if($hayDevolucion)
+                <tr class="devuelto"><td class="k">DEVUELTO Bs:</td><td class="v">- {{ number_format((float) $devueltoRecibo, 2) }}</td></tr>
+                <tr class="grande"><td class="k">PAGADO NETO Bs:</td><td class="v">{{ number_format((float) $pagadoNeto, 2) }}</td></tr>
+                @endif
                 @if(bccomp((string) $saldoRecibo, '0', 2) > 0)
-                <tr class="saldo"><td class="k">SALDO PENDIENTE Bs:</td><td class="v">{{ number_format($saldoRecibo, 2) }}</td></tr>
+                <tr class="saldo"><td class="k">SALDO PENDIENTE Bs:</td><td class="v">{{ number_format((float) $saldoRecibo, 2) }}</td></tr>
                 @endif
             </table>
         </div>
@@ -260,6 +292,14 @@
             @empty
             <div class="pago-row"><span style="color:#666;">Sin pagos registrados.</span></div>
             @endforelse
+            @foreach($devolucionesRecibo as $d)
+            <div class="pago-row dev">
+                <span>Devolución {{ $d->id }} — {{ $d->metodo_devolucion_label }}
+                    <span class="fecha">{{ $d->created_at->setTimezone('America/La_Paz')->format('d/m/Y H:i') }}</span>
+                </span>
+                <span>- Bs {{ number_format((float) $d->monto, 2) }}</span>
+            </div>
+            @endforeach
         </div>
 
         {{-- ════════ Pie legal ════════ --}}

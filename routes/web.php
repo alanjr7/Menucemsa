@@ -34,6 +34,7 @@ use App\Http\Controllers\Farmacia\ClientesController;
 use App\Http\Controllers\Farmacia\ReporteController;
 use App\Http\Controllers\Caja\CajaOperativaController;
 use App\Http\Controllers\Caja\CajaGestionController;
+use App\Http\Controllers\Caja\DevolucionController;
 use App\Http\Controllers\Admin\EmergencyController as AdminEmergencyController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\EmergencyStaffController;
@@ -331,6 +332,17 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/usuarios-caja', [CajaGestionController::class, 'getUsuariosCaja'])->name('usuarios-caja');
         // Eliminar cargos: usa admin.cargos.anular (fuente única). Aquí sólo se listan.
         Route::get('/detalles-eliminados', [CajaGestionController::class, 'getDetallesEliminados'])->name('detalles-eliminados');
+
+        // Devoluciones / Notas de Crédito sobre pagos (contra-ingreso; el pago
+        // original es inmutable, la NC resta de los ingresos del período corriente).
+        // Página propia del módulo (menú Contabilidad → Devoluciones / N. Crédito).
+        Route::get('/devoluciones', [DevolucionController::class, 'index'])->name('devoluciones.index');
+        Route::get('/devoluciones-listado', [DevolucionController::class, 'listar'])->name('devoluciones.listar');
+        Route::get('/pagos/{pago}/devoluciones', [DevolucionController::class, 'porPago'])->name('devoluciones.por-pago');
+        Route::post('/pagos/{pago}/devoluciones', [DevolucionController::class, 'store'])->name('devoluciones.store');
+        Route::post('/devoluciones/{id}/anular', [DevolucionController::class, 'anular'])->name('devoluciones.anular');
+        Route::post('/devoluciones/{id}/revertir', [DevolucionController::class, 'revertir'])->name('devoluciones.revertir');
+        Route::get('/devoluciones/{id}/comprobante', [DevolucionController::class, 'comprobante'])->name('devoluciones.comprobante');
     });
 
     // Contabilidad - Libro de caja (ingresos automáticos + egresos manuales)
@@ -533,12 +545,17 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario');
         Route::post('/inventario', [InventarioController::class, 'store'])->name('inventario.store');
         Route::get('/inventario/{id}', fn() => redirect()->route('farmacia.inventario'))->name('inventario.show');
-        Route::put('/inventario/{id}', [InventarioController::class, 'update'])->name('inventario.update');
-        Route::delete('/inventario/{id}', [InventarioController::class, 'destroy'])->name('inventario.destroy');
+        // Editar/eliminar productos: SOLO admin|administrador (farmacia y almacenista
+        // consultan y registran; modificar o borrar el catálogo es decisión administrativa).
+        Route::middleware('role:admin|administrador')->group(function () {
+            Route::put('/inventario/{id}', [InventarioController::class, 'update'])->name('inventario.update');
+            Route::delete('/inventario/{id}', [InventarioController::class, 'destroy'])->name('inventario.destroy');
+        });
 
         Route::get('/ventas', [VentasController::class, 'index'])->name('ventas');
         Route::get('/ventas/{codigoVenta}', [VentasController::class, 'show'])->name('ventas.show');
-        Route::delete('/ventas/{codigoVenta}', [VentasController::class, 'destroy'])->name('ventas.destroy');
+        // La venta no se borra: se anula (estado ANULADA + reingreso de stock, auditado).
+        Route::post('/ventas/{codigoVenta}/anular', [VentasController::class, 'anular'])->name('ventas.anular');
 
         Route::get('/clientes', [ClientesController::class, 'index'])->name('clientes');
         Route::post('/clientes', [ClientesController::class, 'store'])->name('clientes.store');
@@ -642,9 +659,13 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/almacen-medicamentos/historial/dispensaciones/exportar', [AlmacenMedicamentosController::class, 'exportarHistorial'])->name('almacen-medicamentos.historial.exportar');
 
         Route::get('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'show'])->name('almacen-medicamentos.show');
-        Route::get('/almacen-medicamentos/{almacenMedicamento}/edit', [AlmacenMedicamentosController::class, 'edit'])->name('almacen-medicamentos.edit');
-        Route::put('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'update'])->name('almacen-medicamentos.update');
-        Route::delete('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'destroy'])->name('almacen-medicamentos.destroy');
+        // Editar/eliminar ítems del catálogo central: SOLO admin|administrador
+        // (el almacenista gestiona stock/lotes/transferencias, no altera el catálogo).
+        Route::middleware('role:admin|administrador')->group(function () {
+            Route::get('/almacen-medicamentos/{almacenMedicamento}/edit', [AlmacenMedicamentosController::class, 'edit'])->name('almacen-medicamentos.edit');
+            Route::put('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'update'])->name('almacen-medicamentos.update');
+            Route::delete('/almacen-medicamentos/{almacenMedicamento}', [AlmacenMedicamentosController::class, 'destroy'])->name('almacen-medicamentos.destroy');
+        });
         Route::post('/almacen-medicamentos/{almacenMedicamento}/actualizar-stock', [AlmacenMedicamentosController::class, 'actualizarStock'])->name('almacen-medicamentos.actualizar-stock');
         Route::post('/almacen-medicamentos/{almacenMedicamento}/dispensar', [AlmacenMedicamentosController::class, 'dispensar'])->name('almacen-medicamentos.dispensar');
         Route::get('/almacen-medicamentos/{almacenMedicamento}/historial', [AlmacenMedicamentosController::class, 'historialItem'])->name('almacen-medicamentos.historial-item');

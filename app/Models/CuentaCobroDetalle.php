@@ -159,11 +159,15 @@ class CuentaCobroDetalle extends Model
      * Anula `cantidad` unidades de este cargo (clamp a [0.01, cantidad actual]).
      * Devuelve el evento de anulación creado.
      *
+     * @param  string|null  $devolucionId  Si la anulación la origina una devolución
+     *         (Nota de Crédito), su id queda en el evento: anular la NC revierte
+     *         exactamente estas anulaciones y no las hechas a mano en Correcciones.
+     *
      * @throws \RuntimeException si el cargo ya fue liquidado por un pago, o si la
      *         anulación tocaría dinero ya pagado/cubierto (excede el saldo pendiente).
      * @throws \InvalidArgumentException si la cantidad es <= 0.
      */
-    public function anular($cantidad, string $motivo, int $userId): CuentaCobroDetalleEliminado
+    public function anular($cantidad, string $motivo, int $userId, ?string $devolucionId = null): CuentaCobroDetalleEliminado
     {
         if ($this->liquidado_en !== null) {
             throw new \RuntimeException('No se puede anular un cargo ya liquidado por un pago.');
@@ -204,7 +208,7 @@ class CuentaCobroDetalle extends Model
             }
         }
 
-        return DB::transaction(function () use ($cant, $subtotalAnulado, $motivo, $userId) {
+        return DB::transaction(function () use ($cant, $subtotalAnulado, $motivo, $userId, $devolucionId) {
             // 1) Registrar el evento (snapshot + lo anulado en este movimiento).
             $evento = CuentaCobroDetalleEliminado::create([
                 'cuenta_cobro_id'         => $this->cuenta_cobro_id,
@@ -220,6 +224,7 @@ class CuentaCobroDetalle extends Model
                 'observaciones'           => $this->observaciones,
                 'usuario_eliminacion_id'  => $userId,
                 'motivo_eliminacion'      => $motivo,
+                'devolucion_id'           => $devolucionId,
                 'eliminado_en'            => now(),
             ]);
 

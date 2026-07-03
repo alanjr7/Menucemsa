@@ -144,6 +144,12 @@ class CuentaCobro extends Model
         return $this->hasMany(PagoCuenta::class);
     }
 
+    /** Devoluciones (notas de crédito) emitidas sobre pagos de esta cuenta. */
+    public function devoluciones(): HasMany
+    {
+        return $this->hasMany(Devolucion::class);
+    }
+
     public function seguro(): BelongsTo
     {
         return $this->belongsTo(Seguro::class);

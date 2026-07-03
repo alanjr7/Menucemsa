@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
     <div class="p-8 bg-[#f8fafc] min-h-screen font-sans">
@@ -505,6 +505,7 @@
         </div>
     </div>
 
+
     @push('scripts')
         <script>
             let transaccionesPage = 1;
@@ -516,6 +517,12 @@
             document.addEventListener('DOMContentLoaded', function() {
                 cargarEstadisticas();
                 cargarTransacciones();
+
+                // Deep-link a un tab: /caja-gestion?tab=historial abre ese tab directo.
+                const tabInicial = new URLSearchParams(window.location.search).get('tab');
+                if (['transacciones', 'control', 'resumen', 'auditoria', 'items-eliminados', 'historial'].includes(tabInicial)) {
+                    cambiarTab(tabInicial);
+                }
 
                 // Set fechas por defecto = HOY del servidor (zona de la app), no UTC
                 // del navegador: los timestamps (eliminado_en, etc.) se guardan en la
@@ -1119,9 +1126,15 @@
                     tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-4 text-center text-gray-500">No hay pagos</td></tr>';
                     return;
                 }
-                tbody.innerHTML = pagos.map(p => `
+                tbody.innerHTML = pagos.map(p => {
+                    const devuelto = parseFloat(p.monto_devuelto || 0);
+                    const disponible = parseFloat(p.monto_disponible ?? p.monto);
+                    const badgeDevuelto = devuelto > 0
+                        ? `<span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${disponible <= 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}" title="Devuelto: Bs ${devuelto.toFixed(2)}">${disponible <= 0 ? 'Devuelto' : 'Dev. parcial'}</span>`
+                        : '';
+                    return `
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">${p.id}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">${p.id}${badgeDevuelto}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${p.cuenta_cobro_id}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${p.fecha}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${p.paciente}</td>
@@ -1137,7 +1150,8 @@
                             </a>
                         </td>
                     </tr>
-                `).join('');
+                `;
+                }).join('');
             }
 
             function verTodosPagos() {
@@ -1151,6 +1165,7 @@
             function exportarExcelPagos() {
                 window.location.href = `{{ route('caja.gestion.exportar.pagos') }}?${pagosParams()}`;
             }
+
         </script>
     @endpush
 @endsection

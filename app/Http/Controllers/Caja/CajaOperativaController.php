@@ -76,20 +76,21 @@ class CajaOperativaController extends Controller
         });
         
         $estadisticas = [
-            'total_cobrado' => PagoCuenta::delDia($hoy)->sum('monto'),
+            // Neto de devoluciones (NC) del día: el dinero devuelto no está cobrado.
+            'total_cobrado' => bcsub((string) PagoCuenta::delDia($hoy)->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy), 2),
             'transacciones' => PagoCuenta::delDia($hoy)->count(),
             'pendientes' => (clone $cuentasVisiblesQuery)->pendiente()->count(),
-            'parciales' => CuentaCobro::parcial()->where('seguro_estado', 'autorizado')->count() 
+            'parciales' => CuentaCobro::parcial()->where('seguro_estado', 'autorizado')->count()
                          + (clone $cuentasVisiblesQuery)->parcial()->count(),
             'pendientes_seguro' => CuentaCobro::pendientesSeguro()->count(),
         ];
 
-        // Desglose por método de pago
+        // Desglose por método de pago (neto de devoluciones del día por método)
         $metodosPago = [
-            'efectivo' => PagoCuenta::delDia($hoy)->efectivo()->sum('monto'),
-            'transferencia' => PagoCuenta::delDia($hoy)->transferencia()->sum('monto'),
-            'tarjeta' => PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'),
-            'qr' => PagoCuenta::delDia($hoy)->qr()->sum('monto'),
+            'efectivo' => bcsub((string) PagoCuenta::delDia($hoy)->efectivo()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'efectivo'), 2),
+            'transferencia' => bcsub((string) PagoCuenta::delDia($hoy)->transferencia()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'transferencia'), 2),
+            'tarjeta' => bcsub((string) PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'tarjeta'), 2),
+            'qr' => bcsub((string) PagoCuenta::delDia($hoy)->qr()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'qr'), 2),
         ];
 
         return view('caja.operativa', compact(
@@ -813,10 +814,11 @@ class CajaOperativaController extends Controller
                 'duracion' => $cajaAbierta->duracion,
                 
                 'totales' => [
-                    'efectivo' => PagoCuenta::delDia($hoy)->efectivo()->sum('monto'),
-                    'transferencia' => PagoCuenta::delDia($hoy)->transferencia()->sum('monto'),
-                    'tarjeta' => PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'),
-                    'qr' => PagoCuenta::delDia($hoy)->qr()->sum('monto'),
+                    // Neto de devoluciones (NC) del día por método
+                    'efectivo' => bcsub((string) PagoCuenta::delDia($hoy)->efectivo()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'efectivo'), 2),
+                    'transferencia' => bcsub((string) PagoCuenta::delDia($hoy)->transferencia()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'transferencia'), 2),
+                    'tarjeta' => bcsub((string) PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'tarjeta'), 2),
+                    'qr' => bcsub((string) PagoCuenta::delDia($hoy)->qr()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'qr'), 2),
                 ],
                 
                 'transacciones' => [

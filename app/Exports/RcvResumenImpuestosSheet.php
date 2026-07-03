@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Models\Devolucion;
 use App\Models\Egreso;
 use App\Models\PagoCuenta;
 use App\Models\SeguroCobro;
@@ -45,14 +46,23 @@ class RcvResumenImpuestosSheet implements FromArray, ShouldAutoSize, WithHeading
         $egresos = Egreso::vigentes()
             ->whereBetween('fecha', [$this->inicio->toDateString(), $this->fin->toDateString()])->get();
 
+        // Devoluciones (NC) vigentes: contra-venta que resta del total de ventas
+        // y revierte débito fiscal del período en que se emiten.
+        $devoluciones = Devolucion::vigentes()
+            ->whereBetween('created_at', [$this->inicio, $this->fin])->get();
+        $totalDevoluciones = $devoluciones->reduce(fn ($a, $d) => Money::add($a, $d->monto), '0');
+        $debitoDevoluciones = $devoluciones->reduce(fn ($a, $d) => Money::add($a, $d->debito_fiscal), '0');
+
         $ventasCaja = $pagos->reduce(fn ($a, $p) => Money::add($a, $p->monto), '0');
         $ventasFarmacia = $ventas->reduce(fn ($a, $v) => Money::add($a, $v->total), '0');
         $ventasSeguro = $seguros->reduce(fn ($a, $s) => Money::add($a, $s->monto), '0');
         $totalVentas = Money::add(Money::add($ventasCaja, $ventasFarmacia), $ventasSeguro);
+        $totalVentas = Money::sub($totalVentas, $totalDevoluciones);
 
         $debito = $pagos->reduce(fn ($a, $p) => Money::add($a, $p->debito_fiscal), '0');
         $debito = Money::add($debito, $ventas->reduce(fn ($a, $v) => Money::add($a, $v->debito_fiscal), '0'));
         $debito = Money::add($debito, $seguros->reduce(fn ($a, $s) => Money::add($a, $s->debito_fiscal), '0'));
+        $debito = Money::sub($debito, $debitoDevoluciones);
 
         $comprasCf = $egresos->where('con_credito_fiscal', true);
         $totalCompras = $comprasCf->reduce(fn ($a, $e) => Money::add($a, $e->monto), '0');
@@ -71,8 +81,9 @@ class RcvResumenImpuestosSheet implements FromArray, ShouldAutoSize, WithHeading
 
         return [
             ['IVA — DÉBITO Y CRÉDITO', ''],
-            ['Total ventas (ingresos brutos)', $f($totalVentas)],
-            ['Débito fiscal IVA (13%)', $f($debito)],
+            ['Total ventas netas (ventas − devoluciones)', $f($totalVentas)],
+            ['Devoluciones / Notas de Crédito del período', $f($totalDevoluciones)],
+            ['Débito fiscal IVA (13%, neto de NC)', $f($debito)],
             ['Total compras con crédito fiscal', $f($totalCompras)],
             ['Crédito fiscal IVA', $f($credito)],
             [Money::cmp($posicionIva, '0') >= 0 ? 'IVA a pagar (F-200)' : 'Saldo a favor IVA', $f(abs((float) $posicionIva))],

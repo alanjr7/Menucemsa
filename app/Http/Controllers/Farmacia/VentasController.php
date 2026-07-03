@@ -29,19 +29,21 @@ class VentasController extends Controller
 
     public function index()
     {
-        // Obtener todas las ventas con sus detalles
+        // Obtener todas las ventas con sus detalles (incl. anuladas, marcadas)
         $ventas = VentaFarmacia::with(['detalles'])
             ->orderBy('fecha_venta', 'desc')
             ->get();
 
-        // Calcular estadísticas
-        $totalVentas = $ventas->count();
-        $ingresosTotales = $ventas->sum('total');
-        $promedioPorVenta = $totalVentas > 0 ? $ingresosTotales / $totalVentas : 0;
+        // Estadísticas: solo las COMPLETADAS cuentan como ingreso (una venta
+        // anulada/devuelta no es plata en caja).
+        $completadas = $ventas->where('estado', 'COMPLETADA');
+        $totalVentas = $completadas->count();
+        $ingresosTotales = $completadas->reduce(fn ($acc, $v) => \App\Support\Money::add($acc, $v->total), '0');
+        $promedioPorVenta = $totalVentas > 0 ? \App\Support\Money::div($ingresosTotales, $totalVentas) : 0;
 
-        // Obtener ventas de hoy
-        $ventasHoy = VentaFarmacia::whereDate('fecha_venta', Carbon::today())->count();
-        $ingresosHoy = VentaFarmacia::whereDate('fecha_venta', Carbon::today())->sum('total');
+        // Ventas de hoy (completadas)
+        $ventasHoy = VentaFarmacia::completadas()->whereDate('fecha_venta', Carbon::today())->count();
+        $ingresosHoy = VentaFarmacia::completadas()->whereDate('fecha_venta', Carbon::today())->sum('total');
 
         return view('farmacia.ventas', compact(
             'ventas',
@@ -62,12 +64,38 @@ class VentasController extends Controller
         return response()->json($venta);
     }
 
-    public function destroy($codigoVenta)
+    /**
+     * Anula una venta (devolución con reingreso de stock). La venta y sus
+     * detalles NO se borran: pasan a estado ANULADA (auditado) y dejan de
+     * contar como ingreso en todos los reportes (que filtran COMPLETADA).
+     * Reemplaza al antiguo destroy, que hacía hard-delete del registro.
+     */
+    public function anular(Request $request, $codigoVenta)
     {
         try {
-            DB::beginTransaction();
+            // Anular una venta es una operación de dinero (devolución): SOLO
+            // admin|administrador. Farmacia vende y consulta; el ajuste financiero
+            // es decisión administrativa (mismo criterio que las NC de caja).
+            if (!in_array(Auth::user()->role, ['admin', 'administrador'])) {
+                return response()->json(['success' => false, 'message' => 'Solo un administrador puede anular ventas'], 403);
+            }
+
+            $data = $request->validate(['motivo' => 'required|string|max:255']);
 
             $venta = VentaFarmacia::where('codigo_venta', $codigoVenta)->firstOrFail();
+
+            if ($venta->estado === 'ANULADA') {
+                return response()->json(['success' => false, 'message' => 'La venta ya está anulada'], 422);
+            }
+
+            // No se reescribe un período ya declarado: la venta queda firme y la
+            // devolución debe resolverse como ajuste del período corriente.
+            if (\App\Models\CierreContable::estaCerrado($venta->fecha_venta)) {
+                return response()->json(['success' => false, 'message' => 'No se puede anular una venta de un período contable cerrado'], 422);
+            }
+
+            DB::beginTransaction();
+
             $detalles = DetalleVentaFarmacia::where('codigo_venta', $codigoVenta)->get();
 
             // Restaurar stock en el área farmacia (mismo origen que descuenta el POS)
@@ -90,15 +118,21 @@ class VentasController extends Controller
                 }
             }
 
-            $detalles->each->delete();
-            $venta->delete();
+            $venta->update([
+                'estado' => 'ANULADA',
+                'anulado_at' => now(),
+                'anulado_por' => Auth::id(),
+                'motivo_anulacion' => $data['motivo'],
+            ]);
 
             DB::commit();
 
-            return response()->json(['success' => true, 'message' => 'Venta eliminada exitosamente']);
+            return response()->json(['success' => true, 'message' => 'Venta '.$codigoVenta.' anulada; el stock fue reingresado a farmacia']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Error al eliminar la venta'], 500);
+            return response()->json(['success' => false, 'message' => 'Error al anular la venta: '.$e->getMessage()], 500);
         }
     }
 }

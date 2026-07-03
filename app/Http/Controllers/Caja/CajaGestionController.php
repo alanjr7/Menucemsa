@@ -436,18 +436,20 @@ class CajaGestionController extends Controller
             $fechaInicio = \Carbon\Carbon::parse($request->fecha_inicio)->startOfDay();
             $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
 
-            // Totales generales
+            // Totales generales (netos de devoluciones/NC del período)
+            $totalDevoluciones = \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin);
             $totalesGenerales = [
-                'total_recaudado' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->sum('monto'),
+                'total_recaudado' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->sum('monto'), $totalDevoluciones, 2),
                 'total_transacciones' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->count(),
+                'total_devoluciones' => (float) $totalDevoluciones,
             ];
 
-            // Desglose por método de pago
+            // Desglose por método de pago (neto de devoluciones por método)
             $porMetodoPago = [
-                'efectivo' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->efectivo()->sum('monto'),
-                'transferencia' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->transferencia()->sum('monto'),
-                'tarjeta' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->tarjeta()->sum('monto'),
-                'qr' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->qr()->sum('monto'),
+                'efectivo' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->efectivo()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'efectivo'), 2),
+                'transferencia' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->transferencia()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'transferencia'), 2),
+                'tarjeta' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->tarjeta()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'tarjeta'), 2),
+                'qr' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->qr()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'qr'), 2),
             ];
 
             // Desglose por tipo de atención
@@ -695,12 +697,13 @@ class CajaGestionController extends Controller
                 'metodo_pago' => 'nullable|in:efectivo,transferencia,tarjeta,qr,todos',
             ]);
 
-            $pagos = PagoCuenta::with(['cuentaCobro.paciente', 'user'])
+            $pagos = PagoCuenta::with(['cuentaCobro.paciente', 'user', 'devoluciones'])
                 ->filtrarHistorial($request->all())
                 ->orderBy('created_at', 'desc')
                 ->paginate(25)
                 ->through(function ($pago) {
                     $paciente = $pago->cuentaCobro?->paciente;
+                    $devuelto = $pago->monto_devuelto;
 
                     return [
                         'id' => $pago->id,
@@ -713,6 +716,9 @@ class CajaGestionController extends Controller
                         'usuario' => $pago->user?->name ?? 'Sistema',
                         'caja_session_id' => $pago->caja_session_id,
                         'fecha' => $pago->created_at->format('d/m/Y H:i'),
+                        // Devoluciones (NC) vigentes sobre este recibo
+                        'monto_devuelto' => $devuelto,
+                        'monto_disponible' => \App\Support\Money::clampZero(\App\Support\Money::sub($pago->monto, $devuelto)),
                     ];
                 });
 

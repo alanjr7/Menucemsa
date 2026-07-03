@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-slate-50 font-sans" x-data="contabilidad()" x-init="init()">
+<div class="min-h-screen bg-slate-50 font-sans overflow-x-hidden" x-data="contabilidad()" x-init="init()">
 
     {{-- ===== TOAST ===== --}}
     <div x-show="toast.visible"
@@ -372,39 +372,45 @@
                     <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Libro de Caja</h1>
                     <p class="text-gray-500 text-sm mt-0.5">Ingresos automáticos y egresos manuales</p>
                 </div>
-                <div class="flex flex-wrap items-end gap-2">
-                    <div class="flex-1 min-w-[140px]">
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Desde</label>
-                        <input type="date" x-model="filtros.fecha_inicio" @change="cargar()"
-                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+                    {{-- Filtros de fecha: siempre en su propia fila de 2 columnas --}}
+                    <div class="flex gap-2">
+                        <div class="flex-1 min-w-0 sm:min-w-[140px]">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                            <input type="date" x-model="filtros.fecha_inicio" @change="cargar()"
+                                class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div class="flex-1 min-w-0 sm:min-w-[140px]">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                            <input type="date" x-model="filtros.fecha_fin" @change="cargar()"
+                                class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-[140px]">
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
-                        <input type="date" x-model="filtros.fecha_fin" @change="cargar()"
-                            class="w-full border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    {{-- Acciones: grid 2x2 en móvil (predecible), fila en sm+ --}}
+                    <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                        <a :href="urlExportar()"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg h-[38px] whitespace-nowrap cursor-pointer transition-colors">
+                            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Excel
+                        </a>
+                        <a :href="urlExportarRcv()" title="Registro de Compras y Ventas + impuestos"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium rounded-lg h-[38px] whitespace-nowrap cursor-pointer transition-colors">
+                            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            RCV
+                        </a>
+                        <a href="{{ route('caja.contabilidad.homologacion-sin') }}" title="Homologación codigoProductoSin + dosificación"
+                            class="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg h-[38px] cursor-pointer transition-colors">
+                            SIN
+                        </a>
+                        <a href="{{ route('caja.gestion.index') }}"
+                            class="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg h-[38px] cursor-pointer transition-colors">
+                            Volver
+                        </a>
                     </div>
-                    <a :href="urlExportar()"
-                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg h-[38px] whitespace-nowrap cursor-pointer transition-colors">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        Excel
-                    </a>
-                    <a :href="urlExportarRcv()" title="Registro de Compras y Ventas + impuestos"
-                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium rounded-lg h-[38px] whitespace-nowrap cursor-pointer transition-colors">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        RCV
-                    </a>
-                    <a href="{{ route('caja.contabilidad.homologacion-sin') }}" title="Homologación codigoProductoSin + dosificación"
-                        class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg h-[38px] cursor-pointer transition-colors">
-                        SIN
-                    </a>
-                    <a href="{{ route('caja.gestion.index') }}"
-                        class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg h-[38px] cursor-pointer transition-colors">
-                        Volver
-                    </a>
                 </div>
             </div>
 
@@ -420,6 +426,12 @@
                         <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Ingresos</p>
                         <p class="text-xl font-bold text-emerald-600 mt-0.5 font-mono">Bs. <span x-text="fmt(totales.ingresos)"></span></p>
                         <p class="text-xs text-gray-400 mt-0.5">Caja + Farmacia</p>
+                        <p class="text-xs text-amber-600 mt-0.5" x-show="parseFloat(totales.devoluciones || 0) > 0">
+                            Neto de devoluciones: −Bs. <span x-text="fmt(totales.devoluciones)"></span>
+                        </p>
+                        <p class="text-xs text-cyan-600 mt-0.5" x-show="parseFloat(totales.devoluciones_farmacia || 0) > 0">
+                            Ventas farmacia anuladas: Bs. <span x-text="fmt(totales.devoluciones_farmacia)"></span> (ya excluidas)
+                        </p>
                     </div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
@@ -471,7 +483,9 @@
             <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
 
                 {{-- === LEFT SIDEBAR === --}}
-                <div class="space-y-3">
+                {{-- order-2 en móvil: las tablas (contenido principal) van primero; el
+                     sidebar de stats/acciones queda debajo para no obligar a scrollear. --}}
+                <div class="space-y-3 order-2 lg:order-1 min-w-0">
 
                     {{-- Registrar egreso CTA --}}
                     <button @click="drawer=true"
@@ -610,19 +624,29 @@
                 </div>
 
                 {{-- === MAIN CONTENT (tabs) === --}}
-                <div>
+                {{-- min-w-0: sin esto, un grid item asume como ancho mínimo el de su
+                     contenido (la tabla de Devoluciones, la más ancha de las 3 pestañas)
+                     y empuja/agranda el grid entero en vez de dejar que el
+                     overflow-x-auto interno de cada tabla haga scroll contenido. --}}
+                <div class="order-1 lg:order-2 min-w-0">
 
-                    {{-- Tab bar --}}
+                    {{-- Tab bar: padding/tamaño de texto se reducen en móvil para que las
+                         3 etiquetas quepan en una sola fila sin apretarse --}}
                     <div class="flex p-1 bg-white rounded-xl shadow-sm border border-gray-100 mb-4 gap-1">
                         <button @click="tab='egresos'"
-                            class="flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                            class="flex-1 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap"
                             :class="tab==='egresos' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'">
-                            Egresos <span class="ml-1 text-xs opacity-70" x-text="'(' + egresos.length + ')'"></span>
+                            Egresos <span class="ml-1 text-[10px] sm:text-xs opacity-70" x-text="'(' + egresos.length + ')'"></span>
                         </button>
                         <button @click="tab='ingresos'"
-                            class="flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                            class="flex-1 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap"
                             :class="tab==='ingresos' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'">
-                            Ingresos <span class="ml-1 text-xs opacity-70" x-text="'(' + ingresos.length + ')'"></span>
+                            Ingresos <span class="ml-1 text-[10px] sm:text-xs opacity-70" x-text="'(' + ingresos.length + ')'"></span>
+                        </button>
+                        <button @click="tab='devoluciones'"
+                            class="flex-1 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                            :class="tab==='devoluciones' ? 'bg-amber-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'">
+                            <span class="hidden sm:inline">Devoluciones</span><span class="inline sm:hidden">Dev.</span> <span class="ml-1 text-[10px] sm:text-xs opacity-70" x-text="'(' + devoluciones.length + ')'"></span>
                         </button>
                     </div>
 
@@ -864,6 +888,122 @@
                         </div>
                     </div>
 
+                    {{-- Tab: Devoluciones / Notas de Crédito --}}
+                    <div x-show="tab==='devoluciones'">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="px-5 py-3.5 border-b border-gray-100 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold text-gray-900">Devoluciones del período (Caja + Farmacia)</h3>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">
+                                        Caja: Notas de Crédito que restan de ingresos y débito fiscal.
+                                        Farmacia: ventas anuladas con stock reingresado (ya excluidas de los ingresos, no se restan de nuevo).
+                                    </p>
+                                </div>
+                                <span class="text-xs text-gray-400 shrink-0" x-text="devoluciones.length + ' registros'"></span>
+                            </div>
+                            {{-- Desktop --}}
+                            <div class="overflow-x-auto hidden sm:block">
+                                <table class="min-w-full divide-y divide-gray-50 text-sm">
+                                    <thead>
+                                        <tr class="bg-gray-50/70">
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Nota Crédito</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Paciente</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Recibo / Cuenta</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Motivo</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Método</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Monto</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">IVA rev.</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-50">
+                                        <template x-for="d in devoluciones" :key="d.id">
+                                            <tr class="hover:bg-slate-50/60 transition-colors" :class="d.anulado ? 'opacity-50' : ''">
+                                                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500" x-text="d.fecha"></td>
+                                                <td class="px-4 py-3 whitespace-nowrap">
+                                                    <span class="font-mono font-medium text-gray-900" x-text="d.id"></span>
+                                                    <span class="ml-1 inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium"
+                                                        :class="d.origen === 'Farmacia' ? 'bg-cyan-100 text-cyan-700' : 'bg-emerald-100 text-emerald-700'"
+                                                        x-text="d.origen"></span>
+                                                    <span x-show="d.anulado" class="ml-1 inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-200 text-gray-600"
+                                                        :title="d.motivo_anulacion">Anulada</span>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap font-medium text-gray-900" x-text="d.paciente"></td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+                                                    <span class="block" x-text="d.pago_id"></span>
+                                                    <span class="block text-gray-400" x-text="d.cuenta_id"></span>
+                                                </td>
+                                                <td class="px-4 py-3 text-xs text-gray-600">
+                                                    <span x-text="d.motivo"></span>
+                                                    <span class="block text-amber-700" x-text="d.tipo_label"></span>
+                                                    <span class="block text-gray-400" x-text="d.usuario"></span>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+                                                    <span x-text="d.metodo"></span>
+                                                    <span class="block text-gray-400" x-show="d.referencia" x-text="d.referencia"></span>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-right">
+                                                    <span class="font-semibold font-mono" :class="d.anulado ? 'text-gray-400 line-through' : 'text-amber-600'">− Bs. <span x-text="fmt(d.monto)"></span></span>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-right text-xs text-gray-500 font-mono" x-text="fmt(d.debito_fiscal)"></td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                                    <a x-show="d.origen !== 'Farmacia'"
+                                                        :href="'{{ url('caja-gestion/devoluciones') }}/' + d.id + '/comprobante'" target="_blank"
+                                                        class="text-xs text-amber-700 hover:text-amber-900 font-medium">Imprimir</a>
+                                                    <span x-show="d.origen === 'Farmacia'" class="text-[10px] text-gray-400">Ticket en Farmacia → Ventas</span>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                        <tr x-show="!devoluciones.length">
+                                            <td colspan="9" class="px-4 py-12 text-center">
+                                                <svg class="w-8 h-8 text-gray-200 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h10a4 4 0 014 4v1m-14-5l4-4m-4 4l4 4"/>
+                                                </svg>
+                                                <p class="text-sm text-gray-400">Sin devoluciones en el período</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            {{-- Mobile --}}
+                            <div class="sm:hidden divide-y divide-gray-50">
+                                <template x-for="d in devoluciones" :key="d.id">
+                                    <div class="p-4" :class="d.anulado ? 'opacity-50' : ''">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-center gap-2 flex-wrap mb-1">
+                                                    <span class="font-mono font-medium text-gray-900 text-sm" x-text="d.id"></span>
+                                                    <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium"
+                                                        :class="d.origen === 'Farmacia' ? 'bg-cyan-100 text-cyan-700' : 'bg-emerald-100 text-emerald-700'"
+                                                        x-text="d.origen"></span>
+                                                    <span x-show="d.anulado" class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-200 text-gray-600">Anulada</span>
+                                                </div>
+                                                <p class="text-sm text-gray-700" x-text="d.paciente"></p>
+                                                <p class="text-xs text-gray-500" x-text="d.motivo"></p>
+                                                <p class="text-xs text-amber-700" x-text="d.tipo_label"></p>
+                                                <p class="text-xs text-gray-400" x-text="d.pago_id + ' · ' + d.cuenta_id"></p>
+                                                <div class="flex flex-wrap items-center gap-x-1.5 mt-1.5 text-xs text-gray-400">
+                                                    <span x-text="d.fecha"></span>
+                                                    <span>·</span>
+                                                    <span x-text="d.metodo"></span>
+                                                    <template x-if="d.origen !== 'Farmacia'">
+                                                        <span>·
+                                                            <a :href="'{{ url('caja-gestion/devoluciones') }}/' + d.id + '/comprobante'" target="_blank"
+                                                                class="text-amber-700 font-medium">Imprimir</a>
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <p class="font-bold whitespace-nowrap shrink-0 font-mono" :class="d.anulado ? 'text-gray-400 line-through' : 'text-amber-600'">− Bs. <span x-text="fmt(d.monto)"></span></p>
+                                        </div>
+                                    </div>
+                                </template>
+                                <p x-show="!devoluciones.length" class="p-8 text-center text-gray-400 text-sm">Sin devoluciones en el período</p>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>{{-- /main content --}}
             </div>{{-- /grid --}}
         </div>{{-- /max-w --}}
@@ -885,6 +1025,7 @@ function contabilidad() {
         totales: { ingresos: '0', egresos: '0', credito_fiscal: '0', saldo: '0', retencion_iue: '0', retencion_it: '0', retencion_total: '0' },
         ingresosPorMetodo: {},
         ingresos: [],
+        devoluciones: [],
         egresosPorCategoria: [],
         egresos: [],
         guardando: false,
@@ -976,6 +1117,7 @@ function contabilidad() {
             this.totales = data.totales;
             this.ingresosPorMetodo = data.ingresos_por_metodo;
             this.ingresos = data.ingresos ?? [];
+            this.devoluciones = data.devoluciones ?? [];
             this.egresosPorCategoria = data.egresos_por_categoria;
             this.egresos = data.egresos;
             this.renderChart(data.serie);
