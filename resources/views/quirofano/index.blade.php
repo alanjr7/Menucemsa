@@ -204,11 +204,11 @@
                 </a>
             </div>
 
-            <!-- Leyenda de estados -->
+            <!-- Leyenda de colores (unificada con el calendario público) -->
             <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-400"></span>Programada</span>
-                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-400"></span>En curso</span>
-                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400"></span>Finalizada</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400"></span>Interna</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-400"></span>Externa confirmada</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-400"></span>Externa pendiente</span>
                 <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-400"></span>Cancelada</span>
             </div>
         </div>
@@ -245,16 +245,15 @@
                             <div class="space-y-1">
                                 @foreach(array_slice($citasDia, 0, 3) as $cita)
                                     @php
-                                        $estadoChip = match($cita['estado']) {
-                                            'programada' => 'bg-slate-100 text-slate-700 border-slate-300',
-                                            'en_curso' => 'bg-orange-100 text-orange-800 border-orange-300',
-                                            'finalizada' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                                        $estadoChip = match($cita['categoria'] ?? 'interna') {
+                                            'externa_conf' => 'bg-blue-100 text-blue-800 border-blue-300',
+                                            'externa_pend' => 'bg-orange-100 text-orange-800 border-orange-300',
                                             'cancelada' => 'bg-red-100 text-red-800 border-red-300',
-                                            default => 'bg-slate-100 text-slate-700 border-slate-300',
+                                            default => 'bg-emerald-100 text-emerald-800 border-emerald-300',
                                         };
                                     @endphp
                                     <div class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded border truncate {{ $estadoChip }}"
-                                         title="{{ $cita['hora_inicio'] }} · {{ $cita['paciente'] }} · Q{{ $cita['quirofano'] }}">
+                                         title="{{ $cita['hora_inicio'] }} · {{ $cita['estado_label'] }} · {{ $cita['paciente'] }} · Q{{ $cita['quirofano'] }}">
                                         <span class="font-semibold">{{ $cita['hora_inicio'] }}</span>
                                         <span class="hidden sm:inline">· {{ \Illuminate\Support\Str::limit($cita['paciente'], 12) }}</span>
                                     </div>
@@ -304,15 +303,17 @@
     let citasPorDia = @json($citasPorDia);
     const mesActual = @json($mesActual);
 
-    const estadoColores = {
-        'programada': { chip: 'bg-slate-100 text-slate-700 border-slate-300', dot: 'bg-slate-400' },
-        'en_curso':   { chip: 'bg-orange-100 text-orange-800 border-orange-300', dot: 'bg-orange-400' },
-        'finalizada': { chip: 'bg-emerald-100 text-emerald-800 border-emerald-300', dot: 'bg-emerald-400' },
-        'cancelada':  { chip: 'bg-red-100 text-red-800 border-red-300', dot: 'bg-red-400' },
+    // Esquema de color unificado (mismo que el calendario público de cirugías externas):
+    // interna=verde · externa confirmada=azul · externa pendiente=naranja · cancelada=rojo.
+    const categoriaColores = {
+        'interna':      { chip: 'bg-emerald-100 text-emerald-800 border-emerald-300', dot: 'bg-emerald-400' },
+        'externa_conf': { chip: 'bg-blue-100 text-blue-800 border-blue-300', dot: 'bg-blue-400' },
+        'externa_pend': { chip: 'bg-orange-100 text-orange-800 border-orange-300', dot: 'bg-orange-400' },
+        'cancelada':    { chip: 'bg-red-100 text-red-800 border-red-300', dot: 'bg-red-400' },
     };
 
-    function colorEstado(estado) {
-        return estadoColores[estado] || estadoColores['programada'];
+    function colorCategoria(cat) {
+        return categoriaColores[cat] || categoriaColores['interna'];
     }
 
     function formatearFechaLarga(ymd) {
@@ -330,7 +331,7 @@
 
         const lista = document.getElementById('modalDiaLista');
         lista.innerHTML = citas.map(cita => {
-            const c = colorEstado(cita.estado);
+            const c = colorCategoria(cita.categoria);
             const rango = cita.hora_fin ? `${cita.hora_inicio} - ${cita.hora_fin}` : cita.hora_inicio;
             return `
                 <a href="/quirofano/${cita.id}" class="block p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all">
@@ -413,7 +414,7 @@
             if (!chipsContainer) return;
 
             chipsContainer.innerHTML = citas.slice(0, 3).map(cita => {
-                const c = colorEstado(cita.estado);
+                const c = colorCategoria(cita.categoria);
                 const nombre = (cita.paciente || '').length > 12 ? cita.paciente.substring(0, 12) + '…' : (cita.paciente || '');
                 return `<div class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded border truncate ${c.chip}" title="${cita.hora_inicio} · ${cita.paciente} · Q${cita.quirofano}">
                             <span class="font-semibold">${cita.hora_inicio}</span><span class="hidden sm:inline">· ${nombre}</span>

@@ -47,6 +47,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ProformaController;
 use App\Http\Controllers\InternacionHabitacionUsoController;
 use App\Http\Controllers\UtiMedicamentosController;
+use App\Http\Controllers\CirugiaExternaPublicaController;
 
 use Illuminate\Support\Facades\Artisan;
 
@@ -54,6 +55,22 @@ use Illuminate\Support\Facades\Artisan;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Registro PÚBLICO de cirugías externas (SIN login)
+|--------------------------------------------------------------------------
+| Un cirujano externo reserva el uso de un quirófano sin autenticarse. Fuera de
+| 'auth'/'guest'/'ip.access' a propósito; sólo hereda los middlewares web
+| globales (inofensivos para invitado). Protegido con throttle y CSRF (@csrf en
+| el Blade). La reserva cae como "pendiente" para que administración la verifique.
+*/
+Route::get('/reservar-cirugia', [CirugiaExternaPublicaController::class, 'create'])->name('cirugias-externas.public.create');
+Route::get('/reservar-cirugia/agenda', [CirugiaExternaPublicaController::class, 'agenda'])->middleware('throttle:60,1')->name('cirugias-externas.public.agenda');
+Route::get('/reservar-cirugia/qr', [CirugiaExternaPublicaController::class, 'qr'])->name('cirugias-externas.public.qr');
+Route::post('/reservar-cirugia/disponibilidad', [CirugiaExternaPublicaController::class, 'disponibilidad'])->middleware('throttle:30,1')->name('cirugias-externas.public.disponibilidad');
+Route::post('/reservar-cirugia', [CirugiaExternaPublicaController::class, 'store'])->middleware('throttle:10,1')->name('cirugias-externas.public.store');
+Route::get('/reservar-cirugia/gracias/{codigo}', [CirugiaExternaPublicaController::class, 'gracias'])->name('cirugias-externas.public.gracias');
 
 
 Route::middleware(['auth', 'role:admin'])->get('/admin/system/optimize', function () {
@@ -525,6 +542,20 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('cirujanos/{cirujano}/edit', [\App\Http\Controllers\Admin\CirujanoController::class, 'edit'])->name('cirujanos.edit');
         Route::put('cirujanos/{cirujano}', [\App\Http\Controllers\Admin\CirujanoController::class, 'update'])->name('cirujanos.update');
         Route::delete('cirujanos/{cirujano}', [\App\Http\Controllers\Admin\CirujanoController::class, 'destroy'])->name('cirujanos.destroy');
+
+        // Cirugías externas (gestión de reservas del público sin login)
+        Route::get('cirugias-externas', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'index'])->name('cirugias-externas.index');
+        Route::post('cirugias-externas/qr', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'qrUpdate'])->name('cirugias-externas.qr.update');
+        Route::delete('cirugias-externas/qr', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'qrDestroy'])->name('cirugias-externas.qr.destroy');
+        Route::get('cirugias-externas/{cirugiaExterna}/recibo', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'reciboImagen'])->name('cirugias-externas.recibo')->where('cirugiaExterna', '[0-9]+');
+        Route::get('cirugias-externas/{cirugiaExterna}/recibo-thumb', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'reciboThumb'])->name('cirugias-externas.recibo-thumb')->where('cirugiaExterna', '[0-9]+');
+        Route::get('cirugias-externas/{cirugiaExterna}', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'show'])->name('cirugias-externas.show')->where('cirugiaExterna', '[0-9]+');
+        Route::post('cirugias-externas/{cirugiaExterna}/verificar-pago', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'verificarPago'])->name('cirugias-externas.verificar-pago')->where('cirugiaExterna', '[0-9]+');
+        Route::post('cirugias-externas/{cirugiaExterna}/rechazar', [\App\Http\Controllers\Admin\CirugiaExternaController::class, 'rechazar'])->name('cirugias-externas.rechazar')->where('cirugiaExterna', '[0-9]+');
+
+        // Precios del catálogo de cirugías externas
+        Route::get('tipos-cirugia-externa', [\App\Http\Controllers\Admin\TipoCirugiaExternaController::class, 'index'])->name('tipos-cirugia-externa.index');
+        Route::put('tipos-cirugia-externa/{tipo}', [\App\Http\Controllers\Admin\TipoCirugiaExternaController::class, 'update'])->name('tipos-cirugia-externa.update');
 
         // Camillas (UTI y Emergencia)
         Route::resource('camillas', \App\Http\Controllers\Admin\CamillaController::class);

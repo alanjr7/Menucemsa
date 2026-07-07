@@ -213,7 +213,7 @@ class MenuSeeder extends Seeder
         // 3. Cirugías (Nivel 2)
         $cirugiasAdmin = $gestionarClinica->children()->create([
             'name' => 'Cirugías',
-            'active_pattern' => 'quirofano*,quirofanos-management*,tipos-cirugia*,admin.cirujanos*',
+            'active_pattern' => 'quirofano*,quirofanos-management*,tipos-cirugia*,admin.cirujanos*,admin.cirugias-externas*,admin.tipos-cirugia-externa*',
             'roles' => 'admin,administrador',
             'order' => 3,
         ]);
@@ -224,6 +224,8 @@ class MenuSeeder extends Seeder
             ['name' => 'Medicamentos',         'route' => 'quirofano.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 4],
             ['name' => 'Procedimientos',       'route' => 'admin.cirugia.procedimientos', 'roles' => 'admin,administrador', 'order' => 5],
             ['name' => 'Precios y Duración',   'route' => 'tipos-cirugia.index',          'roles' => 'admin,administrador', 'order' => 6],
+            ['name' => 'Cirugías Externas',    'route' => 'admin.cirugias-externas.index',    'roles' => 'admin', 'order' => 7],
+            ['name' => 'Precios Externos',     'route' => 'admin.tipos-cirugia-externa.index', 'roles' => 'admin', 'order' => 8],
         ]);
 
         // 4. Internación (Nivel 2)

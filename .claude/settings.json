@@ -45,10 +45,26 @@
       "PowerShell(php artisan route:list --name=devoluciones)",
       "PowerShell(php artisan tinker --execute=\"echo App\\\\Models\\\\Menu::where\\('name','like','%Devoluc%'\\)->get\\(['id','name','route','roles','parent_id']\\)->toJson\\(JSON_PRETTY_PRINT\\); echo PHP_EOL; echo App\\\\Models\\\\Menu::whereNull\\('parent_id'\\)->where\\('name','Contabilidad'\\)->first\\(['id','name','active_pattern','roles']\\)->toJson\\(JSON_PRETTY_PRINT\\);\")",
       "PowerShell(php artisan test tests/Feature/Farmacia/AnulacionVentaFarmaciaTest.php tests/Feature/Caja/DevolucionTest.php)",
-      "PowerShell(php artisan test tests/Feature/Farmacia)"
+      "PowerShell(php artisan test tests/Feature/Farmacia)",
+      "Bash(cat > *)",
+      "Read(//tmp/**)",
+      "Bash(sleep 1; cat /tmp/smoke_ce.out 2>/dev/null || echo \"aún no hay salida\")",
+      "Bash(cat /tmp/smoke_ce.out 2>/dev/null || echo \"sin salida todavía\")",
+      "Read(//c/Users/USER/Desktop/programa cirugias/**)",
+      "Bash(mkdir -p \"/c/Menucemsa/public/css\" \"/c/Menucemsa/public/js\" && cp \"/c/Users/USER/Desktop/programa cirugias/styles.css\" \"/c/Menucemsa/public/css/cirugias-externas.css\" && echo \"CSS copiado:\" && wc -l \"/c/Menucemsa/public/css/cirugias-externas.css\")",
+      "Bash(php -l app/Http/Controllers/CirugiaExternaPublicaController.php)",
+      "Bash(php -l app/Http/Controllers/Admin/CirugiaExternaController.php)",
+      "Bash(php -l app/Models/CirugiaExterna.php)",
+      "Bash(node --check public/js/cirugias-externas.js)",
+      "Bash(php -l app/Http/Controllers/Admin/TipoCirugiaExternaController.php)",
+      "Bash(node --check public/js/cirugias-externas-admin.js)",
+      "Bash(php -m)",
+      "Bash(grep -iE \"^gd$\")",
+      "Bash(php -r \"echo 'imagescale: '.\\(function_exists\\('imagescale'\\)?'si':'no'\\).' imagecreatefromstring: '.\\(function_exists\\('imagecreatefromstring'\\)?'si':'no'\\).PHP_EOL;\")"
     ],
     "additionalDirectories": [
-      "c:\\Menucemsa\\database\\migrations"
+      "c:\\Menucemsa\\database\\migrations",
+      "C:\\Users\\USER\\Desktop\\programa cirugias"
     ]
   }
 }

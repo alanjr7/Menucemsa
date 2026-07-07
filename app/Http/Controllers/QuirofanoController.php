@@ -7,6 +7,7 @@ use App\Models\AlmacenCatalogo;
 use App\Models\AlmacenLote;
 use App\Models\AlmacenStock;
 use App\Models\Caja;
+use App\Models\CirugiaExterna;
 use App\Models\CitaQuirurgica;
 use App\Models\CuentaCobro;
 use App\Models\CuentaCobroDetalle;
@@ -100,6 +101,21 @@ class QuirofanoController extends Controller
             $citasPorDia[$cita->fecha->format('Y-m-d')][] = $this->serializarCita($cita);
         }
 
+        // Reservas externas del mismo mes (agenda COMPARTIDA del quirófano):
+        // se muestran junto a las internas para tener la ocupación completa.
+        $reservasExternas = CirugiaExterna::with('tipo')
+            ->whereBetween('fecha', [$inicioMes->copy()->startOfDay(), $finMes->copy()->endOfDay()])
+            ->where('estado', '!=', 'rechazado')
+            ->get();
+        foreach ($reservasExternas as $reserva) {
+            $citasPorDia[$reserva->fecha->format('Y-m-d')][] = $this->serializarReservaExterna($reserva);
+        }
+
+        // Ordenar cada día por hora de inicio (internas + externas juntas).
+        foreach ($citasPorDia as $key => $lista) {
+            usort($citasPorDia[$key], fn ($a, $b) => strcmp((string) $a['hora_inicio'], (string) $b['hora_inicio']));
+        }
+
         // Construir semanas (filas de 7 días)
         $semanas = [];
         $semana = [];
@@ -156,6 +172,33 @@ class QuirofanoController extends Controller
             'estado_label' => $estadoLabels[$cita->estado] ?? ucfirst((string) $cita->estado),
             'hora_inicio' => $horaInicio,
             'hora_fin' => optional($cita->hora_fin_estimada)->format('H:i'),
+            'origen' => 'interna',
+            // Categoría de color unificada: interna=verde, cancelada=rojo.
+            'categoria' => $cita->estado === 'cancelada' ? 'cancelada' : 'interna',
+        ];
+    }
+
+    /**
+     * Serializa una reserva EXTERNA con la misma forma que una cita interna, para
+     * que el calendario del quirófano y su modal las muestren juntas. Categoría de
+     * color: externa confirmada (pagada)=azul, externa pendiente=naranja.
+     */
+    private function serializarReservaExterna(CirugiaExterna $reserva): array
+    {
+        $estadoLabels = ['pendiente' => 'Externa · pendiente', 'pagado' => 'Externa · confirmada'];
+
+        return [
+            'id' => 'ext-' . $reserva->id,
+            'paciente' => $reserva->paciente_nombre,
+            'cirujano' => $reserva->cirujano_nombre,
+            'quirofano' => $reserva->quirofano_id,
+            'tipo_cirugia' => $reserva->tipo->nombre ?? '',
+            'estado' => $reserva->estado,
+            'estado_label' => $estadoLabels[$reserva->estado] ?? 'Externa',
+            'hora_inicio' => substr((string) $reserva->hora_inicio, 0, 5),
+            'hora_fin' => substr((string) $reserva->hora_fin, 0, 5),
+            'origen' => 'externa',
+            'categoria' => $reserva->estado === 'pendiente' ? 'externa_pend' : 'externa_conf',
         ];
     }
 
