@@ -2,7 +2,7 @@
   "name": "Clínica de Especialidades Médicas Santa Cruz",
   "short_name": "CEMSA",
   "description": "Sistema de Reserva de Quirófano y Servicios de la Clínica CEMSA",
-  "start_url": "/",
+  "start_url": "/reservar-cirugia",
   "display": "standalone",
   "background_color": "#0b44a8",
   "theme_color": "#0b44a8",
