@@ -36,7 +36,7 @@ return new class extends Migration
         DB::table('tipos_cirugia_externa')->insert([
             [
                 'clave' => 'mayor', 'nombre' => 'Cirugía mayor',
-                'descripcion' => 'Equipo completo + 1 día de internación',
+                'descripcion' => '',
                 'precio' => 4600, 'duracion_minutos' => 150,
                 'incluye' => json_encode(['instrumentista', 'circulante y 2 dias de internacion']),
                 'no_incluye' => json_encode(['medicamentos', 'insumos de quirofano']),
@@ -44,7 +44,7 @@ return new class extends Migration
             ],
             [
                 'clave' => 'mediana', 'nombre' => 'Cirugía mediana',
-                'descripcion' => 'circulante + instrumentista + 1 día de internación',
+                'descripcion' => '',
                 'precio' => 3550, 'duracion_minutos' => 90,
                 'incluye' => json_encode(['circulante con un dia de internacion']),
                 'no_incluye' => json_encode(['medicamentos', 'insumos de quirofano']),
@@ -52,7 +52,7 @@ return new class extends Migration
             ],
             [
                 'clave' => 'menor', 'nombre' => 'Cirugía menor',
-                'descripcion' => 'Ambulatoria · 2 h de observación',
+                'descripcion' => '',
                 'precio' => 2000, 'duracion_minutos' => 60,
                 'incluye' => json_encode(['solo circulante']),
                 'no_incluye' => json_encode(['medicamentos', 'insumos de quirofano']),
