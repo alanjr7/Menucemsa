@@ -20,12 +20,12 @@ class ConsolidarCuentasDuplicadas extends Command
 
         // Encontrar pacientes con más de 1 cuenta activa post-pago
         $duplicados = DB::select("
-            SELECT paciente_ci, COUNT(*) as cnt
+            SELECT paciente_id, COUNT(*) as cnt
             FROM cuenta_cobros
             WHERE estado IN ('pendiente', 'parcial')
               AND es_post_pago = 1
               AND deleted_at IS NULL
-            GROUP BY paciente_ci
+            GROUP BY paciente_id
             HAVING cnt > 1
         ");
 
@@ -38,7 +38,7 @@ class ConsolidarCuentasDuplicadas extends Command
         $consolidadas = 0;
 
         foreach ($duplicados as $dup) {
-            $cuentas = CuentaCobro::where('paciente_ci', $dup->paciente_ci)
+            $cuentas = CuentaCobro::where('paciente_id', $dup->paciente_id)
                 ->whereIn('estado', ['pendiente', 'parcial'])
                 ->where('es_post_pago', true)
                 ->orderBy('created_at', 'asc')
@@ -50,7 +50,7 @@ class ConsolidarCuentasDuplicadas extends Command
 
             $this->line(sprintf(
                 '  Paciente CI %s → Cuenta maestra: %s | Duplicadas a consolidar: %d',
-                $dup->paciente_ci,
+                $dup->paciente_id,
                 $cuentaMaestra->id,
                 $cuentasDuplicadas->count()
             ));

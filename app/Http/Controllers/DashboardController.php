@@ -41,10 +41,10 @@ class DashboardController extends Controller
                 return redirect()->route('quirofano.index');
 
             case 'uti':
-                return redirect()->route('uti.operativa.index');
+                return redirect()->route('patients.index');
 
             case 'internacion':
-                return redirect()->route('internacion-staff.index');
+                return redirect()->route('internacion-staff.dashboard');
 
             case 'enfermera-emergencia':
                 return redirect()->route('emergency-staff.dashboard');
@@ -52,8 +52,14 @@ class DashboardController extends Controller
             case 'enfermera-internacion':
                 return redirect()->route('internacion-staff.dashboard');
 
+            case 'neonato':
+                return redirect()->route('neonato.index');
+
             case 'administrador':
                 return redirect()->route('admin.dashboard');
+
+            case 'almacenista':
+                return redirect()->route('admin.almacen-medicamentos.index');
 
             default:
                 // Dashboard genérico para roles no definidos

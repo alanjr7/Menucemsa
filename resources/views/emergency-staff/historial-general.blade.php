@@ -167,10 +167,10 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-slate-800">
-                                {{ $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido') }}
+                                {{ $emg->paciente?->is_temp ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido') }}
                             </div>
                             <div class="text-xs text-slate-500 mt-1">
-                                {{ $emg->is_temp_id ? 'ID: ' . $emg->temp_id : 'CI: ' . $emg->patient_id }}
+                                {{ $emg->paciente?->is_temp ? 'Temp: ' . $emg->paciente?->temp_code : 'CI: ' . ($emg->paciente?->ci ?? '—') }}
                             </div>
                         </td>
                         <td class="px-6 py-4">

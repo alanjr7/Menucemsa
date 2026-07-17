@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Medical;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hospitalizacion;
-use App\Models\AlmacenMedicamento;
+use App\Models\AlmacenCatalogo;
+use App\Models\AlmacenStock;
 use App\Services\CuentaCobroService;
+use App\Services\AlmacenEntregaService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -31,11 +33,11 @@ class HospitalizacionController extends Controller
             'diagnostico' => 'nullable|string',
             'tratamiento' => 'nullable|string',
             'medicamentos' => 'nullable|array',
-            'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_medicamentos,id',
+            'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_catalogo,id',
             'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
             'equipos_medicos' => 'nullable|array',
             'equipos_medicos.*.nombre' => 'required_with:equipos_medicos|string|max:255',
-            'equipos_medicos.*.precio' => 'required_with:equipos_medicos|numeric|min:0',
+            'equipos_medicos.*.precio' => 'required_with:equipos_medicos|numeric|decimal:0,2|min:0',
             'equipos_medicos.*.cantidad' => 'required_with:equipos_medicos|integer|min:1',
         ]);
 
@@ -54,24 +56,39 @@ class HospitalizacionController extends Controller
 
             if (!empty($validated['medicamentos'])) {
                 foreach ($validated['medicamentos'] as $med) {
-                    $medicamento = AlmacenMedicamento::find($med['id']);
+                    $catalogo = AlmacenCatalogo::find($med['id']);
+                    if (!$catalogo) continue;
 
-                    if ($medicamento && $medicamento->cantidad >= $med['cantidad']) {
-                        // Descontar del inventario
-                        $medicamento->cantidad -= $med['cantidad'];
-                        $medicamento->save();
+                    $stock = AlmacenStock::where('ubicacion', 'hospitalizacion')
+                        ->whereHas('lote', fn($q) => $q->where('catalogo_id', $catalogo->id))
+                        ->where('cantidad_actual', '>=', $med['cantidad'])
+                        ->with('lote')
+                        ->first();
 
-                        // Registrar uso
+                    if ($stock) {
+                        $stock->decrement('cantidad_actual', $med['cantidad']);
+                        $precio = $stock->lote->precio_venta ?? 0;
+
                         $medicamentosAplicados[] = [
-                            'id' => $medicamento->id,
-                            'nombre' => $medicamento->nombre,
+                            'id' => $catalogo->id,
+                            'nombre' => $catalogo->nombre,
                             'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $medicamento->precio ?? 0,
-                            'subtotal' => ($medicamento->precio ?? 0) * $med['cantidad'],
-                            'unidad_medida' => $medicamento->unidad_medida,
+                            'precio_unitario' => $precio,
+                            'subtotal' => $precio * $med['cantidad'],
+                            'unidad_medida' => $catalogo->unidad_medida,
                         ];
 
-                        $totalMedicamentos += ($medicamento->precio ?? 0) * $med['cantidad'];
+                        $totalMedicamentos += $precio * $med['cantidad'];
+
+                        // Registrar entrega al paciente
+                        AlmacenEntregaService::registrarEntrega(
+                            $hospitalizacion->paciente_id,
+                            $catalogo->id,
+                            $med['cantidad'],
+                            'internacion',
+                            $hospitalizacion->id,
+                            'Aplicado en evolución de internación'
+                        );
                     }
                 }
             }
@@ -94,10 +111,10 @@ class HospitalizacionController extends Controller
             }
 
             // 4. Obtener o crear cuenta de cobro (sin agregar tarifa base si ya existe)
-            $pacienteCi = $hospitalizacion->ci_paciente;
-            if ($pacienteCi) {
+            $pacienteId = $hospitalizacion->paciente_id;
+            if ($pacienteId) {
                 $cuenta = CuentaCobroService::obtenerOCrearCuentaInternacion(
-                    (string) $pacienteCi,
+                    $pacienteId,
                     $hospitalizacion->id,
                     $hospitalizacion->paciente?->seguro?->id
                 );
@@ -112,8 +129,7 @@ class HospitalizacionController extends Controller
                                 'Internación - ' . $med['nombre'] . ' (' . $med['cantidad'] . ' ' . $med['unidad_medida'] . ')',
                                 $med['precio_unitario'],
                                 $med['cantidad'],
-                                null,
-                                AlmacenMedicamento::class,
+                                AlmacenCatalogo::class,
                                 $med['id']
                             );
                         }
@@ -130,7 +146,6 @@ class HospitalizacionController extends Controller
                                 'Internación - Equipo/Procedimiento: ' . $equipo['nombre'],
                                 $equipo['precio_unitario'],
                                 $equipo['cantidad'],
-                                null,
                                 Hospitalizacion::class,
                                 $hospitalizacion->id
                             );

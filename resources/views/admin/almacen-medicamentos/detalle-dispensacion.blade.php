@@ -148,7 +148,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-bold text-gray-900">{{ $entrega->paciente->nombre ?? 'N/A' }}</p>
-                            <p class="text-xs text-gray-500">C.I. {{ $entrega->paciente_ci }} — {{ $entrega->fecha_entrega->format('d/m/Y H:i') }}</p>
+                            <p class="text-xs text-gray-500">C.I. {{ $entrega->paciente?->ci ?? $entrega->paciente?->temp_code ?? 'N/A' }} — {{ $entrega->fecha_entrega->format('d/m/Y H:i') }}</p>
                         </div>
                         <span class="ml-auto text-xs text-gray-500">Por: {{ $entrega->entregadoPor->name ?? 'N/A' }}</span>
                     </div>
@@ -212,7 +212,7 @@
                           action="{{ route('admin.almacen-medicamentos.registrar-paciente', $dispensacion->id) }}"
                           x-show="paciente && !buscando">
                         @csrf
-                        <input type="hidden" name="paciente_ci" :value="paciente ? paciente.ci : ''">
+                        <input type="hidden" name="paciente_id" :value="paciente ? paciente.id : ''">
 
                         <div class="mb-4">
                             <p class="text-sm font-medium text-gray-700 mb-2">Cantidades a entregar por ítem:</p>

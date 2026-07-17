@@ -122,7 +122,7 @@ class InternacionNurseController extends Controller
         
         // Obtener actividad reciente
         $actividad = ActivityLog::where('user_id', $enfermera->user_id)
-            ->whereIn('model_type', ['App\Models\Hospitalizacion', 'App\Models\HospMedicamentoAdministrado', 'App\Models\HospCatering', 'App\Models\HospDrenaje'])
+            ->whereIn('model_type', ['App\Models\Hospitalizacion', 'App\Models\HospCatering'])
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();

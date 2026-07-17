@@ -12,9 +12,10 @@ use App\Models\Paciente;
 use App\Models\Hospitalizacion;
 use App\Models\Cama;
 use App\Models\Quirofano;
-use App\Models\InventarioFarmacia;
+use App\Models\AlmacenStock;
 use App\Models\Medico;
 use App\Models\CajaDiaria;
+use App\Models\VentaFarmacia;
 use App\Models\Especialidad;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -38,12 +39,21 @@ class ReportesController extends Controller
             ->groupBy('tipo_atencion')
             ->get();
 
-        // Ingresos por día (últimos 30 días o rango)
+        // Ingresos por día (últimos 30 días o rango), netos de devoluciones (NC)
+        $devolucionesPorDia = \App\Models\Devolucion::vigentes()
+            ->whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->selectRaw('DATE(created_at) as fecha, SUM(monto) as total')
+            ->groupBy('fecha')
+            ->pluck('total', 'fecha');
         $ingresosPorDia = PagoCuenta::whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
             ->selectRaw('DATE(created_at) as fecha, SUM(monto) as total')
             ->groupBy('fecha')
             ->orderBy('fecha')
-            ->get();
+            ->get()
+            ->map(function ($fila) use ($devolucionesPorDia) {
+                $fila->total = bcsub((string) $fila->total, (string) ($devolucionesPorDia[$fila->fecha] ?? '0'), 2);
+                return $fila;
+            });
 
         // Top 5 médicos por consultas
         $topMedicos = Consulta::whereBetween('fecha', [$desde, $hasta])
@@ -60,9 +70,13 @@ class ReportesController extends Controller
             ->groupBy('status')
             ->get();
 
-        // Resumen financiero
+        // Resumen financiero (cobrado neto de devoluciones/NC)
         $resumen = [
-            'total_cobrado'   => PagoCuenta::whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])->sum('monto'),
+            'total_cobrado'   => bcsub(
+                (string) PagoCuenta::whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])->sum('monto'),
+                \App\Models\Devolucion::sumaVigente($desde . ' 00:00:00', $hasta . ' 23:59:59'),
+                2
+            ),
             'total_pendiente' => CuentaCobro::whereIn('estado', ['pendiente', 'parcial'])
                                     ->selectRaw("SUM(total_calculado - CASE WHEN seguro_estado = 'autorizado' THEN COALESCE(seguro_monto_cobertura, 0) ELSE 0 END - total_pagado) as total")
                                     ->value('total') ?? 0,
@@ -306,9 +320,28 @@ class ReportesController extends Controller
                 'monto' => number_format($p->monto, 2),
                 'metodo' => $p->metodo_pago_label ?? $p->metodo_pago,
                 'tipo_atencion' => $p->cuentaCobro?->tipo_atencion_label ?? 'N/A',
-            ])->toArray();
+            ]);
 
-        $total = PagoCuenta::whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])->sum('monto');
+        // Devoluciones (NC) del rango: filas en negativo para que el listado cuadre con el total neto
+        $devoluciones = \App\Models\Devolucion::vigentes()
+            ->whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn ($d) => [
+                'fecha' => $d->created_at->format('d/m/Y H:i'),
+                'cuenta' => $d->cuenta_cobro_id,
+                'monto' => '-' . number_format((float) $d->monto, 2),
+                'metodo' => $d->metodo_devolucion_label,
+                'tipo_atencion' => 'Devolución (' . $d->id . ')',
+            ]);
+
+        $rows = $rows->concat($devoluciones)->sortByDesc('fecha')->values()->toArray();
+
+        $total = bcsub(
+            (string) PagoCuenta::whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])->sum('monto'),
+            \App\Models\Devolucion::sumaVigente($desde . ' 00:00:00', $hasta . ' 23:59:59'),
+            2
+        );
 
         return [
             'title' => 'Ingresos por Servicio',
@@ -403,22 +436,64 @@ class ReportesController extends Controller
 
     private function cierreCajaData($desde, $hasta)
     {
-        $rows = CajaDiaria::whereBetween('fecha', [$desde, $hasta])
+        $cajas = CajaDiaria::whereBetween('fecha', [$desde, $hasta])
             ->with('usuario')
             ->orderBy('fecha', 'desc')
+            ->get();
+
+        // Totales en vivo por fecha y método, combinando ventas de farmacia y cobros de cuenta.
+        // El snapshot persistido en caja_diarias solo cubre farmacia, por eso se recalcula aquí.
+        $ventasPorFecha = VentaFarmacia::where('estado', 'COMPLETADA')
+            ->whereBetween('fecha_venta', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->selectRaw('DATE(fecha_venta) as f, metodo_pago, SUM(total) as monto')
+            ->groupBy('f', 'metodo_pago')
             ->get()
-            ->map(fn ($c) => [
+            ->groupBy('f');
+
+        $pagosPorFecha = PagoCuenta::whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->selectRaw('DATE(created_at) as f, metodo_pago, SUM(monto) as monto')
+            ->groupBy('f', 'metodo_pago')
+            ->get()
+            ->groupBy('f');
+
+        // Devoluciones (NC) vigentes por fecha/método: restan del recaudado del día.
+        $devolucionesPorFecha = \App\Models\Devolucion::vigentes()
+            ->whereBetween('created_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])
+            ->selectRaw('DATE(created_at) as f, metodo_devolucion as metodo_pago, SUM(monto) as monto')
+            ->groupBy('f', 'metodo_pago')
+            ->get()
+            ->groupBy('f');
+
+        $sumarMetodo = function ($fecha, $metodo) use ($ventasPorFecha, $pagosPorFecha, $devolucionesPorFecha) {
+            $v = optional($ventasPorFecha->get($fecha))->firstWhere('metodo_pago', $metodo);
+            $p = optional($pagosPorFecha->get($fecha))->firstWhere('metodo_pago', $metodo);
+            $d = optional($devolucionesPorFecha->get($fecha))->firstWhere('metodo_pago', $metodo);
+            return bcsub(bcadd((string) ($v->monto ?? 0), (string) ($p->monto ?? 0), 2), (string) ($d->monto ?? 0), 2);
+        };
+
+        $rows = $cajas->map(function ($c) use ($sumarMetodo) {
+            $fecha = $c->fecha->format('Y-m-d');
+            $efectivo = $sumarMetodo($fecha, 'efectivo');
+            $qr = $sumarMetodo($fecha, 'qr');
+            $transferencia = $sumarMetodo($fecha, 'transferencia');
+            $tarjeta = $sumarMetodo($fecha, 'tarjeta');
+
+            $total = bcadd(bcadd($efectivo, $qr, 2), bcadd($transferencia, $tarjeta, 2), 2);
+            $final = bcadd((string) $c->monto_inicial, $total, 2);
+
+            return [
                 'fecha' => $c->fecha->format('d/m/Y'),
                 'estado' => $c->estado,
                 'monto_inicial' => number_format($c->monto_inicial, 2),
-                'ventas_efectivo' => number_format($c->ventas_efectivo, 2),
-                'ventas_qr' => number_format($c->ventas_qr, 2),
-                'ventas_transferencia' => number_format($c->ventas_transferencia, 2),
-                'ventas_tarjeta' => number_format($c->ventas_tarjeta, 2),
-                'total_ventas' => number_format($c->total_ventas, 2),
-                'monto_final' => number_format($c->monto_final, 2),
+                'ventas_efectivo' => number_format($efectivo, 2),
+                'ventas_qr' => number_format($qr, 2),
+                'ventas_transferencia' => number_format($transferencia, 2),
+                'ventas_tarjeta' => number_format($tarjeta, 2),
+                'total_ventas' => number_format($total, 2),
+                'monto_final' => number_format($final, 2),
                 'usuario' => $c->usuario?->name ?? 'N/A',
-            ])->toArray();
+            ];
+        })->toArray();
 
         return [
             'title' => 'Cierre de Caja',
@@ -499,24 +574,39 @@ class ReportesController extends Controller
 
     private function stockFarmaciaData($desde, $hasta)
     {
-        $rows = InventarioFarmacia::with('medicamento')
-            ->where(function ($q) {
-                $q->whereRaw('stock_disponible <= stock_minimo')
-                  ->orWhere('fecha_vencimiento', '<=', now()->addDays(30));
-            })
-            ->orderBy('stock_disponible', 'asc')
+        // El stock de farmacia vive en almacen_stocks (ubicacion=farmacia), distribuido desde almacén central.
+        $rows = AlmacenStock::porUbicacion('farmacia')
+            ->with('lote.catalogo')
             ->get()
-            ->map(fn ($i) => [
-                'codigo' => $i->codigo_item,
-                'nombre' => $i->medicamento?->nombre ?? 'N/A',
-                'laboratorio' => $i->laboratorio ?? 'N/A',
-                'lote' => $i->lote ?? 'N/A',
-                'fecha_vencimiento' => $i->fecha_vencimiento?->format('d/m/Y') ?? 'N/A',
-                'stock_minimo' => $i->stock_minimo,
-                'stock_disponible' => $i->stock_disponible,
-                'reposicion' => $i->reposicion ?? 0,
-                'estado' => ($i->stock_disponible <= $i->stock_minimo) ? 'Stock Bajo' : ($i->fecha_vencimiento <= now()->addDays(30) ? 'Por Vencer' : 'OK'),
-            ])->toArray();
+            ->sortBy('cantidad_actual')
+            ->map(function ($s) {
+                $lote = $s->lote;
+                $venc = $lote?->fecha_vencimiento;
+
+                if ($s->cantidad_actual <= 0) {
+                    $estado = 'Agotado';
+                } elseif ($s->stock_minimo > 0 && $s->cantidad_actual <= $s->stock_minimo) {
+                    $estado = 'Stock Bajo';
+                } elseif ($venc && $venc->isPast()) {
+                    $estado = 'Vencido';
+                } elseif ($venc && $venc <= now()->addDays(30)) {
+                    $estado = 'Por Vencer';
+                } else {
+                    $estado = 'OK';
+                }
+
+                return [
+                    'codigo' => $lote?->catalogo?->codigo_barras ?? 'N/A',
+                    'nombre' => $lote?->catalogo?->nombre ?? 'N/A',
+                    'laboratorio' => $lote?->laboratorio ?: 'N/A',
+                    'lote' => $lote?->codigo_lote ?: 'N/A',
+                    'fecha_vencimiento' => $venc?->format('d/m/Y') ?? 'N/A',
+                    'stock_minimo' => $s->stock_minimo,
+                    'stock_disponible' => $s->cantidad_actual,
+                    'precio' => number_format($lote?->precio_venta ?? 0, 2),
+                    'estado' => $estado,
+                ];
+            })->values()->toArray();
 
         return [
             'title' => 'Stock de Farmacia',
@@ -528,7 +618,7 @@ class ReportesController extends Controller
                 ['key' => 'fecha_vencimiento', 'label' => 'Vencimiento'],
                 ['key' => 'stock_minimo', 'label' => 'Stock Mínimo'],
                 ['key' => 'stock_disponible', 'label' => 'Stock Actual'],
-                ['key' => 'reposicion', 'label' => 'Reposición'],
+                ['key' => 'precio', 'label' => 'Precio Venta'],
                 ['key' => 'estado', 'label' => 'Estado'],
             ],
             'rows' => $rows,

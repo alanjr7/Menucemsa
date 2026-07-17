@@ -6,17 +6,14 @@ use Illuminate\Http\Request;
 use App\Models\Emergency;
 use App\Models\Paciente;
 use App\Models\Quirofano;
-use App\Models\UtiAdmission;
-use App\Models\UtiBed;
 use App\Models\Hospitalizacion;
 use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use App\Models\AlmacenMedicamento;
-use App\Models\DispensacionAlmacen;
+use App\Models\AlmacenStock;
 use App\Services\CuentaCobroService;
 use App\Services\ActivityLogService;
+use App\Services\EpisodioService;
 
 class EmergencyStaffController extends Controller
 {
@@ -25,9 +22,25 @@ class EmergencyStaffController extends Controller
         $this->middleware('role:emergencia|enfermera-emergencia|admin|dirmedico|administrador')->except(['apiEmergenciasTemporales']);
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('emergency-staff.dashboard');
+        $fecha = $request->filled('fecha')
+            ? \Carbon\Carbon::parse($request->fecha)->toDateString()
+            : today()->toDateString();
+
+        $evaluaciones = \App\Models\Evaluacion::with(['paciente', 'user', 'items'])
+            ->where('area', 'emergencia')
+            ->whereDate('created_at', $fecha)
+            ->orderBy('created_at')
+            ->get();
+
+        $camillaRegistradas = \App\Models\CuentaCobroDetalle::with(['cuentaCobro.paciente', 'user'])
+            ->where('area_origen', 'emergencia')
+            ->whereDate('created_at', $fecha)
+            ->orderBy('created_at')
+            ->get();
+
+        return view('emergency-staff.dashboard', compact('fecha', 'evaluaciones', 'camillaRegistradas'));
     }
 
     /**
@@ -45,18 +58,19 @@ class EmergencyStaffController extends Controller
         }
 
         $emergencias = $query->get()->map(function($emg) {
+            $paciente = $emg->paciente;
             return [
-                'id' => $emg->id,
-                'code' => $emg->code,
-                'paciente_id' => $emg->patient_id,
-                'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                'is_temp_id' => $emg->is_temp_id,
-                'tipo_ingreso' => $emg->tipo_ingreso,
+                'id'                 => $emg->id,
+                'code'               => $emg->code,
+                'paciente_id'        => $emg->paciente_id,
+                'paciente_nombre'    => $paciente?->is_temp ? 'Paciente Temporal' : ($paciente?->nombre ?? 'Desconocido'),
+                'is_temp'            => $paciente?->is_temp ?? false,
+                'tipo_ingreso'       => $emg->tipo_ingreso,
                 'tipo_ingreso_label' => $emg->tipo_ingreso_label,
-                'destino_inicial' => $emg->destino_inicial,
-                'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                'status' => $emg->status,
-                'status_label' => $this->getStatusLabel($emg->status),
+                'destino_inicial'    => $emg->destino_inicial,
+                'hora_ingreso'       => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                'status'             => $emg->status,
+                'status_label'       => $this->getStatusLabel($emg->status),
             ];
         });
 
@@ -162,31 +176,24 @@ class EmergencyStaffController extends Controller
                     ]);
                     break;
                 case 'hospitalizacion':
-                    $nroHosp = $this->generarNroHospitalizacion($emergency);
+                    $hospitalizacion = Hospitalizacion::crearConCodigo([
+                        'paciente_id'    => $emergency->paciente_id,
+                        'fecha_ingreso'  => now(),
+                        'estado'         => 'activo',
+                        'diagnostico'    => $emergency->initial_assessment,
+                        'nro_emergencia' => $emergency->id,
+                    ]);
+
                     $emergency->update([
-                        'status'             => 'hospitalizacion',
-                        'ubicacion_actual'   => 'hospitalizacion',
-                        'nro_hospitalizacion'=> $nroHosp,
+                        'status'              => 'hospitalizacion',
+                        'ubicacion_actual'    => 'hospitalizacion',
+                        'nro_hospitalizacion' => $hospitalizacion->id,
                     ]);
 
-                    // Crear registro en hospitalizaciones
-                    $ciPaciente = $emergency->is_temp_id ? null : $emergency->patient_id;
-                    Hospitalizacion::create([
-                        'id'           => $nroHosp,
-                        'ci_paciente'  => $ciPaciente,
-                        'fecha_ingreso'=> now(),
-                        'estado'       => 'activo',
-                        'diagnostico'  => $emergency->initial_assessment,
-                        'nro_emergencia'=> $emergency->id,
-                    ]);
-
-                    // Vincular a cuenta maestra (reutiliza la de emergencia si existe)
-                    if ($ciPaciente) {
-                        \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
-                            $ciPaciente,
-                            'internacion'
-                        );
-                    }
+                    \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
+                        $emergency->paciente_id,
+                        'internacion'
+                    );
                     break;
 
             }
@@ -243,6 +250,14 @@ class EmergencyStaffController extends Controller
 
         $emergency->registrarMovimiento($ubicacionAnterior, 'alta', 'Paciente dado de alta');
 
+        if ($emergency->paciente_id && !$emergency->paciente?->is_temp) {
+            EpisodioService::cerrarEpisodioDelPaciente(
+                $emergency->paciente_id,
+                auth()->id(),
+                'alta_medica'
+            );
+        }
+
         // Registrar en auditoría
         ActivityLogService::log(
             'dar_alta_paciente',
@@ -274,17 +289,6 @@ class EmergencyStaffController extends Controller
                 }
                 return ['disponible' => true];
 
-            case 'uti':
-                // Verificar camas UTI disponibles (tabla uti_beds)
-                $camasUti = DB::table('uti_beds')->where('status', 'disponible')->where('activa', true)->count();
-                if ($camasUti === 0) {
-                    return [
-                        'disponible' => false,
-                        'mensaje' => 'No hay camas disponibles en UTI.'
-                    ];
-                }
-                return ['disponible' => true];
-
             case 'hospitalizacion':
                 $camasHosp = DB::table('camas')->where('disponibilidad', 'disponible')->count();
                 if ($camasHosp === 0) {
@@ -309,22 +313,6 @@ class EmergencyStaffController extends Controller
     }
 
     /**
-     * Generar número de UTI
-     */
-    private function generarNroUti(Emergency $emergency): string
-    {
-        return 'UTI-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Generar número de hospitalización
-     */
-    private function generarNroHospitalizacion(Emergency $emergency): string
-    {
-        return 'HOSP-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
      * Get status label
      */
     private function getStatusLabel(string $status): string
@@ -339,33 +327,6 @@ class EmergencyStaffController extends Controller
             'fallecido' => 'Fallecido',
             default => $status,
         };
-    }
-
-    /**
-     * Asignar emergencia al usuario actual (enfermera-emergencia o emergencia)
-     */
-    public function assignToMe(Emergency $emergency): RedirectResponse
-    {
-        if ($emergency->status !== 'recibido') {
-            return redirect()->route('emergency-staff.pending')
-                ->with('error', 'Esta emergencia ya no está disponible para asignación');
-        }
-
-        $emergency->update([
-            'user_id' => auth()->id(),
-            'status' => 'en_evaluacion',
-        ]);
-
-        ActivityLogService::log(
-            'asignar_emergencia',
-            'Usuario asignó la emergencia ' . $emergency->code,
-            $emergency,
-            ['status' => 'recibido', 'user_id' => null],
-            ['status' => 'en_evaluacion', 'user_id' => auth()->id()]
-        );
-
-        return redirect()->route('emergency-staff.evaluacion', $emergency)
-            ->with('success', 'Emergencia asignada correctamente');
     }
 
     public function create(): View
@@ -383,310 +344,38 @@ class EmergencyStaffController extends Controller
         return view('emergency-staff.edit', compact('emergency'));
     }
 
-    public function pending(): View
-    {
-        $emergencies = Emergency::with('paciente')
-            ->where('status', 'recibido')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $criticas = $emergencies->filter(fn($e) => $e->created_at->diffInMinutes(now()) < 30);
-
-        return view('emergency-staff.pending', compact('emergencies', 'criticas'));
-    }
-
-    /**
-     * Mostrar formulario de evaluación de emergencia
-     */
-    public function evaluacion(Emergency $emergency): View
-    {
-        // Cargar todos los medicamentos disponibles del área de emergencia
-        $medicamentos = AlmacenMedicamento::activos()
-            ->porArea('emergencia')
-            ->where('cantidad', '>', 0)
-            ->orderBy('nombre')
-            ->get();
-
-        // Decodificar signos vitales actuales si existen
-        $vitalSigns = [];
-        if ($emergency->vital_signs) {
-            $vitalSigns = is_string($emergency->vital_signs)
-                ? json_decode($emergency->vital_signs, true)
-                : $emergency->vital_signs;
-        }
-
-        return view('emergency-staff.evaluacion', compact('emergency', 'medicamentos', 'vitalSigns'));
-    }
-
-    /**
-     * Guardar evaluación de emergencia con signos vitales, gravedad y medicamentos
-     */
-    public function guardarEvaluacion(Request $request, Emergency $emergency): JsonResponse
-    {
-        $validated = $request->validate([
-            'presion_arterial' => 'nullable|string|max:20',
-            'frecuencia_cardiaca' => 'nullable|string|max:20',
-            'frecuencia_respiratoria' => 'nullable|string|max:20',
-            'temperatura' => 'nullable|string|max:20',
-            'saturacion_o2' => 'nullable|string|max:20',
-            'glucosa' => 'nullable|string|max:20',
-            'nivel_gravedad' => 'required|in:leve,moderado,grave,critico',
-            'motivo_consulta' => 'nullable|string',
-            'observaciones' => 'nullable|string',
-            'medicamentos' => 'nullable|array',
-            'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_medicamentos,id',
-            'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
-            'equipos_medicos' => 'nullable|array',
-            'equipos_medicos.*.nombre' => 'required_with:equipos_medicos|string|max:255',
-            'equipos_medicos.*.precio' => 'required_with:equipos_medicos|numeric|min:0',
-            'equipos_medicos.*.cantidad' => 'required_with:equipos_medicos|integer|min:1',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            // 1. Actualizar signos vitales
-            $vitalSigns = [
-                'presion_arterial' => $validated['presion_arterial'] ?? null,
-                'frecuencia_cardiaca' => $validated['frecuencia_cardiaca'] ?? null,
-                'frecuencia_respiratoria' => $validated['frecuencia_respiratoria'] ?? null,
-                'temperatura' => $validated['temperatura'] ?? null,
-                'saturacion_o2' => $validated['saturacion_o2'] ?? null,
-                'glucosa' => $validated['glucosa'] ?? null,
-                'fecha_registro' => now()->toDateTimeString(),
-            ];
-
-            // 2. Actualizar estado a "en_evaluacion"
-            $estadoAnterior = $emergency->status;
-            $emergency->update([
-                'status' => 'en_evaluacion',
-                'vital_signs' => $vitalSigns,
-                'initial_assessment' => $validated['motivo_consulta'] ?? $emergency->initial_assessment,
-                'observations' => $validated['observaciones'] ?? $emergency->observations,
-            ]);
-
-            // Registrar en flujo historial
-            $emergency->registrarMovimiento('emergencia', 'emergencia',
-                'Inicio de evaluación médica. Gravedad: ' . strtoupper($validated['nivel_gravedad']));
-
-            // 3. Procesar medicamentos seleccionados
-            $medicamentosAplicados = [];
-            $totalMedicamentos = 0;
-
-            if (!empty($validated['medicamentos'])) {
-                foreach ($validated['medicamentos'] as $med) {
-                    $medicamento = AlmacenMedicamento::find($med['id']);
-
-                    if ($medicamento && $medicamento->cantidad >= $med['cantidad']) {
-                        // Descontar del inventario
-                        $cantidadAnterior = $medicamento->cantidad;
-                        $medicamento->cantidad -= $med['cantidad'];
-                        $medicamento->save();
-
-                        // Registrar dispensación al paciente en historial de almacén
-                        $pacienteCiReal = (!$emergency->is_temp_id && $emergency->patient_id)
-                            ? (int) $emergency->patient_id
-                            : null;
-
-                        DispensacionAlmacen::create([
-                            'almacen_medicamento_id' => $medicamento->id,
-                            'cantidad'               => $med['cantidad'],
-                            'area_destino'           => 'emergencia',
-                            'dispensado_por'         => auth()->id(),
-                            'recibido_por'           => $emergency->paciente?->nombre ?? 'Paciente Temporal',
-                            'paciente_ci'            => $pacienteCiReal,
-                            'entregado_por'          => auth()->id(),
-                            'fecha_dispensacion'     => now(),
-                            'fecha_entrega_paciente' => now(),
-                            'observaciones'          => 'Aplicado en evaluación de emergencia #' . $emergency->id,
-                        ]);
-
-                        // Registrar uso
-                        $medicamentosAplicados[] = [
-                            'id' => $medicamento->id,
-                            'nombre' => $medicamento->nombre,
-                            'cantidad' => $med['cantidad'],
-                            'precio_unitario' => $medicamento->precio ?? 0,
-                            'subtotal' => ($medicamento->precio ?? 0) * $med['cantidad'],
-                            'unidad_medida' => $medicamento->unidad_medida,
-                        ];
-
-                        $totalMedicamentos += ($medicamento->precio ?? 0) * $med['cantidad'];
-
-                        // Log del consumo
-                        \Log::info('Medicamento aplicado en emergencia', [
-                            'emergency_id' => $emergency->id,
-                            'medicamento_id' => $medicamento->id,
-                            'medicamento_nombre' => $medicamento->nombre,
-                            'cantidad' => $med['cantidad'],
-                            'stock_anterior' => $cantidadAnterior,
-                            'stock_nuevo' => $medicamento->cantidad,
-                            'usuario_id' => auth()->id(),
-                        ]);
-                    }
-                }
-            }
-
-            // 4. Procesar equipos médicos agregados
-            $equiposMedicosAplicados = [];
-            $totalEquiposMedicos = 0;
-
-            if (!empty($validated['equipos_medicos'])) {
-                foreach ($validated['equipos_medicos'] as $equipo) {
-                    $subtotal = $equipo['precio'] * $equipo['cantidad'];
-                    $equiposMedicosAplicados[] = [
-                        'nombre' => $equipo['nombre'],
-                        'precio_unitario' => $equipo['precio'],
-                        'cantidad' => $equipo['cantidad'],
-                        'subtotal' => $subtotal,
-                    ];
-                    $totalEquiposMedicos += $subtotal;
-
-                    \Log::info('Equipo médico aplicado en emergencia', [
-                        'emergency_id' => $emergency->id,
-                        'equipo_nombre' => $equipo['nombre'],
-                        'precio' => $equipo['precio'],
-                        'cantidad' => $equipo['cantidad'],
-                        'usuario_id' => auth()->id(),
-                    ]);
-                }
-            }
-
-            // 5. Obtener o crear cuenta maestra del paciente
-            $pacienteCi = $emergency->is_temp_id
-                ? (int) $emergency->id
-                : (int) $emergency->patient_id;
-
-            $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
-                $pacienteCi,
-                'emergencia'
-            );
-
-            // Agregar cargos por medicamentos a la cuenta (con deduplicación)
-            if (!empty($medicamentosAplicados)) {
-                foreach ($medicamentosAplicados as $med) {
-                    if ($med['subtotal'] > 0) {
-                        CuentaCobroService::agregarCargoConDeduplicacion(
-                            $cuenta->id,
-                            'medicamento',
-                            'Emergencia - ' . $med['nombre'] . ' (' . $med['cantidad'] . ' ' . $med['unidad_medida'] . ')',
-                            $med['precio_unitario'],
-                            $med['cantidad'],
-                            'emergencia',
-                            AlmacenMedicamento::class,
-                            $med['id']
-                        );
-                    }
-                }
-            }
-
-            // Agregar cargos por equipos médicos a la cuenta (con deduplicación)
-            if (!empty($equiposMedicosAplicados)) {
-                foreach ($equiposMedicosAplicados as $equipo) {
-                    if ($equipo['subtotal'] > 0) {
-                        CuentaCobroService::agregarCargoConDeduplicacion(
-                            $cuenta->id,
-                            'equipo_medico',
-                            'Emergencia - Equipo/Procedimiento: ' . $equipo['nombre'],
-                            $equipo['precio_unitario'],
-                            $equipo['cantidad'],
-                            'emergencia',
-                            Emergency::class,
-                            $emergency->id
-                        );
-                    }
-                }
-            }
-
-
-            // 5. Actualizar costo total de la emergencia
-            $emergency->update([
-                'cost' => $cuenta->total_calculado,
-                'detalle_costos' => array_merge($emergency->detalle_costos ?? [], [
-                    [
-                        'tipo' => 'evaluacion',
-                        'fecha' => now()->toDateTimeString(),
-                        'nivel_gravedad' => $validated['nivel_gravedad'],
-                        'medicamentos' => $medicamentosAplicados,
-                        'total_medicamentos' => $totalMedicamentos,
-                        'equipos_medicos' => $equiposMedicosAplicados,
-                        'total_equipos_medicos' => $totalEquiposMedicos,
-                        'usuario_id' => auth()->id(),
-                    ]
-                ]),
-            ]);
-
-            // Registrar en auditoría la evaluación completa
-            ActivityLogService::log(
-                'evaluacion_paciente',
-                'Evaluación realizada a ' . ($emergency->paciente?->nombre ?? 'Paciente Temporal') .
-                '. Gravedad: ' . $validated['nivel_gravedad'] .
-                '. Medicamentos: ' . count($medicamentosAplicados) .
-                '. Equipos Médicos: ' . count($equiposMedicosAplicados),
-                $emergency,
-                ['vital_signs' => $emergency->getOriginal('vital_signs'), 'status' => $estadoAnterior],
-                ['vital_signs' => $vitalSigns, 'status' => 'en_evaluacion', 'medicamentos_aplicados' => $medicamentosAplicados, 'equipos_medicos_aplicados' => $equiposMedicosAplicados]
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Evaluación guardada correctamente',
-                'emergency_id' => $emergency->id,
-                'status' => $emergency->status,
-                'medicamentos_aplicados' => count($medicamentosAplicados),
-                'total_medicamentos' => $totalMedicamentos,
-                'equipos_medicos_aplicados' => count($equiposMedicosAplicados),
-                'total_equipos_medicos' => $totalEquiposMedicos,
-                'redirect' => route('emergency-staff.dashboard'),
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            \Log::error('Error al guardar evaluación de emergencia: ' . $e->getMessage(), [
-                'emergency_id' => $emergency->id,
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al guardar la evaluación: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
     /**
      * API: Obtener medicamentos disponibles en almacén de emergencia
      */
     public function apiMedicamentosDisponibles(Request $request): JsonResponse
     {
-        $query = AlmacenMedicamento::activos()
-            ->porArea('emergencia')
-            ->where('cantidad', '>', 0);
+        $query = AlmacenStock::porUbicacion('emergencia')
+            ->where('cantidad_actual', '>', 0)
+            ->whereHas('lote.catalogo', fn($q) => $q->activos())
+            ->with('lote.catalogo');
 
-        // Buscar si se proporciona parámetro
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
-            $query->where(function($q) use ($buscar) {
+            $query->whereHas('lote.catalogo', function($q) use ($buscar) {
                 $q->where('nombre', 'like', '%' . $buscar . '%')
                   ->orWhere('descripcion', 'like', '%' . $buscar . '%');
             });
         }
 
-        $medicamentos = $query->orderBy('nombre')->limit(20)->get()
-            ->map(function($med) {
+        $medicamentos = $query->limit(20)->get()
+            ->map(function($stock) {
+                $c = $stock->lote->catalogo;
                 return [
-                    'id' => $med->id,
-                    'nombre' => $med->nombre,
-                    'descripcion' => $med->descripcion,
-                    'tipo' => $med->tipo,
-                    'tipo_label' => $med->tipo_label,
-                    'cantidad_disponible' => $med->cantidad,
-                    'unidad_medida' => $med->unidad_medida,
-                    'precio' => $med->precio,
-                    'stock_minimo' => $med->stock_minimo,
-                    'esta_bajo_stock' => $med->estaBajoStock(),
+                    'id'                 => $stock->id,
+                    'nombre'             => $c->nombre,
+                    'descripcion'        => $c->descripcion,
+                    'tipo'               => $c->tipo,
+                    'tipo_label'         => ucfirst($c->tipo),
+                    'cantidad_disponible' => $stock->cantidad_actual,
+                    'unidad_medida'      => $c->unidad_medida,
+                    'precio'             => $stock->lote->precio_venta,
+                    'stock_minimo'       => $stock->stock_minimo,
+                    'esta_bajo_stock'    => $stock->cantidad_actual <= $stock->stock_minimo,
                 ];
             });
 
@@ -702,22 +391,23 @@ class EmergencyStaffController extends Controller
      */
     public function apiEmergenciasTemporales(): JsonResponse
     {
-        $emergencias = Emergency::where('is_temp_id', true)
+        $emergencias = Emergency::with('paciente')
+            ->whereHas('paciente', fn($q) => $q->where('is_temp', true))
             ->whereNotIn('status', ['alta', 'fallecido'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($emg) {
                 return [
-                    'id' => $emg->id,
-                    'code' => $emg->code,
-                    'temp_id' => $emg->temp_id,
-                    'tipo_ingreso' => $emg->tipo_ingreso,
+                    'id'                 => $emg->id,
+                    'code'               => $emg->code,
+                    'temp_code'          => $emg->paciente?->temp_code,
+                    'tipo_ingreso'       => $emg->tipo_ingreso,
                     'tipo_ingreso_label' => $emg->tipo_ingreso_label,
-                    'status' => $emg->status,
-                    'status_label' => $this->getStatusLabel($emg->status),
-                    'ubicacion_actual' => $emg->ubicacion_actual,
-                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                    'fecha_ingreso' => $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
+                    'status'             => $emg->status,
+                    'status_label'       => $this->getStatusLabel($emg->status),
+                    'ubicacion_actual'   => $emg->ubicacion_actual,
+                    'hora_ingreso'       => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                    'fecha_ingreso'      => $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
                 ];
             });
 
@@ -904,8 +594,8 @@ class EmergencyStaffController extends Controller
         foreach ($emergencias as $emg) {
             fputcsv($file, [
                 $emg->code,
-                $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                $emg->patient_id,
+                $emg->paciente?->is_temp ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                $emg->paciente?->ci ?? $emg->paciente?->temp_code,
                 $emg->admission_date?->format('d/m/Y') ?? $emg->created_at->format('d/m/Y'),
                 $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
                 $emg->tipo_ingreso_label,
@@ -918,5 +608,15 @@ class EmergencyStaffController extends Controller
 
         fclose($file);
         exit;
+    }
+
+    public function procedimientos(): \Illuminate\View\View
+    {
+        $procedimientos = \App\Models\Procedimiento::where('area', 'emergencia')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->paginate(50);
+
+        return view('emergency-staff.procedimientos', compact('procedimientos'));
     }
 }

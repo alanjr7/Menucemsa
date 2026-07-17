@@ -2,7 +2,24 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Respaldo automático: se evalúa cada minuto y el propio comando decide si
+// corresponde generar el backup según la frecuencia/hora configuradas (así se
+// respeta el minuto exacto elegido en la UI). withoutOverlapping evita corridas
+// solapadas. En cPanel basta un único cron: php artisan schedule:run.
+Schedule::command('backup:auto')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Alertas de vencimiento de medicamentos al almacenista: una vez al día. El servicio
+// deduplica por lote para no repetir la misma alerta a diario. (Stock bajo/agotado NO va
+// aquí: se notifica en tiempo real desde el evento de AlmacenStock al descontar.)
+Schedule::command('almacen:notificar-vencimientos')
+    ->dailyAt('07:00')
+    ->withoutOverlapping();

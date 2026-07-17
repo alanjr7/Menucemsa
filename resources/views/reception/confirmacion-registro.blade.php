@@ -1,5 +1,11 @@
 @extends('layouts.app')
 @section('content')
+@php
+    // $caja y $consulta pueden venir null cuando el paciente se registró por citas/enfermería
+    // (aún no tiene consulta ni caja). El código mostrado prioriza el id de caja por
+    // retrocompatibilidad y cae al registro_codigo del paciente.
+    $codigoRegistro = $caja?->id ?? $paciente?->registro_codigo;
+@endphp
 <!-- VISTA EN PANTALLA -->
 <div class="screen-only p-6 bg-gray-50/50 min-h-screen">
     <div class="max-w-4xl mx-auto">
@@ -11,7 +17,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <h1 class="text-3xl font-bold mb-2">¡Consulta Registrada!</h1>
+                <h1 class="text-3xl font-bold mb-2">{{ $consulta ? '¡Consulta Registrada!' : '¡Paciente Registrado!' }}</h1>
                 <p class="text-blue-100">El paciente ha sido registrado exitosamente</p>
             </div>
         </div>
@@ -22,11 +28,11 @@
                     <h3 class="text-lg font-bold text-gray-800">Resumen del Registro</h3>
                     <div class="text-right">
                         <p class="text-xs text-gray-500">Código de Registro</p>
-                        <p class="font-mono text-sm font-bold text-blue-600">{{ $caja->id }}</p>
+                        <p class="font-mono text-sm font-bold text-blue-600">{{ $codigoRegistro }}</p>
                     </div>
                 </div>
 
-                @if($caja->consulta)
+                @if($paciente)
                     <!-- Paciente -->
                     <div class="mb-6">
                         <div class="bg-gray-50 rounded-xl p-4">
@@ -36,61 +42,81 @@
                                 </svg>
                                 Datos del Paciente
                             </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                                 <div class="flex justify-between border-b border-gray-200 pb-1 md:col-span-2">
-                                    <span class="text-sm text-gray-600">Nombre:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->nombre ?? 'N/A' }}</span>
+                                    <span class="text-sm font-bold text-gray-800">Nombre:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->nombre ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">CI:</span>
-                                    <span class="text-sm font-medium font-mono">{{ $caja->consulta->paciente->ci ?? 'N/A' }} {{ $caja->consulta->paciente->lugar_expedicion ? '- '.$caja->consulta->paciente->lugar_expedicion : '' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">CI:</span>
+                                    <span class="text-sm font-mono text-gray-900">{{ $paciente->ci ?? 'N/A' }} {{ $paciente->lugar_expedicion ? '- '.$paciente->lugar_expedicion : '' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Edad:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->fecha_nacimiento ? \Carbon\Carbon::parse($caja->consulta->paciente->fecha_nacimiento)->age.' años' : 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Edad:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->fecha_nacimiento ? \Carbon\Carbon::parse($paciente->fecha_nacimiento)->age.' años' : 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Sexo:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->sexo === 'M' ? 'Masculino' : ($caja->consulta->paciente->sexo === 'F' ? 'Femenino' : 'N/A') }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Fecha de Nacimiento:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->fecha_nacimiento ? \Carbon\Carbon::parse($paciente->fecha_nacimiento)->format('d/m/Y') : 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Estado civil:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->estado_civil ?? 'No registrado' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Sexo:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->sexo === 'M' ? 'Masculino' : ($paciente->sexo === 'F' ? 'Femenino' : 'N/A') }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Nacionalidad:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->nacionalidad ?? 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Estado civil:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->estado_civil ?? 'No registrado' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Teléfono:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->telefono ?? 'N/A' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Nacionalidad:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->nacionalidad ?? 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Correo:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->correo ?? 'No registrado' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Teléfono:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->telefono ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Profesión:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->profesion ?? 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Correo:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->correo ?? 'No registrado' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Empresa:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->empresa_trabajo ?? 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Profesión:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->profesion ?? 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Seguro:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->seguro->nombre ?? 'Sin seguro' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Empresa:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->empresa_trabajo ?? 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between md:col-span-2 border-b border-gray-200 pb-1">
-                                    <span class="text-sm text-gray-600">Dirección:</span>
-                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->direccion ?? 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Seguro:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->seguro->nombre_empresa ?? 'Sin seguro' }}</span>
+                                </div>
+                                @if($paciente->seguro && strtolower($paciente->seguro->tipo) !== 'particular')
+                                    <div class="flex justify-between border-b border-gray-200 pb-1 px-2">
+                                        <span class="text-sm font-bold text-gray-800">N° Póliza/Carnet:</span>
+                                        <span class="text-sm text-gray-900">{{ $paciente->seguro_poliza ?? 'No registrado' }}</span>
+                                    </div>
+                                    <div class="flex justify-between md:col-span-2 border-b border-gray-200 pb-1 px-2">
+                                        <span class="text-sm font-bold text-gray-800">Vigencia:</span>
+                                        <span class="text-sm text-gray-900">
+                                            @if($paciente->seguro_vigencia_desde || $paciente->seguro_vigencia_hasta)
+                                                {{ optional($paciente->seguro_vigencia_desde)->format('d/m/Y') ?? '—' }} a {{ optional($paciente->seguro_vigencia_hasta)->format('d/m/Y') ?? '—' }}
+                                            @else
+                                                Sin fecha de vigencia
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endif
+                                <div class="flex justify-between md:col-span-2 border-b border-gray-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Dirección:</span>
+                                    <span class="text-sm text-gray-900 text-right max-w-xs">{{ $paciente->direccion ?? 'No registrada' }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Garante (condicional) -->
-                    @if($caja->consulta->paciente->garante)
+                    @if($paciente->garante)
                     <div class="mb-6">
                         <div class="bg-purple-50 rounded-xl p-4 border border-purple-100">
                             <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
@@ -99,56 +125,57 @@
                                 </svg>
                                 Datos del Garante / Responsable
                             </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                                 <div class="flex justify-between border-b border-purple-200 pb-1 md:col-span-2">
-                                    <span class="text-sm text-gray-600">Nombre Completo:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->nombre ?? 'N/A' }}</span>
+                                    <span class="text-sm font-bold text-gray-800">Nombre Completo:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->nombre ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">CI:</span>
-                                    <span class="text-sm font-medium font-mono">{{ $caja->consulta->paciente->garante->ci ?? 'N/A' }} {{ $caja->consulta->paciente->garante->lugar_expedicion ? '- '.$caja->consulta->paciente->garante->lugar_expedicion : '' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">CI:</span>
+                                    <span class="text-sm font-mono text-gray-900">{{ $paciente->garante->ci ?? 'N/A' }} {{ $paciente->garante->lugar_expedicion ? '- '.$paciente->garante->lugar_expedicion : '' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Edad:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->fecha_nacimiento ? \Carbon\Carbon::parse($caja->consulta->paciente->garante->fecha_nacimiento)->age.' años' : 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Edad:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->fecha_nacimiento ? \Carbon\Carbon::parse($paciente->garante->fecha_nacimiento)->age.' años' : 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Sexo:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->sexo === 'M' ? 'Masculino' : ($caja->consulta->paciente->garante->sexo === 'F' ? 'Femenino' : 'N/A') }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Sexo:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->sexo === 'M' ? 'Masculino' : ($paciente->garante->sexo === 'F' ? 'Femenino' : 'N/A') }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Estado civil:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->estado_civil ?? 'No registrado' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Estado civil:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->estado_civil ?? 'No registrado' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Nacionalidad:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->nacionalidad ?? 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Nacionalidad:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->nacionalidad ?? 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Teléfono:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->telefono ?? 'No registrado' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Teléfono:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->telefono ?? 'No registrado' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Correo:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->correo ?? 'No registrado' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Correo:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->correo ?? 'No registrado' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Profesión:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->profesion ?? 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Profesión:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->profesion ?? 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Empresa:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->paciente->garante->empresa_trabajo ?? 'No registrada' }}</span>
+                                <div class="flex justify-between border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Empresa:</span>
+                                    <span class="text-sm text-gray-900">{{ $paciente->garante->empresa_trabajo ?? 'No registrada' }}</span>
                                 </div>
-                                <div class="flex justify-between md:col-span-2 border-b border-purple-200 pb-1">
-                                    <span class="text-sm text-gray-600">Dirección:</span>
-                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->paciente->garante->direccion ?? 'No registrada' }}</span>
+                                <div class="flex justify-between md:col-span-2 border-b border-purple-200 pb-1 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Dirección:</span>
+                                    <span class="text-sm text-gray-900 text-right max-w-xs">{{ $paciente->garante->direccion ?? 'No registrada' }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     @endif
 
+                    @if($consulta)
                     <!-- Consulta -->
                     <div class="bg-blue-50 rounded-xl p-4 mb-6">
                         <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
@@ -157,30 +184,30 @@
                             </svg>
                             Detalles de la Consulta
                         </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Médico:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->medico->user->name ?? 'N/A' }}</span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                                <div class="flex justify-between px-2">
+                                    <span class="text-sm font-bold text-gray-800">Médico:</span>
+                                    <span class="text-sm text-gray-900">{{ $consulta->medico->user->name ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Especialidad:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->especialidad->nombre ?? 'N/A' }}</span>
+                                <div class="flex justify-between px-2">
+                                    <span class="text-sm font-bold text-gray-800">Especialidad:</span>
+                                    <span class="text-sm text-gray-900">{{ $consulta->especialidad->nombre ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Fecha:</span>
-                                    <span class="text-sm font-medium">{{ \Carbon\Carbon::parse($caja->consulta->fecha)->format('d/m/Y') ?? 'N/A' }}</span>
+                                <div class="flex justify-between px-2">
+                                    <span class="text-sm font-bold text-gray-800">Fecha:</span>
+                                    <span class="text-sm text-gray-900">{{ \Carbon\Carbon::parse($consulta->fecha)->format('d/m/Y') ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Hora:</span>
-                                    <span class="text-sm font-medium">{{ $caja->consulta->hora ?? 'N/A' }}</span>
+                                <div class="flex justify-between px-2">
+                                    <span class="text-sm font-bold text-gray-800">Hora:</span>
+                                    <span class="text-sm text-gray-900">{{ $consulta->hora ?? 'N/A' }}</span>
                                 </div>
-                                <div class="flex justify-between border-t border-blue-200 pt-2 mt-2 md:col-span-2">
-                                    <span class="text-sm text-gray-600">Motivo:</span>
-                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->motivo ?? 'No registrado' }}</span>
+                                <div class="flex justify-between border-t border-blue-200 pt-2 mt-2 md:col-span-2 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Motivo:</span>
+                                    <span class="text-sm text-gray-900 text-right max-w-xs">{{ $consulta->motivo ?? 'No registrado' }}</span>
                                 </div>
-                                <div class="flex justify-between md:col-span-2">
-                                    <span class="text-sm text-gray-600">Observaciones:</span>
-                                    <span class="text-sm font-medium text-right max-w-xs">{{ $caja->consulta->observaciones ?? 'Sin observaciones' }}</span>
+                                <div class="flex justify-between md:col-span-2 px-2">
+                                    <span class="text-sm font-bold text-gray-800">Observaciones:</span>
+                                    <span class="text-sm text-gray-900 text-right max-w-xs">{{ $consulta->observaciones ?? 'Sin observaciones' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -244,24 +271,20 @@
                             </div>
                         </div>
                     </div>
+                    @endif
                 @else
                 <div class="text-center py-8">
                     <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <p class="text-gray-500">No se encontraron detalles de la consulta.</p>
+                    <p class="text-gray-500">No se encontraron datos del paciente.</p>
                 </div>
                 @endif
             </div>
 
         <!-- Acciones -->
         <div class="flex justify-center gap-4">
-            <a href="{{ route('reception') }}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors flex items-center text-sm">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
-                </svg>
-                Volver a Recepción
-            </a>
+          
          <button onclick="imprimir()" 
             class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center text-sm">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,7 +312,7 @@
             
             <div class="info-area">
                 <div class="doc-number text-right">
-                    <strong>Nº: <span style="margin-left: 20pt;">{{ $caja->id ?? '926010073' }}</span></strong>
+                    <strong>Nº: <span style="margin-left: 20pt;">{{ $consulta?->codigo ?? $codigoRegistro }}</span></strong>
                 </div>
                 <div class="notice-box">
                     <p><strong>ESTIMADO PACIENTE:</strong></p>
@@ -302,280 +325,143 @@
 
         <h3 class="main-title">REGISTRO DE ADMISIÓN Y CONTRATO DE SERVICIOS</h3>
 
-        @if($caja->consulta)
+        @if($paciente)
         <!-- DATOS DEL PACIENTE -->
         <div class="form-section">
             <div class="f-row">
                 <div class="f-field" style="flex: 2.5;">
                     <span class="f-label">Paciente - Sr. (a):</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->nombre ?? '') }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->nombre ?? '') }}</span>
                 </div>
                 <div class="f-field" style="flex: 1;">
                     <span class="f-label">F. N.</span>
-                    <span class="f-value text-center">{{ $caja->consulta->paciente->fecha_nacimiento ? \Carbon\Carbon::parse($caja->consulta->paciente->fecha_nacimiento)->format('Y-m-d') : '' }}</span>
+                    <span class="f-value text-center font-bold">{{ $paciente->fecha_nacimiento ? \Carbon\Carbon::parse($paciente->fecha_nacimiento)->format('Y-m-d') : '' }}</span>
                 </div>
                 <div class="f-field" style="flex: 1.2;">
                     <span class="f-label">Estado Civil</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->estado_civil ?? 'SOLTERO(A)') }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->estado_civil ?? 'SOLTERO(A)') }}</span>
                 </div>
             </div>
 
             <div class="f-row">
                 <div class="f-field" style="flex: 1.5;">
                     <span class="f-label">Nacionalidad</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->nacionalidad ?? 'BOLIVIANA') }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->nacionalidad ?? 'BOLIVIANA') }}</span>
                 </div>
                 <div class="f-field" style="flex: 1;">
                     <span class="f-label">Lugar</span>
-                    <span class="f-value text-center">{{ strtoupper($caja->consulta->paciente->lugar_expedicion ?? 'SC') }}</span>
+                    <span class="f-value text-center font-bold">{{ strtoupper($paciente->lugar_expedicion ?? 'SC') }}</span>
                 </div>
                 <div class="f-field" style="flex: 1.5;">
                     <span class="f-label">Teléfono Nº</span>
-                    <span class="f-value">{{ $caja->consulta->paciente->telefono ?? '' }}</span>
+                    <span class="f-value font-bold">{{ $paciente->telefono ?? '' }}</span>
                 </div>
             </div>
 
             <div class="f-row">
-                <div class="f-field" style="flex: 2.5;">
+                <div class="f-field" style="flex: 1.3;">
+                    <span class="f-label">H.C. Nº</span>
+                    <span class="f-value font-bold">{{ $paciente->registro_codigo ?? '—' }}</span>
+                </div>
+                <div class="f-field" style="flex: 1.3;">
                     <span class="f-label">C.I. Nº</span>
-                    <span class="f-value">{{ $caja->consulta->paciente->ci ?? '' }}</span>
+                    <span class="f-value font-bold">{{ $paciente->ci ?? '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 0.8;">
+                    <span class="f-label">Sexo</span>
+                    <span class="f-value font-bold">{{ ($paciente->sexo ?? '') === 'M' ? 'MASCULINO' : (($paciente->sexo ?? '') === 'F' ? 'FEMENINO' : '') }}</span>
                 </div>
                 <div class="f-field" style="flex: 1.5;">
-                    <span class="f-label">Teléfono Nº</span>
-                    <span class="f-value"></span>
+                    <span class="f-label">Correo</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->correo ?? '') }}</span>
                 </div>
             </div>
 
             <div class="f-row">
                 <div class="f-field w-100">
                     <span class="f-label">Dirección</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion ?? '') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field w-100">
-                    <span class="f-label">Empresa</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->empresa_trabajo ?? '') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field w-100">
-                    <span class="f-label">Profesión</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->profesion ?? '') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field w-100">
-                    <span class="f-label">Dirección</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->direccion ?? '') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field" style="flex: 1;">
-                    <span class="f-label">Hora de Ingreso</span>
-                    <span class="f-value">{{ now()->format('H:i') }}</span>
-                </div>
-                <div style="flex: 3;"></div>
-            </div>
-        </div>
-
-        <!-- GARANTE RESPONSABLE -->
-        <h4 class="section-title">GARANTE RESPONSABLE</h4>
-        <div class="form-section">
-            <div class="f-row">
-                <div class="f-field" style="flex: 2.5;">
-                    <span class="f-label">Señor (a):</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->nombre ?? '') }}</span>
-                </div>
-                <div class="f-field" style="flex: 1;">
-                    <span class="f-label">F. N.</span>
-                    <span class="f-value text-center">{{ $caja->consulta->paciente->garante->fecha_nacimiento ?? '' }}</span>
-                </div>
-                <div class="f-field" style="flex: 1.2;">
-                    <span class="f-label">Estado Civil</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->estado_civil ?? 'SOLTERO(A)') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field" style="flex: 2.5;">
-                    <span class="f-label">Nacionalidad</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->nacionalidad ?? 'BOLIVIA') }}</span>
-                </div>
-                <div class="f-field" style="flex: 1.2;">
-                    <span class="f-label">Teléfono Nº</span>
-                    <span class="f-value">{{ $caja->consulta->paciente->garante->telefono ?? '' }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->direccion ?? '') }}</span>
                 </div>
             </div>
 
             <div class="f-row">
                 <div class="f-field" style="flex: 1.5;">
-                    <span class="f-label">C.I. Nº</span>
-                    <span class="f-value">{{ $caja->consulta->paciente->garante->ci ?? '' }}</span>
-                </div>
-                <div class="f-field" style="flex: 1;">
-                    <span class="f-label">Lugar</span>
-                    <span class="f-value text-center">{{ strtoupper($caja->consulta->paciente->garante->lugar_expedicion ?? 'SC') }}</span>
-                </div>
-                <div class="f-field" style="flex: 2;">
                     <span class="f-label">Profesión</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->profesion ?? '') }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->profesion ?? '') }}</span>
                 </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field" style="flex: 2.5;">
-                    <span class="f-label">Dirección</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->direccion ?? '') }}</span>
-                </div>
-                <div class="f-field" style="flex: 1.2;">
-                    <span class="f-label">Teléfono Nº</span>
-                    <span class="f-value"></span>
-                </div>
-            </div>
-
-            <div class="f-row">
                 <div class="f-field" style="flex: 2.5;">
                     <span class="f-label">Empresa</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->paciente->garante->empresa_trabajo ?? '') }}</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->empresa_trabajo ?? '') }}</span>
                 </div>
+            </div>
+
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Seguro</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->seguro->nombre_empresa ?? 'SIN SEGURO') }}</span>
+                </div>
+            </div>
+
+            @if($paciente->seguro && strtolower($paciente->seguro->tipo) !== 'particular')
+            <div class="f-row">
                 <div class="f-field" style="flex: 1.5;">
-                    <span class="f-label">Dirección</span>
-                    <span class="f-value"></span>
+                    <span class="f-label">N° Póliza/Carnet</span>
+                    <span class="f-value font-bold">{{ strtoupper($paciente->seguro_poliza ?? '—') }}</span>
+                </div>
+                <div class="f-field" style="flex: 2.5;">
+                    <span class="f-label">Vigencia</span>
+                    <span class="f-value font-bold">{{ optional($paciente->seguro_vigencia_desde)->format('d/m/Y') ?? '—' }} - {{ optional($paciente->seguro_vigencia_hasta)->format('d/m/Y') ?? '—' }}</span>
                 </div>
             </div>
-        </div>
-
-        <!-- CAUSA O MOTIVO -->
-        <h4 class="section-title" style="margin-top: 15pt;">CAUSA O MOTIVO DE LA INTERNACION:</h4>
-        <div class="form-section">
-            <div class="f-row text-center" style="margin-bottom: 10pt; justify-content: center;">
-                <span style="margin-right: 40pt;">Cirugía ( {{ $caja->consulta->tipo === 'CIRUGIA' ? 'X' : ' ' }} )</span>
-                <span>Tratamiento ( {{ $caja->consulta->tipo === 'TRATAMIENTO' ? 'X' : ' ' }} )</span>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field w-100">
-                    <span class="f-label">MEDICO QUE DISPONE LA INTERNACION Dr.</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->medico->user->name ?? '') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field w-100">
-                    <span class="f-label">DIAGNOSTICO PRELIMINAR</span>
-                    <span class="f-value" style="padding-left: 20pt;">{{ strtoupper($caja->consulta->especialidad->nombre ?? 'CIRUGIA') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field w-100">
-                    <span class="f-label">MEDICO QUE ADMITE AL PACIENTE Dr.</span>
-                    <span class="f-value">{{ strtoupper($caja->consulta->medico->user->name ?? '') }}</span>
-                </div>
-            </div>
-
-            <div class="f-row">
-                <div class="f-field" style="flex: 1;">
-                    <span class="f-label">HABITACION ASIGNADA Nº</span>
-                    <span class="f-value"></span>
-                </div>
-                <div style="flex: 1;"></div>
-            </div>
+            @endif
         </div>
         @endif
 
-        <!-- ACEPTACION -->
-        <h4 class="section-title text-center" style="margin-top: 15pt;">ACEPTACION</h4>
+        @if($consulta)
+        <!-- DATOS DEL INGRESO -->
+        <h4 class="section-title" style="margin-top: 15pt;">DATOS DEL INGRESO</h4>
         <div class="form-section">
-            <p class="text-justify" style="line-height: 1.6; margin-bottom: 15pt;">
-                <strong>NOTA:</strong> Las condiciones del contrato de prestación de servicios, aparecen en el <strong>REVERSO</strong> y los otorgantes declaran haberlas leído atentamente y en señal de conformidad con las mismas, suscriben este documento en doble ejemplar de un mismo tenor y para un solo efecto.
-            </p>
-            
-            <div class="f-row" style="margin-bottom: 30pt;">
-                <div class="f-field" style="width: 300px;">
-                    <span class="f-label">Santa Cruz,</span>
-                    <span class="f-value text-center">{{ now()->format('d') }} de {{ now()->locale('es')->isoFormat('MMMM') }} de {{ now()->format('Y') }}</span>
+            <div class="f-row">
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Tipo de Ingreso:</span>
+                    <span class="f-value font-bold">CONSULTA EXTERNA</span>
+                </div>
+                <div class="f-field" style="flex: 2;">
+                    <span class="f-label">Código:</span>
+                    <span class="f-value font-bold">{{ $consulta->codigo ?? '' }}</span>
                 </div>
             </div>
 
-            <!-- FIRMAS 1 -->
-            <div class="signatures">
-                <div class="sig-box">
-                    <div class="sig-line"></div>
-                    <div>PACIENTE</div>
-                </div>
-                <div class="sig-box">
-                    <div class="sig-line"></div>
-                    <div>GARANTE RESPONSABLE</div>
-                </div>
-                <div class="sig-box stamp-area">
-                    <div class="stamp-text">
-                        Ruth Mery Silva Guzman<br>
-                        <strong>RECEPCIÓN</strong><br>
-                        Clinica Medica CEMSA Ltda.
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ACTA DE RECONOCIMIENTO -->
-        <h4 class="section-title text-center" style="margin-top: 15pt;">ACTA DE RECONOCIMIENTO DE FIRMAS</h4>
-        <div class="form-section text-justify" style="line-height: 1.8;">
-            <p style="margin-bottom: 10pt;">
-                En esta Ciudad de Santa Cruz, a horas <span class="inline-val" style="width: 40pt;">{{ now()->format('H:i') }}</span> 
-                de día <span class="inline-val" style="width: 40pt;"></span> 
-                <span class="inline-val" style="width: 60pt;">{{ now()->format('d') }} de {{ now()->locale('es')->isoFormat('MMMM') }}</span> 
-                de dos mil <span class="inline-val" style="width: 60pt;">{{ strtoupper(\NumberFormatter::create('es', \NumberFormatter::SPELLOUT)->format(now()->format('Y'))) }}</span> 
-                ante el suscrito Juez de Mínima Cuantía Nº <span class="inline-val" style="width: 30pt;"></span> 
-                de la Capital comparecieron voluntariamente los señores:
-            </p>
-
-            <div style="margin-left: 20pt; margin-bottom: 10pt;">
-                <div class="f-row">
-                    <span class="f-value" style="flex: 2;">{{ strtoupper($caja->consulta->paciente->nombre ?? '') }}</span>
-                    <span class="f-label" style="margin: 0 10pt;">con C.I.Nº</span>
-                    <span class="f-value text-center" style="flex: 1;">{{ $caja->consulta->paciente->ci ?? '' }}</span>
-                </div>
-                <div class="f-row">
-                    <span class="f-value" style="flex: 2;">{{ strtoupper($caja->consulta->paciente->garante->nombre ?? '') }}</span>
-                    <span class="f-label" style="margin: 0 10pt;">con C.I.Nº</span>
-                    <span class="f-value text-center" style="flex: 1;">{{ $caja->consulta->paciente->garante->ci ?? '' }}</span>
-                </div>
-                <div class="f-row">
-                    <span class="f-value" style="flex: 2;"></span>
-                    <span class="f-label" style="margin: 0 10pt;">con C.I.Nº</span>
-                    <span class="f-value" style="flex: 1;"></span>
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Médico:</span>
+                    <span class="f-value font-bold">Dr. {{ strtoupper($consulta->medico->user->name ?? '') }}</span>
                 </div>
             </div>
 
-            <p style="margin-bottom: 30pt;">
-                a reconocer sus firmas que tienen estampadas al pie del documento anterior, Juramentos en legal forma y puéstoles de manifiesto sus firmas, los comparecientes expresaron ser las suyas y las reconocen como auténticas a los efectos de Ley, en constancia firman con el suscrito Juez y testigo de Actuación que certifica.
-            </p>
+            <div class="f-row">
+                <div class="f-field" style="flex: 1.5;">
+                    <span class="f-label">Especialidad:</span>
+                    <span class="f-value font-bold">{{ strtoupper($consulta->especialidad->nombre ?? '') }}</span>
+                </div>
+                <div class="f-field" style="flex: 1;">
+                    <span class="f-label">Fecha:</span>
+                    <span class="f-value font-bold">{{ $consulta->fecha ? \Carbon\Carbon::parse($consulta->fecha)->format('d/m/Y') : '' }}</span>
+                </div>
+                <div class="f-field" style="flex: 0.8;">
+                    <span class="f-label">Hora:</span>
+                    <span class="f-value font-bold">{{ substr($consulta->hora ?? '', 0, 5) }}</span>
+                </div>
+            </div>
 
-            <!-- FIRMAS 2 -->
-            <div class="signatures">
-                <div class="sig-box">
-                    <div class="sig-line"></div>
-                    <div>PACIENTE</div>
-                </div>
-                <div class="sig-box">
-                    <div class="sig-line"></div>
-                    <div>GARANTE RESPONSABLE</div>
-                </div>
-                <div class="sig-box stamp-area">
-                    <div class="stamp-text" style="opacity: 0.8;">
-                        Ruth Mery Silva Guzman<br>
-                        <strong>RECEPCIÓN</strong><br>
-                        Clinica Medica CEMSA Ltda.
-                    </div>
+            <div class="f-row">
+                <div class="f-field w-100">
+                    <span class="f-label">Motivo:</span>
+                    <span class="f-value font-bold">{{ strtoupper($consulta->motivo ?? 'CONSULTA GENERAL') }}</span>
                 </div>
             </div>
         </div>
+        @endif
 
     </div>
 </div>

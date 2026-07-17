@@ -1,825 +1,776 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-8 bg-[#f8fafc] min-h-screen font-sans" x-data="cajaOperativa()">
-    <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
+<div class="p-4 sm:p-6 lg:p-8 bg-[#f8fafc] min-h-screen font-sans">
+     <div class="w-full">
+        <!-- Header -->
+        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6 sm:mb-8">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Caja Operativa</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Caja Operativa</h1>
                 <p class="text-gray-500 text-sm">Gestión de cobros y pagos</p>
             </div>
-            <div class="flex items-center space-x-4">
-                <a href="{{ route('caja.gestion.index') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                    Historial y Gestión
-                </a>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('administrador'))
+                    <a href="{{ route('caja.gestion.index') }}" class="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 whitespace-nowrap">
+                        <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Historial y Gestión
+                    </a>
+                @endif
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 whitespace-nowrap">
                     <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                     Caja Abierta
                 </span>
-                <button onclick="mostrarModalCierre()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onclick="mostrarModalCierre()" class="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 whitespace-nowrap">
+                    <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                     </svg>
                     Cerrar Caja
                 </button>
             </div>
         </div>
-            <!-- Estadísticas del día -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-green-100">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">Total Cobrado Hoy</p>
-                            <p class="text-lg font-bold text-gray-900" id="totalCobrado">Bs 0.00</p>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-blue-100">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">Transacciones</p>
-                            <p class="text-lg font-bold text-gray-900" id="totalTransacciones">0</p>
-                        </div>
+        <!-- Estadísticas del día -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="bg-white shadow-sm rounded-lg p-4 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
-                </div>
-
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-yellow-100">
-                            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">Pendientes</p>
-                            <p class="text-lg font-bold text-gray-900" id="totalPendientes">0</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-orange-100">
-                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-500">Pago Parcial</p>
-                            <p class="text-lg font-bold text-gray-900" id="totalParciales">0</p>
-                        </div>
+                    <div class="ml-4">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Total Cobrado Hoy</p>
+                        <p class="text-lg font-bold text-gray-900" id="totalCobrado">Bs 0.00</p>
                     </div>
                 </div>
             </div>
-
-            <!-- Desglose por método de pago -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Desglose por Método de Pago</h3>
-                </div>
-                <div class="p-4">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="metodosPago">
-                        <!-- Se llena con JS -->
+            <div class="bg-white shadow-sm rounded-lg p-4 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Transacciones</p>
+                        <p class="text-lg font-bold text-gray-900" id="totalTransacciones">0</p>
                     </div>
                 </div>
             </div>
-
-            <!-- Lista de pacientes con cuenta pendiente -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2 sm:mb-0">
-                        Pacientes con Cuenta Pendiente
-                    </h3>
-                    <div class="flex items-center space-x-2">
-                        <input type="text" 
-                               id="buscarPaciente" 
-                               placeholder="Buscar paciente..."
-                               class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
-                        <button onclick="filtrarPacientes()" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </button>
-                        <button onclick="cargarPacientesPendientes()" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                            </svg>
-                        </button>
+            <div class="bg-white shadow-sm rounded-lg p-4 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Atención</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pagado</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
-                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="tablaPacientes">
-                            <tr>
-                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                                    Cargando...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="ml-4">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Pendientes</p>
+                        <p class="text-lg font-bold text-gray-900" id="totalPendientes">0</p>
+                    </div>
                 </div>
             </div>
-
-            <!-- Pacientes UTI con Alta Clínica (listos para cobro) -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
-                <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div class="flex items-center gap-3">
-                        <h3 class="text-lg font-medium text-gray-900">
-                            Pacientes UTI - Listos para Cobro
-                        </h3>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full" id="contadorUti">0</span>
+            <div class="bg-white shadow-sm rounded-lg p-4 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-orange-100 text-orange-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     </div>
-                    <div class="flex items-center space-x-2 mt-2 sm:mt-0">
-                        <button onclick="cargarPacientesUti()" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
-                        </button>
+                    <div class="ml-4">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Pago Parcial</p>
+                        <p class="text-lg font-bold text-gray-900" id="totalParciales">0</p>
                     </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cama</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Días UTI</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Pago</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="tablaPacientesUti">
-                            <tr>
-                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                                    Cargando pacientes UTI...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal de Cobro -->
-    <div id="modalCobro" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="cerrarModalCobro()"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Realizar Cobro</h3>
-                            
-                            <div id="detalleCuenta" class="mt-4">
-                                <!-- Se llena con JS -->
-                            </div>
-
-                            <form id="formCobro" class="mt-6 space-y-4">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Monto a Pagar (Bs)</label>
-                                        <input type="number" 
-                                               id="montoPago" 
-                                               name="monto" 
-                                               step="0.01" 
-                                               min="0.01"
-                                               required
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Método de Pago</label>
-                                        <select id="metodoPago" name="metodo_pago" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                            <option value="">Seleccione...</option>
-                                            <option value="efectivo">Efectivo</option>
-                                            <option value="transferencia">Transferencia</option>
-                                            <option value="tarjeta">Tarjeta</option>
-                                            <option value="qr">QR</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Referencia (opcional)</label>
-                                    <input type="text" 
-                                           id="referenciaPago" 
-                                           name="referencia" 
-                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                           placeholder="N° operación, código, etc.">
-                                </div>
-
-                                <div class="border-t pt-4 mt-4">
-                                    <h4 class="text-sm font-medium text-gray-900 mb-3">Datos para Facturación</h4>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">CI / NIT</label>
-                                            <input type="text" 
-                                                   id="ciNitFactura" 
-                                                   name="ci_nit_facturacion" 
-                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Razón Social</label>
-                                            <input type="text" 
-                                                   id="razonSocialFactura" 
-                                                   name="razon_social" 
-                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center">
-                                    <input type="checkbox" id="esPagoTotal" name="es_pago_total" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                                    <label for="esPagoTotal" class="ml-2 block text-sm text-gray-900">
-                                        Pago total (saldo completo)
-                                    </label>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="procesarCobro()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Cobrar
-                    </button>
-                    <button type="button" onclick="cerrarModalCobro()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                        Cancelar
-                    </button>
+        <!-- Desglose por método de pago -->
+        <div class="bg-white shadow-sm rounded-lg mb-6 border border-gray-100">
+            <div class="p-4 border-b border-gray-200 bg-gray-50/50">
+                <h3 class="text-md font-bold text-gray-800">Recaudación por Método de Pago</h3>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="metodosPago">
+                    <!-- JS Fill -->
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal de Cierre de Caja -->
-    <div id="modalCierre" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalCierre()"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Cierre de Caja</h3>
-                    
-                    <div id="resumenCierre" class="bg-gray-50 p-4 rounded-md mb-4">
-                        <!-- Se llena con JS -->
-                    </div>
-
-                    <form id="formCierre" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Monto Final (Bs)</label>
-                            <input type="number" 
-                                   id="montoFinal" 
-                                   name="monto_final" 
-                                   step="0.01" 
-                                   min="0"
-                                   required
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Observaciones</label>
-                            <textarea id="observacionesCierre" 
-                                      name="observaciones" 
-                                      rows="2"
-                                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="cerrarCaja()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Cerrar Caja
-                    </button>
-                    <button type="button" onclick="cerrarModalCierre()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                        Cancelar
+        <!-- Lista de pacientes -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-100">
+            <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h3 class="text-lg font-bold text-gray-800">Cuentas por Cobrar</h3>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="buscarPaciente"
+                           placeholder="Nombre, CI, Atención o Estado..."
+                           class="block w-full sm:w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <button onclick="recargarTodo()" class="p-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600" title="Recargar">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     </button>
                 </div>
             </div>
-        </div>
-    </div>
 
-    @push('scripts')
-    <script src="{{ asset('js/auto-refresh.js') }}"></script>
-    <script>
-        let cuentaActual = null;
-        let pacientesData = [];
-        let autoRefresh = null;
-
-        // Definir componente Alpine.js
-        function cajaOperativa() {
-            return {
-                open: false,
-                sidebarOpen: true,
-                init() {
-                    this.cargarDatos();
-                },
-                async cargarDatos() {
-                    await cargarPacientesPendientes();
-                    await cargarPacientesUti();
-                    await cargarResumenDia();
-                }
-            };
-        }
-
-        // Cargar datos al iniciar
-        document.addEventListener('DOMContentLoaded', function() {
-            cargarPacientesPendientes();
-            cargarPacientesUti();
-            cargarResumenDia();
-            iniciarAutoRefresh();
-        });
-
-        // Iniciar auto-refresh cada 3 segundos
-        function iniciarAutoRefresh() {
-            autoRefresh = new AutoRefresh({
-                interval: 3000,
-                endpoint: '{{ route("caja.operativa.resumen-dia") }}',
-                onData: (data) => {
-                    if (data.success) {
-                        // Actualizar estadísticas
-                        document.getElementById('totalCobrado').textContent = 'Bs ' + parseFloat(data.resumen.totales.general).toFixed(2);
-                        document.getElementById('totalTransacciones').textContent = data.resumen.transacciones.total;
-                        document.getElementById('totalPendientes').textContent = data.resumen.cuentas.pendientes;
-                        document.getElementById('totalParciales').textContent = data.resumen.cuentas.parciales;
-
-                        // Actualizar métodos de pago
-                        const metodos = [
-                            { key: 'efectivo', label: 'Efectivo', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z', color: 'green' },
-                            { key: 'transferencia', label: 'Transferencia', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', color: 'blue' },
-                            { key: 'tarjeta', label: 'Tarjeta', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', color: 'purple' },
-                            { key: 'qr', label: 'QR', icon: 'M12 4v1m6 11h2m-6 0h-2v4h2v-4zM8 12h2v4H8v-4zm-2 4h2v4H6v-4zm10-4h2v4h-2v-4zM6 8h2v4H6V8zm10 0h2v4h-2V8z', color: 'orange' }
-                        ];
-
-                        document.getElementById('metodosPago').innerHTML = metodos.map(m => `
-                            <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                                <div class="p-2 rounded-full bg-${m.color}-100">
-                                    <svg class="w-5 h-5 text-${m.color}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${m.icon}"></path>
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <p class="text-xs text-gray-500">${m.label}</p>
-                                    <p class="text-sm font-bold text-gray-900">Bs ${parseFloat(data.resumen.totales[m.key] || 0).toFixed(2)}</p>
-                                </div>
-                            </div>
-                        `).join('');
-                    }
-                },
-                onError: (err) => {
-                    console.warn('Error al actualizar datos de caja:', err);
-                }
-            });
-            autoRefresh.start();
-
-            // Auto-refresh para pacientes pendientes y UTI
-            setInterval(() => {
-                cargarPacientesPendientes();
-                cargarPacientesUti();
-            }, 3000);
-        }
-
-        // Cargar pacientes con cuenta pendiente
-        async function cargarPacientesPendientes() {
-            try {
-                const response = await fetch('{{ route("caja.operativa.pacientes-pendientes") }}');
-                const data = await response.json();
-                
-                if (data.success) {
-                    pacientesData = data.cuentas;
-                    renderizarTabla(pacientesData);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('tablaPacientes').innerHTML = `
-                    <tr><td colspan="7" class="px-6 py-4 text-center text-red-500">Error al cargar datos</td></tr>
-                `;
-            }
-        }
-
-        // Renderizar tabla de pacientes
-        function renderizarTabla(cuentas) {
-            const tbody = document.getElementById('tablaPacientes');
-            
-            if (cuentas.length === 0) {
-                tbody.innerHTML = `
-                    <tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No hay pacientes con cuenta pendiente</td></tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = cuentas.map(cuenta => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div>
-                                <div class="text-sm font-medium text-gray-900">${cuenta.paciente_nombre}</div>
-                                <div class="text-sm text-gray-500">CI: ${cuenta.paciente_ci}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">${cuenta.tipo_atencion}</div>
-                        ${cuenta.es_emergencia ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Emergencia</span>' : ''}
-                        ${cuenta.es_post_pago ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 ml-1">Post-pago</span>' : ''}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                        Bs ${parseFloat(cuenta.total_calculado).toFixed(2)}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600">
-                        Bs ${parseFloat(cuenta.total_pagado).toFixed(2)}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold ${cuenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}">
-                        Bs ${parseFloat(cuenta.saldo_pendiente).toFixed(2)}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${cuenta.estado_color}-100 text-${cuenta.estado_color}-800">
-                            ${cuenta.estado_label}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <button onclick="abrirModalCobro('${cuenta.id}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition">
-                            Cobrar
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Filtrar pacientes
-        function filtrarPacientes() {
-            const termino = document.getElementById('buscarPaciente').value.toLowerCase();
-            const filtrados = pacientesData.filter(c =>
-                c.paciente_nombre.toLowerCase().includes(termino) ||
-                c.paciente_ci.toLowerCase().includes(termino)
-            );
-            renderizarTabla(filtrados);
-        }
-
-        // Cargar pacientes UTI listos para cobro
-        async function cargarPacientesUti() {
-            try {
-                const response = await fetch('/caja-operativa/uti-pacientes?estado=alta_clinica');
-                const data = await response.json();
-
-                const tbody = document.getElementById('tablaPacientesUti');
-
-                if (data.success && data.pacientes.length > 0) {
-                    document.getElementById('contadorUti').textContent = data.pacientes.length;
-
-                    tbody.innerHTML = data.pacientes.map(p => `
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">${p.paciente?.nombre || 'Sin nombre'}</div>
-                                        <div class="text-sm text-gray-500">CI: ${p.paciente?.ci || '-'}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">Cama ${p.cama}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                                ${p.dias_en_uti} días
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.tipo_pago === 'seguro' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}">
-                                    ${p.tipo_pago === 'seguro' ? 'Seguro: ' + p.seguro : 'Particular'}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
-                                Bs ${parseFloat(p.cuenta?.total || 0).toFixed(2)}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${p.estado_color}-100 text-${p.estado_color}-800">
-                                    ${p.estado_label}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <a href="/uti-caja" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition">
-                                    Ir a Cobro UTI
-                                </a>
-                            </td>
-                        </tr>
-                    `).join('');
-                } else {
-                    document.getElementById('contadorUti').textContent = '0';
-                    tbody.innerHTML = `
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                                No hay pacientes UTI con alta clínica pendientes de cobro
-                            </td>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Paciente</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Atención</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Saldo</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Estado</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acción</th>
                         </tr>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error cargando pacientes UTI:', error);
-                document.getElementById('tablaPacientesUti').innerHTML = `
-                    <tr><td colspan="7" class="px-6 py-4 text-center text-red-500">Error al cargar pacientes UTI</td></tr>
-                `;
-            }
-        }
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="tablaPacientes">
+                        <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 italic font-medium">Cargando pacientes...</td></tr>
+                    </tbody>
+                </table>
+            </div>
 
-        // Cargar resumen del día
-        async function cargarResumenDia() {
-            try {
-                const response = await fetch('{{ route("caja.operativa.resumen-dia") }}');
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('totalCobrado').textContent = 'Bs ' + parseFloat(data.resumen.totales.general).toFixed(2);
-                    document.getElementById('totalTransacciones').textContent = data.resumen.transacciones.total;
-                    document.getElementById('totalPendientes').textContent = data.resumen.cuentas.pendientes;
-                    document.getElementById('totalParciales').textContent = data.resumen.cuentas.parciales;
+            <div class="px-4 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="text-sm text-gray-500" id="paginacionInfo">Mostrando 0 registros</div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnPaginaAnterior" onclick="cambiarPagina(-1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                    <div class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-md border border-gray-200" id="paginacionPagina">Página 1 de 1</div>
+                    <button type="button" id="btnPaginaSiguiente" onclick="cambiarPagina(1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Siguiente</button>
+                </div>
+            </div>
+        </div>
 
-                    // Renderizar métodos de pago
-                    const metodos = [
-                        { key: 'efectivo', label: 'Efectivo', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z', color: 'green' },
-                        { key: 'transferencia', label: 'Transferencia', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', color: 'blue' },
-                        { key: 'tarjeta', label: 'Tarjeta', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', color: 'purple' },
-                        { key: 'qr', label: 'QR', icon: 'M12 4v1m6 11h2m-6 0h-2v4h2v-4zM8 12h2v4H8v-4zm-2 4h2v4H6v-4zm10-4h2v4h-2v-4zM6 8h2v4H6V8zm10 0h2v4h-2V8z', color: 'orange' }
-                    ];
+        <!-- Cobros realizados (turno actual) -->
+        <div class="bg-white shadow-sm rounded-lg border border-gray-100 mt-6">
+            <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h3 class="text-lg font-bold text-gray-800">Cobros Realizados</h3>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="buscarCobro"
+                           placeholder="Paciente, método, recibo..."
+                           class="block w-full sm:w-80 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <button onclick="cargarCobrosRealizados()" class="p-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-600" title="Recargar">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                </div>
+            </div>
 
-                    document.getElementById('metodosPago').innerHTML = metodos.map(m => `
-                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                            <div class="p-2 rounded-full bg-${m.color}-100">
-                                <svg class="w-5 h-5 text-${m.color}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${m.icon}"></path>
-                                </svg>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Recibo / Hora</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Paciente</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Método</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Monto</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="tablaCobros">
+                        <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400 italic font-medium">Cargando cobros...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-4 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="text-sm text-gray-500" id="paginacionCobrosInfo">Mostrando 0 registros</div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnCobroAnterior" onclick="cambiarPaginaCobros(-1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                    <div class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-md border border-gray-200" id="paginacionCobrosPagina">Página 1 de 1</div>
+                    <button type="button" id="btnCobroSiguiente" onclick="cambiarPaginaCobros(1)" class="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Siguiente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cobro -->
+<div id="modalCobro" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalCobro()"></div>
+        <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="p-6">
+                <h3 class="text-xl font-bold text-gray-900 border-b pb-3 mb-4">Procesar Pago</h3>
+                <div id="detalleCuenta" class="mb-6"></div>
+
+                <form id="formCobro" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Monto a Pagar (Bs)</label>
+                            <input type="text" inputmode="decimal" id="montoPago" data-decimal required
+                                   placeholder="0.00"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Método de Pago</label>
+                            <select id="metodoPago" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Seleccionar...</option>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="qr">QR</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Referencia / Observación</label>
+                        <input type="text" id="referenciaPago" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    {{-- Datos fiscales del receptor (SFE-ready). Si no se activa, se emite S/N. --}}
+                    <div class="border-t pt-4 space-y-3">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer select-none">
+                            <input type="checkbox" id="conCreditoFiscal" class="rounded text-blue-600" onchange="toggleDatosFactura()">
+                            Factura con datos (crédito fiscal)
+                        </label>
+                        <div id="bloqueDatosFactura" class="hidden space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Razón social / Nombre</label>
+                                <input type="text" id="razonSocialFactura" class="mt-1 block w-full rounded-md border-gray-300"
+                                    placeholder="Nombre tal cual va en la factura">
                             </div>
-                            <div class="ml-3">
-                                <p class="text-xs text-gray-500">${m.label}</p>
-                                <p class="text-sm font-bold text-gray-900">Bs ${parseFloat(data.resumen.totales[m.key] || 0).toFixed(2)}</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Tipo doc.</label>
+                                    <select id="tipoDocumentoFactura" class="mt-1 block w-full rounded-md border-gray-300" onchange="toggleComplemento()">
+                                        @foreach (\App\Support\TipoDocumento::options() as $opt)
+                                            <option value="{{ $opt['code'] }}" @selected($opt['code'] === \App\Support\TipoDocumento::NIT->value)>{{ $opt['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">N° documento</label>
+                                    <input type="text" inputmode="numeric" id="ciNitFactura" class="mt-1 block w-full rounded-md border-gray-300"
+                                        placeholder="NIT o CI">
+                                </div>
+                            </div>
+                            <div id="bloqueComplemento" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700">Complemento (opcional)</label>
+                                <input type="text" id="complementoFactura" maxlength="5" class="mt-1 block w-full rounded-md border-gray-300"
+                                    placeholder="Ej: 1A">
                             </div>
                         </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
+                        <p id="hintSinNombre" class="text-xs text-gray-400 leading-snug">
+                            Se emitirá <span class="font-semibold">sin nombre (S/N)</span>. Activá la casilla si el cliente pide factura con su NIT.
+                        </p>
+                    </div>
+                    <label class="flex items-center gap-2 text-sm font-bold text-blue-600 cursor-pointer select-none">
+                        <input type="checkbox" id="esPagoTotal" class="rounded text-blue-600"> Marcar como Pago Total
+                    </label>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 items-center">
+                <button onclick="procesarCobro()" id="btnConfirmarCobro" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition shadow-md">CONFIRMAR COBRO</button>
+                <button onclick="cerrarModalCobro()" class="px-6 py-2 bg-white border border-gray-300 rounded-md font-medium text-gray-700 hover:bg-gray-50">CANCELAR</button>
+                <button id="btnImprimirPendiente" onclick="imprimirPagoPendiente()" class="px-4 py-2 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-md font-medium hover:bg-yellow-200" title="Imprimir ticket sin registrar pago">Pago pendiente</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        // Abrir modal de cobro
-        async function abrirModalCobro(cuentaId) {
-            try {
-                const response = await fetch(`{{ url('/caja-operativa/detalle-cuenta') }}/${cuentaId}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    cuentaActual = data.cuenta;
-                    
-                    // Mostrar detalle
-                    document.getElementById('detalleCuenta').innerHTML = `
-                        <div class="bg-gray-50 p-4 rounded-md">
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <span class="text-sm text-gray-500">Paciente:</span>
-                                    <p class="font-medium">${data.cuenta.paciente.nombre}</p>
-                                </div>
-                                <div>
-                                    <span class="text-sm text-gray-500">Tipo:</span>
-                                    <p class="font-medium">${data.cuenta.tipo_atencion}</p>
-                                </div>
-                            </div>
-                            <div class="border-t pt-3">
-                                <h4 class="text-sm font-medium text-gray-900 mb-2">Detalle de Cargos:</h4>
-                                <ul class="space-y-1 text-sm">
-                                    ${data.cuenta.detalles.map(d => `
-                                        <li class="flex justify-between">
-                                            <span>${d.descripcion} (${d.cantidad}x)</span>
-                                            <span>Bs ${parseFloat(d.subtotal).toFixed(2)}</span>
-                                        </li>
-                                    `).join('')}
-                                </ul>
-                                <div class="border-t mt-2 pt-2 flex justify-between font-bold">
-                                    <span>Total:</span>
-                                    <span>Bs ${parseFloat(data.cuenta.total_calculado).toFixed(2)}</span>
-                                </div>
-                                ${data.cuenta.seguro ? `
-                                    <div class="flex justify-between text-sm text-green-600">
-                                        <span>Seguro ${data.cuenta.seguro.nombre} (-${data.cuenta.seguro.ya_aplicado ? 'aplicado' : 'proyectado'}):</span>
-                                        <span>-Bs ${parseFloat(data.cuenta.seguro.monto_cubierto).toFixed(2)}</span>
-                                    </div>
-                                    <div class="flex justify-between font-bold ${data.cuenta.seguro.monto_paciente > 0 ? 'text-red-600' : 'text-green-600'}">
-                                        <span>A pagar por paciente:</span>
-                                        <span>Bs ${parseFloat(data.cuenta.seguro.monto_paciente).toFixed(2)}</span>
-                                    </div>
-                                ` : `
-                                    <div class="flex justify-between text-sm ${data.cuenta.total_pagado > 0 ? 'text-green-600' : ''}">
-                                        <span>Pagado:</span>
-                                        <span>Bs ${parseFloat(data.cuenta.total_pagado).toFixed(2)}</span>
-                                    </div>
-                                    <div class="flex justify-between font-bold ${data.cuenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}">
-                                        <span>Saldo Pendiente:</span>
-                                        <span>Bs ${parseFloat(data.cuenta.saldo_pendiente).toFixed(2)}</span>
-                                    </div>
-                                `}
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Pre-llenar datos de facturación si existen
-                    if (data.cuenta.ci_nit_facturacion) {
-                        document.getElementById('ciNitFactura').value = data.cuenta.ci_nit_facturacion;
-                    }
-                    if (data.cuenta.razon_social) {
-                        document.getElementById('razonSocialFactura').value = data.cuenta.razon_social;
-                    }
-                    
-                    // Pre-llenar monto con saldo pendiente o copago del seguro
-                    const montoSugerido = data.cuenta.seguro ? data.cuenta.seguro.monto_paciente : data.cuenta.saldo_pendiente;
-                    const montoSugeridoFloat = parseFloat(String(montoSugerido).replace(',', '.')) || 0;
-                    document.getElementById('montoPago').value = montoSugeridoFloat.toFixed(2);
-                    document.getElementById('montoPago').max = montoSugeridoFloat.toFixed(2);
-                    
-                    // Limpiar otros campos
-                    document.getElementById('metodoPago').value = '';
-                    document.getElementById('referenciaPago').value = '';
-                    document.getElementById('esPagoTotal').checked = false;
-                    
-                    document.getElementById('modalCobro').classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al cargar detalle de la cuenta');
-            }
-        }
+<!-- Modal Cierre -->
+<div id="modalCierre" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="cerrarModalCierre()"></div>
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Cierre de Caja Diario</h3>
+            <div id="resumenCierre" class="bg-blue-50 p-4 rounded-md mb-4 text-sm border border-blue-100"></div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto Final Físico (Bs)</label>
+                    <input type="text" inputmode="decimal" id="montoFinal" data-decimal
+                           placeholder="0.00"
+                           class="mt-1 block w-full rounded-md border-gray-300 font-bold text-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Notas de Cierre</label>
+                    <textarea id="observacionesCierre" class="mt-1 block w-full rounded-md border-gray-300" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="mt-6 flex flex-row-reverse gap-3">
+                <button onclick="cerrarCaja()" class="px-6 py-2 bg-red-600 text-white font-bold rounded-md hover:bg-red-700 transition">CERRAR CAJA</button>
+                <button onclick="cerrarModalCierre()" class="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-md">VOLVER</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        // Cerrar modal de cobro
-        function cerrarModalCobro() {
-            document.getElementById('modalCobro').classList.add('hidden');
-            cuentaActual = null;
-        }
+@push('scripts')
+<script>
+    let cuentaActual = null;
+    let idempotencyKeyCobro = null;
+    let pacientesData = [];
+    let paginaActual = 1;
+    const registrosPorPagina = 10;
 
-        // Procesar cobro
-        async function procesarCobro() {
-            if (!cuentaActual) return;
-            
-            // Sanitizar el monto: reemplazar coma por punto y convertir a número
-            const montoRaw = String(document.getElementById('montoPago').value).replace(',', '.');
-            const montoParsed = parseFloat(montoRaw);
+    let cobrosData = [];
+    let paginaCobros = 1;
+    const cobrosPorPagina = 5;
 
-            if (isNaN(montoParsed) || montoParsed <= 0) {
-                alert('Ingrese un monto válido mayor a 0');
+    // Cargar datos al iniciar
+    document.addEventListener('DOMContentLoaded', () => {
+        recargarTodo();
+        // Buscador inteligente en tiempo real
+        document.getElementById('buscarPaciente').addEventListener('input', filtrarPacientes);
+        document.getElementById('buscarCobro').addEventListener('input', filtrarCobros);
+        // Inputs monetarios: acepta punto o coma, normaliza a punto, máx 2 decimales
+        document.querySelectorAll('input[data-decimal]').forEach(inicializarInputDecimal);
+    });
+
+    // Saneador de montos (Bs). Convierte coma a punto y limita a 2 decimales.
+    function inicializarInputDecimal(input) {
+        input.addEventListener('keypress', (e) => {
+            if (!/[0-9.,]/.test(e.key)) e.preventDefault();
+        });
+        input.addEventListener('input', function () {
+            const pos = this.selectionStart;
+            let val = this.value.replace(',', '.').replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+            // Tope de 2 decimales
+            const dot = val.indexOf('.');
+            if (dot !== -1) val = val.slice(0, dot + 1) + val.slice(dot + 1, dot + 3);
+            if (this.value !== val) { this.value = val; this.setSelectionRange(pos, pos); }
+        });
+        input.addEventListener('blur', function () {
+            const num = parseFloat(this.value);
+            this.value = isNaN(num) ? '' : num.toFixed(2);
+        });
+    }
+
+    async function recargarTodo() {
+        // Bloqueamos la UI brevemente con texto de carga si fuera necesario
+        await Promise.all([
+            cargarPacientesPendientes(),
+            cargarResumenDia(),
+            cargarCobrosRealizados()
+        ]);
+    }
+
+    function mostrarErrorTabla(mensaje) {
+        document.getElementById('tablaPacientes').innerHTML =
+            `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500 font-medium">${mensaje}</td></tr>`;
+    }
+
+    async function cargarPacientesPendientes() {
+        try {
+            const response = await fetch('{{ route("caja.operativa.pacientes-pendientes") }}', {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            // Sesión expirada: el endpoint redirige a /login (HTML), no devuelve JSON
+            if (response.redirected || response.status === 401 || response.status === 419) {
+                mostrarErrorTabla('Tu sesión expiró. Recargá la página e iniciá sesión de nuevo.');
                 return;
             }
 
-            const formData = {
-                cuenta_cobro_id: cuentaActual.id,
-                monto: montoParsed,
-                metodo_pago: document.getElementById('metodoPago').value,
-                referencia: document.getElementById('referenciaPago').value,
-                ci_nit_facturacion: document.getElementById('ciNitFactura').value,
-                razon_social: document.getElementById('razonSocialFactura').value,
-                es_pago_total: document.getElementById('esPagoTotal').checked
-            };
+            const data = await response.json();
+            if (data.success) {
+                pacientesData = data.cuentas;
+                paginaActual = 1;
+                filtrarPacientes(); // Refresca la vista
+            } else {
+                mostrarErrorTabla(data.message || 'No se pudieron cargar las cuentas.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarErrorTabla('Error al conectar con el servidor');
+        }
+    }
 
-            if (!formData.metodo_pago) {
-                alert('Seleccione un método de pago');
+    // Coincidencia de búsqueda. String(... ?? '') fuerza a texto: los campos
+    // pueden llegar como número (ej. CI) y un número no tiene .toLowerCase().
+    function coincideBusqueda(c, t) {
+        const campos = [c.paciente_nombre, c.paciente_ci, c.tipo_atencion, c.estado_label];
+        return campos.some(v => String(v ?? '').toLowerCase().includes(t));
+    }
+
+    function filtrarPacientes() {
+        const t = document.getElementById('buscarPaciente').value.toLowerCase().trim();
+        const filtrados = pacientesData.filter(c => coincideBusqueda(c, t));
+        paginaActual = 1;
+        renderizarTabla(filtrados);
+    }
+
+    function renderizarTabla(cuentas) {
+        const tbody = document.getElementById('tablaPacientes');
+        const totalRegistros = cuentas.length;
+        const totalPaginas = Math.max(1, Math.ceil(totalRegistros / registrosPorPagina));
+        if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+        const inicio = (paginaActual - 1) * registrosPorPagina;
+        const fin = inicio + registrosPorPagina;
+        const paginaCuentas = cuentas.slice(inicio, fin);
+
+        document.getElementById('paginacionInfo').textContent = totalRegistros === 0
+            ? 'Mostrando 0 registros'
+            : `Mostrando ${inicio + 1}-${Math.min(fin, totalRegistros)} de ${totalRegistros} registros`;
+        document.getElementById('paginacionPagina').textContent = `Página ${totalPaginas === 0 ? 0 : paginaActual} de ${totalPaginas}`;
+        document.getElementById('btnPaginaAnterior').disabled = paginaActual <= 1;
+        document.getElementById('btnPaginaSiguiente').disabled = paginaActual >= totalPaginas;
+
+        if (cuentas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400 font-medium">No hay registros que coincidan con la búsqueda</td></tr>';
+            return;
+        }
+        tbody.innerHTML = paginaCuentas.map(c => `
+            <tr class="hover:bg-blue-50/30 transition-colors">
+                <td class="px-6 py-4">
+                    <div class="text-sm font-bold text-gray-800">${c.paciente_nombre}</div>
+                    <div class="text-[11px] text-gray-500">DNI/CI: ${c.paciente_ci}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-xs text-gray-700 font-medium">${c.tipo_atencion}</div>
+                    ${c.es_emergencia ? '<span class="text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black mt-1 inline-block">EMERGENCIA</span>' : ''}
+                </td>
+                <td class="px-6 py-4 text-right text-sm font-medium text-gray-600">Bs ${parseFloat(c.total_calculado).toFixed(2)}</td>
+                <td class="px-6 py-4 text-right text-sm font-black text-red-600">Bs ${parseFloat(c.saldo_pendiente).toFixed(2)}</td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-2.5 py-1 rounded text-[10px] font-black tracking-tighter bg-${c.estado_color}-100 text-${c.estado_color}-800 border border-${c.estado_color}-200">${c.estado_label.toUpperCase()}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <button onclick="abrirModalCobro('${c.id}')" class="px-5 py-1.5 bg-blue-600 text-white text-[11px] font-black rounded shadow hover:bg-blue-700 transition-all uppercase">COBRAR</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function cambiarPagina(direccion) {
+        const t = document.getElementById('buscarPaciente').value.toLowerCase().trim();
+        const filtrados = pacientesData.filter(c => coincideBusqueda(c, t));
+        const totalPaginas = Math.max(1, Math.ceil(filtrados.length / registrosPorPagina));
+        paginaActual = Math.min(totalPaginas, Math.max(1, paginaActual + direccion));
+        renderizarTabla(filtrados);
+    }
+
+    // ---- Cobros realizados (turno actual) ----
+    async function cargarCobrosRealizados() {
+        try {
+            const response = await fetch('{{ route("caja.operativa.cobros-realizados") }}', {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (response.redirected || response.status === 401 || response.status === 419) {
+                document.getElementById('tablaCobros').innerHTML =
+                    '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">Tu sesión expiró. Recargá la página.</td></tr>';
                 return;
             }
+            const data = await response.json();
+            if (data.success) {
+                cobrosData = data.cobros;
+                paginaCobros = 1;
+                filtrarCobros();
+            } else {
+                document.getElementById('tablaCobros').innerHTML =
+                    `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">${data.message || 'No se pudieron cargar los cobros.'}</td></tr>`;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('tablaCobros').innerHTML =
+                '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">Error al conectar con el servidor</td></tr>';
+        }
+    }
 
-            try {
-                const response = await fetch('{{ route("caja.operativa.procesar-cobro") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify(formData)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert(data.message);
-                    if (data.print_url) {
+    function coincideBusquedaCobro(c, t) {
+        const campos = [c.paciente_nombre, c.paciente_ci, c.metodo_label, c.id, c.referencia];
+        return campos.some(v => String(v ?? '').toLowerCase().includes(t));
+    }
+
+    function filtrarCobros() {
+        const t = document.getElementById('buscarCobro').value.toLowerCase().trim();
+        const filtrados = cobrosData.filter(c => coincideBusquedaCobro(c, t));
+        paginaCobros = 1;
+        renderizarCobros(filtrados);
+    }
+
+    function renderizarCobros(cobros) {
+        const tbody = document.getElementById('tablaCobros');
+        const totalRegistros = cobros.length;
+        const totalPaginas = Math.max(1, Math.ceil(totalRegistros / cobrosPorPagina));
+        if (paginaCobros > totalPaginas) paginaCobros = totalPaginas;
+
+        const inicio = (paginaCobros - 1) * cobrosPorPagina;
+        const fin = inicio + cobrosPorPagina;
+        const paginaItems = cobros.slice(inicio, fin);
+
+        document.getElementById('paginacionCobrosInfo').textContent = totalRegistros === 0
+            ? 'Mostrando 0 registros'
+            : `Mostrando ${inicio + 1}-${Math.min(fin, totalRegistros)} de ${totalRegistros} registros`;
+        document.getElementById('paginacionCobrosPagina').textContent = `Página ${totalPaginas === 0 ? 0 : paginaCobros} de ${totalPaginas}`;
+        document.getElementById('btnCobroAnterior').disabled = paginaCobros <= 1;
+        document.getElementById('btnCobroSiguiente').disabled = paginaCobros >= totalPaginas;
+
+        if (totalRegistros === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-400 font-medium">No hay cobros que coincidan con la búsqueda</td></tr>';
+            return;
+        }
+
+        const metodoColor = { efectivo: 'green', transferencia: 'blue', tarjeta: 'purple', qr: 'orange' };
+        tbody.innerHTML = paginaItems.map(c => {
+            const color = metodoColor[c.metodo] || 'gray';
+            return `
+            <tr class="hover:bg-blue-50/30 transition-colors">
+                <td class="px-6 py-4">
+                    <div class="text-xs font-mono font-bold text-gray-700">${c.id}</div>
+                    <div class="text-[11px] text-gray-500">${c.hora}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-bold text-gray-800">${c.paciente_nombre}</div>
+                    <div class="text-[11px] text-gray-500">DNI/CI: ${c.paciente_ci}</div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-2.5 py-1 rounded text-[10px] font-black tracking-tighter bg-${color}-100 text-${color}-800 border border-${color}-200">${c.metodo_label.toUpperCase()}</span>
+                </td>
+                <td class="px-6 py-4 text-right text-sm font-black text-gray-900">Bs ${parseFloat(c.monto).toFixed(2)}</td>
+                <td class="px-6 py-4 text-center">
+                    <button onclick="imprimirRecibo('${c.cuenta_id}', '${c.id}')" class="inline-flex items-center gap-1 px-4 py-1.5 bg-gray-700 text-white text-[11px] font-black rounded shadow hover:bg-gray-800 transition-all uppercase">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        Recibo
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function cambiarPaginaCobros(direccion) {
+        const t = document.getElementById('buscarCobro').value.toLowerCase().trim();
+        const filtrados = cobrosData.filter(c => coincideBusquedaCobro(c, t));
+        const totalPaginas = Math.max(1, Math.ceil(filtrados.length / cobrosPorPagina));
+        paginaCobros = Math.min(totalPaginas, Math.max(1, paginaCobros + direccion));
+        renderizarCobros(filtrados);
+    }
+
+    function imprimirRecibo(cuentaId, pagoId) {
+        let url = '{{ url('/caja-operativa/comprobante') }}' + '/' + encodeURIComponent(cuentaId);
+        if (pagoId) url += '?pago=' + encodeURIComponent(pagoId);
+        window.open(url, '_blank');
+    }
+
+    async function cargarResumenDia() {
+        try {
+            const response = await fetch('{{ route("caja.operativa.resumen-dia") }}');
+            const data = await response.json();
+            if (data.success) {
+                const r = data.resumen;
+                document.getElementById('totalCobrado').textContent = 'Bs ' + parseFloat(r.totales.general).toFixed(2);
+                document.getElementById('totalTransacciones').textContent = r.transacciones.total;
+                document.getElementById('totalPendientes').textContent = r.cuentas.pendientes;
+                document.getElementById('totalParciales').textContent = r.cuentas.parciales;
+
+                const config = [
+                    { k: 'efectivo', l: 'Efectivo', c: 'green', i: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z' },
+                    { k: 'transferencia', l: 'Transf.', c: 'blue', i: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+                    { k: 'tarjeta', l: 'Tarjeta', c: 'purple', i: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+                    { k: 'qr', l: 'QR', c: 'orange', i: 'M12 4v1m6 11h2m-6 0h-2v4h2v-4zM8 12h2v4H8v-4zm-2 4h2v4H6v-4zm10-4h2v4h-2v-4zM6 8h2v4H6V8zm10 0h2v4h-2V8z' }
+                ];
+
+                document.getElementById('metodosPago').innerHTML = config.map(m => `
+                    <div class="flex items-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
+                        <div class="p-2 rounded-full bg-${m.c}-100 text-${m.c}-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="${m.i}"></path></svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">${m.l}</p>
+                            <p class="text-sm font-bold text-gray-800">Bs ${parseFloat(r.totales[m.k] || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function abrirModalCobro(id) {
+        const response = await fetch(`{{ url('/caja-operativa/detalle-cuenta') }}/${id}`);
+        const data = await response.json();
+        if (data.success) {
+            cuentaActual = data.cuenta;
+            // Token de idempotencia: uno por apertura de modal. Un reintento del mismo
+            // cobro (doble-click / red) reusa este token y el backend no duplica el pago.
+            idempotencyKeyCobro = (crypto.randomUUID
+                ? crypto.randomUUID()
+                : 'idem-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+            document.getElementById('detalleCuenta').innerHTML = `
+                <div class="rounded-lg border border-gray-200 overflow-hidden">
+                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Paciente</span>
+                        <span class="text-sm font-bold text-gray-900">${cuentaActual.paciente.nombre}</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+                                    <th class="px-3 py-2 text-left font-bold">Área</th>
+                                    <th class="px-3 py-2 text-left font-bold">Ítem</th>
+                                    <th class="px-3 py-2 text-center font-bold">Cant.</th>
+                                    <th class="px-3 py-2 text-right font-bold">P. Unit.</th>
+                                    <th class="px-3 py-2 text-right font-bold">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${cuentaActual.detalles.map(d => {
+                                    // Limpiar floats crudos en descripciones antiguas (ej: 40.3666 hrs → 40h 22min)
+                                    const desc = d.descripcion.replace(/(\d+\.\d{3,})\s*hrs?/g, (_, h) => {
+                                        const hh = Math.floor(parseFloat(h));
+                                        const mm = Math.round((parseFloat(h) - hh) * 60);
+                                        return mm > 0 ? `${hh}h ${mm}min` : `${hh}h`;
+                                    });
+                                    const cant = parseFloat(d.cantidad);
+                                    return `<tr>
+                                        <td class="px-3 py-2 align-top whitespace-nowrap"><span class="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wide">${d.area || 'General'}</span></td>
+                                        <td class="px-3 py-2 align-top text-gray-700">${desc}</td>
+                                        <td class="px-3 py-2 align-top text-center text-gray-600 whitespace-nowrap">${Number.isInteger(cant) ? cant : cant.toFixed(2)}</td>
+                                        <td class="px-3 py-2 align-top text-right font-mono text-gray-600 whitespace-nowrap">Bs ${parseFloat(d.precio_unitario).toFixed(2)}</td>
+                                        <td class="px-3 py-2 align-top text-right font-mono font-semibold text-gray-900 whitespace-nowrap">Bs ${parseFloat(d.subtotal).toFixed(2)}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-gray-200 bg-gray-50">
+                                    <td colspan="4" class="px-3 py-3 text-right font-black text-gray-900 uppercase tracking-wide">Total a pagar</td>
+                                    <td class="px-3 py-3 text-right font-black text-lg text-red-600 whitespace-nowrap">Bs ${parseFloat(cuentaActual.saldo_pendiente).toFixed(2)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            `;
+            document.getElementById('montoPago').value = parseFloat(cuentaActual.saldo_pendiente).toFixed(2);
+            // Prefill datos fiscales del receptor
+            document.getElementById('conCreditoFiscal').checked = !!cuentaActual.con_credito_fiscal;
+            document.getElementById('razonSocialFactura').value = cuentaActual.razon_social || '';
+            document.getElementById('tipoDocumentoFactura').value = cuentaActual.factura_tipo_documento || {{ \App\Support\TipoDocumento::NIT->value }};
+            document.getElementById('ciNitFactura').value = cuentaActual.ci_nit_facturacion || '';
+            document.getElementById('complementoFactura').value = cuentaActual.factura_complemento || '';
+            toggleDatosFactura();
+            document.getElementById('modalCobro').classList.remove('hidden');
+        }
+    }
+
+    // Muestra/oculta el bloque de datos fiscales según el toggle de crédito fiscal.
+    function toggleDatosFactura() {
+        const on = document.getElementById('conCreditoFiscal').checked;
+        document.getElementById('bloqueDatosFactura').classList.toggle('hidden', !on);
+        document.getElementById('hintSinNombre').classList.toggle('hidden', on);
+        if (on) toggleComplemento();
+    }
+
+    // El complemento sólo aplica a CI (tipo documento = 1).
+    function toggleComplemento() {
+        const esCI = document.getElementById('tipoDocumentoFactura').value === '1';
+        document.getElementById('bloqueComplemento').classList.toggle('hidden', !esCI);
+    }
+
+    async function procesarCobro() {
+        if (!cuentaActual) return;
+        const btn = document.getElementById('btnConfirmarCobro');
+        btn.disabled = true;
+        btn.innerText = 'PROCESANDO...';
+
+        const payload = {
+            cuenta_cobro_id: cuentaActual.id,
+            cuenta_ids: cuentaActual.cuenta_ids,
+            monto: document.getElementById('montoPago').value,
+            metodo_pago: document.getElementById('metodoPago').value,
+            referencia: document.getElementById('referenciaPago').value,
+            con_credito_fiscal: document.getElementById('conCreditoFiscal').checked,
+            factura_razon_social: document.getElementById('razonSocialFactura').value,
+            factura_tipo_documento: document.getElementById('tipoDocumentoFactura').value,
+            factura_numero_documento: document.getElementById('ciNitFactura').value,
+            factura_complemento: document.getElementById('complementoFactura').value,
+            es_pago_total: document.getElementById('esPagoTotal').checked,
+            idempotency_key: idempotencyKeyCobro
+        };
+
+        if(!payload.metodo_pago) {
+            alert("Seleccione un método de pago");
+            btn.disabled = false;
+            btn.innerText = 'CONFIRMAR COBRO';
+            return;
+        }
+
+        let printWindow = null;
+        try {
+            // Abrir ventana en el evento de clic para evitar bloqueador de ventanas emergentes.
+            printWindow = window.open('about:blank', '_blank');
+
+            const response = await fetch('{{ route("caja.operativa.procesar-cobro") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (data.success) {
+                if (data.print_url) {
+                    if (printWindow) {
+                        printWindow.location.href = data.print_url;
+                    } else {
                         window.open(data.print_url, '_blank');
                     }
-                    cerrarModalCobro();
-                    cargarPacientesPendientes();
-                    cargarPacientesUti();
-                    cargarResumenDia();
-                } else {
-                    alert(data.message);
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al procesar el cobro');
-            }
-        }
-
-        // Mostrar modal de cierre
-        async function mostrarModalCierre() {
-            try {
-                const response = await fetch('{{ route("caja.operativa.resumen-dia") }}');
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('resumenCierre').innerHTML = `
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Monto Inicial:</span>
-                                <span class="font-medium">Bs ${parseFloat(data.resumen.monto_inicial).toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Total Ingresos:</span>
-                                <span class="font-medium text-green-600">+ Bs ${parseFloat(data.resumen.totales.general).toFixed(2)}</span>
-                            </div>
-                            <div class="border-t pt-2 flex justify-between font-bold">
-                                <span>Total Esperado:</span>
-                                <span>Bs ${(parseFloat(data.resumen.monto_inicial) + parseFloat(data.resumen.totales.general)).toFixed(2)}</span>
-                            </div>
-                        </div>
-                    `;
-                    document.getElementById('montoFinal').value = '';
-                    document.getElementById('observacionesCierre').value = '';
-                    document.getElementById('modalCierre').classList.remove('hidden');
+                cerrarModalCobro();
+                await recargarTodo();
+            } else {
+                alert(data.message);
+                if (printWindow) {
+                    printWindow.close();
                 }
-            } catch (error) {
-                console.error('Error:', error);
             }
+        } catch (e) {
+            alert("Error al procesar el pago");
+            if (printWindow) {
+                printWindow.close();
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'CONFIRMAR COBRO';
         }
+    }
 
-        // Cerrar modal de cierre
-        function cerrarModalCierre() {
-            document.getElementById('modalCierre').classList.add('hidden');
+    function imprimirPagoPendiente() {
+        if (!cuentaActual) return alert('No hay cuenta seleccionada para imprimir');
+        const url = '{{ url('/caja-operativa/comprobante') }}' + '/' + cuentaActual.id;
+        window.open(url, '_blank');
+    }
+
+    function cerrarModalCobro() {
+        document.getElementById('modalCobro').classList.add('hidden');
+        cuentaActual = null;
+    }
+
+    async function mostrarModalCierre() {
+        const response = await fetch('{{ route("caja.operativa.resumen-dia") }}');
+        const data = await response.json();
+        if (data.success) {
+            const r = data.resumen;
+            const total = (parseFloat(r.monto_inicial) + parseFloat(r.totales.general)).toFixed(2);
+            document.getElementById('resumenCierre').innerHTML = `
+                <div class="flex justify-between mb-1 text-gray-600"><span>Monto Inicial Apertura:</span><span class="font-bold">Bs ${r.monto_inicial}</span></div>
+                <div class="flex justify-between mb-1 text-gray-600"><span>Ventas Recaudadas:</span><span class="font-bold text-green-600">+ Bs ${r.totales.general}</span></div>
+                <div class="flex justify-between border-t border-blue-200 mt-2 pt-2 font-black text-blue-900 text-lg"><span>Saldo en Sistema:</span><span>Bs ${total}</span></div>
+            `;
+            document.getElementById('modalCierre').classList.remove('hidden');
         }
+    }
 
-        // Cerrar caja
-        async function cerrarCaja() {
-            const montoFinal = document.getElementById('montoFinal').value;
-            
-            if (!montoFinal) {
-                alert('Ingrese el monto final');
-                return;
-            }
+    function cerrarModalCierre() { document.getElementById('modalCierre').classList.add('hidden'); }
 
-            if (!confirm('¿Está seguro de cerrar la caja? Esta acción no se puede deshacer.')) {
-                return;
-            }
+    async function cerrarCaja() {
+        const payload = {
+            monto_final: document.getElementById('montoFinal').value,
+            observaciones: document.getElementById('observacionesCierre').value
+        };
+        if (!payload.monto_final) return alert("Ingrese el monto real que tiene en caja");
 
-            try {
-                const response = await fetch('{{ route("caja.operativa.cerrar") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        monto_final: montoFinal,
-                        observaciones: document.getElementById('observacionesCierre').value
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('Caja cerrada correctamente');
-                    window.location.reload();
-                } else {
-                    alert(data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al cerrar caja');
-            }
+        try {
+            const response = await fetch('{{ route("caja.operativa.cerrar") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert("Caja cerrada correctamente.");
+                window.location.reload();
+            } else { alert(data.message); }
+        } catch(e) { alert("Error al cerrar caja"); }
+    }
+
+    // Toggle automático de monto total
+    document.getElementById('esPagoTotal').addEventListener('change', function() {
+        if (this.checked && cuentaActual) {
+            document.getElementById('montoPago').value = parseFloat(cuentaActual.saldo_pendiente).toFixed(2);
         }
-
-        // Actualizar monto al marcar pago total
-        document.getElementById('esPagoTotal').addEventListener('change', function() {
-            if (this.checked && cuentaActual) {
-                const montoSugerido = cuentaActual.seguro ? cuentaActual.seguro.monto_paciente : cuentaActual.saldo_pendiente;
-                document.getElementById('montoPago').value = montoSugerido;
-            }
-        });
-    </script>
+    });
+</script>
 @endpush
 @endsection

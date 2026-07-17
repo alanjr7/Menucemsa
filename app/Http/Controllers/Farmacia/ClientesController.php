@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Farmacia;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Cliente;
+use App\Support\TipoDocumento;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ClientesController extends Controller
 {
@@ -14,7 +16,7 @@ class ClientesController extends Controller
         $this->middleware('auth');
         // Verificar que el usuario tenga rol farmacia o admin
         $this->middleware(function ($request, $next) {
-            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin', 'administrador'])) {
+            if (!Auth::user() || !in_array(Auth::user()->role, ['farmacia', 'admin', 'administrador', 'almacenista'])) {
                 abort(403, 'No tienes permisos para acceder a este módulo.');
             }
             return $next($request);
@@ -33,11 +35,17 @@ class ClientesController extends Controller
                 'fecha' => $cliente->fecha,
                 'telefono' => $cliente->telefono,
                 'email' => $cliente->email,
-                'direccion' => $cliente->direccion
+                'direccion' => $cliente->direccion,
+                'tipo_documento' => $cliente->tipo_documento,
+                'tipo_documento_label' => $cliente->tipo_documento_label,
+                'numero_documento' => $cliente->numero_documento,
+                'complemento' => $cliente->complemento,
             ];
         })->toArray();
 
-        return view('farmacia.clientes', compact('clientes', 'clientesArray'));
+        $tiposDocumento = TipoDocumento::options();
+
+        return view('farmacia.clientes', compact('clientes', 'clientesArray', 'tiposDocumento'));
     }
 
     public function store(Request $request)
@@ -46,7 +54,10 @@ class ClientesController extends Controller
             'nombre' => 'required|string|max:255',
             'telefono' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255|unique:clientes,email',
-            'direccion' => 'nullable|string|max:500'
+            'direccion' => 'nullable|string|max:500',
+            'tipo_documento' => ['nullable', Rule::in(TipoDocumento::codigos())],
+            'numero_documento' => 'nullable|string|max:20',
+            'complemento' => 'nullable|string|max:5',
         ]);
 
         $cliente = Cliente::create($validated);
@@ -66,7 +77,10 @@ class ClientesController extends Controller
             'nombre' => 'required|string|max:255',
             'telefono' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255|unique:clientes,email,' . $id,
-            'direccion' => 'nullable|string|max:500'
+            'direccion' => 'nullable|string|max:500',
+            'tipo_documento' => ['nullable', Rule::in(TipoDocumento::codigos())],
+            'numero_documento' => 'nullable|string|max:20',
+            'complemento' => 'nullable|string|max:5',
         ]);
 
         $cliente->update($validated);

@@ -127,6 +127,15 @@
                                             </svg>
                                         @endif
                                     </button>
+                                    
+                                    <button onclick="revealPassword({{ $user->id }})"
+                                            class="text-indigo-600 hover:text-indigo-900"
+                                            title="Ver contraseña">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
                                     @endif
                                 </div>
                             </td>
@@ -141,6 +150,50 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Credenciales -->
+<div id="passwordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 id="modalTitle" class="text-lg font-semibold text-gray-900">Credenciales del Usuario</h3>
+            <button onclick="closePasswordModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <p id="modalSubtitle" class="text-sm text-gray-600 mb-2">Credenciales de acceso:</p>
+            <p id="modalUserName" class="font-medium text-gray-900"></p>
+            <p id="modalUserEmail" class="text-sm text-gray-500"></p>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p class="text-sm font-medium text-blue-800 mb-2">Contraseña:</p>
+            <div class="flex items-center gap-2">
+                <code id="modalPassword" class="text-lg font-mono bg-white px-3 py-2 rounded border"></code>
+                <button onclick="copyPassword()" class="text-blue-600 hover:text-blue-800" title="Copiar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="modalWarning" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 hidden">
+            <p class="text-xs text-yellow-800">
+                <strong>Importante:</strong> Entregue esta contraseña al usuario. Se recomienda que el usuario la cambie en su primer inicio de sesión.
+            </p>
+        </div>
+        
+        <div class="flex gap-3">
+            <button onclick="closePasswordModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition">
+                Cerrar
+            </button>
         </div>
     </div>
 </div>
@@ -169,6 +222,76 @@ function toggleUserStatus(userId) {
     .catch(error => {
         console.error('Error:', error);
         alert('Error al cambiar el estado del usuario');
+    });
+}
+
+function revealPassword(userId) {
+    fetch(`/user-management/${userId}/reveal-password`, {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showPasswordModal(data.user_name, data.user_email, data.password, false);
+        } else {
+            alert(data.error || 'No se pudo obtener la contraseña');
+        }
+    })
+    .catch(() => alert('Error al obtener la contraseña'));
+}
+
+function generateTemporalPassword(userId) {
+    if (!confirm('¿Estás seguro de generar una contraseña temporal para este usuario? La contraseña actual será reemplazada.')) {
+        return;
+    }
+
+    fetch(`/user-management/${userId}/temporal-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showPasswordModal(data.user_name, data.user_email, data.password, true);
+        } else {
+            alert(data.error || 'Error al generar contraseña temporal');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al generar contraseña temporal');
+    });
+}
+
+function showPasswordModal(userName, userEmail, password, isTemporal) {
+    document.getElementById('modalTitle').textContent = isTemporal ? 'Contraseña Temporal Generada' : 'Credenciales del Usuario';
+    document.getElementById('modalSubtitle').textContent = isTemporal ? 'Se ha generado una contraseña temporal para:' : 'Credenciales de acceso de:';
+    document.getElementById('modalWarning').classList.toggle('hidden', !isTemporal);
+    document.getElementById('modalUserName').textContent = userName;
+    document.getElementById('modalUserEmail').textContent = userEmail;
+    document.getElementById('modalPassword').textContent = password;
+    document.getElementById('passwordModal').style.display = 'flex';
+}
+
+function closePasswordModal() {
+    document.getElementById('passwordModal').style.display = 'none';
+}
+
+function copyPassword() {
+    const password = document.getElementById('modalPassword').textContent;
+    navigator.clipboard.writeText(password).then(() => {
+        // Cambiar temporalmente el texto para indicar que se copió
+        const button = event.currentTarget;
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+        }, 2000);
     });
 }
 </script>

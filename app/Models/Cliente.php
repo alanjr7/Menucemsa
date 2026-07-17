@@ -13,10 +13,14 @@ class Cliente extends Model
         'nombre',
         'telefono',
         'email',
-        'direccion'
+        'direccion',
+        'tipo_documento',
+        'numero_documento',
+        'complemento',
     ];
 
     protected $casts = [
+        'tipo_documento' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -25,5 +29,11 @@ class Cliente extends Model
     public function getFechaAttribute()
     {
         return $this->created_at ? $this->created_at->format('d/m/Y') : 'N/A';
+    }
+
+    // Etiqueta legible del tipo de documento (catálogo SIN)
+    public function getTipoDocumentoLabelAttribute(): string
+    {
+        return \App\Support\TipoDocumento::labelFor($this->tipo_documento);
     }
 }

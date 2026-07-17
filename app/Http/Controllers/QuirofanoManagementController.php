@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quirofano;
+use App\Models\TipoCirugia;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
@@ -113,6 +114,43 @@ class QuirofanoManagementController extends Controller
             'success' => true,
             'message' => 'Estado del quirófano actualizado exitosamente',
             'quirofano' => $quirofano->fresh()
+        ]);
+    }
+
+    // =========================================================================
+    // Tipos de cirugía: configuración del precio y duración POR DEFECTO.
+    // Estos valores sólo precargan el formulario de programar cirugía; cada cita
+    // guarda su propio costo_base (snapshot), por lo que editar aquí NO afecta
+    // cirugías ya programadas o cobradas. No se permite crear/borrar tipos
+    // (el nombre es la clave del enum tipo_cirugia en citas_quirurgicas).
+    // =========================================================================
+
+    public function tiposIndex(): View
+    {
+        $tipos = TipoCirugia::orderBy('costo_base')->get();
+        return view('quirofano.management.tipos.index', compact('tipos'));
+    }
+
+    public function tiposEdit(TipoCirugia $tipo): View
+    {
+        return view('quirofano.management.tipos.edit', compact('tipo'));
+    }
+
+    public function tiposUpdate(Request $request, TipoCirugia $tipo): JsonResponse
+    {
+        $validated = $request->validate([
+            'duracion_minutos' => 'required|integer|min:1',
+            'costo_base'       => 'required|numeric|decimal:0,2|min:0',
+            'descripcion'      => 'nullable|string|max:255',
+            'activo'           => 'boolean',
+        ]);
+
+        $tipo->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Tipo de cirugía «{$tipo->nombre}» actualizado exitosamente",
+            'tipo'    => $tipo->fresh(),
         ]);
     }
 }

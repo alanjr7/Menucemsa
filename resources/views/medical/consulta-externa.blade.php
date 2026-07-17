@@ -54,7 +54,7 @@
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Pagado</span>
-                            <button data-paciente-ci="{{ $consulta->ci_paciente }}" data-consulta-nro="{{ $consulta->nro }}" onclick="handleVerButton(this)" class="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-900 shadow-sm transition">
+                            <button data-paciente-ci="{{ $consulta->paciente?->ci ?? $consulta->paciente?->temp_code ?? '' }}" data-consulta-nro="{{ $consulta->nro }}" onclick="handleVerButton(this)" class="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-900 shadow-sm transition">
                                 Ver
                             </button>
                             <button data-consulta-nro="{{ $consulta->nro }}" onclick="handleIniciarConsulta(this)" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm">
@@ -177,7 +177,6 @@
             const pacienteCi = button.getAttribute('data-paciente-ci');
             const consultaNro = button.getAttribute('data-consulta-nro');
             
-            console.log('handleVerButton called with:', pacienteCi, consultaNro);
             alert('Botón Ver funciona! CI: ' + pacienteCi + ', Consulta: ' + consultaNro);
             
             verDetallesPaciente(pacienteCi, consultaNro);
@@ -199,7 +198,6 @@
         }
 
         function verDetallesPaciente(pacienteCi, consultaNro) {
-            console.log('verDetallesPaciente called with:', pacienteCi, consultaNro);
             
             // Show loading indicator
             alert('Cargando datos del paciente CI: ' + pacienteCi);
@@ -207,11 +205,9 @@
             // Show patient details in a modal or redirect to patient details
             fetch(`/api/paciente/${pacienteCi}?t=${Date.now()}`)
                 .then(response => {
-                    console.log('Response status:', response.status);
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data);
                     if (data.success) {
                         mostrarModalPaciente(data.paciente, consultaNro);
                     } else {

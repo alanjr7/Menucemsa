@@ -42,22 +42,22 @@
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-3">
-                            @if($emergency->is_temp_id)
+                            @if($emergency->paciente?->is_temp)
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-medium text-slate-600">Nombre:</span>
                                     <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">Paciente Temporal</span>
                                 </div>
-                                <p class="text-sm"><span class="font-medium text-slate-600">ID Temporal:</span> <span class="text-slate-800">{{ $emergency->temp_id ?? 'N/A' }}</span></p>
+                                <p class="text-sm"><span class="font-medium text-slate-600">ID Temporal:</span> <span class="text-slate-800">{{ $emergency->paciente?->temp_code ?? 'N/A' }}</span></p>
                             @elseif($emergency->paciente)
                                 <p class="text-sm"><span class="font-medium text-slate-600">Nombre:</span> <span class="text-slate-800 font-semibold">{{ $emergency->paciente->nombre }}</span></p>
                                 <p class="text-sm"><span class="font-medium text-slate-600">CI:</span> <span class="text-slate-800">{{ $emergency->paciente->ci }}</span></p>
                                 <p class="text-sm"><span class="font-medium text-slate-600">Teléfono:</span> <span class="text-slate-800">{{ $emergency->paciente->telefono ?? 'No registrado' }}</span></p>
                             @else
-                                <p class="text-sm"><span class="font-medium text-slate-600">Nombre:</span> <span class="text-slate-500">Paciente no encontrado (ID: {{ $emergency->patient_id }})</span></p>
+                                <p class="text-sm"><span class="font-medium text-slate-600">Nombre:</span> <span class="text-slate-500">Paciente no encontrado (ID: {{ $emergency->paciente_id }})</span></p>
                             @endif
                         </div>
                         <div class="space-y-3">
-                            @if($emergency->paciente && !$emergency->is_temp_id)
+                            @if($emergency->paciente && !$emergency->paciente?->is_temp)
                                 <p class="text-sm"><span class="font-medium text-slate-600">Edad:</span> <span class="text-slate-800">{{ $emergency->paciente->edad ?? 'No registrado' }}</span></p>
                                 <p class="text-sm"><span class="font-medium text-slate-600">Sexo:</span> <span class="text-slate-800">{{ $emergency->paciente->sexo ?? 'No registrado' }}</span></p>
                                 <p class="text-sm"><span class="font-medium text-slate-600">Dirección:</span> <span class="text-slate-800">{{ $emergency->paciente->direccion ?? 'No registrado' }}</span></p>

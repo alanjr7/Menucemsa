@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\HistorialSegurosExport;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Seguro;
@@ -9,6 +10,8 @@ use App\Models\Paciente;
 use App\Models\CuentaCobro;
 use App\Models\Emergency;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SeguroController extends Controller
 {
@@ -30,13 +33,13 @@ class SeguroController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get()
-            ->map(function($cuenta) {
+            ->map(function ($cuenta) {
                 return [
                     'id' => $cuenta->id,
                     'numero' => $cuenta->id,
                     'fecha' => $cuenta->created_at->format('Y-m-d'),
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'seguro' => $cuenta->seguro?->nombre_empresa ?? 'Sin seguro',
                     'seguro_id' => $cuenta->seguro_id,
                     'tipo_cobertura' => $cuenta->seguro?->descripcion_cobertura ?? 'No definida',
@@ -46,6 +49,29 @@ class SeguroController extends Controller
                     'estado_label' => 'Pendiente de Autorización',
                 ];
             });
+
+        // Autorizaciones resueltas (aceptadas / rechazadas): historial embebido con
+        // búsqueda, exportación e impresión. Lista liviana para la tabla; el detalle
+        // completo se carga por endpoint (Ver / Imprimir) desde la misma fuente única.
+        $autorizaciones = CuentaCobro::with(['paciente', 'seguro', 'seguroAutorizadoPor'])
+            ->whereNotNull('seguro_id')
+            ->whereIn('seguro_estado', ['autorizado', 'rechazado'])
+            ->orderByDesc('seguro_fecha_autorizacion')
+            ->limit(300)
+            ->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'fecha' => optional($c->seguro_fecha_autorizacion)->format('d/m/Y H:i') ?? $c->created_at->format('d/m/Y H:i'),
+                'paciente' => $c->paciente?->nombre ?? 'N/A',
+                'paciente_ci' => $c->paciente?->ci ?? $c->paciente?->temp_code ?? '—',
+                'seguro' => $c->seguro?->nombre_empresa ?? 'N/A',
+                'servicio' => $c->tipo_atencion_label,
+                'monto_total' => (float) $c->total_calculado,
+                'cobertura' => (float) $c->seguro_monto_cobertura,
+                'copago' => (float) $c->seguro_monto_paciente,
+                'estado' => $c->seguro_estado,
+                'autorizado_por' => $c->seguroAutorizadoPor?->name ?? '—',
+            ]);
 
         // Estadísticas
         $stats = [
@@ -57,18 +83,114 @@ class SeguroController extends Controller
                 ->whereIn('estado', ['pagado', 'parcial'])
                 ->count(),
             'rechazadas' => CuentaCobro::where('seguro_estado', 'rechazado')->count(),
-            'monto_total' => $preautorizaciones->sum('monto'),
+            // Cobertura total que asumen las aseguradoras en las cuentas autorizadas (Bs).
+            'monto_total' => CuentaCobro::where('seguro_estado', 'autorizado')->sum('seguro_monto_cobertura'),
         ];
 
-        return view('admin.seguros', compact('seguros', 'totalAfiliados', 'preautorizaciones', 'stats'));
+        return view('admin.seguros', compact('seguros', 'totalAfiliados', 'preautorizaciones', 'stats', 'autorizaciones'));
     }
 
+    /**
+     * Fuente única del detalle COMPLETO de una autorización de seguro (paciente + póliza +
+     * vigencia + datos de la aseguradora + autorización + cargos). La usan tanto el modal
+     * "Ver" (JSON) como la hoja imprimible, para no duplicar la armada de datos.
+     */
+    private function datosAutorizacion(CuentaCobro $cuenta): array
+    {
+        $cuenta->loadMissing(['paciente.seguro', 'seguro', 'seguroAutorizadoPor', 'detalles', 'seguroCobros']);
+        $p = $cuenta->paciente;
+        $s = $cuenta->seguro;
+        $cobro = $cuenta->seguroCobros->firstWhere('estado', '!=', 'anulado');
+
+        return [
+            'cuenta' => [
+                'id' => $cuenta->id,
+                'servicio' => $cuenta->tipo_atencion_label,
+                'fecha' => $cuenta->created_at->format('d/m/Y H:i'),
+                'monto_total' => number_format($cuenta->total_calculado, 2),
+                'estado' => $cuenta->seguro_estado,
+                'estado_label' => $cuenta->seguro_estado === 'autorizado' ? 'Autorizado' : 'Rechazado',
+            ],
+            'paciente' => [
+                'nombre' => $p?->nombre ?? 'N/A',
+                'ci' => $p?->ci ?? $p?->temp_code ?? '—',
+                'sexo' => $p?->sexo ?? '—',
+                'telefono' => $p?->telefono ?? '—',
+                'direccion' => $p?->direccion ?? '—',
+            ],
+            'seguro' => [
+                'nombre' => $s?->nombre_empresa ?? 'N/A',
+                'nit' => $s?->nit ?: '—',
+                'tipo' => $s?->tipo ?? '—',
+                'tipo_cobertura' => $s?->descripcion_cobertura ?? '—',
+                'telefono' => $s?->telefono ?: '—',
+                'poliza' => $p?->seguro_poliza ?: '—',
+                'vigencia_desde' => optional($p?->seguro_vigencia_desde)->format('d/m/Y') ?? '—',
+                'vigencia_hasta' => optional($p?->seguro_vigencia_hasta)->format('d/m/Y') ?? '—',
+            ],
+            'autorizacion' => [
+                'estado' => $cuenta->seguro_estado,
+                'estado_label' => $cuenta->seguro_estado === 'autorizado' ? 'Autorizado' : 'Rechazado',
+                'nro_autorizacion' => $cuenta->seguro_nro_autorizacion ?: '—',
+                'cobertura' => number_format($cuenta->seguro_monto_cobertura ?? 0, 2),
+                'copago' => number_format($cuenta->seguro_monto_paciente ?? 0, 2),
+                'autorizado_por' => $cuenta->seguroAutorizadoPor?->name ?? '—',
+                'fecha' => optional($cuenta->seguro_fecha_autorizacion)->format('d/m/Y H:i') ?? '—',
+                'observaciones' => $cuenta->seguro_observaciones ?: '—',
+                'venta_id' => $cobro?->id ?? '—',
+                'debito_fiscal' => $cobro ? number_format($cobro->debito_fiscal, 2) : '0.00',
+                'estado_cobro' => $cobro?->estado_label ?? '—',
+            ],
+            'cargos' => $cuenta->detalles->whereNull('deshabilitado_en')->map(fn ($d) => [
+                'descripcion' => $d->descripcion,
+                'cantidad' => $d->cantidad,
+                'subtotal' => number_format($d->subtotal, 2),
+            ])->values()->all(),
+        ];
+    }
+
+    /** Detalle completo de una autorización en JSON (modal "Ver"). */
+    public function verAutorizacion(string $cuentaId): JsonResponse
+    {
+        $cuenta = CuentaCobro::whereNotNull('seguro_id')
+            ->whereIn('seguro_estado', ['autorizado', 'rechazado'])
+            ->findOrFail($cuentaId);
+
+        return response()->json(['success' => true, 'datos' => $this->datosAutorizacion($cuenta)]);
+    }
+
+    /** Hoja imprimible con toda la información del seguro de una autorización. */
+    public function imprimirAutorizacion(string $cuentaId)
+    {
+        $cuenta = CuentaCobro::whereNotNull('seguro_id')
+            ->whereIn('seguro_estado', ['autorizado', 'rechazado'])
+            ->findOrFail($cuentaId);
+
+        return view('admin.seguros-autorizacion-print', ['d' => $this->datosAutorizacion($cuenta)]);
+    }
+
+    public function cambiarEstado(Request $request, Seguro $seguro): JsonResponse
+    {
+        try {
+            // Invertimos el estado actual
+            $nuevoEstado = $seguro->estado === 'activo' ? 'inactivo' : 'activo';
+            $seguro->update(['estado' => $nuevoEstado]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Estado actualizado a " . strtoupper($nuevoEstado),
+                'nuevo_estado' => $nuevoEstado
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
     /**
      * API: Listar todos los seguros
      */
     public function apiIndex(): JsonResponse
     {
-        $seguros = Seguro::all()->map(function($seguro) {
+        $seguros = Seguro::all()->map(function ($seguro) {
             return [
                 'id' => $seguro->id,
                 'nombre_empresa' => $seguro->nombre_empresa,
@@ -95,14 +217,16 @@ class SeguroController extends Controller
             $validated = $request->validate([
                 'nombre_empresa' => 'required|string|max:255|unique:seguros,nombre_empresa',
                 'tipo' => 'required|string|max:100',
+                'nit' => 'nullable|string|max:20',
                 'telefono' => 'nullable|string|max:50',
                 'formulario' => 'nullable|string|max:100',
                 'tipo_cobertura' => 'required|in:porcentaje,solo_consulta,tope_monto',
-                'cobertura_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'copago_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'tope_monto' => 'nullable|numeric|min:0',
+                'cobertura_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'copago_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'tope_monto' => 'nullable|numeric|decimal:0,2|min:0',
             ]);
 
+            $validated = $this->prepararCobertura($validated);
             $validated['estado'] = 'activo';
 
             $seguro = Seguro::create($validated);
@@ -112,12 +236,53 @@ class SeguroController extends Controller
                 'message' => 'Seguro creado exitosamente',
                 'seguro' => $seguro,
             ]);
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear seguro: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Normaliza y valida la cobertura según el tipo: porcentaje exige cobertura% y que
+     * cobertura+copago = 100 (deriva el copago si falta); tope exige el monto; cada tipo
+     * limpia los campos que no le aplican para no dejar datos contradictorios.
+     */
+    private function prepararCobertura(array $data): array
+    {
+        $tipo = $data['tipo_cobertura'] ?? null;
+
+        if ($tipo === 'porcentaje') {
+            $cobertura = $data['cobertura_porcentaje'] ?? null;
+            if ($cobertura === null || $cobertura === '') {
+                throw ValidationException::withMessages(['cobertura_porcentaje' => 'Indica el % de cobertura.']);
+            }
+            $copago = $data['copago_porcentaje'] ?? null;
+            if ($copago === null || $copago === '') {
+                $copago = bcsub('100', (string) $cobertura, 2); // copago = 100 − cobertura
+            }
+            if (bccomp(bcadd((string) $cobertura, (string) $copago, 2), '100.00', 2) !== 0) {
+                throw ValidationException::withMessages(['copago_porcentaje' => 'La cobertura y el copago deben sumar 100%.']);
+            }
+            $data['cobertura_porcentaje'] = $cobertura;
+            $data['copago_porcentaje'] = $copago;
+            $data['tope_monto'] = null;
+        } elseif ($tipo === 'tope_monto') {
+            if (empty($data['tope_monto'])) {
+                throw ValidationException::withMessages(['tope_monto' => 'Indica el tope de monto.']);
+            }
+            $data['cobertura_porcentaje'] = null;
+            $data['copago_porcentaje'] = null;
+        } elseif ($tipo === 'solo_consulta') {
+            $data['cobertura_porcentaje'] = null;
+            $data['copago_porcentaje'] = null;
+            $data['tope_monto'] = null;
+        }
+
+        return $data;
     }
 
     /**
@@ -129,15 +294,17 @@ class SeguroController extends Controller
             $validated = $request->validate([
                 'nombre_empresa' => 'required|string|max:255|unique:seguros,nombre_empresa,' . $seguro->id,
                 'tipo' => 'required|string|max:100',
+                'nit' => 'nullable|string|max:20',
                 'telefono' => 'nullable|string|max:50',
                 'formulario' => 'nullable|string|max:100',
                 'estado' => 'nullable|in:activo,inactivo',
                 'tipo_cobertura' => 'nullable|in:porcentaje,solo_consulta,tope_monto',
-                'cobertura_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'copago_porcentaje' => 'nullable|numeric|min:0|max:100',
-                'tope_monto' => 'nullable|numeric|min:0',
+                'cobertura_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'copago_porcentaje' => 'nullable|numeric|decimal:0,2|min:0|max:100',
+                'tope_monto' => 'nullable|numeric|decimal:0,2|min:0',
             ]);
 
+            $validated = $this->prepararCobertura($validated);
             $seguro->update($validated);
 
             return response()->json([
@@ -145,6 +312,8 @@ class SeguroController extends Controller
                 'message' => 'Seguro actualizado exitosamente',
                 'seguro' => $seguro,
             ]);
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -205,19 +374,19 @@ class SeguroController extends Controller
     public function getPreautorizaciones(): JsonResponse
     {
         $preautorizaciones = CuentaCobro::with(['paciente', 'paciente.seguro'])
-            ->whereHas('paciente', function($q) {
+            ->whereHas('paciente', function ($q) {
                 $q->whereNotNull('seguro_id');
             })
             ->whereIn('estado', ['pendiente', 'parcial'])
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function($cuenta) {
+            ->map(function ($cuenta) {
                 return [
                     'id' => $cuenta->id,
                     'numero' => $cuenta->id,
                     'fecha' => $cuenta->created_at->format('Y-m-d'),
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'seguro' => $cuenta->paciente?->seguro?->nombre_empresa ?? 'Sin seguro',
                     'seguro_id' => $cuenta->paciente?->seguro_id,
                     'servicio' => $cuenta->tipo_atencion_label,
@@ -243,28 +412,25 @@ class SeguroController extends Controller
             $validated = $request->validate([
                 'estado' => 'required|in:autorizado,rechazado',
                 'observaciones' => 'nullable|string|max:500',
+                'nro_autorizacion' => 'nullable|string|max:60',
             ]);
 
             $cuenta = CuentaCobro::with(['seguro', 'paciente'])->findOrFail($cuentaId);
-            
+
             if ($validated['estado'] === 'autorizado') {
                 $seguro = $cuenta->seguro;
-                $calculo = $seguro->calcularCobertura($cuenta->total_calculado);
-                
-                $cuenta->update([
-                    'seguro_estado' => 'autorizado',
-                    'seguro_autorizado_por' => auth()->id(),
-                    'seguro_fecha_autorizacion' => now(),
-                    'seguro_observaciones' => $validated['observaciones'] ?? null,
-                    'seguro_monto_cobertura' => $calculo['monto_cubierto'],
-                    'seguro_monto_paciente' => $calculo['monto_paciente'],
-                ]);
-                $cuenta->recalcularTotales();
 
-                $mensaje = $calculo['monto_paciente'] > 0 
-                    ? "Seguro autorizado. El paciente debe pagar Bs. {$calculo['monto_paciente']} en caja."
+                // Fuente única: autoriza, congela el snapshot y crea la venta devengada
+                // a la aseguradora (cuenta por cobrar + débito fiscal IVA).
+                $resultado = $cuenta->autorizarSeguro($seguro, (float) $cuenta->total_calculado, [
+                    'observaciones' => $validated['observaciones'] ?? null,
+                    'nro_autorizacion' => $validated['nro_autorizacion'] ?? null,
+                ]);
+
+                $mensaje = $resultado['paciente'] > 0
+                    ? 'Seguro autorizado. El paciente debe pagar Bs. ' . number_format($resultado['paciente'], 2) . ' en caja.'
                     : 'Seguro autorizado. Cobertura completa.';
-                
+
                 $this->registrarEnHistorialMedico($cuenta, 'autorizado', $validated['observaciones'] ?? null);
             } else {
                 $cuenta->update([
@@ -318,45 +484,16 @@ class SeguroController extends Controller
             $descripcion .= "Motivo: {$observaciones}. ";
         }
 
-        // Verificar y crear paciente temporal si no existe
-        $pacienteExiste = \App\Models\Paciente::where('ci', $cuenta->paciente_ci)->exists();
-
-        if (!$pacienteExiste) {
-            $nombre = 'Paciente Temporal';
-            $sexo = 'otro';
-            $telefono = '0000000000';
-
-            $referencia = $cuenta->referencia;
-            if ($referencia) {
-                if ($referencia instanceof \App\Models\Emergency) {
-                    $nombre = $referencia->is_temp_id
-                        ? 'Temporal-' . $referencia->temp_id
-                        : ($referencia->paciente?->nombre ?? 'Paciente Temporal');
-                    $telefono = $referencia->paciente?->telefono ?? '0000000000';
-                    $sexo = $referencia->paciente?->sexo ?? 'otro';
-                } else {
-                    $nombre = $referencia->paciente?->nombre ?? 'Paciente Temporal';
-                    $telefono = $referencia->paciente?->telefono ?? '0000000000';
-                    $sexo = $referencia->paciente?->sexo ?? 'otro';
-                }
-            }
-
-            \App\Models\Paciente::create([
-                'ci' => $cuenta->paciente_ci,
-                'nombre' => $nombre,
-                'sexo' => $sexo,
-                'telefono' => $telefono,
-                'seguro_id' => $cuenta->seguro_id,
+        // All patients are now in the pacientes table (including temp ones)
+        if ($cuenta->paciente_id) {
+            \App\Models\HistorialMedico::create([
+                'paciente_id'    => $cuenta->paciente_id,
+                'fecha'          => now()->toDateString(),
+                'detalle'        => $descripcion,
+                'observaciones'  => $observaciones,
+                'user_medico_id' => auth()->id(),
             ]);
         }
-
-        \App\Models\HistorialMedico::create([
-            'ci_paciente' => $cuenta->paciente_ci,
-            'fecha' => now()->toDateString(),
-            'detalle' => $descripcion,
-            'observaciones' => $observaciones,
-            'user_medico_id' => auth()->id(),
-        ]);
     }
 
     /**
@@ -376,9 +513,9 @@ class SeguroController extends Controller
             $query->whereDate('created_at', '<=', $request->fecha_fin);
         }
         if ($request->filled('paciente')) {
-            $query->whereHas('paciente', function($q) use ($request) {
+            $query->whereHas('paciente', function ($q) use ($request) {
                 $q->where('nombre', 'like', '%' . $request->paciente . '%')
-                  ->orWhere('ci', 'like', '%' . $request->paciente . '%');
+                    ->orWhere('ci', 'like', '%' . $request->paciente . '%');
             });
         }
         if ($request->filled('seguro_id')) {
@@ -388,7 +525,7 @@ class SeguroController extends Controller
             $query->where('seguro_estado', $request->estado);
         }
 
-        $historial = $query->orderBy('created_at', 'desc')->paginate(50);
+        $historial = $query->orderBy('created_at', 'desc')->paginate(15);
 
         // Calcular estadísticas
         $stats = [
@@ -415,6 +552,14 @@ class SeguroController extends Controller
         return view('admin.seguros-historial', compact('historial', 'stats', 'seguros'));
     }
 
+    public function exportarExcel(Request $request)
+    {
+        $filtros = $request->only(['fecha_inicio', 'fecha_fin', 'paciente', 'seguro_id', 'estado']);
+        $nombreArchivo = 'historial_seguros_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        // Ahora Excel::download funcionará porque viene del Facade
+        return Excel::download(new \App\Exports\HistorialSegurosExport($filtros), $nombreArchivo);
+    }
     /**
      * Exportar historial de seguros a Excel
      */
@@ -432,9 +577,9 @@ class SeguroController extends Controller
             $query->whereDate('created_at', '<=', $request->fecha_fin);
         }
         if ($request->filled('paciente')) {
-            $query->whereHas('paciente', function($q) use ($request) {
+            $query->whereHas('paciente', function ($q) use ($request) {
                 $q->where('nombre', 'like', '%' . $request->paciente . '%')
-                  ->orWhere('ci', 'like', '%' . $request->paciente . '%');
+                    ->orWhere('ci', 'like', '%' . $request->paciente . '%');
             });
         }
         if ($request->filled('seguro_id')) {
@@ -452,14 +597,23 @@ class SeguroController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function() use ($registros) {
+        $callback = function () use ($registros) {
             $file = fopen('php://output', 'w');
-            
+
             // Cabeceras
             fputcsv($file, [
-                'Fecha', 'Paciente', 'CI', 'Seguro', 'Tipo Atención', 
-                'Monto Total', 'Cobertura Seguro', 'Copago Paciente', 
-                'Estado', 'Autorizado Por', 'Fecha Autorización', 'Observaciones',
+                'Fecha',
+                'Paciente',
+                'CI',
+                'Seguro',
+                'Tipo Atención',
+                'Monto Total',
+                'Cobertura Seguro',
+                'Copago Paciente',
+                'Estado',
+                'Autorizado Por',
+                'Fecha Autorización',
+                'Observaciones',
                 'Cargos Detallados'
             ]);
 
@@ -482,7 +636,7 @@ class SeguroController extends Controller
                 fputcsv($file, [
                     $registro->created_at->format('d/m/Y H:i'),
                     $registro->paciente?->nombre ?? 'N/A',
-                    $registro->paciente_ci,
+                    $registro->paciente?->ci ?? $registro->paciente?->temp_code,
                     $registro->seguro?->nombre_empresa ?? 'N/A',
                     $registro->tipo_atencion_label,
                     number_format($registro->total_calculado, 2),

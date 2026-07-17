@@ -20,7 +20,6 @@ return new class extends Migration
             $table->string('referencia', 255)->nullable();
             $table->enum('estado', ['pendiente', 'pagado', 'anulado'])->default('pendiente');
             $table->integer('nro_factura')->nullable();
-            $table->string('farmacia_id', 20)->nullable();
             $table->decimal('monto_pagado', 10, 2)->default(0);
             $table->timestamps();
         });

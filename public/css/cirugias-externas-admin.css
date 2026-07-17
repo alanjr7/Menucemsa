@@ -1,0 +1,146 @@
+/* ============================================================
+   Consola admin de Cirugías Externas — diseño CEMSA (prototipo)
+   Estilos SCOPEADOS bajo .cea para no afectar el layout del HMS
+   (sidebar/header). Tokens y componentes portados de styles.css.
+============================================================ */
+.cea{
+  --navy:#1a2e4a; --navy-dk:#0f1c2e; --navy-md:#243552;
+  --blue:#3b82f6; --blue-dk:#2563eb; --blue-lt:#eff6ff; --blue-sm:#dbeafe;
+  --green:#10b981; --green-dk:#059669; --green-lt:#ecfdf5; --green-sm:#d1fae5;
+  --amber:#d97706; --amber-lt:#fffbeb; --amber-sm:#fde68a;
+  --red:#dc2626; --red-lt:#fef2f2; --red-sm:#fecaca;
+  --ink:#0f172a; --ink-md:#334155; --ink-lt:#64748b;
+  --line:#e2e8f0; --bg:#f1f5f9; --card:#fff;
+  --radius:12px; --rad-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);
+  --font:'Inter',system-ui,sans-serif;
+  font-family:var(--font); color:var(--ink); font-size:15px; line-height:1.5;
+}
+.cea *{box-sizing:border-box}
+.cea button{font-family:inherit;cursor:pointer}
+.cea input,.cea select{font-family:inherit}
+.cea a{color:var(--blue-dk);text-decoration:none}
+.cea a:hover{text-decoration:underline}
+.cea .hidden{display:none!important}
+
+/* ---- Tabs ---- */
+.cea .tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--card);border-radius:var(--radius);padding:6px;border:1px solid var(--line);box-shadow:var(--shadow);flex-wrap:wrap}
+.cea .tabs button{border:none;background:transparent;border-radius:var(--rad-sm);padding:10px 18px;font-size:14px;font-weight:500;color:var(--ink-lt);display:flex;align-items:center;gap:7px;transition:all .2s}
+.cea .tabs button i{font-size:13px}
+.cea .tabs button.active{background:var(--navy);color:#fff;box-shadow:var(--shadow)}
+.cea .tabs button:hover:not(.active){background:var(--bg);color:var(--ink)}
+
+/* ---- Botón "ir a página pública" ---- */
+.cea .cea-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.cea .btn-open{background:var(--navy);color:#fff;border:none;border-radius:var(--rad-sm);padding:10px 18px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:all .2s;text-decoration:none;white-space:nowrap}
+.cea .btn-open:hover{background:var(--navy-dk);box-shadow:var(--shadow-md);text-decoration:none;transform:translateY(-1px)}
+
+/* ---- Barra de búsqueda y filtros ---- */
+.cea .cea-filtros{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-bottom:16px}
+.cea .cea-filtros .fgroup{display:flex;flex-direction:column;gap:4px}
+.cea .cea-filtros label{font-size:11px;font-weight:600;color:var(--ink-lt)}
+.cea .cea-filtros input,.cea .cea-filtros select{padding:8px 10px;border:1.5px solid var(--line);border-radius:var(--rad-sm);font-size:13px;background:#fff;color:var(--ink)}
+.cea .cea-filtros input:focus,.cea .cea-filtros select:focus{outline:none;border-color:var(--blue)}
+.cea .cea-filtros .fbusca{min-width:220px;flex:1}
+.cea .btn-filtro{background:var(--navy);color:#fff;border:none;border-radius:var(--rad-sm);padding:9px 16px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.cea .btn-filtro:hover{background:var(--navy-dk)}
+.cea .btn-limpiar{color:var(--ink-lt);font-size:13px;padding:9px 10px;text-decoration:none}
+.cea .btn-limpiar:hover{color:var(--ink);text-decoration:underline}
+
+/* ---- Paginador ---- */
+.cea .cea-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 4px 4px}
+.cea .cea-pager .pg{border:1px solid var(--line);background:#fff;border-radius:var(--rad-sm);padding:7px 14px;font-size:13px;font-weight:600;color:var(--navy);text-decoration:none;transition:all .2s}
+.cea .cea-pager .pg:hover{background:var(--navy);color:#fff;border-color:var(--navy);text-decoration:none}
+.cea .cea-pager .pg.dis{opacity:.45;pointer-events:none}
+.cea .cea-pager .pg-cur{font-size:13px;color:var(--ink-md);font-weight:600}
+.cea .cea-pager-btns{display:flex;align-items:center;gap:8px}
+
+/* ---- Cards / paneles ---- */
+.cea .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.cea .panel-head{padding:20px 24px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.cea .panel-head .ph-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.cea .panel-head .ph-icon.blue{background:var(--blue-lt);color:var(--blue-dk)}
+.cea .panel-head .ph-icon.green{background:var(--green-lt);color:var(--green-dk)}
+.cea .panel-head .ph-icon.navy{background:rgba(26,46,74,.08);color:var(--navy)}
+.cea .panel-head h1{font-size:18px;font-weight:700;margin:0 0 2px;letter-spacing:-.3px}
+.cea .panel-head p{font-size:13px;color:var(--ink-lt);margin:0}
+.cea .panel-body{padding:24px}
+
+/* ---- Tabla ---- */
+.cea .scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cea .tabla{width:100%;border-collapse:collapse;font-size:14px}
+.cea .tabla th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-lt);padding:10px 14px;border-bottom:2px solid var(--line);white-space:nowrap}
+.cea .tabla td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.cea .tabla tr:last-child td{border-bottom:none}
+.cea .tabla tbody tr:hover{background:var(--bg)}
+.cea .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.cea .badge i{font-size:10px}
+.cea .b-pend{background:var(--amber-lt);color:var(--amber)}
+.cea .b-pago{background:var(--green-lt);color:var(--green-dk)}
+.cea .b-rech{background:var(--red-lt);color:var(--red)}
+.cea .recibo-mini{width:40px;height:40px;object-fit:cover;border-radius:var(--rad-sm);cursor:pointer;border:1px solid var(--line);transition:transform .2s}
+.cea .recibo-mini:hover{transform:scale(1.1)}
+.cea .empty{text-align:center;color:var(--ink-lt);padding:48px 0;font-size:14px}
+.cea .empty i{font-size:36px;color:var(--line);display:block;margin-bottom:12px}
+.cea .hint{font-size:12px;color:var(--ink-lt)}
+.cea .codigo{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--ink-lt)}
+
+/* ---- Botones ---- */
+.cea .btn-success{background:var(--green-lt);color:var(--green-dk);border:1px solid var(--green-sm);border-radius:var(--rad-sm);padding:8px 14px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.cea .btn-success:hover{background:var(--green-sm)}
+.cea .btn-danger{background:var(--red-lt);color:var(--red);border:1px solid var(--red-sm);border-radius:var(--rad-sm);padding:8px 14px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.cea .btn-danger:hover{background:var(--red-sm)}
+
+/* ---- Inputs admin (tipos y precios) ---- */
+.cea .admin-input{padding:8px 10px;border:1.5px solid var(--line);border-radius:var(--rad-sm);font-size:14px;transition:border-color .2s;background:#fff}
+.cea .admin-input:focus{outline:none;border-color:var(--blue)}
+
+/* ---- Calendario mensual ---- */
+.cea .month-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.cea .month-cal-head h2{font-size:20px;font-weight:700;text-transform:capitalize;color:var(--ink);margin:0}
+.cea .month-nav{display:flex;gap:6px}
+.cea .month-nav button{border:1px solid var(--line);background:#fff;border-radius:var(--rad-sm);width:40px;height:40px;font-size:16px;font-weight:700;color:var(--navy);transition:all .2s;display:flex;align-items:center;justify-content:center}
+.cea .month-nav button.hoy{width:auto;padding:0 14px;font-size:13px}
+.cea .month-nav button:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+.cea .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cea .month-dow{text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-lt);padding:8px 0}
+.cea .month-day{border:1px solid var(--line);border-radius:var(--rad-sm);min-height:90px;padding:6px;background:#fff;font-size:12px;cursor:pointer;transition:all .2s;overflow:hidden}
+.cea .month-day:hover{border-color:var(--blue);box-shadow:var(--shadow)}
+.cea .month-day .n{font-weight:700;margin-bottom:4px;color:var(--ink)}
+.cea .month-day.other{background:transparent;border-color:transparent;color:var(--line);cursor:default}
+.cea .month-day.today{border-color:var(--blue);box-shadow:inset 0 0 0 1.5px var(--blue)}
+.cea .month-day.today .n{color:var(--blue-dk)}
+.cea .month-day.selday{background:var(--blue-lt)}
+.cea .evt{display:block;border-radius:4px;padding:2px 6px;margin-bottom:3px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cea .evt.pagado{background:var(--green-lt);color:var(--green-dk)}
+.cea .evt.pendiente{background:var(--amber-lt);color:var(--amber)}
+.cea .evt.mas{background:var(--blue-lt);color:var(--blue-dk)}
+.cea .cal-legend{display:flex;gap:16px;margin-top:14px;font-size:12px;color:var(--ink-lt);flex-wrap:wrap;align-items:center}
+.cea .leg-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+.cea .leg-dot.green{background:var(--green)}
+.cea .leg-dot.amber{background:var(--amber)}
+.cea .cal-det{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+.cea .cal-det h3{font-size:15px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.cea .cal-det h3 i{color:var(--blue)}
+.cea .det-item{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;flex-wrap:wrap;background:#fff;transition:box-shadow .2s}
+.cea .det-item:hover{box-shadow:var(--shadow)}
+.cea .hora-block{font-weight:700;font-size:13px;color:var(--navy);font-variant-numeric:tabular-nums;min-width:100px;display:flex;align-items:center;gap:6px}
+.cea .hora-block i{color:var(--blue);font-size:12px}
+.cea .det-info{flex:1;min-width:150px}
+.cea .det-info strong{font-size:14px;font-weight:600;color:var(--ink)}
+.cea .det-info span{font-size:12px;color:var(--ink-lt);display:block;margin-top:2px}
+@media(max-width:640px){
+  .cea .month-day{min-height:58px;padding:3px}
+  .cea .evt{font-size:0;padding:0;height:6px;border-radius:2px}
+  .cea .evt.pagado{background:var(--green)}.cea .evt.pendiente{background:var(--amber)}.cea .evt.mas{background:var(--blue)}
+}
+
+/* ---- Modal recibo + toast ---- */
+.cea-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:60;backdrop-filter:blur(4px)}
+.cea-modal.open{display:flex}
+.cea-modal img{max-width:90vw;max-height:85vh;border-radius:12px;box-shadow:var(--shadow-lg)}
+.cea-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a2e4a;color:#fff;padding:12px 24px;border-radius:99px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:70;white-space:nowrap;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow-lg)}
+.cea-toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.cea-toast i{color:#10b981}

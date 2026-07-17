@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
@@ -35,7 +36,7 @@ class UserManagementController extends Controller
 
     public function create()
     {
-        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia', 'neonato', 'almacenista'];
 
         if (!$this->esAdministrador()) {
             array_unshift($roles, 'admin');
@@ -48,7 +49,7 @@ class UserManagementController extends Controller
     {
         try {
             // Validación básica siempre requerida
-            $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion';
+            $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion,neonato,almacenista';
             if (!$this->esAdministrador()) {
                 $allowedRoles .= ',admin';
             }
@@ -116,9 +117,10 @@ class UserManagementController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
+                'password_encrypted' => Crypt::encryptString($validated['password']),
                 'role' => $validated['role'],
                 'is_active' => true,
-                'email_verified_at' => now(), // Auto-verificar
+                'email_verified_at' => now(),
             ]);
 
             // Crear registro médico solo para roles médicos
@@ -186,7 +188,8 @@ class UserManagementController extends Controller
                     'farmacia' => 'farmacia',
                     'uti' => 'UTI',
                     'internacion' => 'internación',
-                    'cirujano' => 'cirujano'
+                    'cirujano' => 'cirujano',
+                    'almacenista' => 'almacén (almacenista)'
                 ];
 
                 $roleName = $roleNames[$validated['role']] ?? $validated['role'];
@@ -222,7 +225,7 @@ class UserManagementController extends Controller
                 ->with('error', 'No tienes permisos para modificar usuarios administradores.');
         }
 
-        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia'];
+        $roles = ['reception', 'dirmedico', 'emergencia', 'caja', 'gerente', 'doctor', 'farmacia', 'uti', 'internacion', 'cirujano', 'enfermera-emergencia', 'neonato', 'almacenista'];
 
         if (!$this->esAdministrador()) {
             array_unshift($roles, 'admin');
@@ -238,7 +241,7 @@ class UserManagementController extends Controller
                 ->with('error', 'No tienes permisos para modificar usuarios con rol administrador.');
         }
 
-        $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion';
+        $allowedRoles = 'reception,dirmedico,emergencia,caja,gerente,doctor,farmacia,uti,internacion,cirujano,enfermera-emergencia,enfermera-internacion,neonato,almacenista';
         if (!$this->esAdministrador()) {
             $allowedRoles .= ',admin';
         }
@@ -261,6 +264,7 @@ class UserManagementController extends Controller
             ]);
             $user->update([
                 'password' => Hash::make($request->password),
+                'password_encrypted' => Crypt::encryptString($request->password),
             ]);
         }
 
@@ -304,5 +308,63 @@ class UserManagementController extends Controller
             'success' => true,
             'status' => $user->is_active ? 'active' : 'inactive'
         ]);
+    }
+
+    public function generateTemporalPassword(User $user)
+    {
+        // Validar permisos
+        if ($user->id === auth()->id()) {
+            return response()->json(['error' => 'No puedes generar contraseña para ti mismo.'], 403);
+        }
+
+        if ($this->esAdministrador() && $this->esAdmin($user)) {
+            return response()->json(['error' => 'No tienes permisos para modificar usuarios administradores.'], 403);
+        }
+
+        // Generar contraseña temporal
+        $temporalPassword = $this->generateRandomPassword();
+        
+        $user->update([
+            'password' => Hash::make($temporalPassword),
+            'password_encrypted' => Crypt::encryptString($temporalPassword),
+        ]);
+
+        // Log de actividad
+        Log::info('Contraseña temporal generada', [
+            'admin_id' => auth()->id(),
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'generated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'password' => $temporalPassword,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+        ]);
+    }
+
+    public function revealPassword(User $user)
+    {
+        if ($this->esAdministrador() && $this->esAdmin($user)) {
+            return response()->json(['error' => 'No tienes permisos para ver la contraseña de este usuario.'], 403);
+        }
+
+        if (!$user->password_encrypted) {
+            return response()->json(['error' => 'Este usuario no tiene contraseña almacenada. Generá una contraseña temporal primero.'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'password' => Crypt::decryptString($user->password_encrypted),
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+        ]);
+    }
+
+    private function generateRandomPassword(): string
+    {
+        return substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
     }
 }

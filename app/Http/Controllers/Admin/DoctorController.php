@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Medico;
 use App\Models\Especialidad;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -96,41 +98,64 @@ class DoctorController extends Controller
                 ->with('error', 'El usuario seleccionado no es un doctor.');
         }
 
+        $currentCi = $doctor->medico?->ci;
+
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $doctor->id],
-            'telefono' => ['nullable', 'string'],
-            'codigo_especialidad' => ['required', 'exists:especialidades,codigo'],
-            'estado' => ['required', 'in:Activo,Inactivo'],
+            'name'               => ['required', 'string', 'max:255'],
+            'email'              => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $doctor->id],
+            'ci'                 => ['required', 'integer', Rule::unique('medicos', 'ci')->ignore($currentCi, 'ci')],
+            'telefono'           => ['nullable', 'string'],
+            'codigo_especialidad'=> ['required', 'exists:especialidades,codigo'],
+            'estado'             => ['required', 'in:Activo,Inactivo'],
         ]);
 
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
 
-            // Actualizar usuario
             $doctor->update([
-                'name' => $data['name'],
+                'name'  => $data['name'],
                 'email' => $data['email'],
             ]);
 
-            // Actualizar registro médico
             if ($doctor->medico) {
+                $newCi = (int) $data['ci'];
+
+                if ($currentCi !== $newCi) {
+                    // CI cambia: actualizar en cascada deshabilitando FK checks temporalmente
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+                    DB::table('medicos')->where('ci', $currentCi)->update(['ci' => $newCi]);
+
+                    DB::table('citas')->where('ci_medico', $currentCi)->update(['ci_medico' => $newCi]);
+                    DB::table('consultas')->where('ci_medico', $currentCi)->update(['ci_medico' => $newCi]);
+                    DB::table('hospitalizaciones')->where('ci_medico', $currentCi)->update(['ci_medico' => $newCi]);
+                    DB::table('citas_quirurgicas')->where('ci_cirujano', $currentCi)->update(['ci_cirujano' => $newCi]);
+                    DB::table('citas_quirurgicas')->where('ci_instrumentista', $currentCi)->update(['ci_instrumentista' => $newCi]);
+                    DB::table('citas_quirurgicas')->where('ci_anestesiologo', $currentCi)->update(['ci_anestesiologo' => $newCi]);
+
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+                    // Refrescar el modelo para que apunte al nuevo ci
+                    $doctor->medico->ci = $newCi;
+                }
+
                 $doctor->medico->update([
-                    'telefono' => $data['telefono'],
-                    'estado' => $data['estado'],
+                    'telefono'            => $data['telefono'],
+                    'estado'              => $data['estado'],
                     'codigo_especialidad' => $data['codigo_especialidad'],
                 ]);
             }
 
-            \DB::commit();
+            DB::commit();
 
             return redirect()
                 ->route('admin.doctors.index')
                 ->with('success', 'Doctor actualizado correctamente.');
 
         } catch (\Exception $e) {
-            \DB::rollBack();
-            
+            DB::rollBack();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
             return redirect()
                 ->back()
                 ->with('error', 'Error al actualizar el doctor: ' . $e->getMessage())

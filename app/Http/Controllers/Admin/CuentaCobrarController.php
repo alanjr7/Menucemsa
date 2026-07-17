@@ -10,7 +10,9 @@ use App\Models\PagoCuenta;
 use App\Models\Paciente;
 use App\Models\Emergency;
 use App\Services\AplicarSeguroService;
+use App\Support\Money;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class CuentaCobrarController extends Controller
@@ -43,15 +45,15 @@ class CuentaCobrarController extends Controller
                 $pacienteNombre = 'N/A';
                 if ($cuenta->paciente) {
                     $pacienteNombre = $cuenta->paciente->nombre;
-                } elseif ($emergency && $emergency->patient_id) {
-                    $paciente = Paciente::find($emergency->patient_id);
-                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->patient_id;
+                } elseif ($emergency && $emergency->paciente_id) {
+                    $paciente = Paciente::find($emergency->paciente_id);
+                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->paciente_id;
                 }
                 
                 return [
                     'id' => $cuenta->id,
                     'paciente_nombre' => $pacienteNombre,
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
                     'total_calculado' => $cuenta->total_calculado,
                     'total_pagado' => $cuenta->total_pagado,
@@ -83,16 +85,16 @@ class CuentaCobrarController extends Controller
                 $pacienteNombre = 'N/A';
                 if ($cuenta->paciente) {
                     $pacienteNombre = $cuenta->paciente->nombre;
-                } elseif ($emergency && $emergency->patient_id) {
+                } elseif ($emergency && $emergency->paciente_id) {
                     // Buscar paciente por patient_id de la emergencia
-                    $paciente = Paciente::find($emergency->patient_id);
-                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->patient_id;
+                    $paciente = Paciente::find($emergency->paciente_id);
+                    $pacienteNombre = $paciente?->nombre ?? 'Paciente #' . $emergency->paciente_id;
                 }
                 
                 return [
                     'id' => $cuenta->id,
                     'paciente' => $pacienteNombre,
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'emergency_code' => $emergency?->code,
                     'ubicacion_actual' => $emergency?->ubicacion_actual,
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
@@ -101,7 +103,7 @@ class CuentaCobrarController extends Controller
                     'saldo' => $cuenta->saldo_pendiente,
                     'estado' => $cuenta->estado,
                     'fecha' => $cuenta->created_at->format('Y-m-d'),
-                    'es_temporal' => $emergency?->is_temp_id ?? false,
+                    'es_temporal' => $emergency?->paciente?->is_temp ?? false,
                 ];
             });
 
@@ -123,14 +125,14 @@ class CuentaCobrarController extends Controller
      */
     public function apiIndex(): JsonResponse
     {
-        $cuentas = CuentaCobro::with(['paciente', 'detalles.tarifa', 'pagos'])
+        $cuentas = CuentaCobro::with(['paciente', 'detalles', 'pagos'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($cuenta) {
                 return [
                     'id' => $cuenta->id,
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
                     'estado' => $cuenta->estado,
                     'estado_label' => $cuenta->estado_label,
@@ -170,7 +172,7 @@ class CuentaCobrarController extends Controller
             'cuenta' => [
                 'id' => $cuenta->id,
                 'paciente' => [
-                    'ci' => $cuenta->paciente_ci,
+                    'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'nombre' => $cuenta->paciente?->nombre ?? 'N/A',
                     'telefono' => $cuenta->paciente?->telefono,
                 ],
@@ -203,7 +205,7 @@ class CuentaCobrarController extends Controller
                     'code' => $emergency->code,
                     'status' => $emergency->status,
                     'ubicacion_actual' => $emergency->ubicacion_actual,
-                    'is_temp_id' => $emergency->is_temp_id,
+                    'is_temp_id' => $emergency->paciente?->is_temp ?? false,
                 ] : null,
             ],
         ]);
@@ -215,86 +217,99 @@ class CuentaCobrarController extends Controller
     public function registrarPago(Request $request, string $id): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'monto' => 'required|numeric|min:0.01',
-                'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr,cheque',
-                'referencia' => 'nullable|string|max:255',
-            ]);
-
-            $cuenta = CuentaCobro::with('paciente.seguro')->findOrFail($id);
-
-            // Aplicar seguro automaticamente si corresponde
-            $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
-            if ($infoSeguro['aplicado']) {
-                $cuenta->refresh();
-            }
-
-            // Si el seguro cubrio todo, no se requiere pago del paciente
-            if ($cuenta->saldo_pendiente <= 0) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $infoSeguro['aplicado']
-                        ? 'Cobro completado. El seguro cubrio el total.'
-                        : 'Cuenta ya saldada.',
-                    'cuenta' => [
-                        'id' => $cuenta->id,
-                        'estado' => $cuenta->estado,
-                        'total_pagado' => $cuenta->total_pagado,
-                        'saldo_pendiente' => 0,
-                    ]
-                ]);
-            }
-
-            // Verificar que no exceda el saldo
-            if ($validated['monto'] > $cuenta->saldo_pendiente) {
+            $userId = auth()->user()?->id;
+            if (!$userId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El monto excede el saldo pendiente',
-                ], 422);
+                    'message' => 'Usuario no autenticado',
+                ], 401);
             }
 
-            // Registrar pago
-            $pago = PagoCuenta::create([
-                'cuenta_cobro_id' => $id,
-                'monto' => $validated['monto'],
-                'metodo_pago' => $validated['metodo_pago'],
-                'referencia' => $validated['referencia'],
-                'usuario_id' => auth()->id(),
+            $validated = $request->validate([
+                'monto' => 'required|numeric|decimal:0,2|min:0.01',
+                'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr,cheque',
+                'referencia' => 'nullable|string|max:255',
+                'idempotency_key' => 'nullable|string|max:64',
             ]);
 
-            // Actualizar cuenta
-            $cuenta->total_pagado += $validated['monto'];
-            
-            // Calcular saldo para determinar estado
-            $saldoPendiente = (float) $cuenta->total_calculado - (float) $cuenta->total_pagado;
-            
-            if ($saldoPendiente <= 0) {
-                $cuenta->estado = 'pagado';
-            } else {
-                $cuenta->estado = $cuenta->total_pagado > 0 ? 'parcial' : 'pendiente';
-            }
-            
-            $cuenta->save();
+            $resultado = DB::transaction(function () use ($id, $validated, $userId) {
+                // Bloquear la fila de la cuenta dentro de la transacción para evitar
+                // doble-cobro concurrente (este endpoint y el de caja operan sobre la
+                // misma cuenta). El lock aplica solo a la tabla base.
+                $cuenta = CuentaCobro::with('paciente.seguro')
+                    ->lockForUpdate()
+                    ->findOrFail($id);
 
-            // Si es emergencia, marcar como pagada
-            if ($cuenta->es_emergencia && $cuenta->estado === 'pagado') {
-                $emergency = Emergency::find($cuenta->referencia_id);
-                if ($emergency) {
-                    $emergency->update(['paid' => true]);
+                // Aplicar seguro automaticamente si corresponde
+                $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
+                if ($infoSeguro['aplicado']) {
+                    $cuenta->refresh();
                 }
-            }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Pago registrado exitosamente',
-                'pago' => $pago,
-                'cuenta' => [
-                    'id' => $cuenta->id,
-                    'estado' => $cuenta->estado,
-                    'total_pagado' => $cuenta->total_pagado,
-                    'saldo_pendiente' => $cuenta->saldo_pendiente,
-                ],
-            ]);
+                // Si el seguro cubrio todo, no se requiere pago del paciente
+                if (Money::cmp($cuenta->saldo_pendiente, 0) <= 0) {
+                    return [
+                        'status' => 200,
+                        'body' => [
+                            'success' => true,
+                            'message' => $infoSeguro['aplicado']
+                                ? 'Cobro completado. El seguro cubrio el total.'
+                                : 'Cuenta ya saldada.',
+                            'cuenta' => [
+                                'id' => $cuenta->id,
+                                'estado' => $cuenta->estado,
+                                'total_pagado' => $cuenta->total_pagado,
+                                'saldo_pendiente' => 0,
+                            ],
+                        ],
+                    ];
+                }
+
+                // Verificar que no exceda el saldo
+                if (Money::cmp($validated['monto'], $cuenta->saldo_pendiente) > 0) {
+                    return [
+                        'status' => 422,
+                        'body' => [
+                            'success' => false,
+                            'message' => 'El monto excede el saldo pendiente',
+                        ],
+                    ];
+                }
+
+                // Registrar pago delegando en el modelo: usa BCMath, recalcula totales,
+                // fija estado y liquida los detalles si la cuenta queda saldada.
+                $cuenta->registrarPago(
+                    $validated['monto'],
+                    $validated['metodo_pago'],
+                    $validated['referencia'] ?? null,
+                    $userId,
+                    $validated['idempotency_key'] ?? null
+                );
+
+                // Si es emergencia y quedó saldada, marcar la emergencia como pagada
+                if ($cuenta->es_emergencia && $cuenta->estado === 'pagado') {
+                    $emergency = Emergency::find($cuenta->referencia_id);
+                    if ($emergency) {
+                        $emergency->update(['paid' => true]);
+                    }
+                }
+
+                return [
+                    'status' => 200,
+                    'body' => [
+                        'success' => true,
+                        'message' => 'Pago registrado exitosamente',
+                        'cuenta' => [
+                            'id' => $cuenta->id,
+                            'estado' => $cuenta->estado,
+                            'total_pagado' => $cuenta->total_pagado,
+                            'saldo_pendiente' => $cuenta->saldo_pendiente,
+                        ],
+                    ],
+                ];
+            });
+
+            return response()->json($resultado['body'], $resultado['status']);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -323,7 +338,7 @@ class CuentaCobrarController extends Controller
                 return [
                     'id' => $cuenta->id,
                     'paciente' => $cuenta->paciente?->nombre ?? 'N/A',
-                    'paciente_ci' => $cuenta->paciente_ci,
+                    'paciente_ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                     'emergency_code' => $emergency?->code,
                     'emergency_status' => $emergency?->status,
                     'ubicacion_actual' => $emergency?->ubicacion_actual,
@@ -333,7 +348,7 @@ class CuentaCobrarController extends Controller
                     'saldo' => $cuenta->saldo_pendiente,
                     'estado' => $cuenta->estado,
                     'fecha' => $cuenta->created_at->format('Y-m-d H:i'),
-                    'es_temporal' => $emergency?->is_temp_id ?? false,
+                    'es_temporal' => $emergency?->paciente?->is_temp ?? false,
                 ];
             });
 

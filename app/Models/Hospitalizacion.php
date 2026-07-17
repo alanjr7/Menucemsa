@@ -16,13 +16,10 @@ class Hospitalizacion extends Model
 
     protected $fillable = [
         'id',
-        'ci_paciente',
+        'paciente_id',
         'ci_medico',
         'habitacion_id',
         'cama_id',
-        'precio_cama_dia',
-        'total_estancia',
-        'cuenta_cobro_detalle_id',
         'fecha_ingreso',
         'fecha_alta',
         'diagnostico',
@@ -32,24 +29,61 @@ class Hospitalizacion extends Model
         'nro_emergencia',
         'contacto_nombre',
         'contacto_telefono',
-        'contacto_parentesco',
-        'contacto_relacion',
         'equipos_medicos',
+        'episodio_id',
     ];
 
     protected $casts = [
         'fecha_ingreso' => 'datetime',
         'fecha_alta' => 'datetime',
-        'ci_paciente' => 'integer',
         'ci_medico' => 'integer',
-        'precio_cama_dia' => 'decimal:2',
-        'total_estancia' => 'decimal:2',
         'equipos_medicos' => 'array',
     ];
 
+    /**
+     * Genera el código de hospitalización: INT-Ymd-NNNN (p. ej. INT-20260610-5001).
+     * Lleva la fecha del ingreso, pero el correlativo final es global e incremental:
+     * arranca en 5001 y NO se reinicia al cambiar de día. Solo considera los códigos
+     * con este formato (INT-fecha-numero), ignorando registros antiguos con otro
+     * esquema. Para crear hospitalizaciones se debe usar {@see crearConCodigo()},
+     * que además resuelve colisiones concurrentes.
+     */
+    public static function generarCodigo(): string
+    {
+        $last = static::where('id', 'REGEXP', '^INT-[0-9]{8}-[0-9]+$')
+            ->max(\DB::raw("CAST(SUBSTRING_INDEX(id, '-', -1) AS UNSIGNED)")) ?? 0;
+        $siguiente = max((int) $last, 5000) + 1;
+
+        return 'INT-' . now()->format('Ymd') . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Crea una hospitalización asignando un `id` (código) único e incremental.
+     * Si dos procesos concurrentes calculan el mismo correlativo, la clave
+     * primaria hace fallar al segundo y aquí se reintenta con el siguiente
+     * número, en vez de un 500. Es la única vía que se debe usar para crear
+     * hospitalizaciones.
+     *
+     * @param array $attributes Datos de la hospitalización. No incluir `id`.
+     */
+    public static function crearConCodigo(array $attributes): self
+    {
+        for ($intento = 0; $intento < 5; $intento++) {
+            $attributes['id'] = static::generarCodigo();
+
+            try {
+                return static::create($attributes);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // Colisión por concurrencia: reintentar con el siguiente correlativo.
+            }
+        }
+
+        throw new \RuntimeException('No se pudo generar un código de hospitalización único tras varios intentos.');
+    }
+
     public function paciente()
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function medico()
@@ -67,9 +101,9 @@ class Hospitalizacion extends Model
         return $this->belongsTo(Cama::class, 'cama_id');
     }
 
-    public function cuentaCobroDetalle()
+    public function episodio()
     {
-        return $this->belongsTo(CuentaCobroDetalle::class, 'cuenta_cobro_detalle_id');
+        return $this->belongsTo(\App\Models\Episodio::class);
     }
 
     /**
@@ -86,13 +120,19 @@ class Hospitalizacion extends Model
     }
 
     /**
-     * Calcular costo actual de estancia
+     * Costo de estancia real: suma de los cargos de estadía (CuentaCobroDetalle
+     * tipo 'estadia') del paciente. La estadía se cobra vía registro-uso, no sobre
+     * la hospitalización, por lo que el costo se deriva de la cuenta del paciente
+     * (los cargos deshabilitados quedan fuera por el global scope de CuentaCobroDetalle).
      */
     public function getCostoEstancia(): float
     {
-        $precio = $this->precio_cama_dia ?? 0;
-        $dias = $this->getDiasEstancia();
+        if (!$this->paciente_id) {
+            return 0.0;
+        }
 
-        return $dias * $precio;
+        return (float) CuentaCobroDetalle::estadia()
+            ->whereHas('cuentaCobro', fn ($q) => $q->where('paciente_id', $this->paciente_id))
+            ->sum('subtotal');
     }
 }

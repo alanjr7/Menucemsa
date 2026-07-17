@@ -36,14 +36,7 @@ $hasPermission = function($permission) use ($userPermissions) {
         </div>
         <div class="flex gap-3">
            
-            @if(auth()->user()->isInternacion() || auth()->user()->isAdmin())
-            <a href="{{ route('internacion-staff.habitaciones.index') }}" class="flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all shadow-sm">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                Gestionar Habitaciones
-            </a>
-            @endif
+           
             @if(auth()->user()->isInternacion() || auth()->user()->isAdmin())
             <a href="{{ route('internacion-staff.medicamentos.index') }}" class="flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,77 +53,90 @@ $hasPermission = function($permission) use ($userPermissions) {
                 Gestionar Enfermeras
             </a>
             @endif
-            <a href="{{ route('internacion-staff.historial-general') }}" class="flex items-center px-4 py-2 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 transition-all shadow-sm">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Historial de Altas
-            </a>
+           
+            
+        
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">Pacientes Activos</span>
-            <span class="text-3xl font-bold text-blue-600" id="stat-activos">0</span>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">En Espera</span>
-            <span class="text-3xl font-bold text-yellow-600" id="stat-espera">0</span>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">En Atención</span>
-            <span class="text-3xl font-bold text-green-600" id="stat-atencion">0</span>
-        </div>
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-28 hover:shadow-md transition">
-            <span class="text-gray-500 text-sm font-medium mb-1">Hoy Ingresados</span>
-            <span class="text-3xl font-bold text-indigo-600" id="stat-hoy">0</span>
-        </div>
-    </div>
+   
 
-    <!-- Lista de Pacientes en Internación -->
+    <!-- Historial de Operaciones -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-lg font-bold text-gray-800">Pacientes en Internación</h2>
-            <div class="flex gap-2">
-                <select id="filtro-estado" onchange="cargarInternaciones()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500">
-                    <option value="todos">Todos los estados</option>
-                    <option value="activo">Activos</option>
-                    <option value="en_observacion">En Observación</option>
-                    <option value="estable">Estables</option>
-                    <option value="critico">Críticos</option>
-                </select>
-            </div>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 class="text-lg font-bold text-gray-800">Historial del Área - {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</h2>
+            <form method="GET" action="{{ route('internacion-staff.dashboard') }}" class="flex items-center gap-2">
+                <label class="text-sm text-gray-500 whitespace-nowrap">Fecha:</label>
+                <input type="date" name="fecha" value="{{ $fecha }}"
+                    class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                    onchange="this.form.submit()">
+            </form>
         </div>
 
-        <!-- Tabla de Pacientes -->
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 rounded-l-lg">Paciente</th>
-                        <th scope="col" class="px-6 py-3">Habitación</th>
-                        <th scope="col" class="px-6 py-3">Médico</th>
-                        <th scope="col" class="px-6 py-3">Ingreso</th>
-                        <th scope="col" class="px-6 py-3">Estado</th>
-                        <th scope="col" class="px-6 py-3 rounded-r-lg">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-internaciones">
-                    <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-gray-400">
-                            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                            </svg>
-                            <p>Cargando pacientes...</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        @php
+            // Combinar evaluaciones y habitaciones en una sola lista
+            $operaciones = collect();
+
+            foreach ($evaluaciones as $ev) {
+                $operaciones->push([
+                    'tipo' => 'evaluacion',
+                    'fecha' => $ev->created_at,
+                    'usuario' => $ev->user?->name ?? '—',
+                    'paciente' => $ev->paciente?->nombre ?? '—',
+                    'detalle' => 'Realizó evaluación',
+                    'hora' => $ev->created_at->setTimezone('America/La_Paz')->format('H:i'),
+                    'fecha_raw' => $ev->created_at,
+                ]);
+            }
+
+            foreach ($habitacionesRegistradas as $h) {
+                $operaciones->push([
+                    'tipo' => 'habitacion',
+                    'fecha' => $h->created_at,
+                    'usuario' => $h->user?->name ?? 'Sin usuario',
+                    'paciente' => $h->cuentaCobro?->paciente?->nombre ?? '—',
+                    'detalle' => 'Registró ' . $h->descripcion,
+                    'hora' => $h->created_at->setTimezone('America/La_Paz')->format('H:i'),
+                    'fecha_raw' => $h->created_at,
+                ]);
+            }
+
+            $operaciones = $operaciones->sortByDesc('fecha')->values();
+        @endphp
+
+        @if($operaciones->isEmpty())
+            <p class="text-sm text-gray-400 py-6 text-center">Sin operaciones registradas el {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</p>
+        @else
+            <div class="space-y-3">
+                @foreach($operaciones as $op)
+                    <div class="flex items-center gap-4 p-3 rounded-lg {{ $op['tipo'] === 'evaluacion' ? 'bg-blue-50' : 'bg-indigo-50' }} border {{ $op['tipo'] === 'evaluacion' ? 'border-blue-100' : 'border-indigo-100' }}">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center {{ $op['tipo'] === 'evaluacion' ? 'bg-blue-100 text-blue-600' : 'bg-indigo-100 text-indigo-600' }}">
+                            @if($op['tipo'] === 'evaluacion')
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                </svg>
+                            @else
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm text-gray-800">
+                                <span class="font-semibold">{{ $op['hora'] }}</span>
+                                <span class="text-xs text-gray-500">({{ $op['fecha_raw']->diffForHumans() }})</span> -
+                                <span class="font-medium">{{ $op['usuario'] }}</span>
+                                {{ $op['detalle'] }} a
+                                <span class="font-medium">{{ $op['paciente'] }}</span>
+                            </p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
-</div>
+
+ 
 
 <!-- Modal de Acciones Profesional -->
 <div id="modalAcciones" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300">
@@ -232,59 +238,28 @@ $hasPermission = function($permission) use ($userPermissions) {
             </div>
             @endif
 
-            <!-- Sección: Acciones Principales -->
+            <!-- Sección: Catering -->
+            @if($hasPermission('administrar_catering') || empty($userPermissions))
             <div class="mb-4">
                 <div class="flex items-center gap-2 mb-2">
-                    <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Atención</h4>
+                    <div class="w-1 h-4 bg-orange-500 rounded-full"></div>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Catering</h4>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <a id="linkEvaluar" href="#" class="group relative flex flex-col items-center p-3 bg-white border border-blue-200 rounded-lg hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/10 transition-all duration-200 text-center">
-                        <div class="w-9 h-9 bg-blue-50 group-hover:bg-blue-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    <button onclick="mostrarModalCatering()" class="group relative flex flex-col items-center p-3 bg-white border border-orange-200 rounded-lg hover:border-orange-400 hover:shadow-md hover:shadow-orange-500/10 transition-all duration-200 text-center">
+                        <div class="w-9 h-9 bg-orange-50 group-hover:bg-orange-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                             </svg>
                         </div>
-                        <span class="font-semibold text-slate-800 text-sm block mb-0.5">Evaluar Paciente</span>
-                        <span class="text-xs text-slate-500">Medicamentos y drenajes</span>
-                    </a>
-
-                    @if($hasPermission('ver_historial_internacion'))
-                    <a id="linkHistorial" href="#" class="group relative flex flex-col items-center p-3 bg-white border border-violet-200 rounded-lg hover:border-violet-400 hover:shadow-md hover:shadow-violet-500/10 transition-all duration-200 text-center">
-                        <div class="w-9 h-9 bg-violet-50 group-hover:bg-violet-100 rounded-md flex items-center justify-center mb-1.5 transition-colors duration-200">
-                            <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                        </div>
-                        <span class="font-semibold text-slate-800 text-sm block mb-0.5">Ver Historial</span>
-                        <span class="text-xs text-slate-500">Historial completo</span>
-                    </a>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Sección: Egreso -->
-            @if($hasPermission('dar_alta_internacion'))
-            <div>
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wider">Egreso</h4>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="darAlta()" class="group relative flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-2 border-emerald-200 rounded-lg hover:border-emerald-400 hover:shadow-md hover:shadow-emerald-500/15 transition-all duration-200">
-                        <div class="w-9 h-9 bg-emerald-500 group-hover:bg-emerald-600 rounded-md flex items-center justify-center transition-colors duration-200 shadow-sm">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                            </svg>
-                        </div>
-                        <div class="text-left">
-                            <span class="font-bold text-emerald-800 text-base block">Dar de Alta</span>
-                            <span class="text-xs text-emerald-600">Paciente egresado</span>
-                        </div>
+                        <span class="font-semibold text-slate-800 text-sm block mb-0.5">Registrar Catering</span>
+                        <span class="text-xs text-slate-500">Desayuno, almuerzo, cena</span>
                     </button>
                 </div>
             </div>
             @endif
+
+            {{-- Egreso: el alta se realiza en /patients-dar-de-alta (PatientsController::darDeAlta). --}}
         </div>
 
         <!-- Footer del Modal -->
@@ -304,12 +279,57 @@ $hasPermission = function($permission) use ($userPermissions) {
                         Atención
                     </span>
                     <span class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                        Catering
+                    </span>
+                    <span class="flex items-center gap-1.5">
                         <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
                         Egreso
                     </span>
                 </div>
                 <span>Presione ESC para cerrar</span>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Catering Rápido -->
+<div id="modalCatering" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white shadow-2xl rounded-2xl max-w-md w-full overflow-hidden transform transition-all duration-300">
+        <div class="bg-gradient-to-r from-orange-600 via-orange-700 to-orange-800 px-6 py-4 rounded-t-2xl">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/15 backdrop-blur rounded-lg flex items-center justify-center border border-white/20">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Registrar Catering</h3>
+                        <p class="text-sm text-orange-100" id="catering-paciente-nombre"></p>
+                    </div>
+                </div>
+                <button onclick="cerrarModalCatering()" class="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all">
+                    <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-50/70">
+            <div class="space-y-2" id="catering-botones">
+                {{-- Los botones se generarán dinámicamente --}}
+            </div>
+        </div>
+
+        <div class="px-4 py-3 bg-slate-100 border-t border-slate-200 rounded-b-2xl flex justify-end gap-2">
+            <button onclick="cerrarModalCatering()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-white transition-colors">
+                Cancelar
+            </button>
+            <button onclick="guardarCateringRapido()" class="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition-colors">
+                Guardar Catering
+            </button>
         </div>
     </div>
 </div>
@@ -465,12 +485,6 @@ $hasPermission = function($permission) use ($userPermissions) {
         if (internacionSeleccionada) {
             document.getElementById('modal-paciente-nombre').textContent = internacionSeleccionada.paciente_nombre;
             document.getElementById('modalAcciones').classList.remove('hidden');
-
-            // Actualizar link de evaluar
-            document.getElementById('linkEvaluar').href = `/internacion-staff/evaluar/${internacionSeleccionada.id}`;
-
-            // Actualizar link de historial
-            document.getElementById('linkHistorial').href = `/internacion-staff/historial/${internacionSeleccionada.id}`;
         }
     }
 
@@ -565,34 +579,113 @@ $hasPermission = function($permission) use ($userPermissions) {
         }
     }
 
-    async function darAlta() {
+    // ============== FUNCIONES DE CATERING RÁPIDO ==============
+
+    let cateringEstados = { desayuno: 'no_dado', almuerzo: 'no_dado', merienda: 'no_dado', cena: 'no_dado' };
+
+    async function mostrarModalCatering() {
         if (!internacionSeleccionada) return;
 
-        const motivo = prompt('Ingrese el motivo del alta (opcional):');
-        if (motivo === null) return; // Usuario canceló
+        document.getElementById('catering-paciente-nombre').textContent = internacionSeleccionada.paciente_nombre;
+
+        // Cargar catering actual del paciente
+        try {
+            const response = await fetch(`/internacion-staff/api/internacion/${internacionSeleccionada.id}/catering`);
+            const data = await response.json();
+
+            if (data.success) {
+                // Inicializar estados desde la respuesta
+                cateringEstados = { desayuno: 'no_dado', almuerzo: 'no_dado', merienda: 'no_dado', cena: 'no_dado' };
+                data.catering.forEach(item => {
+                    cateringEstados[item.tipo_comida] = item.estado;
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando catering:', error);
+        }
+
+        renderizarBotonesCatering();
+        document.getElementById('modalCatering').classList.remove('hidden');
+    }
+
+    function cerrarModalCatering() {
+        document.getElementById('modalCatering').classList.add('hidden');
+        cateringEstados = { desayuno: 'no_dado', almuerzo: 'no_dado', merienda: 'no_dado', cena: 'no_dado' };
+    }
+
+    function toggleCatering(tipo) {
+        const ciclo = { 'no_dado': 'dado', 'dado': 'no_aplica', 'no_aplica': 'no_dado' };
+        cateringEstados[tipo] = ciclo[cateringEstados[tipo]];
+        renderizarBotonesCatering();
+    }
+
+    function renderizarBotonesCatering() {
+        const container = document.getElementById('catering-botones');
+        const tipos = [
+            { id: 'desayuno', label: 'Desayuno', icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z', color: 'yellow' },
+            { id: 'almuerzo', label: 'Almuerzo', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: 'green' },
+            { id: 'merienda', label: 'Merienda', icon: 'M20 12H4', color: 'purple' },
+            { id: 'cena', label: 'Cena', icon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z', color: 'indigo' }
+        ];
+
+        const clasesEstado = {
+            'dado': { bg: 'bg-green-50', border: 'border-green-300', badge: 'bg-green-100 text-green-800', label: 'Dado' },
+            'no_dado': { bg: 'bg-gray-50', border: 'border-gray-200', badge: 'bg-gray-100 text-gray-600', label: 'No Dado' },
+            'no_aplica': { bg: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-800', label: 'No Aplica' }
+        };
+
+        container.innerHTML = tipos.map(tipo => {
+            const estado = clasesEstado[cateringEstados[tipo.id]];
+            return `
+                <div onclick="toggleCatering('${tipo.id}')" class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${estado.bg} ${estado.border}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-${tipo.color}-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-${tipo.color}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="${tipo.icon}"/>
+                            </svg>
+                        </div>
+                        <span class="font-medium text-slate-800">${tipo.label}</span>
+                    </div>
+                    <span class="px-2.5 py-1 text-xs font-medium rounded-full ${estado.badge}">${estado.label}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function guardarCateringRapido() {
+        if (!internacionSeleccionada) return;
+
+        const registros = [];
+        for (const [tipo, estado] of Object.entries(cateringEstados)) {
+            registros.push({
+                paciente_id: internacionSeleccionada.paciente_id,
+                tipo_comida: tipo,
+                estado: estado,
+                observaciones: null
+            });
+        }
 
         try {
-            const response = await fetch(`/internacion-staff/api/internacion/${internacionSeleccionada.id}/alta`, {
+            const response = await fetch('{{ route('internacion-staff.catering.registrar') }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
-                body: JSON.stringify({ motivo_alta: motivo })
+                body: JSON.stringify({ registros })
             });
 
             const data = await response.json();
 
             if (data.success) {
-                alert('Paciente dado de alta correctamente');
-                cerrarModal();
-                cargarInternaciones();
+                cerrarModalCatering();
+                alert('Catering registrado correctamente');
             } else {
                 alert('Error: ' + data.message);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al dar alta');
+            alert('Error al guardar el catering');
         }
     }
 
@@ -603,10 +696,22 @@ $hasPermission = function($permission) use ($userPermissions) {
         }
     });
 
+    // Cerrar modal catering al hacer clic fuera
+    document.getElementById('modalCatering').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModalCatering();
+        }
+    });
+
     // Cerrar modal con tecla ESC
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !document.getElementById('modalAcciones').classList.contains('hidden')) {
-            cerrarModal();
+        if (e.key === 'Escape') {
+            if (!document.getElementById('modalAcciones').classList.contains('hidden')) {
+                cerrarModal();
+            }
+            if (!document.getElementById('modalCatering').classList.contains('hidden')) {
+                cerrarModalCatering();
+            }
         }
     });
 

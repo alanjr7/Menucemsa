@@ -18,8 +18,13 @@
             </div>
         </div>
         <div class="flex gap-3">
+            <a href="{{ route('admin.almacen-medicamentos.lote.form', ['catalogo_id' => $catalogo->id]) }}"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">+ Registrar Lote</a>
+            {{-- Editar catálogo: solo admin|administrador (ruta también restringida) --}}
+            @if(in_array(auth()->user()->role, ['admin', 'administrador']))
             <a href="{{ route('admin.almacen-medicamentos.edit', $catalogo) }}"
                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">Editar</a>
+            @endif
             <a href="{{ route('admin.almacen-medicamentos.index') }}"
                class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Volver</a>
         </div>
@@ -28,6 +33,45 @@
     @if($catalogo->descripcion)
     <div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-sm text-gray-700">
         {{ $catalogo->descripcion }}
+    </div>
+    @endif
+
+    <!-- Identificación / Clasificación -->
+    @if($catalogo->nombre_generico || $catalogo->concentracion || $catalogo->forma_farmaceutica || $catalogo->categoria || $catalogo->codigo_atc || $catalogo->codigo_liname || $catalogo->requiere_receta)
+    <div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-3 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-sm font-semibold text-gray-700">Identificación y Clasificación</h3>
+        </div>
+        <dl class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 p-6 text-sm">
+            @if($catalogo->nombre_generico)
+            <div><dt class="text-xs text-gray-500 uppercase">Genérico</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->nombre_generico }}</dd></div>
+            @endif
+            @if($catalogo->concentracion)
+            <div><dt class="text-xs text-gray-500 uppercase">Concentración</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->concentracion }}</dd></div>
+            @endif
+            @if($catalogo->forma_farmaceutica)
+            <div><dt class="text-xs text-gray-500 uppercase">Forma farmacéutica</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->forma_farmaceutica }}</dd></div>
+            @endif
+            @if($catalogo->categoria)
+            <div><dt class="text-xs text-gray-500 uppercase">Categoría</dt><dd class="text-gray-900 font-medium mt-0.5">{{ $catalogo->categoria }}</dd></div>
+            @endif
+            @if($catalogo->codigo_atc)
+            <div><dt class="text-xs text-gray-500 uppercase">Código ATC</dt><dd class="text-gray-900 font-mono mt-0.5">{{ $catalogo->codigo_atc }}</dd></div>
+            @endif
+            @if($catalogo->codigo_liname)
+            <div><dt class="text-xs text-gray-500 uppercase">Código LINAME</dt><dd class="text-gray-900 font-mono mt-0.5">{{ $catalogo->codigo_liname }}</dd></div>
+            @endif
+            <div>
+                <dt class="text-xs text-gray-500 uppercase">Receta</dt>
+                <dd class="mt-0.5">
+                    @if($catalogo->requiere_receta)
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Requiere receta</span>
+                    @else
+                        <span class="text-gray-500">Venta libre</span>
+                    @endif
+                </dd>
+            </div>
+        </dl>
     </div>
     @endif
 
@@ -48,6 +92,16 @@
                             Vence {{ $lote->fecha_vencimiento->format('d/m/Y') }}
                         </span>
                     @endif
+                    @if($lote->laboratorio || $lote->proveedor)
+                        <div class="flex items-center gap-2 mt-1">
+                            @if($lote->laboratorio)
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Lab: {{ $lote->laboratorio }}</span>
+                            @endif
+                            @if($lote->proveedor)
+                                <span class="text-xs text-gray-500">Prov: {{ $lote->proveedor }}</span>
+                            @endif
+                        </div>
+                    @endif
                 </div>
                 <div class="text-right text-xs text-gray-500">
                     @if($lote->precio_venta)
@@ -55,7 +109,7 @@
                     @endif
                     @if($lote->precio_compra)
                         <div>Costo: Bs {{ number_format($lote->precio_compra, 2) }}
-                            @if($lote->porcentaje_ganancia) ({{ $lote->porcentaje_ganancia }}%) @endif
+                            @if($lote->ganancia) (Ganancia: Bs {{ number_format($lote->ganancia, 2) }}) @endif
                         </div>
                     @endif
                 </div>
@@ -79,12 +133,78 @@
         @endforelse
     </div>
 
-    <!-- Historial -->
-    <div class="text-center">
-        <a href="{{ route('admin.almacen-medicamentos.historial-item', $catalogo) }}"
-           class="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 text-sm">
-            Ver historial de dispensaciones
-        </a>
+    <!-- Historial de Entregas a Pacientes -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Entregas a Pacientes</h3>
+            <span class="text-sm text-gray-600">{{ $entregas->total() }} registros</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CI</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entregado por</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Área</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hora</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse($entregas as $entrega)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ $entrega->paciente?->nombre ?? 'N/A' }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ $entrega->paciente?->ci ?? $entrega->paciente?->temp_code ?? '—' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {{ $entrega->cantidad }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ $entrega->entregadoPor?->name ?? 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                {{ match($entrega->origen) {
+                                    'emergencia' => 'bg-red-100 text-red-800',
+                                    'internacion' => 'bg-blue-100 text-blue-800',
+                                    'uti' => 'bg-purple-100 text-purple-800',
+                                    'cirugia' => 'bg-green-100 text-green-800',
+                                    default => 'bg-gray-100 text-gray-800',
+                                } }}">
+                                {{ ucfirst($entrega->origen) }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ $entrega->fecha_entrega?->format('d/m/Y') ?? '—' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ $entrega->fecha_entrega?->format('H:i') ?? '—' }}
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                            No hay entregas registradas para este medicamento.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="px-6 py-4 border-t border-gray-200">
+            {{ $entregas->links() }}
+        </div>
     </div>
 </div>
 @endsection

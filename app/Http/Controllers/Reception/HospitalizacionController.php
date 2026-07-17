@@ -12,6 +12,7 @@ use App\Models\Seguro;
 use App\Models\Medico;
 use App\Models\Especialidad;
 use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -31,10 +32,10 @@ class HospitalizacionController extends Controller
     {
         $ci = $request->get('ci');
 
-        if (!is_numeric($ci) || strlen($ci) < 7 || strlen($ci) > 10) {
+        if (empty($ci) || strlen($ci) < 3) {
             return response()->json([
                 'success' => false,
-                'message' => 'El CI debe ser un número de 7 a 10 dígitos'
+                'message' => 'El CI debe tener al menos 3 caracteres'
             ]);
         }
 
@@ -66,7 +67,7 @@ class HospitalizacionController extends Controller
             $paciente = $this->crearOActualizarPaciente($request);
 
             // 2. Verificar si ya tiene una hospitalización activa
-            $hospitalizacionActiva = Hospitalizacion::where('ci_paciente', $paciente->ci)
+            $hospitalizacionActiva = Hospitalizacion::where('paciente_id', $paciente->id)
                 ->whereNull('fecha_alta')
                 ->first();
 
@@ -81,12 +82,15 @@ class HospitalizacionController extends Controller
             $triage = $this->crearTriagePorTipo('amarillo');
             $paciente->update(['triage_id' => $triage->id]);
 
-            // 4. Crear registro de hospitalización
-            $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage);
+            // 4. Abrir episodio
+            $episodio = EpisodioService::abrirEpisodio($paciente->id, 'internacion', Auth::id());
 
-            // 5. Obtener o crear cuenta maestra (reutiliza la de emergencia si ya existe)
+            // 5. Crear registro de hospitalización
+            $hospitalizacion = $this->crearHospitalizacion($request, $paciente, $triage, $episodio->id);
+
+            // 6. Obtener o crear cuenta maestra (reutiliza la de emergencia si ya existe)
             $cuentaCobro = CuentaCobroService::obtenerOCrearCuentaMaestra(
-                $paciente->ci,
+                $paciente->id,
                 'internacion',
                 $request->seguro_id
             );
@@ -106,9 +110,7 @@ class HospitalizacionController extends Controller
                 null
             );
 
-            // 6. Procesar acciones adicionales
-            $acciones = $this->procesarAccionesHospitalizacion($request, $paciente, $hospitalizacion);
-            $acciones['cuenta_cobro_id'] = $cuentaCobro->id;
+            $cuentaCobro->update(['episodio_id' => $episodio->id]);
 
             DB::commit();
 
@@ -121,10 +123,10 @@ class HospitalizacionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+            \Log::error('Error al registrar hospitalización: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Error al registrar la hospitalización: ' . $e->getMessage()
+                'message' => 'Error al registrar la hospitalización. Intente nuevamente.',
             ], 500);
         }
     }
@@ -143,8 +145,8 @@ class HospitalizacionController extends Controller
                 return [
                     'codigo' => $hospitalizacion->id,
                     'paciente' => [
-                        'nombre' => $hospitalizacion->paciente->nombre,
-                        'ci' => $hospitalizacion->paciente->ci
+                        'nombre' => $hospitalizacion->paciente?->nombre ?? 'Sin paciente',
+                        'ci' => $hospitalizacion->paciente?->ci ?? 'N/A',
                     ],
                     'tipo' => 'hospitalizacion',
                     'servicio' => 'Hospitalización',
@@ -152,10 +154,10 @@ class HospitalizacionController extends Controller
                     'fecha_ingreso' => $hospitalizacion->fecha_ingreso->format('d/m/Y'),
                     'medico' => [
                         'usuario' => [
-                            'name' => $hospitalizacion->medico->user->name ?? 'No asignado'
+                            'name' => $hospitalizacion->medico?->user?->name ?? 'No asignado',
                         ]
                     ],
-                    'habitacion' => $hospitalizacion->habitacion_id ?? 'Por asignar'
+                    'habitacion' => $hospitalizacion->habitacion_id ?? 'Por asignar',
                 ];
             });
 
@@ -165,9 +167,10 @@ class HospitalizacionController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error al cargar hospitalizaciones activas: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar hospitalizaciones activas: ' . $e->getMessage()
+                'message' => 'Error al cargar hospitalizaciones activas.',
             ], 500);
         }
     }
@@ -177,7 +180,7 @@ class HospitalizacionController extends Controller
         $ci = $request->ci;
         
         // Buscar paciente existente
-        $paciente = Paciente::find($ci);
+        $paciente = Paciente::where('ci', (int) $ci)->first();
         
         if (!$paciente) {
             // Validar que todos los campos requeridos estén presentes
@@ -189,15 +192,21 @@ class HospitalizacionController extends Controller
 
             // Crear nuevo paciente
             $paciente = Paciente::create([
-                'ci' => $ci,
+                'ci' => (int) $ci,
+                'is_temp' => false,
                 'nombre' => trim($request->nombres . ' ' . $request->apellidos),
                 'sexo' => $request->sexo === 'Femenino' ? 'F' : 'M',
                 'direccion' => $request->direccion ?? 'Sin especificar',
                 'telefono' => $request->telefono ?? 0,
                 'correo' => $request->correo ?? 'sin@email.com',
                 'seguro_id' => $request->seguro_id ?? $this->obtenerOCrearSeguro('particular'),
-                'id_triage' => null, // Se asignará después
-                'registro_codigo' => $this->obtenerOCrearRegistro(),
+                ...Paciente::datosSeguroDesdeRequest($request),
+                'id_triage' => null,
+                'registro_codigo' => $this->obtenerOCrearRegistro([
+                    'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
+                    'sexo'             => $request->sexo === 'Femenino' ? 'F' : 'M',
+                    'nombre'           => trim($request->nombres . ' ' . $request->apellidos),
+                ]),
             ]);
         } else {
             // Actualizar datos si es necesario
@@ -210,6 +219,7 @@ class HospitalizacionController extends Controller
             // Actualizar seguro solo si se envió explicitamente
             if ($request->has('seguro_id') && $request->seguro_id !== null) {
                 $updateData['seguro_id'] = $request->seguro_id;
+                $updateData = array_merge($updateData, Paciente::datosSeguroDesdeRequest($request));
             }
 
             $paciente->update($updateData);
@@ -218,35 +228,21 @@ class HospitalizacionController extends Controller
         return $paciente;
     }
 
-    private function crearHospitalizacion($request, $paciente, $triage)
+    private function crearHospitalizacion($request, $paciente, $triage, ?int $episodioId = null)
     {
-        $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-        
-        return Hospitalizacion::create([
-            'id' => $idHosp,
+        return Hospitalizacion::crearConCodigo([
             'fecha_ingreso' => now(),
             'motivo' => $request->motivo,
             'diagnostico' => $request->diagnostico,
             'estado' => 'activo',
             'ci_medico' => $request->medico_tratante,
-            'ci_paciente' => $paciente->ci,
+            'paciente_id' => $paciente->id,
             'contacto_nombre' => $request->contacto_nombre,
             'contacto_telefono' => $request->contacto_telefono,
-            'contacto_parentesco' => $request->contacto_parentesco,
-            'contacto_relacion' => $request->contacto_relacion,
+            'episodio_id' => $episodioId,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    }
-
-    private function procesarAccionesHospitalizacion($request, $paciente, $hospitalizacion)
-    {
-        $acciones = [];
-
-        // Acción principal: registro de hospitalización
-        $acciones['registro_hospitalizacion'] = true;
-
-        return $acciones;
     }
 
     private function crearTriagePorTipo(string $tipo)
@@ -285,35 +281,21 @@ class HospitalizacionController extends Controller
         return $seguro->id;
     }
 
-    private function obtenerOCrearRegistro()
+    private function obtenerOCrearRegistro(array $datosPaciente = []): string
     {
-        $currentUser = Auth::user();
-        $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-        
-        $registro = Registro::firstOrCreate(
+        $codigo = Registro::generarCodigo($datosPaciente);
+
+        Registro::firstOrCreate(
             ['codigo' => $codigo],
             [
-                'fecha' => now()->toDateString(),
-                'hora' => now()->toTimeString(),
-                'motivo' => 'Registro de Hospitalización',
-                'user_id' => $currentUser->id
-            ]
-        );
-        
-        return $registro->codigo;
-    }
-
-    private function obtenerOCrearRegistroMotivo(string $motivo)
-    {
-        return Registro::firstOrCreate(
-            ['codigo' => 'REG-' . now()->format('YmdHis') . '-' . random_int(100, 999)],
-            [
-                'fecha' => now()->toDateString(),
-                'hora' => now()->toTimeString(),
-                'motivo' => $motivo,
+                'fecha'   => now()->toDateString(),
+                'hora'    => now()->toTimeString(),
+                'motivo'  => 'Registro de Hospitalización',
                 'user_id' => Auth::id(),
             ]
         );
+
+        return $codigo;
     }
 
     public function darAlta(Request $request, $id)
@@ -334,6 +316,14 @@ class HospitalizacionController extends Controller
                 'updated_at' => now(),
             ]);
 
+            if ($hospitalizacion->paciente_id) {
+                EpisodioService::cerrarEpisodioDelPaciente(
+                    $hospitalizacion->paciente_id,
+                    Auth::id(),
+                    $request->motivo_alta ?? 'alta_medica'
+                );
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Paciente dado de alta exitosamente',
@@ -341,9 +331,10 @@ class HospitalizacionController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error al dar de alta: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al dar de alta: ' . $e->getMessage()
+                'message' => 'Error al dar de alta. Intente nuevamente.',
             ], 500);
         }
     }
@@ -358,8 +349,6 @@ class HospitalizacionController extends Controller
                 'diagnostico' => $request->diagnostico ?? $hospitalizacion->diagnostico,
                 'contacto_nombre' => $request->contacto_nombre ?? $hospitalizacion->contacto_nombre,
                 'contacto_telefono' => $request->contacto_telefono ?? $hospitalizacion->contacto_telefono,
-                'contacto_parentesco' => $request->contacto_parentesco ?? $hospitalizacion->contacto_parentesco,
-                'contacto_relacion' => $request->contacto_relacion ?? $hospitalizacion->contacto_relacion,
                 'updated_at' => now(),
             ]);
 
@@ -370,9 +359,10 @@ class HospitalizacionController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error al actualizar datos de hospitalización: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar datos: ' . $e->getMessage()
+                'message' => 'Error al actualizar datos. Intente nuevamente.',
             ], 500);
         }
     }
@@ -392,16 +382,6 @@ class HospitalizacionController extends Controller
 
     private function obtenerPrecioInternacion(): float
     {
-        $precioNuevo = \App\Models\IngresoPrecio::getPrecio('internacion');
-
-        if ($precioNuevo !== null) {
-            return (float) $precioNuevo;
-        }
-
-        $tarifaInternacion = \App\Models\Tarifa::where('codigo', 'HOSP-ADM')
-            ->where('activo', true)
-            ->first();
-
-        return $tarifaInternacion?->precio_particular ?? 150.00;
+        return (float) (\App\Models\IngresoPrecio::getPrecio('internacion') ?? 150.00);
     }
 }

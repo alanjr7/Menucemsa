@@ -37,17 +37,17 @@ class MenuSeeder extends Seeder
             'order' => 20,
         ]);
 
-        // 2.5 Historial de Pacientes (Recepción)
-        $historialPacientes = Menu::create([
-            'name' => 'Historial de Pacientes',
+        // 2.5 Pacientes Registrados (Recepción)
+        $pacientesRegistrados = Menu::create([
+            'name' => 'Pacientes Registrados',
             'active_pattern' => 'reception.pacientes*',
-            'icon_path' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+            'icon_path' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
             'color' => 'blue',
             'roles' => 'reception',
             'order' => 22,
         ]);
 
-        $historialPacientes->children()->create([
+        $pacientesRegistrados->children()->create([
             'name' => 'Buscar Pacientes',
             'route' => 'reception.pacientes.index',
             'roles' => 'reception',
@@ -66,7 +66,8 @@ class MenuSeeder extends Seeder
 
         $panelEnfermeria->children()->createMany([
             ['name' => 'Panel Principal', 'route' => 'emergency-staff.dashboard', 'roles' => 'enfermera-emergencia', 'order' => 1],
-            ['name' => 'Pendientes', 'route' => 'emergency-staff.pending', 'roles' => 'enfermera-emergencia', 'order' => 2],
+            ['name' => 'Camillas', 'route' => 'emergency-staff.camillas.index', 'roles' => 'enfermera-emergencia', 'order' => 2],
+            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'enfermera-emergencia', 'order' => 2],
         ]);
 
         // 3.5 Panel Enfermería Internación (Con Submenús)
@@ -80,8 +81,43 @@ class MenuSeeder extends Seeder
         ]);
 
         $panelEnfermeriaInt->children()->createMany([
-            ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'enfermera-internacion', 'order' => 1],
-            ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'enfermera-internacion', 'order' => 2],
+          ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'enfermera-internacion', 'order' => 1],
+            ['name' => 'Registrar Habitación', 'route' => 'internacion-staff.habitaciones.registro-uso', 'roles' => 'enfermera-internacion', 'order' => 2],
+            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'enfermera-internacion', 'order' => 3],
+            ['name' => 'Catering', 'route' => 'internacion-staff.catering.index', 'roles' => 'enfermera-internacion', 'order' => 5],
+            ]);
+
+        // 3.7 Panel UTI - Terapia Intensiva (Con Submenús)
+        $panelUti = Menu::create([
+            'name' => 'UTI - Terapia Intensiva',
+            'active_pattern' => 'emergency-staff.*,uti.*',
+            'icon_path' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+            'color' => 'cyan',
+            'roles' => 'uti',
+            'order' => 28,
+        ]);
+
+        $panelUti->children()->createMany([
+            ['name' => 'Panel',          'route' => 'uti.dashboard',                      'roles' => 'uti', 'order' => 1],
+            ['name' => 'Camillas',       'route' => 'emergency-staff.camillas.index',      'roles' => 'uti', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'uti', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'uti.procedimientos',                  'roles' => 'uti', 'order' => 4],
+        ]);
+
+        // 3.8 Panel Neonatología (rol neonato)
+        $neonato = Menu::create([
+            'name' => 'Neonatología',
+            'active_pattern' => 'neonato*',
+            'icon_path' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+            'color' => 'pink',
+            'roles' => 'neonato',
+            'order' => 29,
+        ]);
+        $neonato->children()->createMany([
+            ['name' => 'Recién Nacidos', 'route' => 'neonato.index',          'roles' => 'neonato', 'order' => 1],
+            ['name' => 'Cunas',          'route' => 'neonato.cunas',          'roles' => 'neonato', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'neonato.medicamentos',   'roles' => 'neonato', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'neonato.procedimientos', 'roles' => 'neonato', 'order' => 4],
         ]);
 
         // 4. Emergencias (Operativo - rol emergencia)
@@ -95,47 +131,31 @@ class MenuSeeder extends Seeder
         ]);
 
         $emergencias->children()->createMany([
-            ['name' => 'Panel Principal', 'route' => 'emergency-staff.dashboard', 'roles' => 'emergencia', 'order' => 1],
-            ['name' => 'Pendientes', 'route' => 'emergency-staff.pending', 'roles' => 'emergencia', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'emergencia', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'emergencia', 'order' => 4],
+            ['name' => 'Panel Principal',  'route' => 'emergency-staff.dashboard',       'roles' => 'emergencia', 'order' => 1],
+            ['name' => 'Medicamentos',     'route' => 'emergency-staff.medicamentos.index', 'roles' => 'emergencia', 'order' => 2],
+            ['name' => 'Procedimientos',   'route' => 'emergency-staff.procedimientos',  'roles' => 'emergencia', 'order' => 3],
+            ['name' => 'Enfermeras',       'route' => 'emergency-staff.enfermeras.index','roles' => 'emergencia', 'order' => 4],
+            ['name' => 'Camillas',         'route' => 'emergency-staff.camillas.index',  'roles' => 'emergencia', 'order' => 5],
         ]);
 
-        // 4.5 Administración de Emergencias (Admin/Director Médico/Administrador)
-        $adminEmergencias = Menu::create([
-            'name' => 'Admin Emergencias',
-            'active_pattern' => 'emergency-staff*,admin/emergencies*',
-            'icon_path' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-            'color' => 'rose',
-            'roles' => 'admin,dir_medico,administrador',
-            'order' => 30,
-        ]);
-
-        $adminEmergencias->children()->createMany([
-            ['name' => 'Dashboard', 'route' => 'emergency-staff.dashboard', 'roles' => 'admin,dir_medico,administrador', 'order' => 1],
-            ['name' => 'Gestión Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'emergency-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'emergency-staff.enfermeras.index', 'roles' => 'admin,administrador', 'order' => 4],
-            ['name' => 'Historial', 'route' => 'emergency-staff.historial.general', 'roles' => 'admin,administrador', 'order' => 5],
-        ]);
-
-        // 5. Pacientes (Con Submenús) - Admin/Director Médico/Doctor/Administrador
+        // 5. Pacientes (Con Submenús) - todos los roles EXCEPTO almacenista
+        // (el almacenista es inventario; no gestiona pacientes). Lista explícita en vez
+        // de `null` porque canBeSeenBy es allowlist. admin igual lo ve por isAdmin().
         $pacientes = Menu::create([
             'name' => 'Pacientes',
-            'active_pattern' => 'patients*,consulta*,uti*,quirofano*,pacientes-cirugia*,admin/emergencies*',
+            'active_pattern' => 'patients*,consulta*,uti*,quirofano*,admin/emergencies*',
             'icon_path' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
             'color' => 'blue',
-            'roles' => 'admin,dir_medico,doctor,administrador',
+            'roles' => 'admin,administrador,reception,dirmedico,doctor,caja,gerente,farmacia,emergencia,enfermera-emergencia,internacion,enfermera-internacion,cirujano,uti,neonato',
             'order' => 20,
         ]);
 
         $pacientes->children()->createMany([
-            ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => 'admin,dir_medico,doctor,administrador', 'order' => 1],
-            ['name' => 'UTI - Administración', 'route' => 'uti.admin.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 2],
-            ['name' => 'Quirófano', 'route' => 'quirofano.index', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 3],
-            ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'admin,dir_medico,cirujano,administrador', 'order' => 4],
-          //  ['name' => 'Gestión de Emergencias', 'route' => 'admin.emergencies.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 5],
-            ['name' => 'Consulta Externa', 'route' => 'consulta.index', 'roles' => 'doctor', 'order' => 6],
+            ['name' => 'Maestro de Pacientes', 'route' => 'patients.index', 'roles' => null, 'order' => 1],
+            ['name' => 'Agregar Pacientes', 'route' => 'reception', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Gestionar Pacientes', 'route' => 'admin.pacientes.gestionar', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Episodios', 'route' => 'admin.episodios.index', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Cerrar Episodio', 'route' => 'patients.dar-de-alta.index', 'roles' => 'admin,administrador,cirujano,emergencia,internacion', 'order' => 5],
             ['name' => 'Historial de Consultas', 'route' => 'consulta.historial-medico', 'roles' => 'doctor', 'order' => 7],
         ]);
 
@@ -150,10 +170,113 @@ class MenuSeeder extends Seeder
         ]);
         $cajaOp->children()->create(['name' => 'Cobro de Pacientes', 'route' => 'caja.operativa.index', 'order' => 1]);
 
-        // 7. Administración (Master Menu - admin y administrador)
+        // 6.5 Gestionar Clínica (Operativo Médico - admin y administrador)
+        $gestionarClinica = Menu::create([
+            'name' => 'Gestionar Clínica',
+            'active_pattern' => 'admin*,emergency-staff*,quirofano*,internacion-staff*',
+            'icon_path' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+            'color' => 'teal',
+            'roles' => 'admin,administrador',
+            'order' => 45,
+        ]);
+
+        // 1. Configuración General (Nivel 2)
+        $configGeneral = $gestionarClinica->children()->create([
+            'name' => 'Configuración General',
+            'active_pattern' => 'admin.especialidades*,admin.doctors*,admin.almacen-medicamentos*',
+            'roles' => 'admin,administrador',
+            'order' => 1,
+        ]);
+        $configGeneral->children()->createMany([
+            ['name' => 'Especialidades', 'route' => 'admin.especialidades.index', 'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Doctores', 'route' => 'admin.doctors.index', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Almacén Medicamentos', 'route' => 'admin.almacen-medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
+             ['name' => 'Procedimientos', 'route' => 'admin.procedimientos.index', 'roles' => 'admin,administrador', 'order' => 5],
+        ]);
+
+        // 2. Emergencias (Nivel 2)
+        $emergenciasAdmin = $gestionarClinica->children()->create([
+            'name' => 'Emergencias',
+            'active_pattern' => 'admin.emergencies*,emergency-staff*',
+            'roles' => 'admin,administrador',
+            'order' => 2,
+        ]);
+        $emergenciasAdmin->children()->createMany([
+            ['name' => 'Dashboard',          'route' => 'emergency-staff.dashboard',         'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Gestión Emergencias','route' => 'admin.emergencies.index',            'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos',       'route' => 'emergency-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Procedimientos',     'route' => 'admin.emergencia.procedimientos',    'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Enfermeras',         'route' => 'emergency-staff.enfermeras.index',   'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Camillas',           'route' => 'admin.camillas.index',               'roles' => 'admin,administrador', 'order' => 6],
+        ]);
+
+        // 3. Cirugías (Nivel 2)
+        $cirugiasAdmin = $gestionarClinica->children()->create([
+            'name' => 'Cirugías',
+            'active_pattern' => 'quirofano*,quirofanos-management*,tipos-cirugia*,admin.cirujanos*,admin.cirugias-externas*,admin.tipos-cirugia-externa*',
+            'roles' => 'admin,administrador',
+            'order' => 3,
+        ]);
+        $cirugiasAdmin->children()->createMany([
+            ['name' => 'Panel de Cirugías',   'route' => 'quirofano.index',               'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Gestionar Quirófanos','route' => 'quirofanos.management.index',   'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Ver Cirujanos',        'route' => 'admin.cirujanos.index',        'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Medicamentos',         'route' => 'quirofano.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Procedimientos',       'route' => 'admin.cirugia.procedimientos', 'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Precios y Duración',   'route' => 'tipos-cirugia.index',          'roles' => 'admin,administrador', 'order' => 6],
+            ['name' => 'Cirugías Externas',    'route' => 'admin.cirugias-externas.index',    'roles' => 'admin', 'order' => 7],
+            ['name' => 'Precios Externos',     'route' => 'admin.tipos-cirugia-externa.index', 'roles' => 'admin', 'order' => 8],
+        ]);
+
+        // 4. Internación (Nivel 2)
+        $internacionAdmin = $gestionarClinica->children()->create([
+            'name' => 'Internación',
+            'active_pattern' => 'internacion-staff*',
+            'roles' => 'admin,administrador',
+            'order' => 4,
+        ]);
+        $internacionAdmin->children()->createMany([
+            ['name' => 'Dashboard',      'route' => 'internacion-staff.dashboard',              'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Habitaciones',   'route' => 'internacion-staff.habitaciones.index',     'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'internacion-staff.medicamentos.index',     'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'admin.internacion.procedimientos',         'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Enfermeras',     'route' => 'internacion-staff.enfermeras.index',       'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Catering',       'route' => 'internacion-staff.catering.gestion',       'roles' => 'admin,administrador', 'order' => 6],
+        ]);
+
+        // 5. UTI (Nivel 2)
+        $utiAdmin = $gestionarClinica->children()->create([
+            'name' => 'UTI',
+            'active_pattern' => 'uti*,admin.camillas*',
+            'roles' => 'admin,administrador',
+            'order' => 5,
+        ]);
+        $utiAdmin->children()->createMany([
+            ['name' => 'Camillas',       'route' => 'admin.camillas.index',               'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Panel UTI',      'route' => 'uti.dashboard',                      'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Medicamentos',   'route' => 'uti.operativa.medicamentos.readonly', 'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Procedimientos', 'route' => 'admin.uti.procedimientos',            'roles' => 'admin,administrador', 'order' => 4],
+        ]);
+
+        // 6. Neonato (Nivel 2)
+        $neonatoAdmin = $gestionarClinica->children()->create([
+            'name' => 'Neonatología',
+            'active_pattern' => 'admin.neonato*,neonato*',
+            'roles' => 'admin,administrador',
+            'order' => 6,
+        ]);
+        $neonatoAdmin->children()->createMany([
+            ['name' => 'Dashboard',       'route' => 'admin.neonato.dashboard',      'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Recién Nacidos',  'route' => 'admin.neonato.recien-nacidos', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Cunas',           'route' => 'admin.neonato.cunas',          'roles' => 'admin,administrador', 'order' => 3],
+            ['name' => 'Medicamentos',    'route' => 'admin.neonato.medicamentos',   'roles' => 'admin,administrador', 'order' => 4],
+            ['name' => 'Procedimientos',  'route' => 'admin.neonato.procedimientos', 'roles' => 'admin,administrador', 'order' => 5],
+        ]);
+
+        // 7. Administración (Financiera - admin y administrador)
         $admin = Menu::create([
             'name' => 'Administración',
-            'active_pattern' => 'caja*,facturacion*,admin*,farmacias*,medicamentos*',
+            'active_pattern' => 'caja.gestion*,admin.seguros*,admin.ingreso-precios*,admin.almacen-inventario*,admin.cuentas*,admin.ajustes-pacientes*',
             'icon_path' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
             'color' => 'purple',
             'roles' => 'admin,administrador',
@@ -161,22 +284,57 @@ class MenuSeeder extends Seeder
         ]);
 
         $admin->children()->createMany([
-            // Configuración General
-            ['name' => 'Especialidades', 'route' => 'admin.especialidades.index', 'roles' => 'admin,administrador', 'order' => 1],
-            ['name' => 'Doctores', 'route' => 'admin.doctors.index', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Tarifarios', 'route' => 'admin.tarifarios', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Seguros', 'route' => 'admin.seguros', 'roles' => 'admin,administrador', 'order' => 4],
-            ['name' => 'Precios de Ingresos', 'route' => 'admin.ingreso-precios.index', 'roles' => 'admin,administrador', 'order' => 5],
+            // Configuración Financiera
+            ['name' => 'Ajustes de Paciente', 'route' => 'admin.ajustes-pacientes.index', 'roles' => 'admin,administrador', 'order' => 1],
+            ['name' => 'Seguros', 'route' => 'admin.seguros', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Precio al Ingreso', 'route' => 'admin.ingreso-precios.index', 'roles' => 'admin,administrador', 'order' => 3],
 
-            // Gestión Hospitalaria
-            ['name' => 'Almacén Central', 'route' => 'admin.almacen-medicamentos.index', 'roles' => 'admin,administrador', 'order' => 10],
-           // ['name' => 'Farmacias', 'route' => 'farmacias.index', 'roles' => 'admin,administrador', 'order' => 11],
-            ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 13],
+            // Inventario y Caja
+            ['name' => 'Almacén Inventario', 'route' => 'admin.almacen-inventario.index', 'roles' => 'admin,administrador', 'order' => 10],
+            ['name' => 'Control de Caja', 'route' => 'caja.gestion.index', 'roles' => 'admin,administrador', 'order' => 11],
+            ['name' => 'Cobro de Pacientes', 'route' => 'caja.operativa.index', 'order' => 12],
+            ]);
 
-            // Gestión Operativa y Financiera
-            ['name' => 'Gestionar Consulta Externa', 'route' => 'admin.consulta-externa-gestion', 'roles' => 'admin,administrador', 'order' => 20],
-           // ['name' => 'Facturación', 'route' => 'admin.facturacion.index', 'roles' => 'admin,administrador', 'order' => 21],
-            ['name' => 'Cuentas por Cobrar', 'route' => 'admin.cuentas', 'roles' => 'admin,administrador', 'order' => 22],
+        // 7.4 Contabilidad — módulo financiero/contable propio (antes vivía como un hijo
+        // suelto dentro de "Administración"). Es la capa de consolidación/respaldo sobre
+        // caja + almacén: libro de caja (ingresos automáticos + egresos con crédito fiscal
+        // y retenciones), cierre de período inmutable y homologación SIN. Incluye al rol
+        // `gerente` a paridad con las rutas `caja.contabilidad.*` (audiencia contable).
+        $contabilidad = Menu::create([
+            'name' => 'Contabilidad',
+            // Incluye caja.gestion.devoluciones* : la página propia de Devoluciones/NC
+            // vive bajo el prefijo caja-gestion (reusa sus endpoints) pero pertenece
+            // a este menú contable.
+            'active_pattern' => 'caja.contabilidad*,caja.gestion.devoluciones*',
+            'icon_path' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
+            'color' => 'emerald',
+            'roles' => 'admin,administrador,gerente',
+            'order' => 55,
+        ]);
+        // NOTA: el "Cierre de Período" NO es submenú — es un modal + panel dentro del
+        // Libro de Caja (botón "Cerrar Período"). Su ruta `cierres.index` es un endpoint
+        // JSON que alimenta ese panel vía fetch, no una vista navegable.
+        // Devoluciones/NC solo para admin|administrador (emiten); gerente no la ve
+        // porque las rutas caja-gestion están cerradas a ese rol.
+        $contabilidad->children()->createMany([
+            ['name' => 'Libro de Caja',    'route' => 'caja.contabilidad.index',           'roles' => 'admin,administrador,gerente', 'order' => 1],
+            ['name' => 'Devoluciones / N. Crédito', 'route' => 'caja.gestion.devoluciones.index', 'roles' => 'admin,administrador', 'order' => 2],
+            ['name' => 'Homologación SIN', 'route' => 'caja.contabilidad.homologacion-sin', 'roles' => 'admin,administrador,gerente', 'order' => 3],
+        ]);
+
+        // 7.5 Proformas (Cotizaciones) — todos los roles EXCEPTO almacenista.
+        // Es una herramienta administrativa accesible a todo el personal clínico/admin;
+        // el almacenista (inventario) no la usa, así que se lista explícitamente el resto
+        // de roles en vez de `null`. La visibilidad de datos (propias vs. todas) se
+        // controla en el controlador. (admin igual la ve siempre por isAdmin()).
+        Menu::create([
+            'name' => 'Proformas',
+            'route' => 'proformas.index',
+            'active_pattern' => 'proformas.*',
+            'icon_path' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+            'color' => 'emerald',
+            'roles' => 'admin,administrador,reception,dirmedico,doctor,caja,gerente,farmacia,emergencia,enfermera-emergencia,internacion,enfermera-internacion,cirujano,uti,neonato',
+            'order' => 48,
         ]);
 
         // 8. Farmacia (Operativo - rol farmacia/admin/administrador)
@@ -185,28 +343,40 @@ class MenuSeeder extends Seeder
             'active_pattern' => 'farmacia*',
             'icon_path' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
             'color' => 'yellow',
-            'roles' => 'farmacia,admin,administrador',
+            'roles' => 'farmacia,admin,administrador,almacenista',
             'order' => 40,
         ]);
 
         $farmacia->children()->createMany([
-            ['name' => 'Dashboard', 'route' => 'farmacia.index', 'roles' => 'farmacia,admin,administrador', 'order' => 1],
-            ['name' => 'Punto de Venta', 'route' => 'farmacia.pos', 'roles' => 'farmacia,admin,administrador', 'order' => 2],
-            ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia,admin,administrador', 'order' => 3],
-            ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin,administrador', 'order' => 4],
-            ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin,administrador', 'order' => 5],
+            ['name' => 'Dashboard', 'route' => 'farmacia.index', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 1],
+            ['name' => 'Punto de Venta', 'route' => 'farmacia.pos', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 2],
+            ['name' => 'Inventario', 'route' => 'farmacia.inventario', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 3],
+            ['name' => 'Clientes', 'route' => 'farmacia.clientes', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 4],
+            ['name' => 'Ventas', 'route' => 'farmacia.ventas', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 5],
+            ['name' => 'Reporte', 'route' => 'farmacia.reporte', 'roles' => 'farmacia,admin,administrador,almacenista', 'order' => 6],
         ]);
 
-        // 9. UTI - Terapia Intensiva
-        $uti = Menu::create([
-            'name' => 'UTI - Terapia Intensiva',
-            'active_pattern' => 'uti*',
-            'icon_path' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
-            'color' => 'cyan',
-            'roles' => 'uti',
-            'order' => 80,
+        // 9. Almacén — Medicamentos e Insumos (rol almacenista)
+        // Punto único de acceso del almacenista a la gestión de medicamentos/insumos de
+        // TODAS las áreas. Cada hijo apunta al índice de medicamentos de su área; el control
+        // de acceso real lo aplican los grupos de rutas (role:...|almacenista).
+        $almacen = Menu::create([
+            'name' => 'Almacén',
+            'active_pattern' => 'admin.almacen-medicamentos*,admin.almacen-inventario*,emergency-staff.medicamentos*,quirofano.medicamentos*,internacion-staff.medicamentos*,uti.operativa.medicamentos*,neonato.medicamentos',
+            'icon_path' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+            'color' => 'orange',
+            'roles' => 'almacenista',
+            'order' => 38,
         ]);
-        $uti->children()->create(['name' => 'Panel de Pacientes', 'route' => 'uti.operativa.index', 'order' => 1]);
+        $almacen->children()->createMany([
+            ['name' => 'Almacén Central',  'route' => 'admin.almacen-medicamentos.index',     'roles' => 'almacenista', 'order' => 1],
+           // ['name' => 'Inventario / Insumos', 'route' => 'admin.almacen-inventario.index',    'roles' => 'almacenista', 'order' => 2],
+            ['name' => 'Emergencias',      'route' => 'emergency-staff.medicamentos.index',    'roles' => 'almacenista', 'order' => 3],
+            ['name' => 'Quirófano',        'route' => 'quirofano.medicamentos.index',          'roles' => 'almacenista', 'order' => 4],
+            ['name' => 'Internación',      'route' => 'internacion-staff.medicamentos.index',  'roles' => 'almacenista', 'order' => 5],
+            ['name' => 'UTI',              'route' => 'uti.operativa.medicamentos.readonly',   'roles' => 'almacenista', 'order' => 6],
+            ['name' => 'Neonatología',     'route' => 'neonato.medicamentos',                  'roles' => 'almacenista', 'order' => 7],
+        ]);
 
         // 10. Quirófano (Cirujano)
         $quirofano = Menu::create([
@@ -218,12 +388,10 @@ class MenuSeeder extends Seeder
             'order' => 82,
         ]);
         $quirofano->children()->createMany([
-            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index', 'roles' => 'cirujano', 'order' => 1],
-            ['name' => 'Pacientes en Cirugía', 'route' => 'quirofano.pacientes-cirugia', 'roles' => 'cirujano', 'order' => 2],
-            ['name' => 'Calendario', 'route' => 'quirofano.calendario', 'roles' => 'cirujano', 'order' => 3],
-            ['name' => 'Historial', 'route' => 'quirofano.historial', 'roles' => 'cirujano', 'order' => 4],
-            ['name' => 'Medicamentos', 'route' => 'quirofano.medicamentos.index', 'roles' => 'cirujano', 'order' => 5],
-            ['name' => 'Gestionar Quirófanos', 'route' => 'quirofanos.management.index', 'roles' => 'cirujano', 'order' => 6],
+            ['name' => 'Panel de Cirugías', 'route' => 'quirofano.index',                   'roles' => 'cirujano', 'order' => 1],
+            ['name' => 'Procedimientos',    'route' => 'quirofano.procedimientos.lista',     'roles' => 'cirujano', 'order' => 3],
+            ['name' => 'Historial',         'route' => 'quirofano.historial',                'roles' => 'cirujano', 'order' => 4],
+            ['name' => 'Medicamentos',      'route' => 'quirofano.medicamentos.index',       'roles' => 'cirujano', 'order' => 5],
         ]);
 
         // 11. Internación (Operativo - rol internacion)
@@ -237,29 +405,12 @@ class MenuSeeder extends Seeder
         ]);
 
         $internacion->children()->createMany([
-            ['name' => 'Panel Principal', 'route' => 'internacion-staff.dashboard', 'roles' => 'internacion', 'order' => 1],
-            ['name' => 'Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'internacion', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'internacion', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'internacion', 'order' => 4],
-            ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'internacion', 'order' => 5],
-        ]);
-
-        // 11.5 Administración de Internación (Admin/Director Médico/Administrador)
-        $adminInternacion = Menu::create([
-            'name' => 'Admin Internación',
-            'active_pattern' => 'internacion-staff/habitaciones*',
-            'icon_path' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-            'color' => 'blue',
-            'roles' => 'admin,dir_medico,administrador',
-            'order' => 35,
-        ]);
-
-        $adminInternacion->children()->createMany([
-            //['name' => 'Gestión Internación', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,dir_medico,administrador', 'order' => 1],
-            ['name' => 'Habitaciones', 'route' => 'internacion-staff.habitaciones.index', 'roles' => 'admin,administrador', 'order' => 2],
-            ['name' => 'Medicamentos', 'route' => 'internacion-staff.medicamentos.index', 'roles' => 'admin,administrador', 'order' => 3],
-            ['name' => 'Enfermeras', 'route' => 'internacion-staff.enfermeras.index', 'roles' => 'admin,administrador', 'order' => 4],
-            ['name' => 'Historial', 'route' => 'internacion-staff.historial-general', 'roles' => 'admin,administrador', 'order' => 5],
+            ['name' => 'Panel Principal',      'route' => 'internacion-staff.dashboard',                'roles' => 'internacion', 'order' => 1],
+            ['name' => 'Registrar Habitación', 'route' => 'internacion-staff.habitaciones.registro-uso','roles' => 'internacion', 'order' => 2],
+            ['name' => 'Medicamentos',         'route' => 'internacion-staff.medicamentos.index',       'roles' => 'internacion', 'order' => 3],
+            ['name' => 'Procedimientos',       'route' => 'internacion-staff.procedimientos',           'roles' => 'internacion', 'order' => 4],
+            ['name' => 'Enfermeras',           'route' => 'internacion-staff.enfermeras.index',         'roles' => 'internacion', 'order' => 5],
+            ['name' => 'Catering',             'route' => 'internacion-staff.catering.index',           'roles' => 'internacion,enfermera-internacion', 'order' => 6],
         ]);
 
         // 12. Gerencial
@@ -291,6 +442,7 @@ class MenuSeeder extends Seeder
             // Agregamos el submenú aquí:
             ['name' => 'Gestión de Menús', 'route' => 'menus.index', 'roles' => 'admin', 'order' => 3],
             ['name' => 'Control de Accesos', 'route' => 'seguridad.accesos.index', 'roles' => 'admin,gerente,administrador', 'order' => 4],
+            ['name' => 'Backups', 'route' => 'seguridad.backup.index', 'roles' => 'admin,administrador', 'order' => 5],
         ]);
     }
 }

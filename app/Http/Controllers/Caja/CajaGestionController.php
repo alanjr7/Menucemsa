@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Caja;
 
+use App\Exports\ControlCajasExport;
+use App\Exports\MovimientosCajaExport;
+use App\Exports\PagosExport;
+use App\Exports\TransaccionesExport;
 use App\Http\Controllers\Controller;
 use App\Models\CajaSession;
 use App\Models\CuentaCobro;
@@ -14,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CajaGestionController extends Controller
 {
@@ -26,27 +31,39 @@ class CajaGestionController extends Controller
         $hoy = now()->toDateString();
         $inicioDia = now()->startOfDay();
         $finDia = now()->endOfDay();
-        
+
         // Obtener todos los ingresos de hoy (excluyendo aperturas de caja)
         $ingresosHoy = MovimientoCaja::whereDate('created_at', $hoy)
             ->where('tipo', 'ingreso')
             ->where('concepto', 'like', 'Cobro%')
             ->get();
-        
+
         // Calcular totales manualmente - usar el valor casteado del modelo
         $totalRecaudado = 0;
         $transacciones = $ingresosHoy->count();
         $metodosPagoHoy = ['efectivo' => 0, 'transferencia' => 0, 'tarjeta' => 0, 'qr' => 0];
 
+        // foreach ($ingresosHoy as $mov) {
+        //     $monto = (float) $mov->monto;
+        //     $totalRecaudado += $monto;
+        //     $metodo = $mov->metodo_pago ?? 'efectivo';
+        //     if (isset($metodosPagoHoy[$metodo])) {
+        //         $metodosPagoHoy[$metodo] += $monto;
+        //     }
+        // }
+
         foreach ($ingresosHoy as $mov) {
-            $monto = (float) $mov->monto;
-            $totalRecaudado += $monto;
+            // Usar el cast  monto en el modelo MovimientoCaja 'decimal:2'
+            $monto = $mov->monto;
+
+            $totalRecaudado = bcadd($totalRecaudado, $monto, 2);
+
             $metodo = $mov->metodo_pago ?? 'efectivo';
             if (isset($metodosPagoHoy[$metodo])) {
-                $metodosPagoHoy[$metodo] += $monto;
+                $metodosPagoHoy[$metodo] = bcadd($metodosPagoHoy[$metodo], $monto, 2);
             }
         }
-        
+
         $estadisticas = [
             'total_recaudado_hoy' => $totalRecaudado,
             'transacciones_hoy' => $transacciones,
@@ -66,8 +83,8 @@ class CajaGestionController extends Controller
                     'usuario' => $caja->user->name ?? 'N/A',
                     'fecha_apertura' => $caja->fecha_apertura->format('d/m/Y H:i'),
                     'monto_inicial' => $caja->monto_inicial,
-                    'total_ingresos' => $caja->ingresos()->sum('monto'),
-                    'total_egresos' => $caja->egresos()->sum('monto'),
+                    'total_ingresos' => $caja->movimientos()->where('tipo', 'ingreso')->where('concepto', 'like', 'Cobro%')->sum('monto'),
+                    'total_egresos' => $caja->movimientos()->where('tipo', 'egreso')->where('concepto', '!=', 'Cierre de caja')->sum('monto'),
                     'duracion' => $caja->duracion,
                 ];
             });
@@ -79,12 +96,43 @@ class CajaGestionController extends Controller
             ->limit(20)
             ->get();
 
+        // Fecha "desde" por defecto de los filtros de gestión: la apertura de la
+        // caja abierta más antigua (cubre la sesión vigente aunque arrancara ayer).
+        // Si no hay caja abierta, hoy. Evita que Control/Auditoría salgan vacíos por
+        // filtrar solo el día actual cuando la sesión cruza la medianoche.
+        $aperturaAbierta = CajaSession::abierta()->min('fecha_apertura');
+        $fechaInicioOperativa = $aperturaAbierta
+            ? \Carbon\Carbon::parse($aperturaAbierta)->toDateString()
+            : $hoy;
+
         return view('caja.gestion', compact(
             'estadisticas',
             'metodosPagoHoy',
             'cajasAbiertas',
-            'transaccionesRecientes'
+            'transaccionesRecientes',
+            'fechaInicioOperativa'
         ));
+    }
+    public function exportarAuditoria(Request $request)
+    {
+        $filtros = $request->all();
+        $nombreArchivo = 'auditoria_caja_' . now()->format('Ymd_His') . '.xlsx';
+
+        // Al usar el Facade Excel correctamente, el método download funcionará
+        return Excel::download(new \App\Exports\MovimientosCajaExport($filtros), $nombreArchivo);
+    }
+
+    public function exportarCajas(Request $request)
+    {
+        $filtros = $request->all();
+        return Excel::download(new \App\Exports\ControlCajasExport($filtros), 'reporte_cajas.xlsx');
+    }
+
+    public function exportarTransacciones(Request $request)
+    {
+        $filtros = $request->all();
+        $nombre = 'transacciones_caja_' . now()->format('d-m-Y_H-i') . '.xlsx';
+        return Excel::download(new TransaccionesExport($filtros), $nombre);
     }
 
     /**
@@ -101,7 +149,7 @@ class CajaGestionController extends Controller
                 'metodo_pago' => 'nullable|in:efectivo,transferencia,tarjeta,qr,todos',
             ]);
 
-            $query = CuentaCobro::with(['paciente', 'referencia', 'pagos.user', 'cajaSession.user']);
+            $query = CuentaCobro::with(['paciente', 'referencia', 'pagos.user', 'cajaSession.user', 'seguro']);
 
             // Filtro por fecha
             if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
@@ -141,8 +189,8 @@ class CajaGestionController extends Controller
                     $nombrePaciente = $cuenta->paciente?->nombre;
                     if (empty($nombrePaciente) && $cuenta->es_emergencia && $cuenta->referencia) {
                         $emergency = $cuenta->referencia;
-                        if ($emergency->patient_id) {
-                            $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                        if ($emergency->paciente_id) {
+                            $paciente = \App\Models\Paciente::find($emergency->paciente_id);
                             $nombrePaciente = $paciente?->nombre ?? 'Paciente Emergencia #' . $emergency->id;
                         } else {
                             $nombrePaciente = 'Paciente Emergencia #' . $emergency->id;
@@ -152,7 +200,7 @@ class CajaGestionController extends Controller
                     return [
                         'id' => $cuenta->id,
                         'paciente' => [
-                            'ci' => $cuenta->paciente_ci,
+                            'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                             'nombre' => $nombrePaciente ?? 'N/A',
                         ],
                         'tipo_flujo' => $cuenta->es_emergencia ? 'emergencia' : 'normal',
@@ -165,6 +213,13 @@ class CajaGestionController extends Controller
                         'estado_label' => $cuenta->estado_label,
                         'estado_color' => $cuenta->estado_color,
                         'metodos_pago' => $cuenta->pagos->pluck('metodo_pago')->unique()->values(),
+                        'seguro_aplicado' => $cuenta->seguro_estado === 'autorizado',
+                        'seguro_nombre' => $cuenta->seguro_estado === 'autorizado'
+                            ? ($cuenta->seguro?->nombre_empresa ?? 'Seguro')
+                            : null,
+                        'seguro_monto_cobertura' => $cuenta->seguro_estado === 'autorizado'
+                            ? (float) $cuenta->seguro_monto_cobertura
+                            : 0,
                         'usuario_caja' => $cuenta->cajaSession?->user?->name ?? 'N/A',
                         'fecha' => $cuenta->created_at->format('d/m/Y H:i'),
                         'fecha_pago' => $cuenta->pagos->last()?->created_at?->format('d/m/Y H:i'),
@@ -175,7 +230,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'transacciones' => $transacciones
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -192,7 +246,7 @@ class CajaGestionController extends Controller
         try {
             $cuenta = CuentaCobro::with([
                 'paciente',
-                'detalles.tarifa',
+                'detalles',
                 'pagos.user',
                 'cajaSession.user',
                 'referencia'
@@ -222,9 +276,9 @@ class CajaGestionController extends Controller
                 'transaccion' => [
                     'id' => $cuenta->id,
                     'paciente' => [
-                        'ci' => $cuenta->paciente_ci,
-                        'nombre' => $cuenta->paciente->nombre ?? 'N/A',
-                        'telefono' => $cuenta->paciente->telefono ?? 'N/A',
+                        'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
+                        'nombre' => $cuenta->paciente?->nombre ?? 'N/A',
+                        'telefono' => $cuenta->paciente?->telefono ?? 'N/A',
                     ],
                     'tipo_atencion' => $cuenta->tipo_atencion_label,
                     'tipo_flujo' => $cuenta->es_emergencia ? 'emergencia' : 'normal',
@@ -237,6 +291,9 @@ class CajaGestionController extends Controller
                     'saldo_pendiente' => $cuenta->saldo_pendiente,
                     'ci_nit_facturacion' => $cuenta->ci_nit_facturacion,
                     'razon_social' => $cuenta->razon_social,
+                    'con_credito_fiscal' => (bool) $cuenta->con_credito_fiscal,
+                    'tipo_documento_label' => $cuenta->con_credito_fiscal ? $cuenta->tipo_documento_label : null,
+                    'factura_complemento' => $cuenta->factura_complemento,
                     'fecha_creacion' => $cuenta->created_at->format('d/m/Y H:i'),
                     'usuario_creacion' => $cuenta->cajaSession?->user?->name ?? 'Sistema',
                     'detalles' => $cuenta->detalles->map(function ($detalle) {
@@ -247,6 +304,9 @@ class CajaGestionController extends Controller
                             'cantidad' => $detalle->cantidad,
                             'precio_unitario' => $detalle->precio_unitario,
                             'subtotal' => $detalle->subtotal,
+                            // Un cargo liquidado por un pago ya está pagado: no se anula
+                            // (la UI oculta el botón; el dominio lo bloquea igual).
+                            'liquidado' => $detalle->liquidado_en !== null,
                         ];
                     }),
                     'pagos' => $cuenta->pagos->map(function ($pago) {
@@ -264,7 +324,6 @@ class CajaGestionController extends Controller
                     'observaciones' => $cuenta->observaciones,
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -288,12 +347,27 @@ class CajaGestionController extends Controller
 
             $query = CajaSession::with(['user', 'movimientos']);
 
+            // Las cajas ABIERTAS son el estado vigente: deben verse siempre, aunque
+            // se hayan abierto fuera del rango (p. ej. una sesión que cruza la
+            // medianoche). Excepción: si se filtra explícitamente por 'cerrada'.
+            $incluirAbiertas = ($request->estado ?? 'todas') !== 'cerrada';
+
             // Filtros de fecha
             if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
                 $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
-                $query->whereBetween('fecha_apertura', [$request->fecha_inicio, $fechaFin]);
+                $query->where(function ($q) use ($request, $fechaFin, $incluirAbiertas) {
+                    $q->whereBetween('fecha_apertura', [$request->fecha_inicio, $fechaFin]);
+                    if ($incluirAbiertas) {
+                        $q->orWhere('estado', 'abierta');
+                    }
+                });
             } elseif ($request->filled('fecha_inicio')) {
-                $query->whereDate('fecha_apertura', $request->fecha_inicio);
+                $query->where(function ($q) use ($request, $incluirAbiertas) {
+                    $q->whereDate('fecha_apertura', $request->fecha_inicio);
+                    if ($incluirAbiertas) {
+                        $q->orWhere('estado', 'abierta');
+                    }
+                });
             }
 
             // Filtro por estado
@@ -309,26 +383,28 @@ class CajaGestionController extends Controller
             $cajas = $query->orderBy('fecha_apertura', 'desc')
                 ->paginate(20)
                 ->through(function ($caja) {
-                    $totalIngresos = $caja->ingresos()->sum('monto');
-                    $totalEgresos = $caja->egresos()->sum('monto');
-                    $totalEsperado = $caja->monto_inicial + $totalIngresos - $totalEgresos;
-                    $diferencia = $caja->monto_final !== null 
-                        ? $caja->monto_final - $totalEsperado 
+                    $totalIngresos = $caja->movimientos()->where('tipo', 'ingreso')->where('concepto', 'like', 'Cobro%')->sum('monto');
+                    $totalEgresos = $caja->movimientos()->where('tipo', 'egreso')->where('concepto', '!=', 'Cierre de caja')->sum('monto');
+                    $totalEsperado = (float) $caja->monto_inicial + (float) $totalIngresos - (float) $totalEgresos;
+                    $diferencia = $caja->monto_final !== null
+                        ? $caja->monto_final - $totalEsperado
                         : null;
-                    
+
                     return [
                         'id' => $caja->id,
                         'user' => [
                             'id' => $caja->user_id,
                             'nombre' => $caja->user->name ?? 'N/A',
                         ],
+                        'estado' => $caja->estado,
                         'fecha_apertura' => $caja->fecha_apertura ? $caja->fecha_apertura->format('d/m/Y H:i') : 'N/A',
+                        'fecha_cierre' => $caja->fecha_cierre ? $caja->fecha_cierre->format('d/m/Y H:i') : null,
                         'monto_inicial' => $caja->monto_inicial,
                         'monto_final' => $caja->monto_final,
                         'total_ingresos' => $totalIngresos,
                         'total_egresos' => $totalEgresos,
-                        'total_esperado' => $totalEsperado,
-                        'diferencia' => $diferencia,
+                        'total_esperado' => round($totalEsperado, 2),
+                        'diferencia' => $diferencia !== null ? round((float) $diferencia, 2) : null,
                         'transacciones_count' => $caja->movimientos()->count(),
                         'observaciones' => $caja->observaciones,
                     ];
@@ -338,7 +414,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'cajas' => $cajas
             ]);
-
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -361,32 +436,26 @@ class CajaGestionController extends Controller
             $fechaInicio = \Carbon\Carbon::parse($request->fecha_inicio)->startOfDay();
             $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
 
-            // Totales generales
+            // Totales generales (netos de devoluciones/NC del período)
+            $totalDevoluciones = \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin);
             $totalesGenerales = [
-                'total_recaudado' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->sum('monto'),
+                'total_recaudado' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->sum('monto'), $totalDevoluciones, 2),
                 'total_transacciones' => PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->count(),
+                'total_devoluciones' => (float) $totalDevoluciones,
             ];
 
-            // Desglose por método de pago
+            // Desglose por método de pago (neto de devoluciones por método)
             $porMetodoPago = [
-                'efectivo' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->efectivo()->sum('monto'),
-                'transferencia' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->transferencia()->sum('monto'),
-                'tarjeta' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->tarjeta()->sum('monto'),
-                'qr' => (float) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->qr()->sum('monto'),
+                'efectivo' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->efectivo()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'efectivo'), 2),
+                'transferencia' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->transferencia()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'transferencia'), 2),
+                'tarjeta' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->tarjeta()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'tarjeta'), 2),
+                'qr' => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])->qr()->sum('monto'), \App\Models\Devolucion::sumaVigente($fechaInicio, $fechaFin, 'qr'), 2),
             ];
-
-            // Debug: obtener pagos individuales para verificar
-            $pagosHoy = PagoCuenta::whereBetween('created_at', [$fechaInicio, $fechaFin])
-                ->get(['id', 'monto', 'metodo_pago', 'cuenta_cobro_id', 'created_at']);
-            \Log::info('Fecha inicio: ' . $fechaInicio . ' | Fin: ' . $fechaFin);
-            \Log::info('Total pagos encontrados: ' . $pagosHoy->count());
-            \Log::info('Pagos del día: ' . $pagosHoy->toJson());
-            \Log::info('Sumas por método: E=' . $porMetodoPago['efectivo'] . ' Q=' . $porMetodoPago['qr']);
 
             // Desglose por tipo de atención
             $porTipoAtencion = CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                 ->where('estado', 'pagado')
-                ->selectRaw('tipo_atencion, COUNT(*) as cantidad, SUM(total_calculado) as total')
+                ->selectRaw('tipo_atencion, COUNT(*) as cantidad, SUM(total_pagado) as total')
                 ->groupBy('tipo_atencion')
                 ->get()
                 ->map(function ($item) {
@@ -407,7 +476,7 @@ class CajaGestionController extends Controller
                     'monto' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                         ->where('es_emergencia', false)
                         ->where('estado', 'pagado')
-                        ->sum('total_calculado'),
+                        ->sum('total_pagado'),
                 ],
                 'emergencia' => [
                     'cantidad' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
@@ -417,7 +486,7 @@ class CajaGestionController extends Controller
                     'monto' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                         ->where('es_emergencia', true)
                         ->where('estado', 'pagado')
-                        ->sum('total_calculado'),
+                        ->sum('total_pagado'),
                     'post_pago' => CuentaCobro::whereBetween('created_at', [$fechaInicio, $fechaFin])
                         ->where('es_emergencia', true)
                         ->where('es_post_pago', true)
@@ -428,10 +497,10 @@ class CajaGestionController extends Controller
 
             // Cuentas pendientes
             $cuentasPendientes = CuentaCobro::pendiente()->get();
-            $montoPendiente = $cuentasPendientes->sum(function($cuenta) {
+            $montoPendiente = $cuentasPendientes->sum(function ($cuenta) {
                 return $cuenta->saldo_pendiente;
             });
-            
+
             $pendientes = [
                 'total' => $cuentasPendientes->count(),
                 'monto' => $montoPendiente,
@@ -452,7 +521,6 @@ class CajaGestionController extends Controller
                     ],
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -507,7 +575,7 @@ class CajaGestionController extends Controller
                         'tipo_label' => ucfirst($mov->tipo),
                         'concepto' => $mov->concepto,
                         'monto' => $mov->monto,
-                        'monto_formateado' => ($mov->tipo === 'egreso' ? '-' : '+') . ' S/ ' . number_format($mov->monto, 2),
+                        'monto_formateado' => ($mov->tipo === 'egreso' ? '-' : '+') . ' Bs ' . number_format($mov->monto, 2),
                         'metodo_pago' => $mov->metodo_pago,
                         'referencia' => $mov->referencia,
                         'caja_session_id' => $mov->caja_session_id,
@@ -522,7 +590,6 @@ class CajaGestionController extends Controller
                 'movimientos' => $movimientos,
                 'usuarios' => $usuarios,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -545,9 +612,9 @@ class CajaGestionController extends Controller
                 ->where('estado', 'pagado')
                 ->where(function ($q) {
                     $q->whereNull('ci_nit_facturacion')
-                      ->orWhereNull('razon_social')
-                      ->orWhere('ci_nit_facturacion', '')
-                      ->orWhere('razon_social', '');
+                        ->orWhereNull('razon_social')
+                        ->orWhere('ci_nit_facturacion', '')
+                        ->orWhere('razon_social', '');
                 });
 
             if ($request->estado === 'completo') {
@@ -563,11 +630,11 @@ class CajaGestionController extends Controller
                 ->paginate(25)
                 ->through(function ($cuenta) {
                     $datosCompletos = !empty($cuenta->ci_nit_facturacion) && !empty($cuenta->razon_social);
-                    
+
                     return [
                         'id' => $cuenta->id,
                         'paciente' => [
-                            'ci' => $cuenta->paciente_ci,
+                            'ci' => $cuenta->paciente?->ci ?? $cuenta->paciente?->temp_code,
                             'nombre' => $cuenta->paciente->nombre ?? 'N/A',
                         ],
                         'total' => $cuenta->total_calculado,
@@ -586,7 +653,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'cuentas' => $cuentas
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -609,7 +675,6 @@ class CajaGestionController extends Controller
                 'success' => true,
                 'usuarios' => $usuarios
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -619,80 +684,67 @@ class CajaGestionController extends Controller
     }
 
     /**
-     * Eliminar un detalle de cuenta y guardar en historial
+     * API: Historial de pagos (recibos PAGO-). Devuelve TODOS los pagos sin importar
+     * fecha ni caja; búsqueda libre por nº de recibo/cuenta/referencia/paciente.
      */
-    public function eliminarDetalle(Request $request, string $detalleId): JsonResponse
+    public function getHistorialPagos(Request $request): JsonResponse
     {
-        $request->validate(['motivo' => 'required|string|max:500']);
-
-        $user = auth()->user();
-        if (!$user->hasRole('admin') && !$user->hasRole('administrador')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
-        }
-
-        DB::beginTransaction();
         try {
-            $detalle = CuentaCobroDetalle::with('cuentaCobro')->findOrFail($detalleId);
-            $cuenta = $detalle->cuentaCobro;
-
-            if ($cuenta->estado === 'pagado') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede eliminar ítems de una cuenta ya pagada.'
-                ], 422);
-            }
-
-            CuentaCobroDetalleEliminado::create([
-                'cuenta_cobro_id'        => $detalle->cuenta_cobro_id,
-                'tipo_item'              => $detalle->tipo_item,
-                'tarifa_id'              => $detalle->tarifa_id,
-                'descripcion'            => $detalle->descripcion,
-                'cantidad'               => $detalle->cantidad,
-                'precio_unitario'        => $detalle->precio_unitario,
-                'subtotal'               => $detalle->subtotal,
-                'origen_type'            => $detalle->origen_type,
-                'origen_id'              => $detalle->origen_id,
-                'area_origen'            => $detalle->area_origen,
-                'observaciones'          => $detalle->observaciones,
-                'usuario_eliminacion_id' => $user->id,
-                'motivo_eliminacion'     => $request->motivo,
-                'eliminado_en'           => now(),
+            $request->validate([
+                'q' => 'nullable|string|max:100',
+                'fecha_inicio' => 'nullable|date',
+                'fecha_fin' => 'nullable|date',
+                'metodo_pago' => 'nullable|in:efectivo,transferencia,tarjeta,qr,todos',
             ]);
 
-            $nuevoTotal = max(0, (float) $cuenta->total_calculado - (float) $detalle->subtotal);
-            $estadoNuevo = $cuenta->estado;
-            if ($nuevoTotal <= 0) {
-                $estadoNuevo = 'pendiente';
-            } elseif ($cuenta->total_pagado > 0 && $nuevoTotal <= $cuenta->total_pagado) {
-                $estadoNuevo = 'pagado';
-            } elseif ($cuenta->total_pagado > 0 && $nuevoTotal > $cuenta->total_pagado) {
-                $estadoNuevo = 'parcial';
-            }
+            $pagos = PagoCuenta::with(['cuentaCobro.paciente', 'user', 'devoluciones'])
+                ->filtrarHistorial($request->all())
+                ->orderBy('created_at', 'desc')
+                ->paginate(25)
+                ->through(function ($pago) {
+                    $paciente = $pago->cuentaCobro?->paciente;
+                    $devuelto = $pago->monto_devuelto;
 
-            $cuenta->update([
-                'total_calculado' => $nuevoTotal,
-                'estado'          => $estadoNuevo,
-            ]);
+                    return [
+                        'id' => $pago->id,
+                        'cuenta_cobro_id' => $pago->cuenta_cobro_id,
+                        'paciente' => $paciente?->nombre ?? 'N/A',
+                        'ci' => $paciente?->ci ?? $paciente?->temp_code ?? 'N/A',
+                        'monto' => $pago->monto,
+                        'metodo_pago' => $pago->metodo_pago_label,
+                        'referencia' => $pago->referencia,
+                        'usuario' => $pago->user?->name ?? 'Sistema',
+                        'caja_session_id' => $pago->caja_session_id,
+                        'fecha' => $pago->created_at->format('d/m/Y H:i'),
+                        // Devoluciones (NC) vigentes sobre este recibo
+                        'monto_devuelto' => $devuelto,
+                        'monto_disponible' => \App\Support\Money::clampZero(\App\Support\Money::sub($pago->monto, $devuelto)),
+                    ];
+                });
 
-            $detalle->delete();
-
-            \Log::info('Detalle de cuenta eliminado', [
-                'detalle_id'   => $detalleId,
-                'cuenta_id'    => $cuenta->id,
-                'motivo'       => $request->motivo,
-                'user_id'      => $user->id,
-                'subtotal'     => $detalle->subtotal,
-            ]);
-
-            DB::commit();
-            return response()->json(['success' => true, 'message' => 'Ítem eliminado y registrado en historial.']);
-
+            return response()->json(['success' => true, 'pagos' => $pagos]);
         } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al eliminar detalle: ' . $e->getMessage(), ['user_id' => $user->id ?? null]);
-            return response()->json(['success' => false, 'message' => 'Error al eliminar el ítem.'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar pagos: ' . $e->getMessage(),
+            ], 500);
         }
     }
+
+    /**
+     * Exporta el historial de pagos a Excel. Sin filtros = todos; con filtros = la
+     * vista dinámica actual (mismo scope `filtrarHistorial` que el listado).
+     */
+    public function exportarPagos(Request $request)
+    {
+        $nombre = 'historial_pagos_' . now()->format('d-m-Y_H-i') . '.xlsx';
+        return Excel::download(new PagosExport($request->all()), $nombre);
+    }
+
+    // La eliminación de detalles se unificó en
+    // App\Http\Controllers\Admin\AjusteCargoController (admin.cargos.anular),
+    // fuente única de eliminaciones seguras (parciales/totales, reversibles).
+    // Caja-gestión sólo lista los anulados (getDetallesEliminados).
 
     /**
      * Obtener listado de detalles eliminados con filtros
@@ -706,7 +758,7 @@ class CajaGestionController extends Controller
                 'cuenta_cobro_id' => 'nullable|string',
             ]);
 
-            $query = CuentaCobroDetalleEliminado::with(['cuentaCobro.paciente', 'usuarioEliminacion']);
+            $query = CuentaCobroDetalleEliminado::with(['cuentaCobro.paciente', 'usuarioEliminacion', 'detalle']);
 
             if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
                 $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
@@ -726,7 +778,7 @@ class CajaGestionController extends Controller
                         'id' => $item->id,
                         'cuenta_cobro_id' => $item->cuenta_cobro_id,
                         'paciente' => [
-                            'ci' => $item->cuentaCobro?->paciente_ci ?? 'N/A',
+                            'ci' => $item->cuentaCobro?->paciente?->ci ?? $item->cuentaCobro?->paciente?->temp_code ?? 'N/A',
                             'nombre' => $item->cuentaCobro?->paciente?->nombre ?? 'N/A',
                         ],
                         'tipo_item' => $item->tipo_item_label,
@@ -737,6 +789,14 @@ class CajaGestionController extends Controller
                         'motivo_eliminacion' => $item->motivo_eliminacion,
                         'usuario' => $item->usuarioEliminacion?->name ?? 'N/A',
                         'eliminado_en' => $item->eliminado_en->format('d/m/Y H:i'),
+                        // Reversibilidad: se puede revertir si no está revertida y la
+                        // línea sigue viva y no liquidada por un pago.
+                        'revertido' => $item->revertido_en !== null,
+                        'revertido_en' => $item->revertido_en?->format('d/m/Y H:i'),
+                        'puede_revertir' => $item->revertido_en === null
+                            && $item->detalle !== null
+                            && $item->detalle->liquidado_en === null,
+                        'detalle_id' => $item->cuenta_cobro_detalle_id,
                     ];
                 });
 
@@ -763,18 +823,18 @@ class CajaGestionController extends Controller
         try {
             $cuenta = CuentaCobro::findOrFail($id);
 
-            if ($cuenta->estado === 'pagado' && $cuenta->total_pagado > 0) {
+            if ($cuenta->total_pagado > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede anular una cuenta ya pagada. Use devolución parcial.'
+                    'message' => 'No se puede anular una cuenta con pagos registrados (pagado: Bs ' . number_format($cuenta->total_pagado, 2) . '). Procese una devolución primero.'
                 ], 422);
             }
 
             $cuenta->update([
                 'estado'       => 'anulado',
-                'observaciones'=> ($cuenta->observaciones ? $cuenta->observaciones . ' | ' : '') .
-                                 'ANULADO: ' . $request->motivo . ' por ' . auth()->user()->name .
-                                 ' el ' . now()->format('d/m/Y H:i'),
+                'observaciones' => ($cuenta->observaciones ? $cuenta->observaciones . ' | ' : '') .
+                    'ANULADO: ' . $request->motivo . ' por ' . auth()->user()->name .
+                    ' el ' . now()->format('d/m/Y H:i'),
             ]);
 
             \Log::info('Cuenta anulada', [
@@ -785,7 +845,6 @@ class CajaGestionController extends Controller
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Cuenta anulada correctamente']);
-
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error al anular cuenta: ' . $e->getMessage(), ['user_id' => auth()->id()]);

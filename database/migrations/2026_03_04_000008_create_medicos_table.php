@@ -16,9 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->string('telefono', 20)->nullable();
             $table->enum('estado', ['activo', 'inactivo', 'vacaciones'])->default('activo');
-            $table->string('asistente_id', 20)->nullable();
             $table->string('codigo_especialidad', 20)->nullable();
-            $table->foreign('asistente_id')->references('id')->on('asistente_quirofanos')->onDelete('set null');
             $table->foreign('codigo_especialidad')->references('codigo')->on('especialidades');
             $table->timestamps();
         });

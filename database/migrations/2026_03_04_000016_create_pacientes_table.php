@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('pacientes', function (Blueprint $table) {
-            $table->integer('ci')->primary();
+            $table->id();
+            $table->unsignedInteger('ci')->nullable()->unique();
+            $table->string('temp_code', 30)->nullable()->unique();
+            $table->boolean('is_temp')->default(false);
             $table->string('nombre', 120)->nullable();
             $table->enum('sexo', ['M', 'F'])->nullable();
             $table->date('fecha_nacimiento')->nullable();
@@ -27,11 +30,11 @@ return new class extends Migration
             $table->unsignedBigInteger('seguro_id')->nullable();
             $table->string('triage_id', 50)->nullable();
             $table->string('registro_codigo', 80)->nullable();
-            $table->integer('id_garante_referencia')->nullable();
+            $table->unsignedBigInteger('garante_id')->nullable();
             $table->foreign('seguro_id')->references('id')->on('seguros')->onDelete('set null');
             $table->foreign('triage_id')->references('id')->on('triages')->onDelete('set null');
             $table->foreign('registro_codigo')->references('codigo')->on('registros')->onDelete('set null');
-            $table->foreign('id_garante_referencia')->references('ci')->on('pacientes')->onDelete('set null');
+            $table->foreign('garante_id')->references('id')->on('pacientes')->onDelete('set null');
             $table->timestamps();
         });
     }

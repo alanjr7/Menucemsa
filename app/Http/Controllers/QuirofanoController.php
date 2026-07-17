@@ -2,232 +2,264 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CitaQuirurgica;
-use App\Models\TipoCirugia;
-use App\Models\Paciente;
-use App\Models\Medico;
-use App\Models\Quirofano;
+use App\Models\ActivityLog;
+use App\Models\AlmacenCatalogo;
+use App\Models\AlmacenLote;
+use App\Models\AlmacenStock;
 use App\Models\Caja;
-use App\Models\AlmacenMedicamento;
+use App\Models\CirugiaExterna;
+use App\Models\CitaQuirurgica;
+use App\Models\CuentaCobro;
+use App\Models\CuentaCobroDetalle;
+use App\Models\Emergency;
+use App\Models\Especialidad;
+use App\Models\Medico;
+use App\Models\Paciente;
+use App\Models\Procedimiento;
+use App\Models\Quirofano;
 use App\Models\Registro;
-use App\Models\Seguro;
+use App\Models\TipoCirugia;
+use App\Models\User;
+use App\Services\CuentaCobroService;
 use App\Services\NotificationService;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Http\JsonResponse;
+use App\Traits\AuditLoggable;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class QuirofanoController extends Controller
 {
-    use \App\Traits\AuditLoggable;
+    use AuditLoggable;
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $quirofanos = Quirofano::all();
+        // Mes a mostrar: ?mes=YYYY-MM (cualquier día del mes sirve), por defecto el mes actual
+        $fechaBase = $request->filled('mes')
+            ? Carbon::parse($request->input('mes').'-01')
+            : now()->startOfMonth();
 
-        // Obtener la fecha actual y el rango de la semana
-        $startOfWeek = now()->startOfWeek()->startOfDay();
-        $endOfWeek = now()->endOfWeek()->endOfDay();
+        $calendario = $this->construirCalendarioMensual($fechaBase);
+        $emergenciasEnQuirofano = $this->emergenciasEnQuirofano();
+        $stats = $this->statsQuirofano($calendario['citasMes'], $emergenciasEnQuirofano);
 
-        \Log::info('Date range', [
-            'start' => $startOfWeek->format('Y-m-d H:i:s'),
-            'end' => $endOfWeek->format('Y-m-d H:i:s'),
-            'today' => now()->format('Y-m-d H:i:s')
+        return view('quirofano.index', [
+            'semanas' => $calendario['semanas'],
+            'citasPorDia' => $calendario['citasPorDia'],
+            'mesLabel' => $calendario['mesLabel'],
+            'mesActual' => $calendario['mesActual'],
+            'mesAnterior' => $calendario['mesAnterior'],
+            'mesSiguiente' => $calendario['mesSiguiente'],
+            'stats' => $stats,
+            'emergenciasEnQuirofano' => $emergenciasEnQuirofano,
         ]);
-
-        // Obtener todas las citas de la semana
-        $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
-            ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
-            ->orderBy('fecha')
-            ->orderBy('hora_inicio_estimada')
-            ->get();
-
-        // Obtener emergencias que están actualmente en quirófano
-        $emergenciasEnQuirofano = \App\Models\Emergency::with(['paciente'])
-            ->where('ubicacion_actual', 'cirugia')
-            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($emg) {
-                // Determinar origen basado en flujo_historial
-                $origen = $emg->tipo_ingreso_label;
-                if (!empty($emg->flujo_historial) && is_array($emg->flujo_historial) && count($emg->flujo_historial) > 0) {
-                    $primerMovimiento = $emg->flujo_historial[0];
-                    $desde = $primerMovimiento['desde'] ?? '';
-                    $origen = match($desde) {
-                        'internacion' => 'Derivado desde Internación',
-                        'recepcion' => 'Ingreso desde Recepción',
-                        'emergencia' => 'Derivado desde Emergencia',
-                        'uti' => 'Derivado desde UTI',
-                        default => $emg->tipo_ingreso_label,
-                    };
-                }
-
-                return [
-                    'id' => $emg->id,
-                    'code' => $emg->code,
-                    'nro_cirugia' => $emg->nro_cirugia,
-                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                    'paciente_ci' => $emg->patient_id,
-                    'status' => $emg->status,
-                    'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
-                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                    'tipo_ingreso' => $emg->tipo_ingreso_label,
-                    'origen_label' => $origen,
-                    'is_emergency' => true,
-                ];
-            });
-
-        \Log::info('Citas loaded', ['count' => $citasSemana->count()]);
-        \Log::info('Emergencias en quirofano', ['count' => $emergenciasEnQuirofano->count()]);
-
-        // Agrupar citas por día y hora
-        $citasPorDiaHora = [];
-        foreach ($citasSemana as $cita) {
-            $dia = $cita->fecha->format('Y-m-d');
-            // Handle time safely - it could be null, Carbon, or string
-            $horaStr = $cita->hora_inicio_estimada;
-            if ($horaStr instanceof \Carbon\Carbon) {
-                $hora = $horaStr->format('H:00');
-            } elseif (is_string($horaStr)) {
-                $hora = substr($horaStr, 0, 2) . ':00';
-            } else {
-                $hora = '00:00';
-            }
-            $citasPorDiaHora[$dia][$hora][$cita->quirofano_id][] = $cita;
-        }
-
-        // Generar los días de la semana
-        $diasSemana = [];
-        for ($date = $startOfWeek; $date <= $endOfWeek; $date->addDay()) {
-            $diasSemana[] = [
-                'fecha' => $date->copy(),
-                'nombre' => $date->locale('es')->dayName,
-                'dia_mes' => $date->format('d/m'),
-                'fecha_key' => $date->format('Y-m-d')
-            ];
-        }
-
-        // Generar horas del día (6:00 - 22:00)
-        $horasDia = [];
-        for ($hora = 6; $hora <= 22; $hora++) {
-            $horasDia[] = sprintf('%02d:00', $hora);
-        }
-
-        // Estadísticas
-        $stats = [
-            'total_semana' => $citasSemana->count(),
-            'hoy' => CitaQuirurgica::whereDate('fecha', today())->count(),
-            'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
-            'finalizadas' => CitaQuirurgica::whereDate('fecha', today())->where('estado', 'finalizada')->count(),
-            'emergencias' => $emergenciasEnQuirofano->count(),
-        ];
-
-        return view('quirofano.index', compact('quirofanos', 'diasSemana', 'horasDia', 'citasPorDiaHora', 'stats', 'emergenciasEnQuirofano'));
     }
 
-    public function apiDashboard(): JsonResponse
+    public function apiDashboard(Request $request): JsonResponse
     {
-        $quirofanos = Quirofano::all();
+        $fechaBase = $request->filled('mes')
+            ? Carbon::parse($request->input('mes').'-01')
+            : now()->startOfMonth();
 
-        $startOfWeek = now()->startOfWeek()->startOfDay();
-        $endOfWeek = now()->endOfWeek()->endOfDay();
-
-        $citasSemana = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
-            ->whereBetween('fecha', [$startOfWeek, $endOfWeek])
-            ->orderBy('fecha')
-            ->orderBy('hora_inicio_estimada')
-            ->get();
-
-        $emergenciasEnQuirofano = \App\Models\Emergency::with(['paciente'])
-            ->where('ubicacion_actual', 'cirugia')
-            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($emg) {
-                // Determinar origen basado en flujo_historial
-                $origen = $emg->tipo_ingreso_label;
-                if (!empty($emg->flujo_historial) && is_array($emg->flujo_historial) && count($emg->flujo_historial) > 0) {
-                    $primerMovimiento = $emg->flujo_historial[0];
-                    $desde = $primerMovimiento['desde'] ?? '';
-                    $origen = match($desde) {
-                        'internacion' => 'Derivado desde Internación',
-                        'recepcion' => 'Ingreso desde Recepción',
-                        'emergencia' => 'Derivado desde Emergencia',
-                        'uti' => 'Derivado desde UTI',
-                        default => $emg->tipo_ingreso_label,
-                    };
-                }
-
-                return [
-                    'id' => $emg->id,
-                    'code' => $emg->code,
-                    'nro_cirugia' => $emg->nro_cirugia,
-                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                    'paciente_ci' => $emg->patient_id,
-                    'status' => $emg->status,
-                    'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
-                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                    'tipo_ingreso' => $emg->tipo_ingreso_label,
-                    'origen_label' => $origen,
-                    'is_emergency' => true,
-                ];
-            });
-
-        $citasPorDiaHora = [];
-        foreach ($citasSemana as $cita) {
-            $dia = $cita->fecha->format('Y-m-d');
-            $horaStr = $cita->hora_inicio_estimada;
-            if ($horaStr instanceof \Carbon\Carbon) {
-                $hora = $horaStr->format('H:00');
-            } elseif (is_string($horaStr)) {
-                $hora = substr($horaStr, 0, 2) . ':00';
-            } else {
-                $hora = '00:00';
-            }
-            $citasPorDiaHora[$dia][$hora][$cita->quirofano_id][] = $cita;
-        }
-
-        $diasSemana = [];
-        for ($date = $startOfWeek; $date <= $endOfWeek; $date->addDay()) {
-            $diasSemana[] = [
-                'fecha' => $date->format('Y-m-d'),
-                'nombre' => $date->locale('es')->dayName,
-                'dia_mes' => $date->format('d/m'),
-                'fecha_key' => $date->format('Y-m-d'),
-                'is_today' => $date->isToday()
-            ];
-        }
-
-        $horasDia = [];
-        for ($hora = 6; $hora <= 22; $hora++) {
-            $horasDia[] = sprintf('%02d:00', $hora);
-        }
-
-        $stats = [
-            'total_semana' => $citasSemana->count(),
-            'hoy' => CitaQuirurgica::whereDate('fecha', today())->count(),
-            'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
-            'finalizadas' => CitaQuirurgica::whereDate('fecha', today())->where('estado', 'finalizada')->count(),
-            'emergencias' => $emergenciasEnQuirofano->count(),
-        ];
+        $calendario = $this->construirCalendarioMensual($fechaBase);
+        $emergenciasEnQuirofano = $this->emergenciasEnQuirofano();
+        $stats = $this->statsQuirofano($calendario['citasMes'], $emergenciasEnQuirofano);
 
         return response()->json([
             'success' => true,
             'stats' => $stats,
-            'emergencias' => $emergenciasEnQuirofano,
-            'citasPorDiaHora' => $citasPorDiaHora,
-            'diasSemana' => $diasSemana,
-            'horasDia' => $horasDia,
-            'quirofanos' => $quirofanos
+            'emergencias' => $emergenciasEnQuirofano->values(),
+            'citasPorDia' => $calendario['citasPorDia'],
         ]);
+    }
+
+    /**
+     * Construye la grilla de un calendario mensual (semanas Domingo→Sábado)
+     * y agrupa las citas quirúrgicas por día (clave Y-m-d) ya serializadas.
+     */
+    private function construirCalendarioMensual(Carbon $fechaBase): array
+    {
+        $inicioMes = $fechaBase->copy()->startOfMonth();
+        $finMes = $fechaBase->copy()->endOfMonth();
+
+        // La grilla arranca el domingo previo al 1° y termina el sábado posterior al fin de mes
+        $inicioGrid = $inicioMes->copy()->startOfWeek(Carbon::SUNDAY);
+        $finGrid = $finMes->copy()->endOfWeek(Carbon::SATURDAY);
+
+        $citasMes = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
+            ->whereBetween('fecha', [$inicioMes->copy()->startOfDay(), $finMes->copy()->endOfDay()])
+            ->orderBy('fecha')
+            ->orderBy('hora_inicio_estimada')
+            ->get();
+
+        $citasPorDia = [];
+        foreach ($citasMes as $cita) {
+            $citasPorDia[$cita->fecha->format('Y-m-d')][] = $this->serializarCita($cita);
+        }
+
+        // Reservas externas del mismo mes (agenda COMPARTIDA del quirófano):
+        // se muestran junto a las internas para tener la ocupación completa.
+        $reservasExternas = CirugiaExterna::with('tipo')
+            ->whereBetween('fecha', [$inicioMes->copy()->startOfDay(), $finMes->copy()->endOfDay()])
+            ->where('estado', '!=', 'rechazado')
+            ->get();
+        foreach ($reservasExternas as $reserva) {
+            $citasPorDia[$reserva->fecha->format('Y-m-d')][] = $this->serializarReservaExterna($reserva);
+        }
+
+        // Ordenar cada día por hora de inicio (internas + externas juntas).
+        foreach ($citasPorDia as $key => $lista) {
+            usort($citasPorDia[$key], fn ($a, $b) => strcmp((string) $a['hora_inicio'], (string) $b['hora_inicio']));
+        }
+
+        // Construir semanas (filas de 7 días)
+        $semanas = [];
+        $semana = [];
+        for ($dia = $inicioGrid->copy(); $dia <= $finGrid; $dia->addDay()) {
+            $key = $dia->format('Y-m-d');
+            $semana[] = [
+                'dia' => $dia->day,
+                'fecha_key' => $key,
+                'es_otro_mes' => $dia->month !== $inicioMes->month,
+                'es_hoy' => $dia->isToday(),
+                'total' => count($citasPorDia[$key] ?? []),
+            ];
+            if (count($semana) === 7) {
+                $semanas[] = $semana;
+                $semana = [];
+            }
+        }
+
+        return [
+            'semanas' => $semanas,
+            'citasPorDia' => $citasPorDia,
+            'citasMes' => $citasMes,
+            'mesLabel' => ucfirst($inicioMes->locale('es')->isoFormat('MMMM [de] YYYY')),
+            'mesActual' => $inicioMes->format('Y-m'),
+            'mesAnterior' => $inicioMes->copy()->subMonth()->format('Y-m'),
+            'mesSiguiente' => $inicioMes->copy()->addMonth()->format('Y-m'),
+        ];
+    }
+
+    /**
+     * Serializa una cita para chips del calendario y el modal de detalle del día.
+     */
+    private function serializarCita(CitaQuirurgica $cita): array
+    {
+        $estadoLabels = [
+            'programada' => 'Programada',
+            'en_curso' => 'En curso',
+            'finalizada' => 'Finalizada',
+            'cancelada' => 'Cancelada',
+        ];
+
+        $hora = $cita->hora_inicio_estimada;
+        $horaInicio = $hora instanceof Carbon
+            ? $hora->format('H:i')
+            : substr((string) $hora, 0, 5);
+
+        return [
+            'id' => $cita->id,
+            'paciente' => $cita->paciente?->is_temp ? 'Paciente Temporal' : ($cita->paciente?->nombre ?? 'Sin paciente'),
+            'cirujano' => optional($cita->cirujano?->user)->name ?? 'Sin asignar',
+            'quirofano' => $cita->quirofano_id,
+            'tipo_cirugia' => $cita->tipo_cirugia,
+            'estado' => $cita->estado,
+            'estado_label' => $estadoLabels[$cita->estado] ?? ucfirst((string) $cita->estado),
+            'hora_inicio' => $horaInicio,
+            'hora_fin' => optional($cita->hora_fin_estimada)->format('H:i'),
+            'origen' => 'interna',
+            // Categoría de color unificada: interna=verde, cancelada=rojo.
+            'categoria' => $cita->estado === 'cancelada' ? 'cancelada' : 'interna',
+        ];
+    }
+
+    /**
+     * Serializa una reserva EXTERNA con la misma forma que una cita interna, para
+     * que el calendario del quirófano y su modal las muestren juntas. Categoría de
+     * color: externa confirmada (pagada)=azul, externa pendiente=naranja.
+     */
+    private function serializarReservaExterna(CirugiaExterna $reserva): array
+    {
+        $estadoLabels = ['pendiente' => 'Externa · pendiente', 'pagado' => 'Externa · confirmada'];
+
+        return [
+            'id' => 'ext-' . $reserva->id,
+            'paciente' => $reserva->paciente_nombre,
+            'cirujano' => $reserva->cirujano_nombre,
+            'quirofano' => $reserva->quirofano_id,
+            'tipo_cirugia' => $reserva->tipo->nombre ?? '',
+            'estado' => $reserva->estado,
+            'estado_label' => $estadoLabels[$reserva->estado] ?? 'Externa',
+            'hora_inicio' => substr((string) $reserva->hora_inicio, 0, 5),
+            'hora_fin' => substr((string) $reserva->hora_fin, 0, 5),
+            'origen' => 'externa',
+            'categoria' => $reserva->estado === 'pendiente' ? 'externa_pend' : 'externa_conf',
+        ];
+    }
+
+    /**
+     * Estadísticas del encabezado (mes visible + estado global vivo).
+     */
+    private function statsQuirofano($citasMes, $emergenciasEnQuirofano): array
+    {
+        return [
+            'total_mes' => $citasMes->count(),
+            'hoy' => CitaQuirurgica::whereDate('fecha', today())->count(),
+            'en_curso' => CitaQuirurgica::where('estado', 'en_curso')->count(),
+            'finalizadas' => CitaQuirurgica::whereDate('fecha', today())->where('estado', 'finalizada')->count(),
+            'emergencias' => $emergenciasEnQuirofano->count(),
+        ];
+    }
+
+    /**
+     * Emergencias que están actualmente en quirófano (con su origen).
+     */
+    private function emergenciasEnQuirofano()
+    {
+        return Emergency::with(['paciente'])
+            ->where('ubicacion_actual', 'cirugia')
+            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($emg) {
+                $origen = $emg->tipo_ingreso_label;
+                if (! empty($emg->flujo_historial) && is_array($emg->flujo_historial) && count($emg->flujo_historial) > 0) {
+                    $primerMovimiento = $emg->flujo_historial[0];
+                    $desde = $primerMovimiento['desde'] ?? '';
+                    $origen = match ($desde) {
+                        'internacion' => 'Derivado desde Internación',
+                        'recepcion' => 'Ingreso desde Recepción',
+                        'emergencia' => 'Derivado desde Emergencia',
+                        'uti' => 'Derivado desde UTI',
+                        default => $emg->tipo_ingreso_label,
+                    };
+                }
+
+                return [
+                    'id' => $emg->id,
+                    'code' => $emg->code,
+                    'nro_cirugia' => $emg->nro_cirugia,
+                    'paciente_nombre' => $emg->paciente?->is_temp ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
+                    'paciente_ci' => $emg->paciente?->ci ?? $emg->paciente?->temp_code,
+                    'status' => $emg->status,
+                    'status_label' => $emg->status === 'cirugia' ? 'En Cirugía' : $emg->status,
+                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
+                    'tipo_ingreso' => $emg->tipo_ingreso_label,
+                    'origen_label' => $origen,
+                    'is_emergency' => true,
+                ];
+            });
     }
 
     public function create(): View
     {
-        return view('quirofano.cita-create');
+        $tiposCirugia = TipoCirugia::activos()->get();
+        return view('quirofano.cita-create', compact('tiposCirugia'));
     }
 
     public function getQuirofanosDisponibles(): JsonResponse
@@ -235,14 +267,15 @@ class QuirofanoController extends Controller
         try {
             // Mostrar todos los quirófanos excepto los en mantenimiento
             $quirofanos = Quirofano::where('estado', '!=', 'mantenimiento')->get();
+
             return response()->json([
                 'success' => true,
-                'quirofanos' => $quirofanos
+                'quirofanos' => $quirofanos,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar quirófanos: ' . $e->getMessage()
+                'message' => 'Error al cargar quirófanos: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -250,22 +283,22 @@ class QuirofanoController extends Controller
     public function getPaciente($ci): JsonResponse
     {
         try {
-            $paciente = Paciente::find($ci);
-            if (!$paciente) {
+            $paciente = Paciente::where('ci', (int) $ci)->first();
+            if (! $paciente) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Paciente no encontrado'
+                    'message' => 'Paciente no encontrado',
                 ], 404);
             }
-            
+
             return response()->json([
                 'success' => true,
-                'paciente' => $paciente
+                'paciente' => $paciente,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al buscar paciente: ' . $e->getMessage()
+                'message' => 'Error al buscar paciente: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -274,21 +307,21 @@ class QuirofanoController extends Controller
     {
         try {
             $medico = Medico::with('user')->find($ci);
-            if (!$medico) {
+            if (! $medico) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Médico no encontrado'
+                    'message' => 'Médico no encontrado',
                 ], 404);
             }
-            
+
             return response()->json([
                 'success' => true,
-                'medico' => $medico
+                'medico' => $medico,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al buscar médico: ' . $e->getMessage()
+                'message' => 'Error al buscar médico: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -298,30 +331,36 @@ class QuirofanoController extends Controller
         try {
             // Validación básica primero
             $validated = $request->validate([
-                'ci_paciente' => 'required|exists:pacientes,ci',
+                'paciente_id' => 'required|integer|exists:pacientes,id',
                 'ci_cirujano' => 'required|exists:medicos,ci',
                 'nro_quirofano' => 'required|exists:quirofanos,id',
                 'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
-                'fecha' => 'required|date|after_or_equal:today',
+                // La fecha se guarda tal cual como dato: se permite cualquier horario
+                // (pasado o futuro), sin validar disponibilidad del quirófano.
+                'fecha' => 'required|date',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
-                'costo_base' => 'required|numeric|min:0',
+                'costo_base' => 'required|numeric|decimal:0,2|min:0',
+                'ci_instrumentista' => 'nullable|integer',
+                'ci_anestesiologo' => 'nullable|integer',
             ]);
 
             // Crear cita sin validación de disponibilidad por ahora
-            $cita = new CitaQuirurgica();
-            $cita->ci_paciente = $validated['ci_paciente'];
+            $cita = new CitaQuirurgica;
+            $cita->paciente_id = $validated['paciente_id'];
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->quirofano_id = $validated['nro_quirofano'];
             $cita->tipo_cirugia = $validated['tipo_cirugia'];
             $cita->fecha = $validated['fecha'];
             $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
-            
+
             // Campos opcionales
+            $cita->ci_instrumentista = $validated['ci_instrumentista'] ?? null;
+            $cita->ci_anestesiologo = $validated['ci_anestesiologo'] ?? null;
             $cita->nombre_instrumentista = $request->input('nombre_instrumentista');
             $cita->nombre_anestesiologo = $request->input('nombre_anestesiologo');
             $cita->descripcion_cirugia = $request->input('descripcion_cirugia');
             $cita->observaciones = $request->input('observaciones');
-            
+
             // Establecer valores por defecto
             $cita->estado = 'programada';
             $cita->user_registro_id = auth()->id();
@@ -348,25 +387,25 @@ class QuirofanoController extends Controller
 
             // Guardar cita y crear registro en caja dentro de una transacción
             DB::beginTransaction();
-            
+
             try {
                 $cita->save();
-                
+
                 // Crear registro en caja inmediatamente
                 $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
-                
+
                 DB::commit();
 
                 // Notificar a cirujano y administración sobre cirugía programada
-                $paciente = Paciente::find($cita->ci_paciente);
+                $paciente = Paciente::find($cita->paciente_id);
                 $cirujano = Medico::find($cita->ci_cirujano);
 
                 // Registrar en bitácora
                 $this->logActivity(
                     'programar_cirugia',
-                    'Cirugía programada - Paciente: ' . ($paciente ? $paciente->nombre : 'N/A') .
-                    ' - Cirujano: ' . ($cirujano && $cirujano->user ? $cirujano->user->name : 'N/A') .
-                    ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora_inicio_estimada,
+                    'Cirugía programada - Paciente: '.($paciente ? $paciente->nombre : 'N/A').
+                    ' - Cirujano: '.($cirujano && $cirujano->user ? $cirujano->user->name : 'N/A').
+                    ' - Fecha: '.$cita->fecha.' '.$cita->hora_inicio_estimada,
                     $cita
                 );
 
@@ -377,32 +416,32 @@ class QuirofanoController extends Controller
                     'success' => true,
                     'message' => 'Cita quirúrgica programada exitosamente. Se generó la cuenta de cobro en caja.',
                     'cita' => $cita->fresh(),
-                    'cuenta_cobro_id' => $cuentaCobro->id
+                    'cuenta_cobro_id' => $cuentaCobro->id,
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
-                \Log::error('Error al crear cita o registro en caja: ' . $e->getMessage());
+                \Log::error('Error al crear cita o registro en caja: '.$e->getMessage());
                 throw $e;
             }
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Log detailed validation errors
             \Log::error('Validation failed:', [
                 'errors' => $e->errors(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
-            
+
             // Also return the errors in a more visible way for debugging
             return response()->json([
                 'success' => false,
-                'message' => 'Error de validación - ' . implode(', ', array_keys($e->errors())),
+                'message' => 'Error de validación - '.implode(', ', array_keys($e->errors())),
                 'errors' => $e->errors(),
-                'debug' => 'Failed fields: ' . implode(', ', array_keys($e->errors()))
+                'debug' => 'Failed fields: '.implode(', ', array_keys($e->errors())),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -412,7 +451,7 @@ class QuirofanoController extends Controller
      */
     public function programarEmergencia(int $emergency_id): View
     {
-        $emergencia = \App\Models\Emergency::with(['paciente'])->findOrFail($emergency_id);
+        $emergencia = Emergency::with(['paciente'])->findOrFail($emergency_id);
 
         // Verificar que la emergencia esté en quirófano
         if ($emergencia->ubicacion_actual !== 'cirugia') {
@@ -424,12 +463,12 @@ class QuirofanoController extends Controller
             ->orderByRaw("CASE WHEN estado = 'disponible' THEN 0 ELSE 1 END")
             ->orderBy('tipo')
             ->get();
-        
+
         \Log::info('Quirofanos cargados para programar emergencia', [
             'count' => $quirofanos->count(),
-            'emergency_id' => $emergency_id
+            'emergency_id' => $emergency_id,
         ]);
-        
+
         $tiposCirugia = TipoCirugia::all();
         $medicos = Medico::with('user')->get();
 
@@ -452,22 +491,14 @@ class QuirofanoController extends Controller
                 'fecha' => 'required|date|after_or_equal:today',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
                 'descripcion_cirugia' => 'nullable|string|max:500',
-                'costo_base' => 'required|numeric|min:0',
+                'costo_base' => 'required|numeric|decimal:0,2|min:0',
             ]);
 
-            $emergencia = \App\Models\Emergency::findOrFail($validated['emergency_id']);
-
-            // Si es paciente temporal, crear un paciente real primero
-            if ($emergencia->is_temp_id) {
-                $paciente = $this->crearPacienteDesdeTemporal($emergencia);
-                $ciPaciente = $paciente->ci;
-            } else {
-                $ciPaciente = $emergencia->patient_id;
-            }
+            $emergencia = Emergency::findOrFail($validated['emergency_id']);
 
             // Crear cita quirúrgica
-            $cita = new CitaQuirurgica();
-            $cita->ci_paciente = (int) $ciPaciente;
+            $cita = new CitaQuirurgica;
+            $cita->paciente_id = $emergencia->paciente_id;
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->ci_instrumentista = null;
             $cita->ci_anestesiologo = null;
@@ -477,7 +508,7 @@ class QuirofanoController extends Controller
             $cita->tipo_cirugia = $validated['tipo_cirugia'];
             $cita->fecha = $validated['fecha'];
             $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
-            $cita->descripcion_cirugia = $validated['descripcion_cirugia'] ?? 'Cirugía derivada desde emergencia ' . $emergencia->code;
+            $cita->descripcion_cirugia = $validated['descripcion_cirugia'] ?? 'Cirugía derivada desde emergencia '.$emergencia->code;
             $cita->estado = 'programada';
             $cita->user_registro_id = auth()->id();
             $cita->costo_base = $validated['costo_base'];
@@ -486,7 +517,7 @@ class QuirofanoController extends Controller
             if ($cita->validarDisponibilidadQuirofano()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El quirófano no está disponible en ese horario'
+                    'message' => 'El quirófano no está disponible en ese horario',
                 ], 422);
             }
 
@@ -497,31 +528,32 @@ class QuirofanoController extends Controller
 
             // Actualizar emergencia con referencia a la cita
             $emergencia->update([
-                'nro_cirugia' => 'CIR-' . $cita->id,
-                'status' => 'cirugia'
+                'nro_cirugia' => 'CIR-'.$cita->id,
+                'status' => 'cirugia',
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Cirugía programada exitosamente',
                 'cita' => $cita->fresh(),
-                'redirect' => route('quirofano.index')
+                'redirect' => route('quirofano.index'),
             ]);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             \Log::error('Error de validación en storeEmergencia', [
                 'errors' => $e->errors(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -533,52 +565,53 @@ class QuirofanoController extends Controller
     {
         try {
             \Log::info('Cargando médicos disponibles');
-            
+
             // Obtener todos los médicos activos sin cargar relaciones para evitar errores
             $medicosQuery = Medico::where('estado', 'activo')
                 ->orderBy('nombre');
-            
-            \Log::info('SQL: ' . $medicosQuery->toSql());
-            
+
+            \Log::info('SQL: '.$medicosQuery->toSql());
+
             $medicos = $medicosQuery->get();
-            
-            \Log::info('Médicos encontrados: ' . $medicos->count());
-            
-            $resultado = $medicos->map(function($medico) {
+
+            \Log::info('Médicos encontrados: '.$medicos->count());
+
+            $resultado = $medicos->map(function ($medico) {
                 // Obtener nombre del médico o del usuario relacionado
                 $nombre = $medico->nombre;
                 if (empty($nombre) && $medico->user_id) {
-                    $user = \App\Models\User::find($medico->user_id);
+                    $user = User::find($medico->user_id);
                     $nombre = $user?->name ?? 'Sin nombre';
                 }
                 if (empty($nombre)) {
-                    $nombre = 'Médico CI: ' . $medico->ci;
+                    $nombre = 'Médico CI: '.$medico->ci;
                 }
-                
+
                 // Obtener especialidad
                 $especialidad = 'Sin especialidad';
                 if ($medico->codigo_especialidad) {
-                    $esp = \App\Models\Especialidad::where('codigo', $medico->codigo_especialidad)->first();
+                    $esp = Especialidad::where('codigo', $medico->codigo_especialidad)->first();
                     $especialidad = $esp?->nombre ?? 'Sin especialidad';
                 }
-                
+
                 return [
                     'ci' => $medico->ci,
                     'nombre' => $nombre,
                     'especialidad' => $especialidad,
-                    'disponible' => true
+                    'disponible' => true,
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'medicos' => $resultado
+                'medicos' => $resultado,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error en getMedicosDisponibles: ' . $e->getMessage());
+            \Log::error('Error en getMedicosDisponibles: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar médicos: ' . $e->getMessage()
+                'message' => 'Error al cargar médicos: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -593,39 +626,37 @@ class QuirofanoController extends Controller
                 'ci_cirujano' => 'required|exists:medicos,ci',
             ]);
 
-            $emergencia = \App\Models\Emergency::findOrFail($emergency_id);
+            $emergencia = Emergency::findOrFail($emergency_id);
 
             if ($emergencia->ubicacion_actual !== 'cirugia') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'La emergencia no está en quirófano'
+                    'message' => 'La emergencia no está en quirófano',
                 ], 400);
             }
 
             // Buscar quirófano disponible
             $quirofano = Quirofano::where('estado', 'disponible')->first();
-            if (!$quirofano) {
+            if (! $quirofano) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay quirófanos disponibles'
+                    'message' => 'No hay quirófanos disponibles',
                 ], 422);
             }
 
             // Crear cita quirúrgica para ahora
-            $cita = new CitaQuirurgica();
-            // Para pacientes temporales, usar el ID de emergencia como identificador numérico
-            $cita->ci_paciente = $emergencia->is_temp_id 
-                ? (int) $emergencia->id  // Usar ID de emergencia como identificador numérico
-                : (int) $emergencia->patient_id;
+            $cita = new CitaQuirurgica;
+            $cita->paciente_id = $emergencia->paciente_id;
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->quirofano_id = $quirofano->id;
             $cita->tipo_cirugia = 'mayor';
             $cita->fecha = now()->toDateString();
             $cita->hora_inicio_estimada = now()->format('H:i');
-            $cita->descripcion_cirugia = 'Cirugía de emergencia - ' . $emergencia->code;
+            $cita->descripcion_cirugia = 'Cirugía de emergencia - '.$emergencia->code;
             $cita->estado = 'en_curso';
             $cita->timestamp_inicio = now();
             $cita->user_registro_id = auth()->id();
+            $cita->asegurarEpisodio();
             $cita->save();
 
             // Marcar quirófano como ocupado
@@ -633,26 +664,29 @@ class QuirofanoController extends Controller
 
             // Actualizar emergencia
             $emergencia->update([
-                'nro_cirugia' => 'CIR-URG-' . $cita->id,
-                'status' => 'cirugia_en_curso'
+                'nro_cirugia' => 'CIR-URG-'.$cita->id,
+                'status' => 'cirugia_en_curso',
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cirugía iniciada en ' . $quirofano->nombre,
+                'message' => 'Cirugía iniciada en '.$quirofano->nombre,
                 'cita_id' => $cita->id,
-                'redirect' => route('quirofano.show', $cita)
+                'redirect' => route('quirofano.show', $cita),
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error: '.$e->getMessage(),
             ], 500);
         }
     }
 
-    public function show(CitaQuirurgica $cita): View
+    /**
+     * Mostrar detalles de una cirugía finalizada (solo lectura)
+     */
+    public function showDetails(CitaQuirurgica $cita): View
     {
         $cita->load([
             'paciente.seguro',
@@ -660,10 +694,431 @@ class QuirofanoController extends Controller
             'instrumentista.user',
             'anestesiologo.user',
             'quirofano',
-            'usuarioRegistro'
+            'usuarioRegistro',
         ]);
 
-        return view('quirofano.show', compact('cita'));
+        // Buscar la cuenta a partir de los detalles vinculados a esta cita
+        $detallePivot = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+            ->where('origen_id', (string) $cita->id)
+            ->first();
+
+        $cuentaCobro = $detallePivot?->cuentaCobro;
+
+        // Filtrar detalles de esta cita específica (la cuenta puede ser compartida/maestra)
+        $medicamentosUsados = collect();
+        $materialesUsados = collect();
+        $equiposUsados = collect();
+
+        if ($cuentaCobro) {
+            $medicamentosUsados = CuentaCobroDetalle::where('cuenta_cobro_id', $cuentaCobro->id)
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'medicamento')
+                ->get();
+
+            // Insumos: se graban como 'material' en la ejecución (procesarItemsAlmacen)
+            $materialesUsados = CuentaCobroDetalle::where('cuenta_cobro_id', $cuentaCobro->id)
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'material')
+                ->get();
+
+            $equiposUsados = CuentaCobroDetalle::where('cuenta_cobro_id', $cuentaCobro->id)
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'equipo_medico')
+                ->get();
+        }
+
+        // Detalle de cobro de la cirugía (fuente real del cargo base + extra)
+        $detalleProcedimiento = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+            ->where('origen_id', (string) $cita->id)
+            ->where('tipo_item', 'procedimiento')
+            ->first();
+
+        $tiposCirugia = TipoCirugia::activos()->get();
+        $medicamentos = AlmacenCatalogo::where('tipo', 'medicamento')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('quirofano.show-details', compact(
+            'cita',
+            'tiposCirugia',
+            'medicamentos',
+            'medicamentosUsados',
+            'materialesUsados',
+            'equiposUsados',
+            'cuentaCobro',
+            'detalleProcedimiento'
+        ));
+    }
+
+    /**
+     * Actualizar tipo de cirugía y costo extra desde la vista de detalles.
+     * Solo admin/administrador. El cobro de la cirugía = costo_base + costo_extra,
+     * y se refleja en el detalle 'procedimiento' de la cuenta del paciente.
+     */
+    public function actualizarDetalles(Request $request, CitaQuirurgica $cita): RedirectResponse
+    {
+        $validated = $request->validate([
+            'tipo_cirugia' => 'required|exists:tipos_cirugia,nombre',
+            'costo_extra' => 'required|numeric|decimal:0,2|min:0',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $costoBaseStr = (string) ($cita->costo_base ?? '0');
+            $costoExtraStr = (string) $validated['costo_extra'];
+            // Cobro de la cirugía = base + extra (el extra sólo suma, nunca reduce el base)
+            $costoCirugiaStr = bcadd($costoBaseStr, $costoExtraStr, 2);
+
+            $cita->tipo_cirugia = $validated['tipo_cirugia'];
+
+            // Actualizar el detalle de cobro de la cirugía (procedimiento)
+            $detalle = CuentaCobroDetalle::where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('tipo_item', 'procedimiento')
+                ->first();
+
+            if ($detalle) {
+                $duracionTxt = $cita->duracion_real ? ' - '.$cita->duracion_real.' min' : '';
+                $detalle->descripcion = 'Cirugía '.$validated['tipo_cirugia'].$duracionTxt.' (Cita #'.$cita->id.')';
+                $detalle->precio_unitario = $costoCirugiaStr;
+                $detalle->subtotal = $costoCirugiaStr;
+                $detalle->save();
+
+                // Recalcular total de la cuenta (respeta deshabilitados y seguro)
+                $detalle->cuentaCobro?->recalcularTotales();
+            }
+
+            $cita->save();
+
+            // Total denormalizado desde los cargos reales de la cuenta (fuente única).
+            $cita->recalcularCostoFinal();
+
+            $this->logActivity(
+                'editar_costos_cirugia',
+                'Costos de cirugía editados (Cita #'.$cita->id.') - Tipo: '.$validated['tipo_cirugia'].
+                ' - Base: '.$costoBaseStr.' - Extra: '.$costoExtraStr.' - Cirugía: '.$costoCirugiaStr,
+                $cita
+            );
+
+            DB::commit();
+
+            return redirect()->route('quirofano.show-details', $cita->id)
+                ->with('success', 'Datos de la cirugía actualizados correctamente.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()->route('quirofano.show-details', $cita->id)
+                ->with('error', 'No se pudieron actualizar los datos: '.$e->getMessage());
+        }
+    }
+
+    public function show(CitaQuirurgica $cita): View|RedirectResponse
+    {
+        // Si la cita ya está finalizada o cancelada, redirigir al historial
+        if (in_array($cita->estado, ['finalizada', 'cancelada'])) {
+            return redirect()->route('quirofano.historial')
+                ->with('info', 'Esta cirugía ya ha sido '.$cita->estado.'. Ver el historial.');
+        }
+
+        $cita->load([
+            'paciente.seguro',
+            'cirujano.user',
+            'instrumentista.user',
+            'anestesiologo.user',
+            'quirofano',
+            'usuarioRegistro',
+        ]);
+
+        $tiposCirugia = TipoCirugia::activos()->get();
+        $medicamentos = AlmacenCatalogo::where('tipo', 'medicamento')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('quirofano.ejecutar', compact('cita', 'tiposCirugia', 'medicamentos'));
+    }
+
+    public function ejecutar(Request $request, CitaQuirurgica $cita): JsonResponse
+    {
+        if ($cita->estado === 'finalizada') {
+            return response()->json(['success' => false, 'message' => 'La cirugía ya está finalizada.'], 422);
+        }
+
+        $validated = $request->validate([
+            'fecha' => 'required|date',
+            'hora_inicio' => 'required|date_format:H:i',
+            'hora_fin' => 'required|date_format:H:i',
+            'tipo_cirugia' => 'required|exists:tipos_cirugia,nombre',
+            'descripcion_cirugia' => 'nullable|string|max:1000',
+            'observaciones' => 'nullable|string|max:1000',
+            'medicamentos' => 'nullable|array',
+            'medicamentos.*.id' => 'required_with:medicamentos|exists:almacen_catalogo,id',
+            'medicamentos.*.lote_id' => 'nullable|integer|exists:almacen_lotes,id',
+            'medicamentos.*.cantidad' => 'required_with:medicamentos|integer|min:1',
+            'insumos' => 'nullable|array',
+            'insumos.*.id' => 'required_with:insumos|exists:almacen_catalogo,id',
+            'insumos.*.lote_id' => 'nullable|integer|exists:almacen_lotes,id',
+            'insumos.*.cantidad' => 'required_with:insumos|integer|min:1',
+            'equipos' => 'nullable|array',
+            'equipos.*.nombre' => 'required_with:equipos|string|max:255',
+            'equipos.*.precio' => 'required_with:equipos|numeric|decimal:0,2|min:0',
+            'equipos.*.cantidad' => 'required_with:equipos|integer|min:1',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $fechaBase = Carbon::parse($validated['fecha']);
+            $tsInicio = $fechaBase->copy()->setTimeFromTimeString($validated['hora_inicio'].':00');
+            $tsFin = $fechaBase->copy()->setTimeFromTimeString($validated['hora_fin'].':00');
+
+            if ($tsFin <= $tsInicio) {
+                $tsFin->addDay();
+            }
+
+            $duracion = (int) $tsInicio->diffInMinutes($tsFin);
+
+            if ($duracion <= 45) {
+                $tipoFinal = 'ambulatoria';
+            } elseif ($duracion <= 60) {
+                $tipoFinal = 'menor';
+            } elseif ($duracion <= 90) {
+                $tipoFinal = 'mediana';
+            } else {
+                $tipoFinal = 'mayor';
+            }
+
+            $tipoCirugia = TipoCirugia::where('nombre', $tipoFinal)->first();
+            $tipoCirugiaBase = TipoCirugia::where('nombre', $cita->tipo_cirugia)->first();
+            $costoBaseStr = (string) $cita->costo_base;
+            $duracionStr = (string) $duracion;
+            // Duración de referencia = tipo originalmente programado (base del cobro)
+            $duracionBaseStr = (string) ($tipoCirugiaBase ? $tipoCirugiaBase->duracion_minutos : $duracion);
+
+            // Regla de 3 con piso en el costo base (fuente única en el modelo)
+            $cobro = CitaQuirurgica::calcularCobroCirugia($costoBaseStr, $duracion, $duracionBaseStr);
+            $costoExtra = (float) $cobro['extra'];
+            // Costo por minuto efectivo (base / duracion_base) para auditoría
+            $costoMinuto = bccomp($duracionBaseStr, '0', 0) > 0
+                ? (float) bcdiv($costoBaseStr, $duracionBaseStr, 4)
+                : 0;
+
+            // El cobro de la cirugía nunca baja del costo base
+            $costoCirugia = (float) $cobro['cirugia'];
+
+            // Buscar el detalle de cirugía en CUALQUIER cuenta del paciente (no solo la más reciente).
+            // Buscar por cuenta scoped causaba doble cargo cuando una nueva cuenta pendiente
+            // era creada por otro módulo entre la programación y la ejecución.
+            $detalleCirugia = CuentaCobroDetalle::where('tipo_item', 'procedimiento')
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->first();
+
+            if ($detalleCirugia) {
+                // Reutilizar la cuenta donde vive el detalle y actualizar con el costo real
+                $cuenta = $detalleCirugia->cuentaCobro;
+                $detalleCirugia->descripcion = 'Cirugía '.$tipoFinal.' - '.$duracion.' min (Cita #'.$cita->id.')';
+                $detalleCirugia->precio_unitario = $costoCirugia;
+                $detalleCirugia->subtotal = $costoCirugia;
+                $detalleCirugia->save();
+            } else {
+                // No existe detalle previo (cirugía de emergencia sin pre-programación):
+                // obtener/crear cuenta maestra y usar agregarCargoConDeduplicacion para seguridad
+                $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
+                    $cita->paciente_id,
+                    'quirofano'
+                );
+                CuentaCobroService::agregarCargoConDeduplicacion(
+                    $cuenta->id,
+                    'procedimiento',
+                    'Cirugía '.$tipoFinal.' - '.$duracion.' min (Cita #'.$cita->id.')',
+                    $costoCirugia,
+                    1,
+                    'quirofano',
+                    CitaQuirurgica::class,
+                    (string) $cita->id
+                );
+                $cuenta->refresh();
+            }
+
+            // Procesar medicamentos e insumos recibidos desde el formulario.
+            // Ambos viven en almacen_catalogo y se descuentan/cobran igual; solo cambia el tipo_item.
+            [$costoMedicamentos, $medicamentosUsados] = $this->procesarItemsAlmacen(
+                $cuenta, $cita, $validated['medicamentos'] ?? [], 'medicamento'
+            );
+            [$costoInsumos, $insumosUsados] = $this->procesarItemsAlmacen(
+                $cuenta, $cita, $validated['insumos'] ?? [], 'material'
+            );
+
+            // Procesar equipos médicos recibidos desde el formulario
+            $costoEquipos = 0;
+            $equiposUsados = [];
+            if (! empty($validated['equipos'])) {
+                foreach ($validated['equipos'] as $equipo) {
+                    $subtotal = $equipo['precio'] * $equipo['cantidad'];
+                    $costoEquipos += $subtotal;
+
+                    $cuenta->detalles()->create([
+                        'tipo_item' => 'equipo_medico',
+                        'descripcion' => $equipo['nombre'],
+                        'cantidad' => $equipo['cantidad'],
+                        'precio_unitario' => $equipo['precio'],
+                        'subtotal' => $subtotal,
+                        'area_origen' => 'quirofano',
+                        'origen_type' => CitaQuirurgica::class,
+                        'origen_id' => (string) $cita->id,
+                    ]);
+
+                    $equiposUsados[] = [
+                        'nombre' => $equipo['nombre'],
+                        'cantidad' => $equipo['cantidad'],
+                        'precio_unitario' => $equipo['precio'],
+                        'subtotal' => $subtotal,
+                    ];
+                }
+            }
+
+            // Recalcular total de la cuenta desde la suma real de sus detalles
+            $cuenta->total_calculado = $cuenta->detalles()->sum('subtotal');
+            $cuenta->save();
+
+            // Actualizar cita quirúrgica
+            $cita->asegurarEpisodio();
+            $cita->tipo_cirugia = $validated['tipo_cirugia'];
+            $cita->descripcion_cirugia = $validated['descripcion_cirugia'];
+            $cita->observaciones = $validated['observaciones'];
+            $cita->fecha = $validated['fecha'];
+            $cita->hora_inicio_real = $validated['hora_inicio'];
+            $cita->hora_fin_real = $validated['hora_fin'];
+            $cita->timestamp_inicio = $tsInicio;
+            $cita->timestamp_fin = $tsFin;
+            $cita->estado = 'finalizada';
+            $cita->tipo_final = $tipoFinal;
+            $cita->save();
+
+            // Total denormalizado desde los cargos reales de la cuenta (fuente única
+            // recalcularCostoFinal); reemplaza la suma manual que omitía insumos.
+            $cita->recalcularCostoFinal();
+
+            if ($cita->quirofano_id) {
+                Quirofano::where('id', $cita->quirofano_id)->update(['estado' => 'disponible']);
+            }
+
+            // La cuenta maestra ya existe (se usó arriba)
+            CuentaCobroService::obtenerOCrearCuentaMaestra($cita->paciente_id, 'quirofano');
+
+            DB::commit();
+
+            $this->logActivity(
+                'registrar_cirugia',
+                'Cirugía registrada - Paciente: '.($cita->paciente?->nombre ?? 'N/A').
+                ' - Tipo: '.$tipoFinal.' - Duración: '.$duracion.' min',
+                $cita
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cirugía registrada exitosamente.',
+                'redirect' => route('quirofano.historial'),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al registrar cirugía: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Descuenta stock de quirófano/cirugía y carga a la cuenta los ítems de almacén
+     * (medicamentos o insumos) recibidos en la ejecución de la cirugía.
+     *
+     * @param  array  $items  cada uno: ['id' => catalogo_id, 'lote_id' => ?int, 'cantidad' => int]
+     * @return array{0: float, 1: array} [costo total, ítems cargados]
+     */
+    private function procesarItemsAlmacen($cuenta, CitaQuirurgica $cita, array $items, string $tipoItem): array
+    {
+        $costo = 0;
+        $usados = [];
+
+        foreach ($items as $item) {
+            $catalogo = AlmacenCatalogo::find($item['id']);
+            if (! $catalogo) {
+                continue;
+            }
+
+            // Lote exacto si viene (laboratorio elegido); si no, el más reciente no vencido
+            $lote = ! empty($item['lote_id'])
+                ? AlmacenLote::find($item['lote_id'])
+                : AlmacenLote::where('catalogo_id', $catalogo->id)
+                    ->where(function ($q) {
+                        $q->whereNull('fecha_vencimiento')
+                            ->orWhere('fecha_vencimiento', '>', now());
+                    })
+                    ->orderByDesc('created_at')
+                    ->first();
+
+            $precioUnitario = (float) ($lote->precio_venta ?? 0);
+            $subtotal = $precioUnitario * $item['cantidad'];
+            $costo += $subtotal;
+
+            // Descontar del stock de cirugía/quirófano (del lote exacto si vino lote_id)
+            $stock = AlmacenStock::whereIn('ubicacion', ['cirugia', 'quirofano'])
+                ->where('cantidad_actual', '>=', $item['cantidad'])
+                ->when(! empty($item['lote_id']), fn ($q) => $q->where('lote_id', $item['lote_id']))
+                ->when(empty($item['lote_id']), fn ($q) => $q->whereHas('lote', function ($lq) use ($catalogo) {
+                    $lq->where('catalogo_id', $catalogo->id)
+                        ->where(function ($sub) {
+                            $sub->whereNull('fecha_vencimiento')
+                                ->orWhere('fecha_vencimiento', '>', now());
+                        });
+                }))
+                ->first();
+
+            if ($stock) {
+                $stock->cantidad_actual -= $item['cantidad'];
+                $stock->save();
+            } else {
+                \Log::warning('No hay stock suficiente para '.$tipoItem.': '.$catalogo->nombre.' - Cantidad solicitada: '.$item['cantidad']);
+            }
+
+            // Evitar doble cargo si ya se agregó en tiempo real desde otro módulo
+            $yaAgregado = $cuenta->detalles()
+                ->where('tipo_item', $tipoItem)
+                ->where('origen_type', CitaQuirurgica::class)
+                ->where('origen_id', (string) $cita->id)
+                ->where('descripcion', 'like', '%'.$catalogo->nombre.'%')
+                ->exists();
+
+            if (! $yaAgregado) {
+                $cuenta->detalles()->create([
+                    'tipo_item' => $tipoItem,
+                    'descripcion' => $catalogo->nombre,
+                    'cantidad' => $item['cantidad'],
+                    'precio_unitario' => $precioUnitario,
+                    'subtotal' => $subtotal,
+                    'area_origen' => 'quirofano',
+                    'origen_type' => CitaQuirurgica::class,
+                    'origen_id' => (string) $cita->id,
+                ]);
+            }
+
+            $usados[] = [
+                'id' => $catalogo->id,
+                'nombre' => $catalogo->nombre,
+                'cantidad' => $item['cantidad'],
+                'precio_unitario' => $precioUnitario,
+                'subtotal' => $subtotal,
+            ];
+        }
+
+        return [$costo, $usados];
     }
 
     public function edit(CitaQuirurgica $cita): View
@@ -685,7 +1140,7 @@ class QuirofanoController extends Controller
         if ($cita->estado === 'en_curso' || $cita->estado === 'finalizada') {
             return response()->json([
                 'success' => false,
-                'message' => 'No se puede modificar una cirugía en curso o finalizada.'
+                'message' => 'No se puede modificar una cirugía en curso o finalizada.',
             ], 422);
         }
 
@@ -707,13 +1162,13 @@ class QuirofanoController extends Controller
             if ($cita->validarDisponibilidadQuirofano()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El quirófano no está disponible en este horario. Ya existe una cirugía programada.'
+                    'message' => 'El quirófano no está disponible en este horario. Ya existe una cirugía programada.',
                 ], 422);
             }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al validar disponibilidad: ' . $e->getMessage()
+                'message' => 'Error al validar disponibilidad: '.$e->getMessage(),
             ], 500);
         }
 
@@ -721,7 +1176,7 @@ class QuirofanoController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Cita quirúrgica actualizada exitosamente.'
+            'message' => 'Cita quirúrgica actualizada exitosamente.',
         ]);
     }
 
@@ -730,7 +1185,7 @@ class QuirofanoController extends Controller
         if ($cita->estado !== 'programada') {
             return response()->json([
                 'success' => false,
-                'message' => 'Solo se pueden iniciar cirugías programadas.'
+                'message' => 'Solo se pueden iniciar cirugías programadas.',
             ], 422);
         }
 
@@ -739,15 +1194,15 @@ class QuirofanoController extends Controller
         // Registrar en bitácora
         $this->logActivity(
             'iniciar_cirugia',
-            'Cirugía iniciada - Paciente: ' . ($cita->paciente ? $cita->paciente->nombre : 'N/A') .
-            ' - Tipo: ' . $cita->tipo_cirugia,
+            'Cirugía iniciada - Paciente: '.($cita->paciente ? $cita->paciente->nombre : 'N/A').
+            ' - Tipo: '.$cita->tipo_cirugia,
             $cita
         );
 
         return response()->json([
             'success' => true,
             'message' => 'Cirugía iniciada exitosamente.',
-            'timestamp_inicio' => $cita->timestamp_inicio
+            'timestamp_inicio' => $cita->timestamp_inicio,
         ]);
     }
 
@@ -756,7 +1211,7 @@ class QuirofanoController extends Controller
         if ($cita->estado !== 'en_curso') {
             return response()->json([
                 'success' => false,
-                'message' => 'Solo se pueden finalizar cirugías en curso.'
+                'message' => 'Solo se pueden finalizar cirugías en curso.',
             ], 422);
         }
 
@@ -774,15 +1229,15 @@ class QuirofanoController extends Controller
 
             // NO crear cuenta aquí: ya fue creada al programar la cirugía.
             // Solo verificar si existe y actualizar el total si tiene detalles adicionales.
-            $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
-                ->where(function($q) {
+            $cuentaCobro = CuentaCobro::where('referencia_id', $cita->id)
+                ->where(function ($q) {
                     $q->where('referencia_type', CitaQuirurgica::class)
-                      ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                        ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
                 })
                 ->where('estado', 'pendiente')
                 ->first();
 
-            if (!$cuentaCobro) {
+            if (! $cuentaCobro) {
                 // Solo crear si genuinamente no existe (ej. cirugía de emergencia inmediata sin programar)
                 $this->crearRegistroCajaCirugia($cita);
             }
@@ -792,9 +1247,9 @@ class QuirofanoController extends Controller
             // Registrar en bitácora
             $this->logActivity(
                 'finalizar_cirugia',
-                'Cirugía finalizada - Paciente: ' . ($cita->paciente ? $cita->paciente->nombre : 'N/A') .
-                ' - Tipo: ' . $cita->tipo_cirugia .
-                ' - Duración: ' . ($cita->duracion_real_minutos ? $cita->duracion_real_minutos . ' min' : 'N/A'),
+                'Cirugía finalizada - Paciente: '.($cita->paciente ? $cita->paciente->nombre : 'N/A').
+                ' - Tipo: '.$cita->tipo_cirugia.
+                ' - Duración: '.($cita->duracion_real_minutos ? $cita->duracion_real_minutos.' min' : 'N/A'),
                 $cita
             );
 
@@ -802,16 +1257,16 @@ class QuirofanoController extends Controller
                 'success' => true,
                 'message' => 'Cirugía finalizada exitosamente.',
                 'cita' => $cita->fresh(),
-                'cobro_generado' => true
+                'cobro_generado' => true,
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al finalizar cirugía y generar cobro: ' . $e->getMessage());
-            
+            Log::error('Error al finalizar cirugía y generar cobro: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al finalizar cirugía: ' . $e->getMessage()
+                'message' => 'Error al finalizar cirugía: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -822,23 +1277,23 @@ class QuirofanoController extends Controller
         $monto = $cita->costo_final ?? $cita->costo_base ?? 0;
 
         \Log::info('[CuentaMaestra] Registrando cargo de cirugía', [
-            'cita_id'   => $cita->id,
-            'monto'     => $monto,
-            'paciente'  => $cita->ci_paciente,
+            'cita_id' => $cita->id,
+            'monto' => $monto,
+            'paciente' => $cita->paciente_id,
         ]);
 
         try {
             // Obtener o crear la cuenta maestra del paciente (nunca duplica)
-            $cuenta = \App\Services\CuentaCobroService::obtenerOCrearCuentaMaestra(
-                $cita->ci_paciente,
+            $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
+                $cita->paciente_id,
                 'quirofano'
             );
 
             // Agregar el cargo de cirugía con deduplicación automática
-            \App\Services\CuentaCobroService::agregarCargoConDeduplicacion(
+            CuentaCobroService::agregarCargoConDeduplicacion(
                 $cuenta->id,
                 'procedimiento',
-                'Cirugía ' . $cita->tipo_cirugia . ' - ' . ($cita->descripcion_cirugia ?? 'Sin descripción'),
+                'Cirugía '.$cita->tipo_cirugia.' (Cita #'.$cita->id.')',
                 (float) $monto,
                 1,
                 'quirofano',
@@ -849,26 +1304,25 @@ class QuirofanoController extends Controller
             return $cuenta;
 
         } catch (\Exception $e) {
-            \Log::error('[CuentaMaestra] Error al registrar cargo de cirugía: ' . $e->getMessage(), [
+            \Log::error('[CuentaMaestra] Error al registrar cargo de cirugía: '.$e->getMessage(), [
                 'cita_id' => $cita->id,
-                'monto'   => $monto,
+                'monto' => $monto,
             ]);
             throw $e;
         }
     }
-
 
     public function cancelar(Request $request, CitaQuirurgica $cita): JsonResponse
     {
         if ($cita->estado === 'finalizada') {
             return response()->json([
                 'success' => false,
-                'message' => 'No se puede cancelar una cirugía finalizada.'
+                'message' => 'No se puede cancelar una cirugía finalizada.',
             ], 422);
         }
 
         $request->validate([
-            'motivo_cancelacion' => 'required|string|max:500'
+            'motivo_cancelacion' => 'required|string|max:500',
         ]);
 
         $cita->estado = 'cancelada';
@@ -878,14 +1332,14 @@ class QuirofanoController extends Controller
         // Registrar en bitácora
         $this->logActivity(
             'cancelar_cirugia',
-            'Cirugía cancelada - Paciente: ' . ($cita->paciente ? $cita->paciente->nombre : 'N/A') .
-            ' - Motivo: ' . $request->motivo_cancelacion,
+            'Cirugía cancelada - Paciente: '.($cita->paciente ? $cita->paciente->nombre : 'N/A').
+            ' - Motivo: '.$request->motivo_cancelacion,
             $cita
         );
 
         return response()->json([
             'success' => true,
-            'message' => 'Cita quirúrgica cancelada exitosamente.'
+            'message' => 'Cita quirúrgica cancelada exitosamente.',
         ]);
     }
 
@@ -895,7 +1349,7 @@ class QuirofanoController extends Controller
             'nro_quirofano' => 'required|exists:quirofanos,id',
             'fecha' => 'required|date',
             'hora_inicio' => 'required|date_format:H:i',
-            'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria'
+            'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
         ]);
 
         try {
@@ -913,7 +1367,7 @@ class QuirofanoController extends Controller
             $conflictos = [];
             foreach ($citasExistentes as $cita) {
                 // Handle both Carbon and string formats for hora_inicio_estimada
-                if ($cita->hora_inicio_estimada instanceof \Carbon\Carbon) {
+                if ($cita->hora_inicio_estimada instanceof Carbon) {
                     $citaInicio = $cita->hora_inicio_estimada->copy();
                 } else {
                     $citaParts = explode(':', (string) $cita->hora_inicio_estimada);
@@ -926,7 +1380,7 @@ class QuirofanoController extends Controller
                         'paciente' => $cita->paciente->nombre ?? 'N/A',
                         'inicio' => $citaInicio->format('H:i'),
                         'fin' => $citaFin->format('H:i'),
-                        'estado' => $cita->estado
+                        'estado' => $cita->estado,
                     ];
                 }
             }
@@ -942,14 +1396,14 @@ class QuirofanoController extends Controller
                     'hora_fin' => $horaFin->format('H:i'),
                     'tipo_cirugia' => $request->tipo_cirugia,
                     'duracion' => $tipoCirugia->duracion_minutos,
-                    'citas_existentes_count' => $citasExistentes->count()
-                ]
+                    'citas_existentes_count' => $citasExistentes->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => true,
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -959,7 +1413,7 @@ class QuirofanoController extends Controller
         $request->validate([
             'quirofano' => 'nullable|exists:quirofanos,id',
             'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio'
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
         ]);
 
         $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano'])
@@ -969,12 +1423,12 @@ class QuirofanoController extends Controller
             $query->where('quirofano_id', $request->quirofano);
         }
 
-        $citas = $query->get()->map(function($cita) {
+        $citas = $query->get()->map(function ($cita) {
             return [
                 'id' => $cita->id,
-                'title' => $cita->paciente->nombre . ' - ' . $cita->tipo_cirugia,
-                'start' => $cita->fecha->format('Y-m-d') . ' ' . $cita->hora_inicio_estimada,
-                'end' => $cita->fecha->format('Y-m-d') . ' ' . $cita->hora_fin_estimada,
+                'title' => $cita->paciente->nombre.' - '.$cita->tipo_cirugia,
+                'start' => $cita->fecha->format('Y-m-d').' '.$cita->hora_inicio_estimada,
+                'end' => $cita->fecha->format('Y-m-d').' '.$cita->hora_fin_estimada,
                 'backgroundColor' => $this->getColorPorEstado($cita->estado),
                 'borderColor' => $this->getColorPorEstado($cita->estado),
                 'extendedProps' => [
@@ -984,15 +1438,14 @@ class QuirofanoController extends Controller
                     'tipo_cirugia' => $cita->tipo_cirugia,
                     'estado' => $cita->estado,
                     'duracion_real' => $cita->duracion_real,
-                    'costo_final' => $cita->costo_final
-                ]
+                    'costo_final' => $cita->costo_final,
+                ],
             ];
         });
 
         return response()->json($citas);
     }
 
-    
     private function getColorPorEstado($estado): string
     {
         $colores = [
@@ -1023,8 +1476,7 @@ class QuirofanoController extends Controller
             $query->whereDate('fecha', '<=', $request->fecha_hasta);
         }
 
-        $citas = $query->orderBy('fecha', 'desc')
-            ->orderBy('hora_inicio_estimada', 'desc')
+        $citas = $query->orderBy('created_at', 'desc')
             ->paginate(10);
 
         $stats = [
@@ -1042,18 +1494,18 @@ class QuirofanoController extends Controller
     public function getListaPacientes(): JsonResponse
     {
         try {
-            $pacientes = Paciente::select('ci', 'nombre', 'telefono')
+            $pacientes = Paciente::select('id', 'ci', 'temp_code', 'nombre', 'telefono')
                 ->orderBy('nombre')
                 ->get();
 
             return response()->json([
                 'success' => true,
-                'pacientes' => $pacientes
+                'pacientes' => $pacientes,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar pacientes: ' . $e->getMessage()
+                'message' => 'Error al cargar pacientes: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1061,29 +1513,44 @@ class QuirofanoController extends Controller
     public function getListaMedicos(): JsonResponse
     {
         try {
+            // Médicos con registro en tabla medicos (doctores y cirujanos)
             $medicos = Medico::with('user', 'especialidad')
-                ->whereHas('user', function($q) {
-                    $q->where('role', 'doctor');
+                ->whereHas('user', function ($q) {
+                    $q->whereIn('role', ['doctor', 'cirujano']);
                 })
                 ->get()
-                ->map(function($medico) {
+                ->map(function ($medico) {
                     return [
                         'ci' => $medico->ci,
                         'nombre' => $medico->user->name ?? 'Sin nombre',
-                        'especialidad' => $medico->especialidad->nombre ?? 'Sin especialidad'
+                        'especialidad' => $medico->especialidad->nombre ?? 'Sin especialidad',
                     ];
                 });
 
+            $todos = $medicos->values();
+
             return response()->json([
                 'success' => true,
-                'medicos' => $medicos
+                'medicos' => $todos,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar médicos: ' . $e->getMessage()
+                'message' => 'Error al cargar médicos: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function buscarProcedimientos(Request $request): JsonResponse
+    {
+        $q = trim($request->get('q', ''));
+        $procedimientos = Procedimiento::activos()
+            ->porArea('cirugia')
+            ->when($q !== '', fn ($query) => $query->where('nombre', 'like', "%{$q}%"))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'precio', 'descripcion']);
+
+        return response()->json(['success' => true, 'procedimientos' => $procedimientos]);
     }
 
     /**
@@ -1092,42 +1559,85 @@ class QuirofanoController extends Controller
     public function getMedicamentosDisponibles(CitaQuirurgica $cita): JsonResponse
     {
         try {
-            \Log::info('getMedicamentosDisponibles llamado', ['cita_id' => $cita->id, 'estado' => $cita->estado]);
-
             // Verificar que la cirugía esté programada o en curso
-            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
+            if (! in_array($cita->estado, ['programada', 'en_curso'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'La cirugía debe estar programada o en curso'
+                    'message' => 'La cirugía debe estar programada o en curso',
                 ], 422);
             }
 
-            \Log::info('Buscando medicamentos de cirugia...');
+            return response()->json([
+                'success' => true,
+                'medicamentos' => $this->stockDisponiblePorTipo('medicamento'),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error en getMedicamentosDisponibles: '.$e->getMessage());
 
-            $query = AlmacenMedicamento::porArea('cirugia')
-                ->activos()
-                ->where('cantidad', '>', 0)
-                ->orderBy('nombre');
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar medicamentos: '.$e->getMessage(),
+            ], 500);
+        }
+    }
 
-            \Log::info('Query SQL: ' . $query->toSql());
-
-            $medicamentos = $query->get(['id', 'nombre', 'tipo', 'cantidad', 'unidad_medida', 'precio']);
-
-            \Log::info('Medicamentos encontrados: ' . $medicamentos->count());
+    /**
+     * Obtener insumos disponibles en quirófano para una cirugía
+     */
+    public function getInsumosDisponibles(CitaQuirurgica $cita): JsonResponse
+    {
+        try {
+            // Verificar que la cirugía esté programada o en curso
+            if (! in_array($cita->estado, ['programada', 'en_curso'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cirugía debe estar programada o en curso',
+                ], 422);
+            }
 
             return response()->json([
                 'success' => true,
-                'medicamentos' => $medicamentos
+                'insumos' => $this->stockDisponiblePorTipo('insumo'),
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error en getMedicamentosDisponibles: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            \Log::error('Error en getInsumosDisponibles: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar medicamentos: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'message' => 'Error al cargar insumos: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Stock disponible (por lote) en quirófano/cirugía para un tipo de catálogo dado.
+     * Fuente única para medicamentos e insumos del buscador de la ejecución de cirugía.
+     */
+    private function stockDisponiblePorTipo(string $tipo)
+    {
+        return AlmacenStock::where('cantidad_actual', '>', 0)
+            ->whereIn('ubicacion', ['quirófano', 'cirugia'])
+            ->whereHas('lote.catalogo', function ($q) use ($tipo) {
+                $q->where('tipo', $tipo)
+                    ->where('activo', true);
+            })
+            ->with(['lote.catalogo', 'lote'])
+            ->get()
+            ->map(function ($stock) {
+                return [
+                    'id' => $stock->lote->catalogo->id,
+                    'stock_id' => $stock->id,
+                    'lote_id' => $stock->lote_id,
+                    'laboratorio' => $stock->lote->laboratorio,
+                    'codigo_lote' => $stock->lote->codigo_lote,
+                    'nombre' => $stock->lote->catalogo->nombre,
+                    'presentacion' => $stock->lote->catalogo->presentacion ?? '',
+                    'concentracion' => $stock->lote->catalogo->concentracion ?? '',
+                    'cantidad' => $stock->cantidad_actual,
+                    'precio' => (float) ($stock->lote->precio_venta ?? $stock->lote->catalogo->precio ?? 0),
+                    'unidad_medida' => $stock->lote->catalogo->unidad_medida ?? 'unidad',
+                ];
+            });
     }
 
     /**
@@ -1137,19 +1647,19 @@ class QuirofanoController extends Controller
     {
         try {
             // Obtener detalles de tipo medicamento buscando por origen o por la cuenta vinculada
-            $medicamentos = \App\Models\CuentaCobroDetalle::where('tipo_item', 'medicamento')
+            $medicamentos = CuentaCobroDetalle::where('tipo_item', 'medicamento')
                 ->where(function ($q) use ($cita) {
                     // Si el detalle tiene origen_type específico a esta cirugía
-                    $q->where(function ($sub) use ($cita) {
+                    $q->where(function ($sub) {
                         $sub->where('origen_type', CitaQuirurgica::class)
                             ->orWhere('origen_type', 'like', '%CitaQuirurgica%');
                     })->where('origen_id', $cita->id);
-                    
+
                     // O si pertenece a una cuenta no unificada que referencia directamente a la cirugía
                     $q->orWhereHas('cuentaCobro', function ($qCuenta) use ($cita) {
                         $qCuenta->where(function ($qRef) {
                             $qRef->where('referencia_type', CitaQuirurgica::class)
-                                 ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                                ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
                         })->where('referencia_id', $cita->id);
                     });
                 })
@@ -1158,12 +1668,12 @@ class QuirofanoController extends Controller
 
             return response()->json([
                 'success' => true,
-                'medicamentos' => $medicamentos
+                'medicamentos' => $medicamentos,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar medicamentos usados: ' . $e->getMessage()
+                'message' => 'Error al cargar medicamentos usados: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1175,72 +1685,62 @@ class QuirofanoController extends Controller
     {
         try {
             // Verificar que la cirugía esté programada o en curso
-            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
+            if (! in_array($cita->estado, ['programada', 'en_curso'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'La cirugía debe estar programada o en curso'
+                    'message' => 'La cirugía debe estar programada o en curso',
                 ], 422);
             }
 
             // Validar input
             $validated = $request->validate([
-                'almacen_medicamento_id' => 'required|exists:almacen_medicamentos,id',
-                'cantidad' => 'required|integer|min:1'
+                'almacen_medicamento_id' => 'required|exists:almacen_stocks,id',
+                'cantidad' => 'required|integer|min:1',
             ]);
 
-            $medicamento = AlmacenMedicamento::findOrFail($validated['almacen_medicamento_id']);
+            $stock = AlmacenStock::with('lote.catalogo')->findOrFail($validated['almacen_medicamento_id']);
 
-            // Verificar que el medicamento sea de cirugía
-            if ($medicamento->area !== 'cirugia') {
+            if ($stock->cantidad_actual < $validated['cantidad']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El medicamento no pertenece al inventario de quirófano'
-                ], 422);
-            }
-
-            // Verificar stock suficiente
-            if ($medicamento->cantidad < $validated['cantidad']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Stock insuficiente. Disponible: ' . $medicamento->cantidad . ' ' . $medicamento->unidad_medida
+                    'message' => 'Stock insuficiente. Disponible: '.$stock->cantidad_actual,
                 ], 422);
             }
 
             DB::beginTransaction();
 
             try {
-                // Descontar stock
-                $cantidadAnterior = $medicamento->cantidad;
-                $medicamento->cantidad -= $validated['cantidad'];
-                $medicamento->save();
+                $cantidadAnterior = $stock->cantidad_actual;
+                $stock->decrement('cantidad_actual', $validated['cantidad']);
+                $medicamento = $stock->lote->catalogo;
 
                 // Buscar cuenta de cobro existente - método más flexible
                 $refType = 'App\Models\CitaQuirurgica';
                 \Log::info('Buscando cuenta de cobro', [
                     'referencia_type' => $refType,
                     'referencia_id' => $cita->id,
-                    'paciente_ci' => $cita->ci_paciente
+                    'paciente_id' => $cita->paciente_id,
                 ]);
-                
-                $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
-                    ->where(function($q) use ($refType) {
+
+                $cuentaCobro = CuentaCobro::where('referencia_id', $cita->id)
+                    ->where(function ($q) use ($refType) {
                         $q->where('referencia_type', $refType)
-                          ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                            ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
                     })
                     ->where('estado', 'pendiente')
                     ->first();
-                
+
                 // Si no existe por referencia, buscar por paciente y tipo
-                if (!$cuentaCobro) {
-                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
+                if (! $cuentaCobro) {
+                    $cuentaCobro = CuentaCobro::where('paciente_id', $cita->paciente_id)
                         ->where('tipo_atencion', 'cirugia')
                         ->where('estado', 'pendiente')
                         ->orderBy('created_at', 'desc')
                         ->first();
-                    
+
                     if ($cuentaCobro) {
                         \Log::info('Cuenta encontrada por paciente/tipo', [
-                            'cuenta_cobro_id' => $cuentaCobro->id
+                            'cuenta_cobro_id' => $cuentaCobro->id,
                         ]);
                         // Actualizar la referencia para futuras búsquedas
                         $cuentaCobro->referencia_id = $cita->id;
@@ -1249,26 +1749,25 @@ class QuirofanoController extends Controller
                     }
                 } else {
                     \Log::info('Cuenta encontrada por referencia', [
-                        'cuenta_cobro_id' => $cuentaCobro->id
+                        'cuenta_cobro_id' => $cuentaCobro->id,
                     ]);
                 }
-                
+
                 // Si aún no existe, crearla automáticamente (para cirugías existentes antes del fix)
-                if (!$cuentaCobro) {
+                if (! $cuentaCobro) {
                     \Log::info('Creando cuenta de cobro automáticamente para cita existente', [
                         'cita_id' => $cita->id,
-                        'paciente_ci' => $cita->ci_paciente
+                        'paciente_id' => $cita->paciente_id,
                     ]);
                     $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
                 }
 
-                $precioUnitario = $medicamento->precio ?? 0;
+                $precioUnitario = $stock->lote->precio_venta ?? 0;
                 $subtotal = $precioUnitario * $validated['cantidad'];
 
-                // Crear detalle en cuenta de cobro
                 $detalle = $cuentaCobro->detalles()->create([
                     'tipo_item' => 'medicamento',
-                    'descripcion' => $medicamento->nombre . ' (' . $medicamento->tipo . ')',
+                    'descripcion' => $medicamento->nombre.' ('.$medicamento->tipo.')',
                     'cantidad' => $validated['cantidad'],
                     'precio_unitario' => $precioUnitario,
                     'subtotal' => $subtotal,
@@ -1276,30 +1775,28 @@ class QuirofanoController extends Controller
                     'origen_id' => $cita->id,
                 ]);
 
-                // Actualizar total de cuenta de cobro
                 $cuentaCobro->total_calculado = $cuentaCobro->detalles()->sum('subtotal');
                 $cuentaCobro->save();
 
-                // Registrar en ActivityLog para historial
-                \App\Models\ActivityLog::create([
+                ActivityLog::create([
                     'user_id' => auth()->id(),
                     'action' => 'medicamento_cirugia_agregado',
                     'model_type' => CitaQuirurgica::class,
                     'model_id' => $cita->id,
-                    'description' => 'Medicamento agregado a cirugía: ' . $medicamento->nombre,
+                    'description' => 'Medicamento agregado a cirugía: '.$medicamento->nombre,
                     'new_values' => json_encode([
-                        'almacen_medicamento_id' => $medicamento->id,
+                        'almacen_stock_id' => $stock->id,
                         'nombre' => $medicamento->nombre,
                         'cantidad' => $validated['cantidad'],
                         'precio_unitario' => $precioUnitario,
                         'subtotal' => $subtotal,
                         'stock_anterior' => $cantidadAnterior,
-                        'stock_nuevo' => $medicamento->cantidad,
+                        'stock_nuevo' => $stock->cantidad_actual,
                         'cuenta_cobro_id' => $cuentaCobro->id,
-                        'detalle_id' => $detalle->id
+                        'detalle_id' => $detalle->id,
                     ]),
                     'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent()
+                    'user_agent' => $request->userAgent(),
                 ]);
 
                 DB::commit();
@@ -1311,9 +1808,9 @@ class QuirofanoController extends Controller
                         'nombre' => $medicamento->nombre,
                         'cantidad' => $validated['cantidad'],
                         'precio_unitario' => $precioUnitario,
-                        'subtotal' => $subtotal
+                        'subtotal' => $subtotal,
                     ],
-                    'stock_restante' => $medicamento->cantidad
+                    'stock_restante' => $medicamento->cantidad,
                 ]);
 
             } catch (\Exception $e) {
@@ -1321,16 +1818,16 @@ class QuirofanoController extends Controller
                 throw $e;
             }
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al agregar medicamento: ' . $e->getMessage()
+                'message' => 'Error al agregar medicamento: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1342,18 +1839,18 @@ class QuirofanoController extends Controller
     {
         try {
             // Verificar que la cirugía esté programada o en curso
-            if (!in_array($cita->estado, ['programada', 'en_curso'])) {
+            if (! in_array($cita->estado, ['programada', 'en_curso'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'La cirugía debe estar programada o en curso'
+                    'message' => 'La cirugía debe estar programada o en curso',
                 ], 422);
             }
 
             // Validar input
             $validated = $request->validate([
                 'nombre' => 'required|string|max:255',
-                'precio' => 'required|numeric|min:0',
-                'cantidad' => 'required|integer|min:1'
+                'precio' => 'required|numeric|decimal:0,2|min:0',
+                'cantidad' => 'required|integer|min:1',
             ]);
 
             DB::beginTransaction();
@@ -1361,17 +1858,17 @@ class QuirofanoController extends Controller
             try {
                 // Buscar cuenta de cobro existente
                 $refType = 'App\Models\CitaQuirurgica';
-                $cuentaCobro = \App\Models\CuentaCobro::where('referencia_id', $cita->id)
-                    ->where(function($q) use ($refType) {
+                $cuentaCobro = CuentaCobro::where('referencia_id', $cita->id)
+                    ->where(function ($q) use ($refType) {
                         $q->where('referencia_type', $refType)
-                          ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                            ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
                     })
                     ->where('estado', 'pendiente')
                     ->first();
 
                 // Si no existe por referencia, buscar por paciente y tipo
-                if (!$cuentaCobro) {
-                    $cuentaCobro = \App\Models\CuentaCobro::where('paciente_ci', $cita->ci_paciente)
+                if (! $cuentaCobro) {
+                    $cuentaCobro = CuentaCobro::where('paciente_id', $cita->paciente_id)
                         ->where('tipo_atencion', 'cirugia')
                         ->where('estado', 'pendiente')
                         ->orderBy('created_at', 'desc')
@@ -1385,7 +1882,7 @@ class QuirofanoController extends Controller
                 }
 
                 // Si aún no existe, crearla automáticamente
-                if (!$cuentaCobro) {
+                if (! $cuentaCobro) {
                     $cuentaCobro = $this->crearRegistroCajaCirugia($cita);
                 }
 
@@ -1396,7 +1893,7 @@ class QuirofanoController extends Controller
                 // Crear detalle en cuenta de cobro
                 $detalle = $cuentaCobro->detalles()->create([
                     'tipo_item' => 'equipo_medico',
-                    'descripcion' => 'Cirugía - Equipo/Procedimiento: ' . $validated['nombre'],
+                    'descripcion' => 'Cirugía - Equipo/Procedimiento: '.$validated['nombre'],
                     'cantidad' => $cantidad,
                     'precio_unitario' => $precioUnitario,
                     'subtotal' => $subtotal,
@@ -1421,22 +1918,22 @@ class QuirofanoController extends Controller
                 $cita->update(['equipos_medicos' => $equiposMedicos]);
 
                 // Registrar en ActivityLog para historial
-                \App\Models\ActivityLog::create([
+                ActivityLog::create([
                     'user_id' => auth()->id(),
                     'action' => 'equipo_medico_cirugia_agregado',
                     'model_type' => CitaQuirurgica::class,
                     'model_id' => $cita->id,
-                    'description' => 'Equipo médico agregado a cirugía: ' . $validated['nombre'],
+                    'description' => 'Equipo médico agregado a cirugía: '.$validated['nombre'],
                     'new_values' => json_encode([
                         'nombre' => $validated['nombre'],
                         'cantidad' => $cantidad,
                         'precio_unitario' => $precioUnitario,
                         'subtotal' => $subtotal,
                         'cuenta_cobro_id' => $cuentaCobro->id,
-                        'detalle_id' => $detalle->id
+                        'detalle_id' => $detalle->id,
                     ]),
                     'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent()
+                    'user_agent' => $request->userAgent(),
                 ]);
 
                 DB::commit();
@@ -1448,8 +1945,8 @@ class QuirofanoController extends Controller
                         'nombre' => $validated['nombre'],
                         'cantidad' => $cantidad,
                         'precio_unitario' => $precioUnitario,
-                        'subtotal' => $subtotal
-                    ]
+                        'subtotal' => $subtotal,
+                    ],
                 ]);
 
             } catch (\Exception $e) {
@@ -1457,16 +1954,16 @@ class QuirofanoController extends Controller
                 throw $e;
             }
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al agregar equipo médico: ' . $e->getMessage()
+                'message' => 'Error al agregar equipo médico: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1480,19 +1977,19 @@ class QuirofanoController extends Controller
             $equiposMedicos = $cita->equipos_medicos ?? [];
 
             // También buscar en detalles de cuentas de cobro que pertenezcan a esta cirugía
-            $detallesEquipos = \App\Models\CuentaCobroDetalle::where('tipo_item', 'equipo_medico')
+            $detallesEquipos = CuentaCobroDetalle::where('tipo_item', 'equipo_medico')
                 ->where(function ($q) use ($cita) {
                     // Detalles con origen explícito
-                    $q->where(function ($sub) use ($cita) {
+                    $q->where(function ($sub) {
                         $sub->where('origen_type', CitaQuirurgica::class)
                             ->orWhere('origen_type', 'like', '%CitaQuirurgica%');
                     })->where('origen_id', $cita->id);
-                    
+
                     // Detalles de cuenta específica para esta cirugía
                     $q->orWhereHas('cuentaCobro', function ($qCuenta) use ($cita) {
                         $qCuenta->where(function ($qRef) {
                             $qRef->where('referencia_type', CitaQuirurgica::class)
-                                 ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
+                                ->orWhere('referencia_type', 'like', '%CitaQuirurgica%');
                         })->where('referencia_id', $cita->id);
                     });
                 })
@@ -1510,72 +2007,26 @@ class QuirofanoController extends Controller
             }
 
             // Combinar ambas fuentes (priorizar los de la cita)
-            $equipos = !empty($equiposMedicos) ? $equiposMedicos : $equiposDesdeCuenta;
+            $equipos = ! empty($equiposMedicos) ? $equiposMedicos : $equiposDesdeCuenta;
 
             return response()->json([
                 'success' => true,
                 'equipos' => $equipos,
                 'total' => count($equipos),
-                'total_monto' => array_sum(array_column($equipos, 'subtotal'))
+                'total_monto' => array_sum(array_column($equipos, 'subtotal')),
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener equipos médicos: ' . $e->getMessage()
+                'message' => 'Error al obtener equipos médicos: '.$e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * Crear un paciente real desde datos de emergencia temporal
-     */
     private function crearPacienteDesdeTemporal($emergencia): Paciente
     {
-        // Generar un CI numérico único basado en el ID de emergencia (columna ci es integer)
-        $ci = (int)('9' . $emergencia->id . now()->format('is'));
-
-        // Crear registro
-        $registroCodigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-        Registro::create([
-            'codigo' => $registroCodigo,
-            'fecha' => now()->toDateString(),
-            'hora' => now()->toTimeString(),
-            'motivo' => 'Paciente temporal creado desde programación de cirugía de emergencia',
-            'user_id' => auth()->id()
-        ]);
-
-        // Obtener o crear seguro particular
-        $seguro = Seguro::firstOrCreate(
-            ['nombre_empresa' => 'Particular'],
-            [
-                'tipo' => 'Particular',
-                'telefono' => null,
-                'formulario' => 'PARTICULAR',
-                'estado' => 'activo'
-            ]
-        );
-
-        // Crear el paciente
-        $paciente = Paciente::create([
-            'ci' => $ci,
-            'nombre' => 'Paciente Temporal EMG-' . $emergencia->id,
-            'sexo' => 'M',
-            'direccion' => 'Sin especificar',
-            'telefono' => 0,
-            'correo' => 'sin@email.com',
-            'seguro_id' => $seguro->id,
-            'registro_codigo' => $registroCodigo,
-        ]);
-
-        // Actualizar la emergencia para referenciar al paciente creado
-        $emergencia->update([
-            'patient_id' => $ci,
-            'is_temp_id' => false,
-            'temp_id' => null,
-        ]);
-
-        return $paciente;
+        return $emergencia->paciente ?? Paciente::findOrFail($emergencia->paciente_id);
     }
 
     /**
@@ -1583,7 +2034,7 @@ class QuirofanoController extends Controller
      */
     public function exportHistorial(Request $request)
     {
-        $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'quirofano']);
+        $query = CitaQuirurgica::with(['paciente', 'cirujano.user', 'instrumentista.user', 'anestesiologo.user', 'quirofano']);
 
         // Aplicar filtros igual que en historial()
         if ($request->filled('estado')) {
@@ -1619,7 +2070,7 @@ class QuirofanoController extends Controller
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
         ];
 
-        $callback = function() use ($citas) {
+        $callback = function () use ($citas) {
             $file = fopen('php://output', 'w');
 
             // BOM para UTF-8 (Excel reconoce correctamente caracteres especiales)
@@ -1630,38 +2081,58 @@ class QuirofanoController extends Controller
             fputcsv($file, [], ';');
 
             // Encabezados de columnas
-            fputcsv($file, [
+            $encabezados = [
                 'Fecha',
                 'Hora',
                 'Paciente',
                 'CI',
                 'Cirujano',
+                'Instrumentista',
+                'Anestesiologo',
                 'Quirofano',
                 'Tipo',
                 'Estado',
                 'Duracion',
-                'Costo'
-            ], ';');
+            ];
+
+            if (auth()->user()->role !== 'cirujano') {
+                $encabezados[] = 'Costo';
+            }
+
+            fputcsv($file, $encabezados, ';');
 
             // Datos
             foreach ($citas as $cita) {
                 $duracion = $cita->duracion_real
                     ? ($this->formatearDuracionExport($cita->duracion_real))
                     : '-';
-                $costo = $cita->costo_final ? '$' . number_format($cita->costo_final, 2) : '-';
 
-                fputcsv($file, [
+                // Mismo criterio que /detalles: nombre denormalizado y, si una cita
+                // vieja sólo guardó el CI, fallback al médico relacionado.
+                $instrumentista = $cita->nombre_instrumentista
+                    ?: (optional(optional($cita->instrumentista)->user)->name ?? '-');
+                $anestesiologo = $cita->nombre_anestesiologo
+                    ?: (optional(optional($cita->anestesiologo)->user)->name ?? '-');
+
+                $fila = [
                     $cita->fecha->format('d/m/Y'),
                     $cita->hora_inicio_estimada->format('H:i'),
                     $cita->paciente->nombre,
                     $cita->paciente->ci,
                     optional($cita->cirujano->user)->name ?? 'N/A',
-                    'Q' . $cita->quirofano->id,
+                    $instrumentista,
+                    $anestesiologo,
+                    'Q'.$cita->quirofano->id,
                     $cita->tipo_cirugia,
                     ucfirst($cita->estado),
                     $duracion,
-                    $costo
-                ], ';');
+                ];
+
+                if (auth()->user()->role !== 'cirujano') {
+                    $fila[] = $cita->costo_final ? '$'.number_format($cita->costo_final, 2) : '-';
+                }
+
+                fputcsv($file, $fila, ';');
             }
 
             fclose($file);
@@ -1681,163 +2152,17 @@ class QuirofanoController extends Controller
         if ($horas > 0) {
             return "{$horas}h {$mins}min";
         }
+
         return "{$mins}min";
     }
 
-    /**
-     * Mostrar página de pacientes en cirugía (para rol quirófano)
-     */
-    public function pacientesEnCirugia(): View
+    public function procedimientosLista(): View
     {
-        // Obtener pacientes de emergencia que están actualmente en quirófano
-        $pacientesEnCirugia = \App\Models\Emergency::with(['paciente'])
-            ->where('ubicacion_actual', 'cirugia')
-            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $procedimientos = Procedimiento::where('area', 'cirugia')
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->paginate(50);
 
-        // Obtener camas disponibles en internación para mostrar opciones de derivación
-        $camasDisponibles = \App\Models\Cama::where('disponibilidad', 'disponible')
-            ->whereHas('habitacion', function($q) {
-                $q->where('estado', '!=', 'mantenimiento');
-            })
-            ->count();
-
-        return view('quirofano.pacientes-cirugia', compact('pacientesEnCirugia', 'camasDisponibles'));
-    }
-
-    /**
-     * API: Derivar paciente de cirugía a internación
-     */
-    public function derivarAInternacion(Request $request, $emergencyId): JsonResponse
-    {
-        try {
-            DB::beginTransaction();
-
-            $emergency = \App\Models\Emergency::with('paciente')->findOrFail($emergencyId);
-
-            // Verificar que el paciente esté en quirófano
-            if ($emergency->ubicacion_actual !== 'cirugia') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El paciente no está en quirófano',
-                ], 422);
-            }
-
-            // Verificar si ya tiene hospitalización activa
-            $hospitalizacionActiva = \App\Models\Hospitalizacion::where('ci_paciente', $emergency->patient_id)
-                ->where('estado', 'activo')
-                ->first();
-
-            if ($hospitalizacionActiva) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El paciente ya tiene una hospitalización activa',
-                ], 422);
-            }
-
-            // Generar número de hospitalización
-            $nroHosp = 'HOSP-' . now()->format('Ymd') . '-' . str_pad($emergency->id, 4, '0', STR_PAD_LEFT);
-
-            // Actualizar emergencia
-            $emergency->update([
-                'status' => 'hospitalizacion',
-                'ubicacion_actual' => 'hospitalizacion',
-                'nro_hospitalizacion' => $nroHosp,
-            ]);
-
-            // Crear registro en hospitalizaciones
-            $ciPaciente = $emergency->is_temp_id ? null : $emergency->patient_id;
-            \App\Models\Hospitalizacion::create([
-                'id' => $nroHosp,
-                'ci_paciente' => $ciPaciente,
-                'fecha_ingreso' => now(),
-                'estado' => 'activo',
-                'diagnostico' => $emergency->initial_assessment,
-                'nro_emergencia' => $emergency->id,
-            ]);
-
-            // Registrar movimiento en historial
-            $historial = $emergency->flujo_historial ?? [];
-            $historial[] = [
-                'fecha' => now()->toDateTimeString(),
-                'desde' => 'cirugia',
-                'hasta' => 'hospitalizacion',
-                'usuario_id' => auth()->id(),
-                'notas' => 'Derivación desde quirófano a internación',
-            ];
-            $emergency->update(['flujo_historial' => $historial]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Paciente derivado a Internación correctamente',
-                'hospitalizacion' => [
-                    'id' => $nroHosp,
-                    'nro_hospitalizacion' => $nroHosp,
-                ],
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            \Log::error('Error al derivar a internación: ' . $e->getMessage(), [
-                'emergency_id' => $emergencyId,
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al derivar a Internación: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Get pacientes en cirugía para auto-refresh
-     */
-    public function apiPacientesCirugia(): JsonResponse
-    {
-        $pacientesEnCirugia = \App\Models\Emergency::with(['paciente'])
-            ->where('ubicacion_actual', 'cirugia')
-            ->whereIn('status', ['cirugia', 'en_evaluacion', 'estabilizado'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($emg) {
-                return [
-                    'id' => $emg->id,
-                    'code' => $emg->code,
-                    'nro_cirugia' => $emg->nro_cirugia,
-                    'paciente_nombre' => $emg->is_temp_id ? 'Paciente Temporal' : ($emg->paciente?->nombre ?? 'Desconocido'),
-                    'paciente_ci' => $emg->patient_id,
-                    'is_temp_id' => $emg->is_temp_id,
-                    'status' => $emg->status,
-                    'status_label' => match($emg->status) {
-                        'cirugia' => 'En Cirugía',
-                        'en_evaluacion' => 'En Evaluación',
-                        'estabilizado' => 'Estabilizado',
-                        default => $emg->status
-                    },
-                    'hora_ingreso' => $emg->admission_date?->format('H:i') ?? $emg->created_at->format('H:i'),
-                    'tipo_ingreso' => $emg->tipo_ingreso_label ?? 'Emergencia',
-                ];
-            });
-
-        // Obtener camas disponibles en internación
-        $camasDisponibles = \App\Models\Cama::where('disponibilidad', 'disponible')
-            ->whereHas('habitacion', function($q) {
-                $q->where('estado', '!=', 'mantenimiento');
-            })
-            ->count();
-
-        $stats = [
-            'total' => $pacientesEnCirugia->count(),
-            'camas_disponibles' => $camasDisponibles,
-        ];
-
-        return response()->json([
-            'success' => true,
-            'pacientes' => $pacientesEnCirugia,
-            'stats' => $stats
-        ]);
+        return view('quirofano.procedimientos', compact('procedimientos'));
     }
 }

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('lote_id')->constrained('almacen_lotes')->restrictOnDelete();
             $table->enum('ubicacion', [
-                'central', 'emergencia', 'cirugia', 'hospitalizacion',
+                'central', 'farmacia', 'emergencia', 'cirugia', 'hospitalizacion',
                 'uti', 'usi', 'neonato', 'internacion',
             ]);
             $table->integer('cantidad_actual')->default(0);

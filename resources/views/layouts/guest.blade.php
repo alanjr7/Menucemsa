@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>CEMSA - {{ config('app.name', 'Laravel') }}</title>
+        <link rel="icon" type="image/png" href="{{ asset('images/logocelular.png') }}">
 
         <!-- Fonts: Inter para el estilo profesional -->
         <link rel="preconnect" href="https://fonts.googleapis.com">

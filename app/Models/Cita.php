@@ -17,12 +17,13 @@ class Cita extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'ci_paciente',
+        'paciente_id',
         'ci_medico',
         'codigo_especialidad',
         'fecha',
         'hora',
         'motivo',
+        'tipo_ingreso',
         'estado',
         'observaciones',
         'confirmado',
@@ -56,7 +57,7 @@ class Cita extends Model
     // Relaciones
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'ci_paciente', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
     }
 
     public function medico(): BelongsTo
@@ -100,8 +101,7 @@ class Cita extends Model
 
     public function scopeEnEspera($query)
     {
-        return $query->where('estado', 'programado')
-                    ->where('confirmado', true)
+        return $query->where('estado', 'confirmado')
                     ->whereDate('fecha', Carbon::today());
     }
 

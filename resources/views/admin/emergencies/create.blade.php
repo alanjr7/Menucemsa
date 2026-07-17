@@ -21,16 +21,16 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="patient_id">Paciente *</label>
-                                    <select name="patient_id" id="patient_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('patient_id') border-red-500 @enderror" required>
+                                    <label for="paciente_id">Paciente *</label>
+                                    <select name="paciente_id" id="paciente_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('paciente_id') border-red-500 @enderror" required>
                                         <option value="">Seleccione un paciente</option>
                                         @foreach($pacientes as $paciente)
-                                        <option value="{{ $paciente->id }}" {{ old('patient_id') == $paciente->id ? 'selected' : '' }}>
+                                        <option value="{{ $paciente->id }}" {{ old('paciente_id') == $paciente->id ? 'selected' : '' }}>
                                             {{ $paciente->name }} - {{ $paciente->dni }}
                                         </option>
                                         @endforeach
                                     </select>
-                                    @error('patient_id')
+                                    @error('paciente_id')
                                         <div class="text-red-600 text-sm mt-1">{{ $message }}</div>
                                     @enderror
                                 </div>

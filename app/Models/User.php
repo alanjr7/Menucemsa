@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'password_encrypted',
         'role',
         'is_active',
     ];
@@ -111,6 +112,16 @@ class User extends Authenticatable
     public function isEnfermeraInternacion(): bool
     {
         return $this->role === 'enfermera-internacion';
+    }
+
+    public function isNeonato(): bool
+    {
+        return $this->role === 'neonato';
+    }
+
+    public function isAlmacenista(): bool
+    {
+        return $this->role === 'almacenista';
     }
 
     public function hasRole(string $role): bool

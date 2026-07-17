@@ -8,14 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Emergency extends Model
 {
     protected $fillable = [
-        'patient_id',
+        'paciente_id',
         'user_id',
         'code',
         'status',
         'tipo_ingreso',
         'destino_inicial',
-        'is_temp_id',
-        'temp_id',
         'symptoms',
         'initial_assessment',
         'vital_signs',
@@ -37,6 +35,7 @@ class Emergency extends Model
         'admission_date',
         'discharge_date',
         'equipos_medicos',
+        'episodio_id',
     ];
 
     protected $casts = [
@@ -44,7 +43,6 @@ class Emergency extends Model
         'discharge_date' => 'datetime',
         'cost' => 'decimal:2',
         'paid' => 'boolean',
-        'is_temp_id' => 'boolean',
         'es_parto' => 'boolean',
         'deuda' => 'decimal:2',
         'total_pagado' => 'decimal:2',
@@ -55,7 +53,12 @@ class Emergency extends Model
 
     public function paciente(): BelongsTo
     {
-        return $this->belongsTo(Paciente::class, 'patient_id', 'ci');
+        return $this->belongsTo(Paciente::class, 'paciente_id');
+    }
+
+    public function episodio(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Episodio::class);
     }
 
     public function user(): BelongsTo
@@ -93,12 +96,44 @@ class Emergency extends Model
         };
     }
 
+    /**
+     * Calcula el siguiente código de emergencia: EMG-Ymd-NNNN (p. ej. EMG-20260610-5001).
+     * Lleva la fecha, pero el correlativo final es global e incremental: arranca en
+     * 5001 y NO se reinicia al cambiar de día. Solo considera los códigos con este
+     * formato (EMG-fecha-numero), de modo que registros de otro esquema no inflen el
+     * contador. Solo cálculo; para persistir usar {@see crearConCodigo()}, que además
+     * resuelve colisiones concurrentes.
+     */
     public static function generateCode(): string
     {
-        $date = now()->format('Ymd');
-        $last = static::whereDate('created_at', today())
+        $last = static::where('code', 'REGEXP', '^EMG-[0-9]{8}-[0-9]+$')
             ->max(\DB::raw("CAST(SUBSTRING_INDEX(code, '-', -1) AS UNSIGNED)")) ?? 0;
-        return 'EMG-' . $date . '-' . str_pad($last + 1, 3, '0', STR_PAD_LEFT);
+        $siguiente = max((int) $last, 5000) + 1;
+
+        return 'EMG-' . now()->format('Ymd') . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Crea una emergencia asignando un `code` único. Si dos procesos concurrentes
+     * calculan el mismo correlativo, el unique index hace fallar al segundo y aquí
+     * se reintenta con el siguiente número, en vez de un 500. Es la única vía que
+     * se debe usar para crear emergencias.
+     *
+     * @param array $attributes Datos de la emergencia. No incluir `code`.
+     */
+    public static function crearConCodigo(array $attributes): self
+    {
+        for ($intento = 0; $intento < 5; $intento++) {
+            $attributes['code'] = static::generateCode();
+
+            try {
+                return static::create($attributes);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // Colisión por concurrencia: reintentar con el siguiente correlativo.
+            }
+        }
+
+        throw new \RuntimeException('No se pudo generar un código de emergencia único tras varios intentos.');
     }
 
     public function getTipoIngresoLabelAttribute(): string

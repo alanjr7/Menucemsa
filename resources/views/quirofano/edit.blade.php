@@ -29,9 +29,9 @@
 
             {{-- Paciente --}}
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">CI Paciente *</label>
-                <input type="number" name="ci_paciente" value="{{ old('ci_paciente', $cita->ci_paciente) }}"
-                       class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" required>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Paciente</label>
+                <input type="text" readonly value="{{ $cita->paciente?->nombre }} (CI: {{ $cita->paciente?->ci ?? $cita->paciente?->temp_code ?? '—' }})"
+                       class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-gray-600">
             </div>
 
             {{-- Fecha --}}

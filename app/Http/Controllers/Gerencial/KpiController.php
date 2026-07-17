@@ -8,10 +8,10 @@ use App\Models\Consulta;
 use App\Models\Emergency;
 use App\Models\Hospitalizacion;
 use App\Models\CitaQuirurgica;
-use App\Models\UtiAdmission;
 use App\Models\PagoCuenta;
 use App\Models\CuentaCobro;
-use App\Models\AlmacenMedicamento;
+use App\Models\AlmacenLote;
+use App\Models\AlmacenStock;
 use Carbon\Carbon;
 
 class KpiController extends Controller
@@ -32,18 +32,22 @@ class KpiController extends Controller
             'hospitalizados'          => Hospitalizacion::where('estado', 'activo')->count(),
             'cirugias_hoy'            => CitaQuirurgica::whereDate('fecha', $hoy)->count(),
             'cirugias_mes'            => CitaQuirurgica::whereDate('fecha', '>=', $mesActual)->count(),
-            'pacientes_uti'           => UtiAdmission::where('estado', 'activo')->count(),
-            'ingresos_hoy'            => PagoCuenta::whereDate('created_at', $hoy)->sum('monto'),
-            'ingresos_mes'            => PagoCuenta::whereDate('created_at', '>=', $mesActual)->sum('monto'),
-            'ingresos_mes_anterior'   => PagoCuenta::whereBetween('created_at', [$mesAnterior, $finMesAnterior])->sum('monto'),
+            // Netos de devoluciones (NC): el dinero devuelto no es ingreso.
+            'ingresos_hoy'            => (float) bcsub((string) PagoCuenta::whereDate('created_at', $hoy)->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy), 2),
+            'ingresos_mes'            => (float) bcsub(
+                (string) PagoCuenta::whereDate('created_at', '>=', $mesActual)->sum('monto'),
+                (string) \App\Models\Devolucion::vigentes()->whereDate('created_at', '>=', $mesActual)->sum('monto'),
+                2
+            ),
+            'ingresos_mes_anterior'   => (float) bcsub((string) PagoCuenta::whereBetween('created_at', [$mesAnterior, $finMesAnterior])->sum('monto'), \App\Models\Devolucion::sumaVigente($mesAnterior, $finMesAnterior), 2),
             'cuentas_pendientes'      => CuentaCobro::whereIn('estado', ['pendiente', 'parcial'])->count(),
             'monto_pendiente'         => CuentaCobro::whereIn('estado', ['pendiente', 'parcial'])
                                             ->selectRaw("SUM(total_calculado - CASE WHEN seguro_estado = 'autorizado' THEN COALESCE(seguro_monto_cobertura, 0) ELSE 0 END - total_pagado) as total")
                                             ->value('total') ?? 0,
-            'medicamentos_bajo_stock' => AlmacenMedicamento::where('activo', true)
-                                            ->whereColumn('cantidad', '<=', 'stock_minimo')->count(),
-            'medicamentos_vencidos'   => AlmacenMedicamento::where('activo', true)
-                                            ->whereDate('fecha_vencimiento', '<', $hoy)->count(),
+            'medicamentos_bajo_stock' => AlmacenStock::bajoStock()
+                                            ->whereHas('lote.catalogo', fn($q) => $q->activos())->count(),
+            'medicamentos_vencidos'   => AlmacenLote::vencidos()
+                                            ->whereHas('catalogo', fn($q) => $q->activos())->count(),
         ];
 
         // Calcular variación % ingresos mes vs mes anterior
@@ -71,9 +75,13 @@ class KpiController extends Controller
             // Pacientes atendidos (Consultas en el mes)
             $chartPacientes[] = Consulta::whereBetween('fecha', [$mes_inicio, $mes_fin])->count();
             
-            // Ingresos en el mes
-            $ingresos = PagoCuenta::whereBetween('created_at', [$mes_inicio, $mes_fin])->sum('monto');
-            $chartIngresos[] = round($ingresos, 2);
+            // Ingresos en el mes (netos de devoluciones)
+            $ingresos = bcsub(
+                (string) PagoCuenta::whereBetween('created_at', [$mes_inicio, $mes_fin])->sum('monto'),
+                \App\Models\Devolucion::sumaVigente($mes_inicio, $mes_fin),
+                2
+            );
+            $chartIngresos[] = (float) $ingresos;
         }
 
         // Actividad Reciente
@@ -104,13 +112,17 @@ class KpiController extends Controller
         }
 
         // Alertas de stock
-        $medicamentos = AlmacenMedicamento::whereColumn('cantidad', '<=', 'stock_minimo')->where('activo', true)->orderBy('updated_at', 'desc')->take(3)->get();
-        foreach($medicamentos as $m) {
+        $stocksBajos = AlmacenStock::bajoStock()
+            ->whereHas('lote.catalogo', fn($q) => $q->activos())
+            ->with('lote.catalogo')
+            ->orderBy('updated_at', 'desc')
+            ->take(3)->get();
+        foreach($stocksBajos as $s) {
             $actividades->push((object)[
                 'tipo' => 'alerta',
-                'mensaje' => 'Alerta: Stock bajo en Farmacia - ',
-                'entidad' => $m->nombre,
-                'fecha' => $m->updated_at,
+                'mensaje' => 'Alerta: Stock bajo en Almacén - ',
+                'entidad' => $s->lote->catalogo->nombre ?? 'Desconocido',
+                'fecha' => $s->updated_at,
                 'color' => 'orange'
             ]);
         }

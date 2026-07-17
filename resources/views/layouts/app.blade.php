@@ -6,32 +6,34 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ config('app.name', 'Clínica CEMSA') }}</title>
+        <link rel="icon" type="image/png" href="{{ asset('images/logocelular.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts & Styles -->
+        @stack('head')
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 
         <style>
             [x-cloak] { display: none !important; }
-            
+
             /* Custom Scrollbar */
             .custom-scrollbar::-webkit-scrollbar { width: 4px; }
             .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { 
-                background: rgba(255, 255, 255, 0.2); 
-                border-radius: 10px; 
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 10px;
             }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
-                background: rgba(255, 255, 255, 0.3); 
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.3);
             }
         </style>
     </head>
 
-    <!-- 
+    <!--
       Alpine.js State:
       Manejamos únicamente si el sidebar está abierto o cerrado.
       El CSS (lg:) se encarga de saber si estamos en móvil o escritorio.
@@ -68,7 +70,7 @@
 
                 <!-- Header -->
                 <header class="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm sm:px-6 lg:px-8">
-                    
+
                     <!-- Lado Izquierdo Header -->
                     <div class="flex items-center gap-3 sm:gap-4">
                         <button @click="sidebarOpen = !sidebarOpen"
@@ -83,7 +85,7 @@
 
                         <div class="hidden sm:flex flex-col justify-center">
                             <h1 class="flex items-center gap-2 text-lg font-bold leading-tight text-slate-800">
-                                 Clínica CEMSA
+                                 Clínica de Especialidades Médicas Santa Cruz 
                             </h1>
                             <span class="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                                 Sede Principal
@@ -211,7 +213,6 @@
                                 },
 
                                 async marcarTodas() {
-                                    if (!confirm('¿Marcar todas las notificaciones como leídas?')) return;
                                     try {
                                         const r = await fetch('{{ route("notificaciones.leer-todas") }}', {
                                             method: 'POST',
@@ -226,7 +227,6 @@
 
                                 init() {
                                     this.cargar();
-                                    setInterval(() => this.cargar(), 30000);
                                 }
                             }
                         }
@@ -245,7 +245,7 @@
 
                         <!-- Dropdown de Perfil -->
                         <div x-data="{ dropdownOpen: false }" class="relative">
-                            <button @click="dropdownOpen = !dropdownOpen" 
+                            <button @click="dropdownOpen = !dropdownOpen"
                                     @click.away="dropdownOpen = false"
                                     type="button"
                                     class="flex items-center justify-center w-10 h-10 font-bold text-white transition-all rounded-full shadow-md bg-gradient-to-tr from-[#2563EB] to-[#3B82F6] ring-2 ring-[#EFF6FF] hover:scale-105 focus:outline-none focus:ring-offset-2 focus:ring-[#2563EB]"
@@ -254,7 +254,7 @@
                             </button>
 
                             <!-- Menú Desplegable -->
-                            <div x-show="dropdownOpen" 
+                            <div x-show="dropdownOpen"
                                  x-cloak
                                  x-transition:enter="transition ease-out duration-200"
                                  x-transition:enter-start="opacity-0 scale-95 translate-y-2"
@@ -277,7 +277,7 @@
 
                 <!-- Contenido Principal -->
                 <main class="flex-1 p-4 sm:p-6 lg:p-8">
-                    <div class="w-full max-w-7xl mx-auto">
+                    <div class="w-full">
                         @yield('content')
                     </div>
                 </main>

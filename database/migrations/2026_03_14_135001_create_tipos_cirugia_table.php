@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('tipos_cirugia', function (Blueprint $table) {
             $table->id();
+            // Código interno de servicio (familia 6 = CIRUGÍAS) para comprobantes.
+            $table->string('codigo', 12)->nullable()->unique();
             $table->string('nombre', 50); // menor, mediana, mayor, ambulatoria
             $table->text('descripcion')->nullable();
             $table->integer('duracion_minutos'); // duración estimada en minutos
@@ -48,8 +50,8 @@ return new class extends Migration
             ],
             [
                 'nombre' => 'mayor',
-                'descripcion' => 'Cirugía mayor - 80 minutos',
-                'duracion_minutos' => 80,
+                'descripcion' => 'Cirugía mayor - 120 minutos',
+                'duracion_minutos' => 120,
                 'costo_base' => 1200.00,
                 'costo_minuto_extra' => 20.00,
                 'activo' => true,

@@ -11,21 +11,20 @@ use App\Models\Paciente;
 use App\Models\Emergency;
 use App\Models\Consulta;
 use App\Models\Hospitalizacion;
-use App\Models\Tarifa;
 use App\Models\MovimientoCaja;
-use App\Models\UtiAdmission;
-use App\Models\UtiMedication;
-use App\Models\UtiSupply;
-use App\Models\UtiCatering;
-use App\Models\UtiTarifario;
 use App\Services\CuentaCobroService;
 use App\Services\AplicarSeguroService;
 use App\Services\NotificationService;
+use App\Support\Money;
+use App\Support\TipoDocumento;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CajaOperativaController extends Controller
 {
@@ -77,20 +76,21 @@ class CajaOperativaController extends Controller
         });
         
         $estadisticas = [
-            'total_cobrado' => PagoCuenta::delDia($hoy)->sum('monto'),
+            // Neto de devoluciones (NC) del día: el dinero devuelto no está cobrado.
+            'total_cobrado' => bcsub((string) PagoCuenta::delDia($hoy)->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy), 2),
             'transacciones' => PagoCuenta::delDia($hoy)->count(),
             'pendientes' => (clone $cuentasVisiblesQuery)->pendiente()->count(),
-            'parciales' => CuentaCobro::parcial()->where('seguro_estado', 'autorizado')->count() 
+            'parciales' => CuentaCobro::parcial()->where('seguro_estado', 'autorizado')->count()
                          + (clone $cuentasVisiblesQuery)->parcial()->count(),
             'pendientes_seguro' => CuentaCobro::pendientesSeguro()->count(),
         ];
 
-        // Desglose por método de pago
+        // Desglose por método de pago (neto de devoluciones del día por método)
         $metodosPago = [
-            'efectivo' => PagoCuenta::delDia($hoy)->efectivo()->sum('monto'),
-            'transferencia' => PagoCuenta::delDia($hoy)->transferencia()->sum('monto'),
-            'tarjeta' => PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'),
-            'qr' => PagoCuenta::delDia($hoy)->qr()->sum('monto'),
+            'efectivo' => bcsub((string) PagoCuenta::delDia($hoy)->efectivo()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'efectivo'), 2),
+            'transferencia' => bcsub((string) PagoCuenta::delDia($hoy)->transferencia()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'transferencia'), 2),
+            'tarjeta' => bcsub((string) PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'tarjeta'), 2),
+            'qr' => bcsub((string) PagoCuenta::delDia($hoy)->qr()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'qr'), 2),
         ];
 
         return view('caja.operativa', compact(
@@ -108,7 +108,7 @@ class CajaOperativaController extends Controller
     {
         try {
             $request->validate([
-                'monto_inicial' => 'required|numeric|min:0',
+                'monto_inicial' => Money::rules(),
                 'observaciones' => 'nullable|string|max:500'
             ]);
 
@@ -171,7 +171,7 @@ class CajaOperativaController extends Controller
     {
         try {
             $request->validate([
-                'monto_final' => 'required|numeric|min:0',
+                'monto_final' => Money::rules(),
                 'observaciones' => 'nullable|string|max:500'
             ]);
 
@@ -179,11 +179,13 @@ class CajaOperativaController extends Controller
                 ->abierta()
                 ->firstOrFail();
 
-            // Calcular totales esperados
-            $totalIngresos = $caja->ingresos()->sum('monto');
-            $totalEgresos = $caja->egresos()->sum('monto');
-            $totalEsperado = $caja->monto_inicial + $totalIngresos - $totalEgresos;
-            $diferencia = $request->monto_final - $totalEsperado;
+            // Calcular totales esperados (excluir apertura/cierre para no doblar monto_inicial)
+            $cobros = $caja->movimientos()->where('tipo', 'ingreso')->where('concepto', 'like', 'Cobro%')->sum('monto');
+            $egresos = $caja->movimientos()->where('tipo', 'egreso')->where('concepto', '!=', 'Cierre de caja')->sum('monto');
+            $totalIngresos = $cobros;
+            $totalEgresos = $egresos;
+            $totalEsperado = Money::sub(Money::add($caja->monto_inicial, $cobros), $egresos);
+            $diferencia = Money::sub($request->monto_final, $totalEsperado);
 
             DB::beginTransaction();
 
@@ -252,75 +254,90 @@ class CajaOperativaController extends Controller
     public function getPacientesPendientes(): JsonResponse
     {
         try {
-            $cuentas = CuentaCobro::with(['paciente', 'referencia', 'detalles.tarifa', 'pagos', 'seguro'])
+            $cuentas = CuentaCobro::with(['paciente', 'referencia', 'detalles', 'pagos', 'seguro'])
                 ->whereIn('estado', ['pendiente', 'parcial'])
                 ->where(function ($query) {
-                    // Sin seguro o seguro rechazado o seguro autorizado con copago
                     $query->whereNull('seguro_estado')
                           ->orWhere('seguro_estado', 'rechazado')
                           ->orWhere(function ($q) {
                               $q->where('seguro_estado', 'autorizado')
-                                ->where('estado', 'parcial'); // Solo si hay copago pendiente
+                                ->where('estado', 'parcial');
                           });
                 })
                 ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($cuenta) {
-                    // Obtener nombre y CI del paciente
-                    $pacienteNombre = 'N/A';
-                    $pacienteCi = $cuenta->paciente_ci;
-                    
-                    if ($cuenta->paciente) {
-                        $pacienteNombre = $cuenta->paciente->nombre;
-                    } elseif ($cuenta->es_emergencia && $cuenta->referencia) {
-                        // Para emergencias, obtener datos desde la emergencia
-                        $emergency = $cuenta->referencia;
-                        if ($emergency->patient_id) {
-                            // Buscar paciente por patient_id de la emergencia
-                            $paciente = \App\Models\Paciente::find($emergency->patient_id);
-                            if ($paciente) {
-                                $pacienteNombre = $paciente->nombre;
-                                $pacienteCi = $paciente->ci; // Usar CI real del paciente
-                            } else {
-                                $pacienteNombre = 'Paciente Emergencia #' . $emergency->id;
-                                $pacienteCi = $emergency->patient_id; // Al menos mostrar el patient_id
-                            }
+                ->get();
+
+            // Agrupar por paciente_id para consolidar múltiples cuentas en una sola fila
+            $porPaciente = $cuentas->groupBy('paciente_id');
+
+            $resultado = $porPaciente->map(function ($cuentasPaciente) {
+                // La más reciente es la principal (para cobrar primero)
+                $principal = $cuentasPaciente->first();
+
+                $pacienteNombre = 'N/A';
+                $pacienteCi = $principal->paciente?->ci ?? $principal->paciente?->temp_code;
+
+                if ($principal->paciente) {
+                    $pacienteNombre = $principal->paciente->nombre;
+                } elseif ($principal->es_emergencia && $principal->referencia) {
+                    $emergency = $principal->referencia;
+                    if ($emergency->paciente_id) {
+                        $paciente = \App\Models\Paciente::find($emergency->paciente_id);
+                        if ($paciente) {
+                            $pacienteNombre = $paciente->nombre;
+                            $pacienteCi = $paciente->ci ?? $paciente->temp_code;
+                        } else {
+                            $pacienteNombre = 'Paciente Emergencia #' . $emergency->id;
+                            $pacienteCi = null;
                         }
                     }
+                }
 
-                    // Información adicional de seguro para mostrar en caja
-                    $infoSeguro = null;
-                    if ($cuenta->seguro_estado === 'autorizado' && $cuenta->seguro) {
-                        $infoSeguro = [
-                            'nombre' => $cuenta->seguro->nombre_empresa,
-                            'monto_cubierto' => $cuenta->seguro_monto_cobertura,
-                            'monto_paciente' => $cuenta->seguro_monto_paciente,
-                        ];
-                    }
+                $totalCalculado = $cuentasPaciente->reduce(fn($acc, $c) => Money::add($acc, $c->total_calculado), '0');
+                $totalPagado    = $cuentasPaciente->reduce(fn($acc, $c) => Money::add($acc, $c->total_pagado), '0');
+                $saldoPendiente = Money::sub($totalCalculado, $totalPagado);
+                $itemsCount     = $cuentasPaciente->sum(fn($c) => $c->detalles->count());
 
-                    return [
-                        'id' => $cuenta->id,
-                        'paciente_ci' => $pacienteCi,
-                        'paciente_nombre' => $pacienteNombre,
-                        'tipo_atencion' => $cuenta->tipo_atencion_label,
-                        'total_calculado' => $cuenta->total_calculado,
-                        'total_pagado' => $cuenta->total_pagado,
-                        'saldo_pendiente' => $cuenta->saldo_pendiente,
-                        'estado' => $cuenta->estado,
-                        'estado_color' => $cuenta->estado_color,
-                        'estado_label' => $cuenta->estado_label,
-                        'es_emergencia' => $cuenta->es_emergencia,
-                        'es_post_pago' => $cuenta->es_post_pago,
-                        'seguro_estado' => $cuenta->seguro_estado,
-                        'info_seguro' => $infoSeguro,
-                        'created_at' => $cuenta->created_at->format('d/m/Y H:i'),
-                        'items_count' => $cuenta->detalles->count(),
+                // Tipos de atención combinados
+                $tipos = $cuentasPaciente->pluck('tipo_atencion')->unique()->implode(', ');
+
+                // Seguro: usar el de la cuenta principal si tiene
+                $infoSeguro = null;
+                if ($principal->seguro_estado === 'autorizado' && $principal->seguro) {
+                    $infoSeguro = [
+                        'nombre'         => $principal->seguro->nombre_empresa,
+                        'monto_cubierto' => $principal->seguro_monto_cobertura,
+                        'monto_paciente' => $principal->seguro_monto_paciente,
                     ];
-                });
+                }
+
+                $esEmergencia = $cuentasPaciente->contains('es_emergencia', true);
+                $estado = $saldoPendiente <= 0 ? 'pagado' : ($totalPagado > 0 ? 'parcial' : 'pendiente');
+
+                return [
+                    'id'              => $principal->id,
+                    'cuenta_ids'      => $cuentasPaciente->pluck('id')->values(),
+                    'paciente_ci'     => $pacienteCi,
+                    'paciente_nombre' => $pacienteNombre,
+                    'tipo_atencion'   => $tipos,
+                    'total_calculado' => $totalCalculado,
+                    'total_pagado'    => $totalPagado,
+                    'saldo_pendiente' => $saldoPendiente,
+                    'estado'          => $estado,
+                    'estado_color'    => $estado === 'pendiente' ? 'yellow' : ($estado === 'parcial' ? 'orange' : 'green'),
+                    'estado_label'    => ucfirst($estado),
+                    'es_emergencia'   => $esEmergencia,
+                    'es_post_pago'    => $principal->es_post_pago,
+                    'seguro_estado'   => $principal->seguro_estado,
+                    'info_seguro'     => $infoSeguro,
+                    'created_at'      => $principal->created_at->format('d/m/Y H:i'),
+                    'items_count'     => $itemsCount,
+                ];
+            })->values();
 
             return response()->json([
                 'success' => true,
-                'cuentas' => $cuentas
+                'cuentas' => $resultado
             ]);
 
         } catch (\Exception $e) {
@@ -332,100 +349,127 @@ class CajaOperativaController extends Controller
     }
 
     /**
-     * Obtener detalle de una cuenta por cobrar
+     * Obtener detalle consolidado de todas las cuentas pendientes de un paciente.
+     * El ID pasado es la cuenta principal; se agrupan todas las cuentas del mismo paciente_ci.
      */
     public function getDetalleCuenta(string $id): JsonResponse
     {
         try {
-            $cuenta = CuentaCobro::with(['paciente', 'referencia', 'detalles.tarifa', 'pagos.user'])
+            $cuentaPrincipal = CuentaCobro::with(['paciente', 'referencia', 'detalles', 'pagos.user'])
                 ->findOrFail($id);
 
-            // Determinar referencia (consulta, emergencia, etc.)
-            $referencia = null;
-            if ($cuenta->referencia_type) {
-                $referencia = $cuenta->referencia;
+            // Todas las cuentas pendientes del mismo paciente
+            $todasCuentas = CuentaCobro::with(['detalles', 'pagos.user', 'seguro'])
+                ->where('paciente_id', $cuentaPrincipal->paciente_id)
+                ->whereIn('estado', ['pendiente', 'parcial'])
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            // Si solo hay una cuenta, usarla directamente
+            if ($todasCuentas->count() === 1) {
+                $todasCuentas = collect([$cuentaPrincipal]);
             }
 
-            // Obtener nombre y datos del paciente
+            // Datos del paciente
             $pacienteNombre = 'N/A';
-            $pacienteCi = $cuenta->paciente_ci;
+            $pacienteCi = $cuentaPrincipal->paciente?->ci ?? $cuentaPrincipal->paciente?->temp_code;
             $pacienteTelefono = 'N/A';
-            
-            if ($cuenta->paciente) {
-                $pacienteNombre = $cuenta->paciente->nombre;
-                $pacienteTelefono = $cuenta->paciente->telefono ?? 'N/A';
-            } elseif ($cuenta->es_emergencia && $referencia) {
-                $emergency = $referencia;
-                if ($emergency->patient_id) {
-                    $paciente = \App\Models\Paciente::find($emergency->patient_id);
+
+            if ($cuentaPrincipal->paciente) {
+                $pacienteNombre  = $cuentaPrincipal->paciente->nombre;
+                $pacienteTelefono = $cuentaPrincipal->paciente->telefono ?? 'N/A';
+            } elseif ($cuentaPrincipal->es_emergencia && $cuentaPrincipal->referencia) {
+                $emergency = $cuentaPrincipal->referencia;
+                if ($emergency->paciente_id) {
+                    $paciente = \App\Models\Paciente::find($emergency->paciente_id);
                     if ($paciente) {
-                        $pacienteNombre = $paciente->nombre;
-                        $pacienteCi = $paciente->ci;
+                        $pacienteNombre  = $paciente->nombre;
+                        $pacienteCi      = $paciente->ci ?? $paciente->temp_code;
                         $pacienteTelefono = $paciente->telefono ?? 'N/A';
                     } else {
                         $pacienteNombre = 'Paciente Emergencia #' . $emergency->id;
-                        $pacienteCi = $emergency->patient_id;
+                        $pacienteCi     = null;
                     }
                 }
             }
 
+            // Consolidar detalles de todas las cuentas.
+            // Sólo los cargos NO liquidados (del ciclo pendiente): los ya pagados en
+            // un cobro anterior no se re-listan para cobrar de nuevo.
+            $detallesConsolidados = $todasCuentas->flatMap(function ($cuenta) {
+                return $cuenta->detalles->whereNull('liquidado_en')->map(function ($detalle) use ($cuenta) {
+                    $origen = 'General';
+                    if ($detalle->area_origen) {
+                        $origen = ucfirst($detalle->area_origen);
+                    } elseif ($detalle->origen_type === \App\Models\Emergency::class) {
+                        $origen = 'Emergencia';
+                    } elseif ($detalle->origen_type === \App\Models\Hospitalizacion::class) {
+                        $origen = 'Internación';
+                    } elseif ($detalle->origen_type === \App\Models\CitaQuirurgica::class) {
+                        $origen = 'Cirugía';
+                    } elseif ($cuenta->tipo_atencion) {
+                        $origen = ucfirst($cuenta->tipo_atencion);
+                    }
+
+                    return [
+                        'id'             => $detalle->id,
+                        'area'           => $origen,
+                        'tipo_item'      => $detalle->tipo_item_label,
+                        'descripcion'    => $detalle->descripcion,
+                        'cantidad'       => $detalle->cantidad,
+                        'precio_unitario' => $detalle->precio_unitario,
+                        'subtotal'       => $detalle->subtotal,
+                        'cuenta_id'      => $cuenta->id,
+                    ];
+                });
+            });
+
+            // Consolidar pagos de todas las cuentas
+            $pagosConsolidados = $todasCuentas->flatMap(function ($cuenta) {
+                return $cuenta->pagos->map(function ($pago) {
+                    return [
+                        'id'          => $pago->id,
+                        'monto'       => $pago->monto,
+                        'metodo_pago' => $pago->metodo_pago_label,
+                        'referencia'  => $pago->referencia,
+                        'usuario'     => $pago->user->name ?? 'N/A',
+                        'fecha'       => $pago->created_at->format('d/m/Y H:i'),
+                    ];
+                });
+            });
+
+            $totalCalculado = $todasCuentas->reduce(fn($acc, $c) => Money::add($acc, $c->total_calculado), '0');
+            $totalPagado    = $todasCuentas->reduce(fn($acc, $c) => Money::add($acc, $c->total_pagado), '0');
+            $saldoPendiente = Money::sub($totalCalculado, $totalPagado);
+
+            $estado = Money::cmp($saldoPendiente, 0) <= 0 ? 'pagado' : (Money::cmp($totalPagado, 0) > 0 ? 'parcial' : 'pendiente');
+
             return response()->json([
                 'success' => true,
                 'cuenta' => [
-                    'id' => $cuenta->id,
+                    'id'               => $cuentaPrincipal->id,
+                    'cuenta_ids'       => $todasCuentas->pluck('id')->values(),
                     'paciente' => [
-                        'ci' => $pacienteCi,
-                        'nombre' => $pacienteNombre,
+                        'ci'       => $pacienteCi,
+                        'nombre'   => $pacienteNombre,
                         'telefono' => $pacienteTelefono,
                     ],
-                    'tipo_atencion' => $cuenta->tipo_atencion_label,
-                    'es_emergencia' => $cuenta->es_emergencia,
-                    'es_post_pago' => $cuenta->es_post_pago,
-                    'estado' => $cuenta->estado,
-                    'estado_label' => $cuenta->estado_label,
-                    'total_calculado' => $cuenta->total_calculado,
-                    'total_pagado' => $cuenta->total_pagado,
-                    'saldo_pendiente' => $cuenta->total_calculado - $cuenta->total_pagado,
-                    'seguro' => AplicarSeguroService::calcularProyeccion($cuenta),
-                    'ci_nit_facturacion' => $cuenta->ci_nit_facturacion,
-                    'razon_social' => $cuenta->razon_social,
-                    'detalles' => $cuenta->detalles->map(function ($detalle) use ($cuenta) {
-                        $origen = 'General';
-                        if ($detalle->origen_type === \App\Models\Emergency::class) {
-                            $origen = 'Emergencia';
-                        } elseif ($detalle->origen_type === \App\Models\Hospitalizacion::class) {
-                            $origen = 'Internación';
-                        } elseif ($detalle->origen_type === \App\Models\CitaQuirurgica::class) {
-                            $origen = 'Cirugía';
-                        } elseif ($detalle->origen_type === \App\Models\AlmacenMedicamento::class) {
-                            // Si viene de farmacia y no tiene otro origen asignado, asume el tipo de la cuenta principal
-                            $origen = ucfirst($cuenta->tipo_atencion);
-                        }
-
-                        return [
-                            'id' => $detalle->id,
-                            'tipo_item' => $detalle->tipo_item_label,
-                            'descripcion' => '[' . $origen . '] ' . $detalle->descripcion,
-                            'cantidad' => $detalle->cantidad,
-                            'precio_unitario' => $detalle->precio_unitario,
-                            'subtotal' => $detalle->subtotal,
-                        ];
-                    }),
-                    'pagos' => $cuenta->pagos->map(function ($pago) {
-                        return [
-                            'id' => $pago->id,
-                            'monto' => $pago->monto,
-                            'metodo_pago' => $pago->metodo_pago_label,
-                            'referencia' => $pago->referencia,
-                            'usuario' => $pago->user->name ?? 'N/A',
-                            'fecha' => $pago->created_at->format('d/m/Y H:i'),
-                        ];
-                    }),
-                    'referencia' => $referencia ? [
-                        'id' => $referencia->id ?? null,
-                        'codigo' => $referencia->code ?? $referencia->nro ?? null,
-                        'fecha' => $referencia->created_at?->format('d/m/Y') ?? null,
-                    ] : null,
+                    'tipo_atencion'      => $todasCuentas->pluck('tipo_atencion')->unique()->implode(', '),
+                    'es_emergencia'      => $todasCuentas->contains('es_emergencia', true),
+                    'es_post_pago'       => $cuentaPrincipal->es_post_pago,
+                    'estado'             => $estado,
+                    'estado_label'       => ucfirst($estado),
+                    'total_calculado'    => $totalCalculado,
+                    'total_pagado'       => $totalPagado,
+                    'saldo_pendiente'    => $saldoPendiente,
+                    'seguro'             => AplicarSeguroService::calcularProyeccion($cuentaPrincipal),
+                    'ci_nit_facturacion'     => $cuentaPrincipal->ci_nit_facturacion,
+                    'razon_social'           => $cuentaPrincipal->razon_social,
+                    'con_credito_fiscal'     => (bool) $cuentaPrincipal->con_credito_fiscal,
+                    'factura_tipo_documento' => $cuentaPrincipal->factura_tipo_documento,
+                    'factura_complemento'    => $cuentaPrincipal->factura_complemento,
+                    'detalles'           => $detallesConsolidados->values(),
+                    'pagos'              => $pagosConsolidados->values(),
                 ]
             ]);
 
@@ -450,14 +494,35 @@ class CajaOperativaController extends Controller
                 ]);
             }
 
+            // Normalizar metodo_pago (aceptar mayúsculas por si viene de otras vistas)
+            if ($request->has('metodo_pago')) {
+                $request->merge(['metodo_pago' => strtolower(trim((string) $request->metodo_pago))]);
+            }
+
+            // Log para depuración: registrar payload entrante mínimo
+            Log::debug('CajaOperativa::procesarCobro payload', [
+                'user_id' => Auth::id(),
+                'cuenta_cobro_id' => $request->cuenta_cobro_id ?? null,
+                'monto' => $request->monto ?? null,
+                'metodo_pago' => $request->metodo_pago ?? null,
+            ]);
+
             $request->validate([
                 'cuenta_cobro_id' => 'required|string|exists:cuenta_cobros,id',
-                'monto' => 'required|numeric|min:0.01',
+                'cuenta_ids'      => 'nullable|array',
+                'cuenta_ids.*'    => 'string|exists:cuenta_cobros,id',
+                'monto' => Money::rules(min: '0.01'),
                 'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,qr',
                 'referencia' => 'nullable|string|max:100',
-                'ci_nit_facturacion' => 'nullable|string|max:20',
-                'razon_social' => 'nullable|string|max:100',
+                // Datos fiscales del receptor (SFE-ready). Si pide crédito fiscal, razón
+                // social + tipo doc + número son obligatorios; si no, se emite S/N.
+                'con_credito_fiscal' => 'nullable|boolean',
+                'factura_razon_social' => 'nullable|required_if:con_credito_fiscal,true|string|max:255',
+                'factura_tipo_documento' => ['nullable', 'required_if:con_credito_fiscal,true', Rule::in(TipoDocumento::codigos())],
+                'factura_numero_documento' => 'nullable|required_if:con_credito_fiscal,true|string|max:20',
+                'factura_complemento' => 'nullable|string|max:5',
                 'es_pago_total' => 'nullable|boolean',
+                'idempotency_key' => 'nullable|string|max:64',
             ]);
 
             $cajaAbierta = CajaSession::delUsuario(Auth::id())
@@ -473,19 +538,30 @@ class CajaOperativaController extends Controller
 
             DB::beginTransaction();
 
-            $cuenta = CuentaCobro::with('paciente.seguro')->findOrFail($request->cuenta_cobro_id);
+            // Determinar qué cuentas cobrar: si vienen cuenta_ids, todas; si no, solo la principal
+            $cuentaIds = $request->filled('cuenta_ids') ? $request->cuenta_ids : [$request->cuenta_cobro_id];
+            // Bloquear las filas de cuenta_cobros dentro de la transacción para evitar
+            // doble-cobro concurrente (dos cajeros / doble-click sobre la misma cuenta).
+            // El lock aplica solo a la tabla base; los eager loads corren sin bloqueo.
+            $cuentas = CuentaCobro::with('paciente.seguro')
+                ->whereIn('id', $cuentaIds)
+                ->orderBy('created_at', 'asc')
+                ->lockForUpdate()
+                ->get();
 
-            // Aplicar seguro automaticamente si corresponde
+            $cuenta = $cuentas->firstWhere('id', $request->cuenta_cobro_id) ?? $cuentas->first();
+
+            // Calcular saldo total consolidado
+            $saldoTotalPendiente = $cuentas->reduce(fn($acc, $c) => Money::add($acc, $c->saldo_pendiente), '0');
+
+            // Aplicar seguro en la cuenta principal si corresponde
             $infoSeguro = AplicarSeguroService::aplicarSiCorresponde($cuenta);
             if ($infoSeguro['aplicado']) {
                 $cuenta->refresh();
+                $saldoTotalPendiente = $cuentas->fresh()->reduce(fn($acc, $c) => Money::add($acc, $c->saldo_pendiente), '0');
             }
 
-            // Si es pago total, usar el saldo pendiente calculado
-            $saldoPendiente = $cuenta->saldo_pendiente;
-
-            // Si el seguro cubrio todo, no se requiere pago del paciente
-            if ($saldoPendiente <= 0) {
+            if (Money::cmp($saldoTotalPendiente, 0) <= 0) {
                 DB::commit();
                 return response()->json([
                     'success' => true,
@@ -500,124 +576,158 @@ class CajaOperativaController extends Controller
                     ]
                 ]);
             }
-            $montoPagar = $request->es_pago_total 
-                ? $saldoPendiente 
-                : $request->monto;
 
-            // Validar que no pague más de lo pendiente (con tolerancia a centavos)
-            if (round((float)$montoPagar, 2) > round((float)$saldoPendiente, 2)) {
+            $montoPagar = $request->es_pago_total
+                ? $saldoTotalPendiente
+                : Money::round($request->monto);
+
+            if (Money::cmp($montoPagar, $saldoTotalPendiente) > 0) {
                 return response()->json([
                     'success' => false,
                     'message' => 'El monto a pagar no puede ser mayor al saldo pendiente'
                 ], 400);
             }
 
-            // Actualizar datos de facturación si se proporcionan
-            if ($request->ci_nit_facturacion) {
-                $cuenta->ci_nit_facturacion = $request->ci_nit_facturacion;
-            }
-            if ($request->razon_social) {
-                $cuenta->razon_social = $request->razon_social;
+            // Datos fiscales del receptor en la cuenta principal. Sólo se escriben cuando
+            // se declara crédito fiscal, para no pisar datos capturados en un cobro parcial
+            // previo. Sin crédito fiscal la cuenta se emite S/N (ver CuentaCobro::receptorFiscal).
+            $receptor = $this->resolverReceptor($request);
+            if ($receptor['con_credito_fiscal']) {
+                $cuenta->con_credito_fiscal = true;
+                $cuenta->ci_nit_facturacion = $receptor['numero_documento'];
+                $cuenta->razon_social = $receptor['razon_social'];
+                $cuenta->factura_tipo_documento = $receptor['tipo_documento'];
+                $cuenta->factura_complemento = $receptor['complemento'];
             }
             $cuenta->caja_session_id = $cajaAbierta->id;
             $cuenta->save();
 
-            // Registrar el pago usando el método del modelo
-            $cuenta->registrarPago($montoPagar, $request->metodo_pago, $request->referencia, Auth::id());
+            // Distribuir el pago entre todas las cuentas (de más antigua a más reciente)
+            // Idempotencia: el token del request se combina con el id de cada cuenta para
+            // formar una clave única por pago. Un reintento reusa las mismas claves, así
+            // registrarPago las detecta como replay y no duplica pagos.
+            $idemKey = $request->input('idempotency_key');
+            $montoRestante = $montoPagar;
+            $ultimaCuentaPagada = $cuenta;
+            $algunPagoCreado = false;
+            foreach ($cuentas as $cuentaItem) {
+                if (Money::cmp($montoRestante, 0) <= 0) break;
+                $saldoItem = Money::round($cuentaItem->saldo_pendiente);
+                if (Money::cmp($saldoItem, 0) <= 0) continue;
+
+                $montoEstaCuenta = Money::min($montoRestante, $saldoItem);
+                $cuentaItem->caja_session_id = $cajaAbierta->id;
+                $cuentaItem->save();
+                $pagoKey = $idemKey ? $idemKey . ':' . $cuentaItem->id : null;
+                $creado = $cuentaItem->registrarPago($montoEstaCuenta, $request->metodo_pago, $request->referencia, Auth::id(), $pagoKey);
+                $algunPagoCreado = $algunPagoCreado || $creado;
+                $cuentaItem->refresh();
+                $montoRestante = Money::sub($montoRestante, $montoEstaCuenta);
+                $ultimaCuentaPagada = $cuentaItem;
+            }
             $cuenta->refresh();
 
-            // Si está pagado completamente, actualizar Caja y Consulta
-            if ($cuenta->estado === 'pagado') {
-                // Generar número de factura
-                $ultimaFactura = \App\Models\Caja::max('nro_factura') ?? 0;
-                $nroFactura = $ultimaFactura + 1;
+            // Actualizar Caja y Consulta si alguna cuenta quedó pagada
+            $ultimaFactura = \App\Models\Caja::max('nro_factura') ?? 0;
+            $nroFactura = $ultimaFactura + 1;
+            $facturaGenerada = false;
 
-                // Buscar y actualizar la Caja asociada
-                $caja = \App\Models\Caja::whereHas('consulta', function($q) use ($cuenta) {
-                    $q->where('ci_paciente', $cuenta->paciente_ci);
-                })->whereNull('nro_factura')->first();
+            foreach ($cuentas as $cuentaItem) {
+                $cuentaItem->refresh();
+                if ($cuentaItem->estado === 'pagado') {
+                    if (!$facturaGenerada) {
+                        $caja = \App\Models\Caja::whereHas('consulta', function($q) use ($cuentaItem) {
+                            $q->where('paciente_id', $cuentaItem->paciente_id);
+                        })->whereNull('nro_factura')->first();
+                        if ($caja) {
+                            $caja->update(['nro_factura' => $nroFactura]);
+                            $facturaGenerada = true;
+                        }
+                    }
 
-                if ($caja) {
-                    $caja->update(['nro_factura' => $nroFactura]);
-                }
+                    $consulta = \App\Models\Consulta::where('paciente_id', $cuentaItem->paciente_id)
+                        ->where('estado_pago', false)
+                        ->whereDate('fecha', today())
+                        ->first();
+                    if ($consulta) {
+                        $consulta->update(['estado_pago' => true]);
+                    }
 
-                // Actualizar la Consulta - marcar como pagada
-                $consulta = \App\Models\Consulta::where('ci_paciente', $cuenta->paciente_ci)
-                    ->where('estado_pago', false)
-                    ->whereDate('fecha', today())
-                    ->first();
-
-                if ($consulta) {
-                    $consulta->update(['estado_pago' => true]);
+                    if ($cuentaItem->es_emergencia && $cuentaItem->es_post_pago) {
+                        $emergency = Emergency::find($cuentaItem->referencia_id);
+                        if ($emergency) {
+                            $emergency->update(['paid' => true]);
+                        }
+                    }
                 }
             }
 
-            // Registrar movimiento en caja
-            // Obtener nombre del paciente (desde relación o desde emergencia)
+            // Obtener nombre del paciente
             $nombrePaciente = 'N/A';
             if ($cuenta->paciente) {
                 $nombrePaciente = $cuenta->paciente->nombre;
             } elseif ($cuenta->es_emergencia && $cuenta->referencia) {
                 $emergency = $cuenta->referencia;
-                if ($emergency->patient_id) {
-                    $paciente = \App\Models\Paciente::find($emergency->patient_id);
+                if ($emergency->paciente_id) {
+                    $paciente = \App\Models\Paciente::find($emergency->paciente_id);
                     $nombrePaciente = $paciente?->nombre ?? 'Paciente Emergencia #' . $emergency->id;
                 }
             }
 
-            MovimientoCaja::create([
-                'caja_session_id' => $cajaAbierta->id,
-                'tipo' => 'ingreso',
-                'concepto' => 'Cobro ' . $cuenta->tipo_atencion_label . ' - Paciente: ' . $nombrePaciente,
-                'monto' => $montoPagar,
-                'metodo_pago' => $request->metodo_pago,
-                'referencia' => $request->referencia,
-                'movable_type' => 'App\Models\PagoCuenta',
-                'movable_id' => 0,
-            ]);
-
-            // Si es emergencia post-pago y ya está pagado completamente,
-            // actualizar la emergencia como pagada
-            if ($cuenta->es_emergencia && $cuenta->es_post_pago && $cuenta->estado === 'pagado') {
-                $emergency = Emergency::find($cuenta->referencia_id);
-                if ($emergency) {
-                    $emergency->update(['paid' => true]);
-                }
+            // Solo registrar el movimiento de caja si efectivamente se creó algún pago.
+            // En un reintento idempotente los pagos ya existían y no se duplica el movimiento.
+            if ($algunPagoCreado) {
+                MovimientoCaja::create([
+                    'caja_session_id' => $cajaAbierta->id,
+                    'tipo' => 'ingreso',
+                    'concepto' => 'Cobro consolidado - Paciente: ' . $nombrePaciente,
+                    'monto' => $montoPagar,
+                    'metodo_pago' => $request->metodo_pago,
+                    'referencia' => $request->referencia,
+                    'movable_type' => 'App\Models\PagoCuenta',
+                    'movable_id' => 0,
+                ]);
             }
 
             DB::commit();
 
-            // Registrar en bitácora
-            $tipoPago = $cuenta->estado === 'pagado' ? 'total' : 'parcial';
+            $saldoRestante = $cuentas->fresh()->reduce(fn($acc, $c) => Money::add($acc, $c->saldo_pendiente), '0');
+            $todosPagado   = Money::cmp($saldoRestante, 0) <= 0;
+
+            $tipoPago = $todosPagado ? 'total' : 'parcial';
             $this->logActivity(
                 'procesar_cobro_' . $tipoPago,
                 'Cobro ' . $tipoPago . ' procesado - Paciente: ' . $nombrePaciente .
                 ' - Monto: Bs. ' . number_format($montoPagar, 2) .
-                ' - Método: ' . $request->metodo_pago .
-                ' - Cuenta: ' . $cuenta->id,
+                ' - Método: ' . $request->metodo_pago,
                 $cuenta
             );
 
-            // Notificar cuando el pago está completo
-            if ($cuenta->estado === 'pagado') {
-                NotificationService::notifyAdmins('pago', 'Pago Completado', "Paciente: {$nombrePaciente} - Monto: $" . number_format($cuenta->total_pagado, 2), route('caja.gestion.index'));
+            if ($todosPagado) {
+                NotificationService::notifyAdmins('pago', 'Pago Completado', "Paciente: {$nombrePaciente} - Monto: Bs." . number_format($montoPagar, 2), route('caja.gestion.index'));
             }
 
             return response()->json([
                 'success' => true,
-                'message' => $cuenta->estado === 'pagado'
+                'message' => $todosPagado
                     ? 'Cuenta pagada completamente'
                     : 'Pago parcial registrado',
                 'print_url' => route('caja.operativa.comprobante', $cuenta->id),
                 'cuenta' => [
                     'id' => $cuenta->id,
-                    'estado' => $cuenta->estado,
-                    'estado_label' => $cuenta->estado_label,
-                    'total_pagado' => $cuenta->total_pagado,
-                    'saldo_pendiente' => $cuenta->saldo_pendiente,
+                    'estado' => $todosPagado ? 'pagado' : 'parcial',
+                    'estado_label' => $todosPagado ? 'Pagado' : 'Parcial',
+                    'total_pagado' => $cuentas->sum('total_pagado'),
+                    'saldo_pendiente' => $saldoRestante,
                 ]
             ]);
 
+        } catch (ValidationException $e) {
+            // La validación corre antes de beginTransaction; no hay nada que revertir.
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first()
+            ], 422);
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -625,6 +735,27 @@ class CajaOperativaController extends Controller
                 'message' => 'Error al procesar cobro: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Normaliza los datos fiscales del receptor que llegan del modal de cobro.
+     * Mismo contrato que Farmacia\PuntoVentaController::resolverReceptor.
+     */
+    private function resolverReceptor(Request $request): array
+    {
+        if (! $request->boolean('con_credito_fiscal')) {
+            return ['con_credito_fiscal' => false];
+        }
+
+        $complemento = trim((string) $request->input('factura_complemento'));
+
+        return [
+            'con_credito_fiscal' => true,
+            'razon_social' => trim((string) $request->input('factura_razon_social')),
+            'tipo_documento' => (int) $request->input('factura_tipo_documento'),
+            'numero_documento' => trim((string) $request->input('factura_numero_documento')),
+            'complemento' => $complemento !== '' ? $complemento : null,
+        ];
     }
 
     /**
@@ -683,10 +814,11 @@ class CajaOperativaController extends Controller
                 'duracion' => $cajaAbierta->duracion,
                 
                 'totales' => [
-                    'efectivo' => PagoCuenta::delDia($hoy)->efectivo()->sum('monto'),
-                    'transferencia' => PagoCuenta::delDia($hoy)->transferencia()->sum('monto'),
-                    'tarjeta' => PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'),
-                    'qr' => PagoCuenta::delDia($hoy)->qr()->sum('monto'),
+                    // Neto de devoluciones (NC) del día por método
+                    'efectivo' => bcsub((string) PagoCuenta::delDia($hoy)->efectivo()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'efectivo'), 2),
+                    'transferencia' => bcsub((string) PagoCuenta::delDia($hoy)->transferencia()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'transferencia'), 2),
+                    'tarjeta' => bcsub((string) PagoCuenta::delDia($hoy)->tarjeta()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'tarjeta'), 2),
+                    'qr' => bcsub((string) PagoCuenta::delDia($hoy)->qr()->sum('monto'), \App\Models\Devolucion::sumaVigenteDelDia($hoy, 'qr'), 2),
                 ],
                 
                 'transacciones' => [
@@ -720,394 +852,73 @@ class CajaOperativaController extends Controller
     }
 
     /**
-     * Obtener tarifas disponibles para mostrar precios
+     * Cobros realizados en la caja abierta del usuario (turno actual).
+     * Cada fila es un PagoCuenta; el recibo se reimprime via el comprobante
+     * de su cuenta de cobro.
      */
-    public function getTarifas(): JsonResponse
+    public function getCobrosRealizados(): JsonResponse
     {
         try {
-            $tarifas = Tarifa::where('activo', true)
-                ->orderBy('categoria')
-                ->orderBy('descripcion')
-                ->get()
-                ->groupBy('categoria');
+            $cajaAbierta = CajaSession::delUsuario(Auth::id())
+                ->abierta()
+                ->first();
 
-            return response()->json([
-                'success' => true,
-                'tarifas' => $tarifas
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al cargar tarifas: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ==================== MÉTODOS UTI INTEGRADOS ====================
-
-    /**
-     * API: Obtener lista de pacientes UTI para cobro
-     */
-    public function getPacientesUti(Request $request): JsonResponse
-    {
-        try {
-            $query = UtiAdmission::with(['paciente', 'bed', 'seguro'])
-                ->whereIn('estado', ['activo', 'alta_clinica']);
-
-            if ($request->has('estado') && $request->estado !== 'todos') {
-                $query->where('estado', $request->estado);
+            if (!$cajaAbierta) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay caja abierta'
+                ], 400);
             }
 
-            $pacientes = $query->orderBy('fecha_ingreso', 'desc')
+            $cobros = PagoCuenta::with(['cuentaCobro.paciente'])
+                ->where('caja_session_id', $cajaAbierta->id)
+                ->orderBy('created_at', 'desc')
                 ->get()
-                ->map(function($adm) {
-                    $cuenta = $this->calcularCuentaUti($adm);
-
+                ->map(function ($pago) {
+                    $paciente = $pago->cuentaCobro?->paciente;
                     return [
-                        'id' => $adm->id,
-                        'nro_ingreso' => $adm->nro_ingreso,
-                        'paciente' => [
-                            'ci' => $adm->paciente?->ci,
-                            'nombre' => $adm->paciente?->nombre,
-                            'telefono' => $adm->paciente?->telefono,
-                        ],
-                        'cama' => $adm->bed?->bed_number ?? 'Sin cama',
-                        'estado' => $adm->estado,
-                        'estado_label' => $this->getEstadoLabelUti($adm->estado),
-                        'estado_color' => $this->getEstadoColorUti($adm->estado),
-                        'tipo_pago' => $adm->tipo_pago,
-                        'seguro' => $adm->seguro?->nombre ?? 'Particular',
-                        'dias_en_uti' => $adm->dias_en_uti,
-                        'fecha_ingreso' => $adm->fecha_ingreso?->format('d/m/Y H:i'),
-                        'fecha_alta_clinica' => $adm->fecha_alta_clinica?->format('d/m/Y H:i'),
-                        'listo_para_cobro' => $adm->estado === 'alta_clinica',
-                        'cuenta' => $cuenta,
+                        'id'              => $pago->id,
+                        'cuenta_id'       => $pago->cuenta_cobro_id,
+                        'hora'            => $pago->created_at->format('d/m/Y H:i'),
+                        'paciente_nombre' => $paciente?->nombre ?? 'N/A',
+                        'paciente_ci'     => $paciente?->ci ?? $paciente?->temp_code ?? 'N/A',
+                        'metodo'          => $pago->metodo_pago,
+                        'metodo_label'    => $pago->metodo_pago_label,
+                        'referencia'      => $pago->referencia ?? '',
+                        'monto'           => $pago->monto,
                     ];
                 });
 
             return response()->json([
                 'success' => true,
-                'pacientes' => $pacientes,
+                'cobros'  => $cobros,
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener pacientes UTI: ' . $e->getMessage()
+                'message' => 'Error al obtener cobros: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
-     * API: Obtener detalle de cuenta UTI para cobro
-     */
-    public function getDetalleCuentaUti($admissionId): JsonResponse
-    {
-        try {
-            $admission = UtiAdmission::with([
-                'paciente.seguro',
-                'bed',
-                'medications.medicamento',
-                'supplies.insumo',
-                'catering',
-                'medico',
-            ])->findOrFail($admissionId);
-
-            $cuenta = $this->calcularCuentaDetalladaUti($admission);
-
-            return response()->json([
-                'success' => true,
-                'paciente' => [
-                    'ci' => $admission->paciente?->ci,
-                    'nombre' => $admission->paciente?->nombre,
-                    'direccion' => $admission->paciente?->direccion,
-                    'telefono' => $admission->paciente?->telefono,
-                    'seguro' => $admission->paciente?->seguro?->nombre,
-                ],
-                'ingreso' => [
-                    'nro_ingreso' => $admission->nro_ingreso,
-                    'fecha_ingreso' => $admission->fecha_ingreso?->format('d/m/Y H:i'),
-                    'fecha_alta_clinica' => $admission->fecha_alta_clinica?->format('d/m/Y H:i'),
-                    'dias_en_uti' => $admission->dias_en_uti,
-                    'cama' => $admission->bed?->bed_number,
-                    'diagnostico' => $admission->diagnostico_principal,
-                    'medico' => $admission->medico?->nombre,
-                ],
-                'cuenta' => $cuenta,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener detalle UTI: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Procesar cobro UTI
-     */
-    public function procesarCobroUti(Request $request, $admissionId): JsonResponse
-    {
-        try {
-            $admission = UtiAdmission::findOrFail($admissionId);
-
-            $validated = $request->validate([
-                'monto_efectivo' => 'nullable|numeric|min:0',
-                'monto_tarjeta' => 'nullable|numeric|min:0',
-                'monto_transferencia' => 'nullable|numeric|min:0',
-                'monto_deposito' => 'nullable|numeric|min:0',
-                'es_cobro_total' => 'required|boolean',
-                'observaciones' => 'nullable|string|max:500',
-            ]);
-
-            // Validar que tenga alta clínica si es cobro total
-            if ($validated['es_cobro_total'] && $admission->estado !== 'alta_clinica') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede realizar el cobro total sin alta clínica',
-                ], 422);
-            }
-
-            $cuenta = $this->calcularCuentaUti($admission);
-            $totalPagar = $cuenta['total'];
-
-            $totalRecibido = ($validated['monto_efectivo'] ?? 0) +
-                             ($validated['monto_tarjeta'] ?? 0) +
-                             ($validated['monto_transferencia'] ?? 0) +
-                             ($validated['monto_deposito'] ?? 0);
-
-            if ($totalRecibido < $totalPagar) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El monto recibido es menor al total a pagar',
-                    'faltante' => $totalPagar - $totalRecibido,
-                ], 422);
-            }
-
-            // Crear registro de pago usando el servicio
-            $pago = $this->cuentaCobroService->registrarPagoUti(
-                $admission,
-                $validated,
-                $cuenta
-            );
-
-            // Si es cobro total, dar alta administrativa
-            if ($validated['es_cobro_total']) {
-                $admission->update([
-                    'estado' => 'alta_administrativa',
-                    'fecha_alta_administrativa' => now(),
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => $validated['es_cobro_total'] ? 'Cobro total procesado correctamente' : 'Cobro parcial procesado correctamente',
-                'pago' => $pago,
-                'vuelto' => $totalRecibido - $totalPagar,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al procesar cobro UTI: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Registrar depósito UTI
-     */
-    public function registrarDepositoUti(Request $request, $admissionId): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'monto' => 'required|numeric|min:0.01',
-                'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta,deposito',
-                'referencia' => 'nullable|string|max:100',
-                'observaciones' => 'nullable|string|max:500',
-            ]);
-
-            $admission = UtiAdmission::findOrFail($admissionId);
-
-            // Usar el servicio para registrar el depósito
-            $deposito = $this->cuentaCobroService->registrarDepositoUti(
-                $admission,
-                $validated['monto'],
-                $validated['metodo_pago'],
-                $validated['referencia'] ?? null,
-                $validated['observaciones'] ?? null
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Depósito registrado correctamente',
-                'deposito' => $deposito,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar depósito: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ==================== MÉTODOS AUXILIARES UTI ====================
-
-    private function calcularCuentaUti($admission): array
-    {
-        // Estadía
-        $diasEstadia = $admission->dias_en_uti;
-        $precioDia = $admission->bed?->precio_dia ??
-            UtiTarifario::where('tipo', 'estadia')->where('activo', true)->first()?->precio ?? 0;
-        $costoEstadia = $diasEstadia * $precioDia;
-
-        // Medicamentos
-        $costoMedicamentos = UtiMedication::where('uti_admission_id', $admission->id)
-            ->where('cargo_generado', true)
-            ->join('medicamentos', 'uti_medications.medicamento_id', '=', 'medicamentos.id')
-            ->sum(DB::raw('uti_medications.dosis * medicamentos.precio'));
-
-        // Insumos
-        $costoInsumos = UtiSupply::where('uti_admission_id', $admission->id)
-            ->where('cargo_generado', true)
-            ->join('insumos', 'uti_supplies.insumo_id', '=', 'insumos.id')
-            ->sum(DB::raw('uti_supplies.cantidad * insumos.precio'));
-
-        // Alimentación
-        $tarifaAlimentacion = UtiTarifario::where('tipo', 'alimentacion')
-            ->where('activo', true)
-            ->first();
-        $precioComida = $tarifaAlimentacion?->precio ?? 0;
-        $comidasDadas = UtiCatering::where('uti_admission_id', $admission->id)
-            ->where('estado', 'dado')
-            ->where('cargo_generado', true)
-            ->count();
-        $costoAlimentacion = $comidasDadas * $precioComida;
-
-        // Descuento por seguro
-        $descuento = 0;
-        if ($admission->tipo_pago === 'seguro' && $admission->seguro) {
-            $montoServicios = $costoEstadia + $costoMedicamentos + $costoInsumos;
-            $calculo = $admission->seguro->calcularCobertura($montoServicios);
-            $descuento = $calculo['monto_cubierto'];
-        }
-
-        $subtotal = $costoEstadia + $costoMedicamentos + $costoInsumos + $costoAlimentacion;
-        $total = $subtotal - $descuento;
-
-        // Depósitos ya realizados
-        $depositosRealizados = $this->cuentaCobroService->getDepositosUti($admission->id);
-        $totalDepositos = collect($depositosRealizados)->sum('monto');
-
-        return [
-            'estadia' => [
-                'dias' => $diasEstadia,
-                'precio_dia' => $precioDia,
-                'subtotal' => $costoEstadia,
-            ],
-            'medicamentos' => $costoMedicamentos,
-            'insumos' => $costoInsumos,
-            'alimentacion' => [
-                'comidas' => $comidasDadas,
-                'precio' => $precioComida,
-                'subtotal' => $costoAlimentacion,
-            ],
-            'subtotal' => $subtotal,
-            'descuento_seguro' => $descuento,
-            'total' => $total,
-            'depositos_realizados' => $totalDepositos,
-            'saldo_pendiente' => max(0, $total - $totalDepositos),
-        ];
-    }
-
-    private function calcularCuentaDetalladaUti($admission): array
-    {
-        $cuenta = $this->calcularCuentaUti($admission);
-
-        // Detalle de medicamentos
-        $medicamentos = UtiMedication::where('uti_admission_id', $admission->id)
-            ->where('cargo_generado', true)
-            ->with('medicamento')
-            ->get()
-            ->map(fn($m) => [
-                'nombre' => $m->medicamento?->nombre,
-                'cantidad' => $m->dosis,
-                'unidad' => $m->unidad,
-                'precio_unitario' => $m->medicamento?->precio ?? 0,
-                'subtotal' => $m->dosis * ($m->medicamento?->precio ?? 0),
-                'fecha' => $m->fecha?->format('d/m/Y'),
-            ]);
-
-        // Detalle de insumos
-        $insumos = UtiSupply::where('uti_admission_id', $admission->id)
-            ->where('cargo_generado', true)
-            ->with('insumo')
-            ->get()
-            ->map(fn($i) => [
-                'nombre' => $i->insumo?->nombre,
-                'cantidad' => $i->cantidad,
-                'precio_unitario' => $i->insumo?->precio ?? 0,
-                'subtotal' => $i->cantidad * ($i->insumo?->precio ?? 0),
-                'fecha' => $i->fecha?->format('d/m/Y'),
-            ]);
-
-        // Detalle de alimentación
-        $alimentacion = UtiCatering::where('uti_admission_id', $admission->id)
-            ->where('estado', 'dado')
-            ->where('cargo_generado', true)
-            ->get()
-            ->groupBy('tipo_comida')
-            ->map(fn($grupo, $tipo) => [
-                'tipo' => $tipo,
-                'cantidad' => $grupo->count(),
-                'precio_unitario' => $cuenta['alimentacion']['precio'],
-                'subtotal' => $grupo->count() * $cuenta['alimentacion']['precio'],
-            ])
-            ->values();
-
-        // Historial de depósitos
-        $depositos = $this->cuentaCobroService->getDepositosUti($admission->id);
-
-        return array_merge($cuenta, [
-            'detalle_medicamentos' => $medicamentos,
-            'detalle_insumos' => $insumos,
-            'detalle_alimentacion' => $alimentacion,
-            'historial_depositos' => $depositos,
-        ]);
-    }
-
-    private function getEstadoLabelUti($estado): string
-    {
-        return match($estado) {
-            'activo' => 'Activo en UTI',
-            'alta_clinica' => 'Alta Clínica - Pendiente Cobro',
-            'alta_administrativa' => 'Alta Administrativa',
-            'trasladado' => 'Trasladado',
-            'fallecido' => 'Fallecido',
-            default => $estado,
-        };
-    }
-
-    private function getEstadoColorUti($estado): string
-    {
-        return match($estado) {
-            'activo' => 'green',
-            'alta_clinica' => 'orange',
-            'alta_administrativa' => 'blue',
-            'trasladado' => 'purple',
-            'fallecido' => 'red',
-            default => 'gray',
-        };
     }
 
     /**
      * Vista de comprobante de pago imprimible
      */
-    public function comprobante(string $cuentaId): View
+    public function comprobante(string $cuentaId, Request $request): View
     {
         $cuenta = CuentaCobro::with([
-            'paciente', 'detalles', 'pagos.user', 'cajaSession.user'
+            'paciente', 'detalles.liquidadoPago', 'pagos.user', 'cajaSession.user'
         ])->findOrFail($cuentaId);
 
-        return view('caja.comprobante', compact('cuenta'));
+        // Recibo por pago: con ?pago=PAGO-... el comprobante se ancla en ese pago
+        // (y el ciclo de cobro que cerró). Sin parámetro toma el último pago, que
+        // es el comportamiento histórico que usa /caja-operativa tras cobrar.
+        $pagoRecibo = $request->query('pago');
+        if ($pagoRecibo !== null && ! $cuenta->pagos->contains('id', $pagoRecibo)) {
+            $pagoRecibo = null; // un pago ajeno a esta cuenta se ignora
+        }
+
+        return view('caja.comprobante', compact('cuenta', 'pagoRecibo'));
     }
 }

@@ -19,12 +19,12 @@ class ConsolidarCuentasPaciente extends Command
         $this->info('Buscando cuentas duplicadas por paciente...');
 
         // Buscar pacientes con múltiples cuentas pendientes
-        $pacientesDuplicados = CuentaCobro::select('paciente_ci')
+        $pacientesDuplicados = CuentaCobro::select('paciente_id')
             ->whereIn('estado', ['pendiente', 'parcial'])
             ->where('es_post_pago', true)
-            ->groupBy('paciente_ci')
+            ->groupBy('paciente_id')
             ->havingRaw('COUNT(*) > 1')
-            ->pluck('paciente_ci');
+            ->pluck('paciente_id');
 
         if ($pacientesDuplicados->isEmpty()) {
             $this->info('No se encontraron cuentas duplicadas.');
@@ -37,10 +37,10 @@ class ConsolidarCuentasPaciente extends Command
 
         foreach ($pacientesDuplicados as $pacienteCi) {
             $this->newLine();
-            $this->info("Procesando paciente CI: {$pacienteCi}");
+            $this->info("Procesando paciente ID: {$pacienteCi}");
 
             // Obtener todas las cuentas del paciente ordenadas por fecha
-            $cuentas = CuentaCobro::where('paciente_ci', $pacienteCi)
+            $cuentas = CuentaCobro::where('paciente_id', $pacienteCi)
                 ->whereIn('estado', ['pendiente', 'parcial'])
                 ->where('es_post_pago', true)
                 ->orderBy('created_at', 'asc')
@@ -71,7 +71,6 @@ class ConsolidarCuentasPaciente extends Command
                         CuentaCobroDetalle::create([
                             'cuenta_cobro_id' => $cuentaMaestra->id,
                             'tipo_item' => $detalle->tipo_item,
-                            'tarifa_id' => $detalle->tarifa_id,
                             'descripcion' => $detalle->descripcion . ' (consolidado de ' . $cuenta->id . ')',
                             'cantidad' => $detalle->cantidad,
                             'precio_unitario' => $detalle->precio_unitario,

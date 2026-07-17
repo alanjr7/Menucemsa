@@ -54,7 +54,7 @@
                             </div>
 
                             <!-- CI del Paciente (oculto pero se envía) -->
-                            <input type="hidden" name="ci_paciente" id="ci_paciente">
+                            <input type="hidden" name="paciente_id" id="paciente_id">
 
                             <!-- Info del paciente seleccionado -->
                             <div id="info_paciente" class="hidden bg-blue-50 rounded-lg p-4 border border-blue-100">
@@ -164,10 +164,11 @@
                                     </div>
                                     <select name="tipo_cirugia" id="tipo_cirugia" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer" required>
                                         <option value="">Seleccionar tipo...</option>
-                                        <option value="menor">Menor - 60 min</option>
-                                        <option value="mediana">Mediana - 90 min</option>
-                                        <option value="mayor">Mayor - 120 min</option>
-                                        <option value="ambulatoria">Ambulatoria - 45 min</option>
+                                        @foreach($tiposCirugia as $tipo)
+                                            <option value="{{ $tipo->nombre }}" data-duracion="{{ $tipo->duracion_minutos }}" data-costo="{{ $tipo->costo_base }}" class="capitalize">
+                                                {{ ucfirst($tipo->nombre) }} - {{ $tipo->duracion_formateada }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,14 +180,14 @@
 
                             <!-- Precio de la Cirugía -->
                             <div class="relative">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Precio de la Cirugía ($) *</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Precio de la Cirugía (Bs) *</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 font-semibold">$</span>
+                                        <span class="text-gray-500 font-semibold">Bs</span>
                                     </div>
-                                    <input type="number" name="costo_base" id="costo_base"
+                                    <input type="text" inputmode="decimal" name="costo_base" id="costo_base"
                                            class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                           placeholder="0.00" min="0" step="0.01" required>
+                                           placeholder="0.00" required>
                                 </div>
                                 <p class="text-xs text-gray-500 mt-1">Este monto reemplaza el costo base del tipo de cirugía y se reflejará en caja</p>
                             </div>
@@ -225,8 +226,18 @@
                             </div>
 
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">CI del Instrumentista <span class="text-gray-400 font-normal">(opcional)</span></label>
+                                <input type="text" inputmode="numeric" name="ci_instrumentista" id="ci_instrumentista" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Número de CI">
+                            </div>
+
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Anestesiólogo</label>
                                 <input type="text" name="nombre_anestesiologo" id="nombre_anestesiologo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre completo del anestesiólogo">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">CI del Anestesiólogo <span class="text-gray-400 font-normal">(opcional)</span></label>
+                                <input type="text" inputmode="numeric" name="ci_anestesiologo" id="ci_anestesiologo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Número de CI">
                             </div>
 
                             <div>
@@ -302,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = Object.fromEntries(formData.entries());
         
         // Validación básica
-        if (!data.ci_paciente || !data.ci_cirujano || !data.nro_quirofano || !data.tipo_cirugia || !data.fecha || !data.hora_inicio_estimada) {
+        if (!data.paciente_id || !data.ci_cirujano || !data.nro_quirofano || !data.tipo_cirugia || !data.fecha || !data.hora_inicio_estimada) {
             alert('Por favor completa todos los campos requeridos.\n\nBusque y seleccione un paciente y un cirujano.');
             return;
         }
@@ -384,9 +395,10 @@ function inicializarBuscadores() {
             return;
         }
         
-        const resultados = pacientesData.filter(p => 
-            p.nombre.toLowerCase().includes(query) || 
-            p.ci.toString().includes(query)
+        const resultados = pacientesData.filter(p =>
+            (p.nombre ?? '').toLowerCase().includes(query) ||
+            (p.ci != null && p.ci.toString().includes(query)) ||
+            (p.temp_code ?? '').toLowerCase().includes(query)
         ).slice(0, 10);
         
         mostrarResultadosPacientes(resultados);
@@ -433,9 +445,9 @@ function mostrarResultadosPacientes(resultados) {
     }
     
     container.innerHTML = resultados.map(p => `
-        <div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarPaciente(${p.ci}, '${p.nombre.replace(/'/g, "\\'")}')">
-            <div class="font-medium text-gray-900">${p.nombre}</div>
-            <div class="text-xs text-gray-500">CI: ${p.ci}${p.telefono ? ' - Tel: ' + p.telefono : ''}</div>
+        <div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarPaciente(${p.id}, '${p.ci ?? p.temp_code ?? ''}', '${(p.nombre ?? '').replace(/'/g, "\\'")}')">
+            <div class="font-medium text-gray-900">${p.nombre ?? 'Sin nombre'}</div>
+            <div class="text-xs text-gray-500">CI: ${p.ci ?? p.temp_code ?? 'N/A'}${p.telefono ? ' - Tel: ' + p.telefono : ''}</div>
         </div>
     `).join('');
     
@@ -463,10 +475,10 @@ function mostrarResultadosCirujanos(resultados) {
 }
 
 // Seleccionar paciente
-function seleccionarPaciente(ci, nombre) {
-    document.getElementById('ci_paciente').value = ci;
+function seleccionarPaciente(id, ci, nombre) {
+    document.getElementById('paciente_id').value = id;
     document.getElementById('nombre_paciente').textContent = nombre;
-    document.getElementById('ci_paciente_display').textContent = 'CI: ' + ci;
+    document.getElementById('ci_paciente_display').textContent = ci ? 'CI: ' + ci : '';
     document.getElementById('info_paciente').classList.remove('hidden');
     document.getElementById('buscar_paciente').value = '';
     document.getElementById('resultados_paciente').classList.add('hidden');
@@ -484,7 +496,7 @@ function seleccionarCirujano(ci, nombre) {
 
 // Limpiar selección de paciente
 function limpiarPaciente() {
-    document.getElementById('ci_paciente').value = '';
+    document.getElementById('paciente_id').value = '';
     document.getElementById('info_paciente').classList.add('hidden');
     document.getElementById('buscar_paciente').value = '';
 }
@@ -494,5 +506,47 @@ function limpiarCirujano() {
     document.getElementById('ci_cirujano').value = '';
     document.getElementById('info_cirujano').classList.add('hidden');
     document.getElementById('buscar_cirujano').value = '';
-}</script>
+}
+
+// Normalizar entrada de precio
+(function() {
+    const input = document.getElementById('costo_base');
+    if (!input) return;
+
+    input.addEventListener('keypress', function(e) {
+        const allowed = /[0-9.,]/;
+        if (!allowed.test(e.key)) e.preventDefault();
+    });
+
+    input.addEventListener('input', function() {
+        const pos = this.selectionStart;
+        let val = this.value;
+        // Normalizar coma a punto
+        val = val.replace(',', '.');
+        // Eliminar caracteres no válidos
+        val = val.replace(/[^0-9.]/g, '');
+        // Solo un punto decimal
+        const parts = val.split('.');
+        if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+        if (this.value !== val) {
+            this.value = val;
+            this.setSelectionRange(pos, pos);
+        }
+    });
+
+    input.addEventListener('blur', function() {
+        const num = parseFloat(this.value);
+        if (!isNaN(num)) this.value = num.toFixed(2);
+    });
+
+    // Precargar el precio por defecto del tipo seleccionado (sigue siendo editable)
+    const tipoSelect = document.getElementById('tipo_cirugia');
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            const costo = opt ? parseFloat(opt.dataset.costo) : NaN;
+            if (!isNaN(costo)) input.value = costo.toFixed(2);
+        });
+    }
+})();</script>
 @endsection

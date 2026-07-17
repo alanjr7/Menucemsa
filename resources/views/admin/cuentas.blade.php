@@ -261,10 +261,15 @@
 <script>
 let cuentaPagoActual = null;
 let saldoActual = 0;
+let idempotencyKeyPago = null;
 
 function registrarPago(cuentaId, saldo) {
     cuentaPagoActual = cuentaId;
     saldoActual = saldo;
+    // Token de idempotencia por apertura de modal: evita pagos duplicados ante reintentos.
+    idempotencyKeyPago = (crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'idem-' + Date.now() + '-' + Math.random().toString(36).slice(2));
     document.getElementById('pagoCuentaId').value = cuentaId;
     document.getElementById('saldoPendiente').textContent = 'Bs. ' + saldo.toFixed(2);
     document.getElementById('pagoMonto').max = saldo;
@@ -283,7 +288,8 @@ async function guardarPago(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
-    
+    data.idempotency_key = idempotencyKeyPago;
+
     if (parseFloat(data.monto) > saldoActual) {
         alert('El monto no puede exceder el saldo pendiente');
         return;

@@ -23,9 +23,10 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">CI</label>
-                        <input type="text" name="ci" value="{{ old('ci', $doctor->medico->ci ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2" readonly>
-                        <p class="text-xs text-gray-500 mt-1">El CI no se puede modificar</p>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CI *</label>
+                        <input type="number" name="ci" value="{{ old('ci', $doctor->medico->ci ?? '') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                        @error('ci') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        <p class="text-xs text-amber-600 mt-1">Cambiar el CI actualizara todas las referencias en el sistema.</p>
                     </div>
 
                     <div>

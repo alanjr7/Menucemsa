@@ -31,14 +31,14 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Paciente *</label>
-                                <input type="hidden" name="ci_paciente" value="{{ $emergencia->patient_id }}">
+                                <input type="hidden" name="paciente_id" value="{{ $emergencia->paciente_id }}">
                                 <div class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
-                                    @if($emergencia->is_temp_id)
-                                        Paciente Temporal (ID: {{ $emergencia->patient_id }})
+                                    @if($emergencia->paciente?->is_temp)
+                                        Paciente Temporal ({{ $emergencia->paciente?->temp_code }})
                                     @elseif($emergencia->paciente)
-                                        {{ $emergencia->paciente->nombre }} (CI: {{ $emergencia->patient_id }})
+                                        {{ $emergencia->paciente->nombre }} (CI: {{ $emergencia->paciente->ci }})
                                     @else
-                                        Paciente (CI: {{ $emergencia->patient_id }})
+                                        Paciente (ID: {{ $emergencia->paciente_id }})
                                     @endif
                                 </div>
                             </div>
@@ -76,7 +76,7 @@
                                 <select name="nro_quirofano" id="quirofano" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                     <option value="">Seleccionar quirófano...</option>
                                     @foreach($quirofanos as $quirofano)
-                                        <option value="{{ $quirofano->id }}" data-tipo="{{ $quirofano->tipo }}">Quirófano {{ $quirofano->nro }} - {{ $quirofano->tipo }}</option>
+                                        <option value="{{ $quirofano->id }}" data-tipo="{{ $quirofano->tipo }}">Quirófano {{ $quirofano->nombre }} - {{ $quirofano->tipo }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -249,7 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 disponibilidadElement.textContent = 'Ocupado';
                 disponibilidadElement.className = 'font-semibold text-red-600';
                 if (data.conflictos && data.conflictos.length > 0) {
-                    console.log('Conflictos encontrados:', data.conflictos);
                 }
             }
         })
@@ -272,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         // Validación básica del lado del cliente
-        const requiredFields = ['ci_paciente', 'ci_cirujano', 'nro_quirofano', 'tipo_cirugia', 'fecha', 'hora_inicio_estimada', 'costo_base'];
+        const requiredFields = ['paciente_id', 'ci_cirujano', 'nro_quirofano', 'tipo_cirugia', 'fecha', 'hora_inicio_estimada', 'costo_base'];
         const missingFields = [];
         
         requiredFields.forEach(field => {
@@ -290,7 +289,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        console.log('Enviando datos:', data);
         
         fetch('/quirofano/emergencia/store', {
             method: 'POST',
@@ -303,7 +301,6 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(async response => {
             const text = await response.text();
-            console.log('RESPUESTA RAW:', text);
 
             let data;
             try {
@@ -331,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return data;
         })
         .then(data => {
-            console.log('Respuesta data:', data);
 
             if (data.success) {
                 alert(data.message);
@@ -342,10 +338,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     for (const [field, messages] of Object.entries(data.errors)) {
                         errorMessage += `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}\n`;
                     }
-                    console.log('Validation errors:', data.errors);
                     alert(errorMessage);
                 } else {
-                    console.log('Other error:', data);
                     alert(data.message || 'Error al programar la cita');
                 }
             }

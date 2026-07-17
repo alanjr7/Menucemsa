@@ -22,7 +22,6 @@ class Caja extends Model
         'total_dia',
         'tipo',
         'nro_factura',
-        'id_farmacia',
         'metodo_pago',
         'referencia',
         'estado',
@@ -31,7 +30,7 @@ class Caja extends Model
     protected $casts = [
         'id' => 'string',
         'fecha' => 'datetime',
-        'total_dia' => 'float',
+        'total_dia' => 'decimal:2',
         'nro_factura' => 'integer',
     ];
 
@@ -39,14 +38,6 @@ class Caja extends Model
      * @deprecated Tabla 'facturas' no existe. Usar CuentaCobro para cobros.
      */
     public function factura()
-    {
-        return $this;
-    }
-
-    /**
-     * @deprecated Usar VentaFarmacia con farmacia_id.
-     */
-    public function farmacia()
     {
         return $this;
     }
@@ -92,7 +83,13 @@ class Caja extends Model
         static::creating(function ($caja) {
             if (empty($caja->id)) {
                 if (self::$patientContext) {
-                    $caja->id = self::generarCodigoPaciente(self::$patientContext);
+                    $paciente = self::$patientContext;
+                    $caja->id = self::generarCodigoPaciente(
+                        $paciente,
+                        $paciente->apellido_paterno ?? null,
+                        $paciente->apellido_materno ?? null,
+                        $paciente->nombres ?? null
+                    );
                 } else {
                     $caja->id = 'CAJA-' . date('YmdHis') . '-' . str_pad(random_int(0, 99999), 5, '0', STR_PAD_LEFT);
                 }
@@ -103,7 +100,7 @@ class Caja extends Model
         });
     }
 
-    public static function generarCodigoPaciente($paciente)
+    public static function generarCodigoPaciente($paciente, $apellidoPaterno = null, $apellidoMaterno = null, $nombres = null)
     {
         $fechaNac = \Carbon\Carbon::parse($paciente->fecha_nacimiento);
         $yy = $fechaNac->format('y');
@@ -116,22 +113,29 @@ class Caja extends Model
 
         $dd = $fechaNac->format('d');
 
-        $nombreCompleto = strtoupper(trim($paciente->nombre));
-        $partes = explode(' ', $nombreCompleto);
-
-        $inicialNombre = substr(end($partes), 0, 1);
-
-        if (count($partes) >= 3) {
-            $inicialPaterno = substr($partes[count($partes) - 2], 0, 1);
-            $inicialMaterno = substr($partes[count($partes) - 3], 0, 1);
-        } elseif (count($partes) === 2) {
-            $inicialPaterno = substr($partes[0], 0, 1);
-            $inicialMaterno = 'X';
+        // Si se proporcionan campos separados, usarlos directamente
+        if ($apellidoPaterno && $apellidoMaterno && $nombres) {
+            $inicialPaterno = strtoupper(substr(trim($apellidoPaterno), 0, 1));
+            $inicialMaterno = strtoupper(substr(trim($apellidoMaterno), 0, 1));
+            $inicialNombre = strtoupper(substr(trim($nombres), 0, 1));
         } else {
-            $inicialPaterno = substr($partes[0], 0, 1);
-            $inicialMaterno = 'X';
-            if (strlen($nombreCompleto) > 1) {
-                $inicialMaterno = substr($nombreCompleto, 1, 1);
+            // Fallback: intentar parsear del nombre completo
+            // Estructura esperada: [0]=Nombres, [1]=ApellidoPaterno, [2]=ApellidoMaterno
+            $nombreCompleto = strtoupper(trim($paciente->nombre));
+            $partes = explode(' ', $nombreCompleto);
+
+            if (count($partes) >= 3) {
+                $inicialNombre = substr($partes[0], 0, 1);
+                $inicialPaterno = substr($partes[count($partes) - 2], 0, 1);
+                $inicialMaterno = substr($partes[count($partes) - 1], 0, 1);
+            } elseif (count($partes) === 2) {
+                $inicialNombre = substr($partes[0], 0, 1);
+                $inicialPaterno = substr($partes[1], 0, 1);
+                $inicialMaterno = 'X';
+            } else {
+                $inicialNombre = substr($partes[0], 0, 1);
+                $inicialPaterno = 'X';
+                $inicialMaterno = 'X';
             }
         }
 

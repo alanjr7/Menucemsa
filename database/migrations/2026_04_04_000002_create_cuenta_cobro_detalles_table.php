@@ -12,7 +12,9 @@ return new class extends Migration
             $table->id();
             $table->string('cuenta_cobro_id');
             $table->enum('tipo_item', ['servicio', 'medicamento', 'procedimiento', 'estadia', 'laboratorio', 'imagenologia', 'farmacia', 'material', 'equipo_medico']);
-            $table->foreignId('tarifa_id')->nullable()->constrained('tarifas');
+            // Código interno de producto/servicio que se imprime en el comprobante.
+            // Se resuelve en CuentaCobroDetalle::creating (catálogo o diccionario familia 9).
+            $table->string('codigo_item', 12)->nullable();
             $table->string('descripcion');
             $table->decimal('cantidad', 10, 2)->default(1);
             $table->decimal('precio_unitario', 10, 2);
@@ -22,14 +24,30 @@ return new class extends Migration
             $table->text('observaciones')->nullable();
             $table->string('area_origen', 50)->nullable()
                 ->comment('emergencia|quirofano|internacion|uti|farmacia|consulta_externa');
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+
+            // Soft-disable de cargos (correcciones de paciente): deshabilitado sigue
+            // visible pero no suma al total; reversible.
+            $table->timestamp('deshabilitado_en')->nullable();
+            $table->foreignId('deshabilitado_por')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('motivo_deshabilitacion')->nullable();
+
+            // Trazabilidad pago<->item: un cargo se marca liquidado cuando un pago
+            // salda la cuenta, para que cobro/recibo muestren sólo el ciclo pendiente.
+            $table->timestamp('liquidado_en')->nullable();
+            $table->string('liquidado_pago_id')->nullable();
+
             $table->timestamps();
 
             // Foreign keys
             $table->foreign('cuenta_cobro_id')->references('id')->on('cuenta_cobros')->onDelete('cascade');
-            
+            // NOTA: la FK de liquidado_pago_id -> pago_cuentas se agrega en el migration
+            // create_pago_cuentas (000003), porque esa tabla se crea después de esta.
+
             // Índices
             $table->index(['cuenta_cobro_id', 'tipo_item']);
             $table->index(['origen_id', 'origen_type']);
+            $table->index('codigo_item');
         });
     }
 

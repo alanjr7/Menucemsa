@@ -15,7 +15,7 @@ return new class extends Migration
                 'uti', 'usi', 'neonato', 'internacion',
             ])->default('central');
             $table->enum('ubicacion_destino', [
-                'emergencia', 'cirugia', 'hospitalizacion',
+                'farmacia', 'emergencia', 'cirugia', 'hospitalizacion',
                 'uti', 'usi', 'neonato', 'internacion',
             ]);
             $table->foreignId('dispensado_por')->constrained('users')->restrictOnDelete();
@@ -24,8 +24,8 @@ return new class extends Migration
             $table->timestamp('fecha_dispensacion')->useCurrent();
             $table->timestamps();
 
-            $table->index(['ubicacion_destino', 'fecha_dispensacion']);
-            $table->index(['dispensado_por', 'fecha_dispensacion']);
+            $table->index(['ubicacion_destino', 'fecha_dispensacion'], 'idx_dest_fecha');
+            $table->index(['dispensado_por', 'fecha_dispensacion'], 'idx_dispensado_fecha');
         });
     }
 

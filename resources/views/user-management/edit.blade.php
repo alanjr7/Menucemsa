@@ -92,6 +92,8 @@
                                     @elseif($role == 'uti') - Unidad de Terapia Intensiva
                                     @elseif($role == 'internacion') - Gestión de pacientes internados
                                     @elseif($role == 'cirujano') - Acceso al quirófano y cirugías
+                                    @elseif($role == 'neonato') - Área de neonatología
+                                    @elseif($role == 'almacenista') - Medicamentos e insumos de todas las áreas
                                     @endif
                                 </option>
                             @endforeach

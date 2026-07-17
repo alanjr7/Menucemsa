@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\Money;
 
 class Seguro extends Model
 {
@@ -17,6 +18,7 @@ class Seguro extends Model
     protected $fillable = [
         'nombre_empresa',
         'tipo',
+        'nit',
         'telefono',
         'formulario',
         'estado',
@@ -47,32 +49,44 @@ class Seguro extends Model
         };
     }
 
-    public function calcularCobertura(float $montoTotal): array
+    /**
+     * @param  float       $montoTotal      Monto a cubrir.
+     * @param  float|null  $topeDisponible  Saldo del tope aún no consumido por el paciente
+     *                                       en el período (para tope_monto). Si es null usa
+     *                                       el tope completo (caso sin agregación / cálculo puro).
+     */
+    public function calcularCobertura(float $montoTotal, ?float $topeDisponible = null): array
     {
-        $montoCubierto = 0;
-        $montoPaciente = $montoTotal;
+        $montoCubierto = '0';
+        $montoPaciente = Money::format($montoTotal);
 
         switch ($this->tipo_cobertura) {
             case 'porcentaje':
-                $montoCubierto = $montoTotal * ($this->cobertura_porcentaje / 100);
-                $montoPaciente = $montoTotal - $montoCubierto;
+                // (monto * porcentaje) / 100 — multiplicar antes de dividir
+                // para no redondear la tasa y perder precisión.
+                $montoCubierto = Money::div(Money::mul($montoTotal, $this->cobertura_porcentaje), 100);
+                $montoPaciente = Money::sub($montoTotal, $montoCubierto);
                 break;
 
             case 'solo_consulta':
-                $montoCubierto = $montoTotal;
-                $montoPaciente = 0;
+                $montoCubierto = Money::format($montoTotal);
+                $montoPaciente = '0';
                 break;
 
             case 'tope_monto':
-                $montoCubierto = min($montoTotal, $this->tope_monto);
-                $montoPaciente = $montoTotal - $montoCubierto;
+                // El tope es un límite AGREGADO del período: se cubre hasta el saldo del
+                // tope que el paciente aún no consumió. Sin dato de consumo se usa el tope
+                // completo. Nunca negativo.
+                $disponible = $topeDisponible !== null ? max(0, $topeDisponible) : (float) $this->tope_monto;
+                $montoCubierto = Money::min($montoTotal, $disponible);
+                $montoPaciente = Money::sub($montoTotal, $montoCubierto);
                 break;
         }
 
         return [
-            'monto_total' => $montoTotal,
-            'monto_cubierto' => round($montoCubierto, 2),
-            'monto_paciente' => round($montoPaciente, 2),
+            'monto_total' => Money::format($montoTotal),
+            'monto_cubierto' => Money::round($montoCubierto),
+            'monto_paciente' => Money::round($montoPaciente),
         ];
     }
 

@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('hosp_catering', function (Blueprint $table) {
             $table->id();
-            $table->string('hospitalizacion_id', 30);
+            $table->string('hospitalizacion_id', 30)->nullable();
+            $table->unsignedBigInteger('paciente_id')->nullable();
             $table->unsignedBigInteger('registered_by');
             $table->date('fecha');
             $table->enum('tipo_comida', ['desayuno', 'almuerzo', 'merienda', 'cena']);
@@ -26,6 +27,8 @@ return new class extends Migration
             $table->foreign('registered_by')->references('id')->on('users');
             $table->foreign('cuenta_cobro_detalle_id')->references('id')->on('cuenta_cobro_detalles')->onDelete('set null');
             $table->unique(['hospitalizacion_id', 'fecha', 'tipo_comida']);
+            $table->foreign('paciente_id')->references('id')->on('pacientes')->nullOnDelete();
+            $table->index(['paciente_id', 'fecha', 'tipo_comida']);
         });
     }
 

@@ -50,6 +50,10 @@
                             </div>
 
                             <div class="mt-4 space-y-2">
+                                <div class="flex items-center gap-2 text-sm" x-show="cliente.numero_documento">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/></svg>
+                                    <span class="font-semibold text-gray-600" x-text="cliente.tipo_documento_label + ': ' + cliente.numero_documento + (cliente.complemento ? '-' + cliente.complemento : '')"></span>
+                                </div>
                                 <div class="flex items-center gap-2 text-sm text-gray-500">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                                     <span x-text="cliente.telefono"></span>
@@ -83,13 +87,39 @@
 
                     <div class="p-8 space-y-5">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nombre Completo *</label>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nombre / Razón Social *</label>
                             <input type="text" x-model="editingClient.nombre"
+                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                            <p class="text-[11px] text-gray-400 mt-1">Tal cual debe figurar en la factura.</p>
+                        </div>
+
+                        {{-- Datos de factura --}}
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tipo de documento</label>
+                                <select x-model.number="editingClient.tipo_documento"
+                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white">
+                                    <template x-for="t in tiposDocumento" :key="t.code">
+                                        <option :value="t.code" x-text="t.label"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1.5">N° de documento</label>
+                                <input type="text" inputmode="numeric" x-model="editingClient.numero_documento"
+                                    placeholder="NIT o CI"
+                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                            </div>
+                        </div>
+
+                        <div x-show="editingClient.tipo_documento === 1">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Complemento del CI (opcional)</label>
+                            <input type="text" x-model="editingClient.complemento" maxlength="5" placeholder="Ej: 1A"
                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Teléfono *</label>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Teléfono</label>
                             <input type="text" x-model="editingClient.telefono"
                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                         </div>
@@ -127,19 +157,22 @@
                 isEdit: false,
                 editingClient: {},
                 clientes: @json($clientesArray),
+                tiposDocumento: @json($tiposDocumento),
 
                 get filteredClients() {
                     if (this.search === '') return this.clientes;
+                    const q = this.search.toLowerCase();
                     return this.clientes.filter(c =>
-                        c.nombre.toLowerCase().includes(this.search.toLowerCase()) ||
-                        c.telefono.includes(this.search) ||
-                        c.email.toLowerCase().includes(this.search.toLowerCase())
+                        (c.nombre || '').toLowerCase().includes(q) ||
+                        (c.telefono || '').includes(this.search) ||
+                        (c.email || '').toLowerCase().includes(q) ||
+                        (c.numero_documento || '').includes(this.search)
                     );
                 },
 
                 openCreateModal() {
                     this.isEdit = false;
-                    this.editingClient = { id: null, nombre: '', telefono: '', email: '', direccion: '', fecha: new Date().toLocaleDateString() };
+                    this.editingClient = { id: null, nombre: '', telefono: '', email: '', direccion: '', tipo_documento: 5, numero_documento: '', complemento: '', fecha: new Date().toLocaleDateString() };
                     this.showModal = true;
                 },
 
@@ -180,6 +213,9 @@
                         const result = await response.json();
 
                         if (result.success) {
+                            // Etiqueta legible del tipo de documento, para refrescar la tarjeta sin recargar
+                            this.editingClient.tipo_documento_label =
+                                (this.tiposDocumento.find(t => t.code === this.editingClient.tipo_documento) || {}).label || '—';
                             if (this.isEdit) {
                                 const index = this.clientes.findIndex(c => c.id === this.editingClient.id);
                                 if (index !== -1) {

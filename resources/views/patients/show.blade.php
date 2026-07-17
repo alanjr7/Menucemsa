@@ -16,12 +16,12 @@
                 </svg>
                 Volver
             </a>
-            <button onclick="window.print()" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
+            <a href="{{ route('patients.print', $paciente->id) }}" target="_blank" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                 </svg>
-                Imprimir
-            </button>
+                Imprimir Historial
+            </a>
         </div>
     </div>
 
@@ -45,7 +45,7 @@
                 if ($paciente->hospitalizaciones()->where('estado', 'Activo')->exists()) {
                     $estado = 'Hospitalizado';
                     $estadoColor = 'yellow';
-                } elseif ($paciente->emergencies()->where('status', '!=', 'alta')->exists()) {
+                } elseif ($paciente->emergencias()->where('status', '!=', 'alta')->exists()) {
                     $estado = 'Emergencia';
                     $estadoColor = 'red';
                 }
@@ -92,7 +92,7 @@
                 <dl class="space-y-2">
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Seguro:</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->seguro->nombre ?? 'Particular' }}</dd>
+                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->seguro->nombre_empresa ?? 'Particular' }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Triage:</dt>
@@ -133,7 +133,13 @@
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Fecha Registro:</dt>
-                        <dd class="text-sm font-medium text-gray-900">{{ $paciente->registro->fecha?->format('d/m/Y H:i') ?? '-' }}</dd>
+                        <dd class="text-sm font-medium text-gray-900">
+                            @if($paciente->registro)
+                                {{ $paciente->registro->fecha->format('d/m/Y') }} {{ \Carbon\Carbon::parse($paciente->registro->hora)->format('H:i') }}
+                            @else
+                                -
+                            @endif
+                        </dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500">Motivo:</dt>
@@ -161,16 +167,6 @@
                             <dt class="text-sm text-gray-500">Teléfono:</dt>
                             <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_telefono }}</dd>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-sm text-gray-500">Parentesco:</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_parentesco }}</dd>
-                        </div>
-                        @if($contactoEmergencia->contacto_relacion)
-                            <div class="flex justify-between">
-                                <dt class="text-sm text-gray-500">Relación:</dt>
-                                <dd class="text-sm font-medium text-gray-900">{{ $contactoEmergencia->contacto_relacion }}</dd>
-                            </div>
-                        @endif
                     @else
                         <div class="flex justify-between">
                             <dt class="text-sm text-gray-500">Estado:</dt>
@@ -189,7 +185,7 @@
                 <button onclick="showTab('consultas')" class="tab-btn px-6 py-3 border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
                     Consultas
                 </button>
-                <button onclick="showTab('emergencies')" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+                <button onclick="showTab('emergencias')" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
                     Emergencias
                 </button>
                 <button onclick="showTab('hospitalizaciones')" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
@@ -254,10 +250,10 @@
             @endif
         </div>
 
-        <!-- Emergencies Tab -->
-        <div id="emergencies-tab" class="tab-content p-6 hidden">
+        <!-- Emergencias Tab -->
+        <div id="emergencias-tab" class="tab-content p-6 hidden">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Historial de Emergencias</h3>
-            @if($paciente->emergencies->count() > 0)
+            @if($paciente->emergencias->count() > 0)
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -269,10 +265,10 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($paciente->emergencies as $emergencia)
+                            @foreach($paciente->emergencias as $emergencia)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $emergencia->admission_date->format('d/m/Y H:i') }}
+                                        {{ $emergencia->admission_date ? $emergencia->admission_date->format('d/m/Y H:i') : '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ $emergencia->user->name ?? '-' }}

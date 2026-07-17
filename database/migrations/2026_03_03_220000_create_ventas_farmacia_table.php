@@ -12,8 +12,21 @@ return new class extends Migration
             $table->id();
             $table->string('codigo_venta', 20)->unique();
             $table->string('farmacia_id', 20)->nullable();
-            $table->string('cliente', 100)->default('Cliente General');
+            $table->foreignId('cliente_id')->nullable()->constrained('clientes')->nullOnDelete();
+            $table->string('cliente', 100)->default('Cliente General'); // nombre para mostrar (ticket/listados)
+
+            // Snapshot fiscal del receptor (registro inmutable para la factura / Libro de Ventas)
+            $table->boolean('con_credito_fiscal')->default(false);          // true = nominativa, false = S/N
+            $table->string('factura_razon_social', 255)->default('S/N');
+            $table->unsignedTinyInteger('factura_tipo_documento')->default(5); // NIT por defecto
+            $table->string('factura_numero_documento', 20)->default('0');
+            $table->string('factura_complemento', 5)->nullable();
+
             $table->decimal('total', 10, 2);
+            // Débito fiscal IVA (Libro de Ventas): el total ya incluye IVA 13% (por dentro).
+            // base_imponible = total; debito_fiscal = total * 13%.
+            $table->decimal('base_imponible', 10, 2)->default(0);
+            $table->decimal('debito_fiscal', 10, 2)->default(0);
             $table->enum('metodo_pago', ['efectivo', 'transferencia', 'tarjeta', 'qr', 'credito']);
             $table->boolean('requiere_receta')->default(false);
             $table->timestamp('fecha_venta')->useCurrent();

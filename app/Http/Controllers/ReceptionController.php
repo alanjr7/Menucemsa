@@ -15,12 +15,14 @@ use App\Models\User;
 use App\Models\Cita;
 use App\Models\Hospitalizacion;
 use App\Models\HistorialMedico;
+use App\Models\IngresoPrecio;
 use App\Services\NotificationService;
+use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\Emergency;
-use App\Models\UtiAdmission;
 use App\Models\Cirugia;
 use Illuminate\View\View;
 
@@ -31,16 +33,6 @@ class ReceptionController extends Controller
     public function index()
     {
         return view('reception.reception');
-    }
-
-    // MODIFICA ESTA FUNCIÓN:
-    public function admision(Request $request)
-    {
-        // 1. Recibimos el paso de la URL (si no hay, por defecto es 1)
-        $paso = $request->get('paso', 1);
-
-        // 2. Le pasamos la variable $paso a la vista admision
-        return view('reception.admision', compact('paso'));
     }
 
     // NUEVAS FUNCIONES PARA CONSULTA EXTERNA
@@ -87,7 +79,7 @@ class ReceptionController extends Controller
                 ->whereDate('fecha', today())
                 ->whereNull('nro_factura') // Pendiente de pago
                 ->whereHas('consulta', function($query) use ($paciente) {
-                    $query->where('ci_paciente', $paciente->ci);
+                    $query->where('paciente_id', $paciente->id);
                 })
                 ->first();
 
@@ -139,7 +131,7 @@ class ReceptionController extends Controller
         $ci = $request->ci;
 
         // Buscar paciente existente
-        $paciente = Paciente::find($ci);
+        $paciente = Paciente::where('ci', (int) $ci)->first();
 
         if (!$paciente) {
             // Validar que todos los campos requeridos estén presentes
@@ -151,9 +143,13 @@ class ReceptionController extends Controller
             ]);
 
             // Crear nuevo paciente con todos los campos requeridos
-            $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
+            $nombreCompleto = mb_convert_case(
+                preg_replace('/\s+/', ' ', trim($request->nombres . ' ' . $request->apellidos)),
+                MB_CASE_UPPER, 'UTF-8'
+            );
             $paciente = Paciente::create([
-                'ci' => $ci,
+                'ci' => (int) $ci,
+                'is_temp' => false,
                 'nombre' => $nombreCompleto,
                 'sexo' => $request->sexo,
                 'fecha_nacimiento' => $request->fecha_nacimiento,
@@ -166,22 +162,17 @@ class ReceptionController extends Controller
                 'profesion' => $request->profesion ?? null,
                 'empresa_trabajo' => $request->empresa_trabajo ?? null,
                 'seguro_id' => $request->seguro_id ?: null,
+                ...Paciente::datosSeguroDesdeRequest($request),
                 'triage_id' => $this->obenerOCrearTriage(),
-                'registro_codigo' => $this->obtenerOCrearRegistro(),
+                'registro_codigo' => $this->obtenerOCrearRegistro([
+                    'fecha_nacimiento' => $request->fecha_nacimiento,
+                    'sexo'             => $request->sexo,
+                    'nombre'           => $nombreCompleto,
+                ]),
                 'id_garante_referencia' => $request->id_garante_referencia ?? null,
             ]);
         } else {
-            // Permitir múltiples consultas sin límite
-            // $consultasHoy = Consulta::where('ci_paciente', $ci)
-            //     ->whereDate('fecha', today())
-            //     ->get();
-            
-            // if ($consultasHoy->count() >= 3) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Este paciente ya ha alcanzado el límite de consultas para hoy (máximo 3). Por favor, contacte al administrador.'
-            //     ], 422);
-            // }
+           
             
             // Actualizar datos si es necesario
             $paciente->update([
@@ -223,14 +214,13 @@ class ReceptionController extends Controller
         // Obtener médico basado en la selección
         $medicoId = $this->obtenerMedicoId($request->medico);
         
-        return Consulta::create([
-            'codigo' => 'CONS-' . date('Y') . '-' . str_pad(Consulta::count() + 1, 6, '0', STR_PAD_LEFT),
+        return Consulta::crearConCodigo([
             'fecha' => now()->toDateString(),
             'hora' => now()->toTimeString(),
             'motivo' => $request->motivo,
             'observaciones' => $request->observaciones ?? '',
             'codigo_especialidad' => $this->obtenerEspecialidadCodigo($request->especialidad),
-            'ci_paciente' => $paciente->ci,
+            'paciente_id' => $paciente->id,
             'ci_medico' => $medicoId,
             'estado_pago' => false,
             'caja_id' => $caja->id,
@@ -270,21 +260,23 @@ class ReceptionController extends Controller
         return $triage->id;
     }
 
-    private function obtenerOCrearRegistro()
+    private function obtenerOCrearRegistro(array $datosPaciente = [])
     {
-        $currentUser = Auth::user();
-        $codigo = 'REG-' . date('Y') . '-' . str_pad(Registro::count() + 1, 6, '0', STR_PAD_LEFT);
-        
+        // Fuente única de verdad del código de paciente: formato canónico
+        // REG-{aa}-{mmdd}-{iniciales} que codifica nacimiento + sexo + iniciales.
+        // Mismo generador que Ingreso general, Hospitalización y Emergencia.
+        $codigo = Registro::generarCodigo($datosPaciente);
+
         $registro = Registro::firstOrCreate(
             ['codigo' => $codigo],
             [
                 'fecha' => now()->toDateString(),
                 'hora' => now()->toTimeString(),
                 'motivo' => 'Registro de Consulta Externa',
-                'user_id' => $currentUser->id
+                'user_id' => Auth::id(),
             ]
         );
-        
+
         return $registro->codigo;
     }
 
@@ -374,10 +366,31 @@ class ReceptionController extends Controller
 
     public function confirmacionRegistro($id)
     {
-        $caja = Caja::with(['consulta.paciente.seguro', 'consulta.paciente.triage', 'consulta.paciente.garante', 'consulta.medico.user', 'consulta.especialidad'])
-                     ->findOrFail($id);
+        // El comprobante de registro se resuelve por el código de paciente (registro_codigo),
+        // no por una Caja: los pacientes que ingresan por citas/enfermería todavía no tienen
+        // Caja ni Consulta. Si existe una consulta con su caja, se muestra también el detalle
+        // de consulta y pago; si no, solo los datos del paciente.
+        $paciente = Paciente::with([
+                'seguro', 'triage', 'garante',
+                'consultas.caja', 'consultas.medico.user', 'consultas.especialidad',
+            ])
+            ->where('registro_codigo', $id)
+            ->first();
 
-        return view('reception.confirmacion-registro', compact('caja'));
+        if ($paciente) {
+            $consulta = $paciente->consultas->sortByDesc('id')->first();
+            $caja = $consulta?->caja;
+        } else {
+            // Retrocompatibilidad: el id recibido es un Caja id (redirect de consulta externa).
+            $caja = Caja::with(['consulta.paciente.seguro', 'consulta.paciente.triage', 'consulta.paciente.garante', 'consulta.medico.user', 'consulta.especialidad'])
+                ->findOrFail($id);
+            $consulta = $caja->consulta;
+            $paciente = $consulta?->paciente;
+        }
+
+        abort_if(!$paciente, 404);
+
+        return view('reception.confirmacion-registro', compact('caja', 'paciente', 'consulta'));
     }
 
     public function confirmacion($id)
@@ -389,214 +402,6 @@ class ReceptionController extends Controller
     }
 
 
-
-    public function procesarTriageGeneral(Request $request)
-    {
-        $rules = [
-            'ci' => 'required|string|min:3',
-            'triage_tipo' => 'required|in:rojo,amarillo,verde',
-        ];
-
-        // Si es paciente nuevo, validar campos adicionales
-        if ($request->tipo_paciente === 'nuevo') {
-            $rules['nombres'] = 'required|string|max:80';
-            $rules['apellidos'] = 'required|string|max:80';
-            $rules['sexo'] = 'required|string|in:M,F';
-            $rules['fecha_nacimiento'] = 'required|date';
-        }
-
-        $request->validate($rules);
-
-        try {
-            DB::beginTransaction();
-
-            $paciente = $this->crearOActualizarPaciente($request);
-            $triage = $this->crearTriagePorTipo($request->triage_tipo);
-            $paciente->update([
-                'telefono' => $request->telefono ?? $paciente->telefono,
-                'correo' => $request->correo ?? $paciente->correo,
-                'triage_id' => $triage->id,
-            ]);
-
-            if ($request->triage_tipo === 'verde') {
-                $caja = $this->crearRegistroCajaPendiente($request, $paciente);
-                $consulta = $this->crearConsulta($request, $paciente, $caja);
-
-                DB::commit();
-                return response()->json([
-                    'success' => true,
-                    'flujo' => 'consulta_normal',
-                    'message' => 'Triage VERDE registrado. Continúe con caja y consulta externa.',
-                    'redirect_url' => route('reception.confirmacion-registro', ['id' => $caja->id]),
-                    'consulta_id' => $consulta->id,
-                ]);
-            }
-
-            if ($request->triage_tipo === 'rojo') {
-                $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-                DB::table('emergencias')->insert([
-                    'nro' => $nroEmergencia,
-                    'descripcion' => $request->motivo ?? 'Emergencia por triage rojo',
-                    'estado' => 'INGRESADO',
-                    'tipo' => strtoupper($request->input('tipo_emergencia', 'EMERGENCIA')),
-                    'id_triage' => $triage->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                $acciones = ['enviado_emergencia' => true];
-
-                if ($request->boolean('accidente_automovilistico')) {
-                    $this->obtenerOCrearRegistroMotivo('Formulario SOAT - ' . $paciente->ci);
-                    $acciones['formulario_soat'] = true;
-                }
-
-                if ($request->boolean('requiere_cirugia_inmediata')) {
-                    $acciones['traslado_uci'] = true;
-                    $quirofano = DB::table('quirofanos')->orderBy('nro')->first();
-                    if ($quirofano) {
-                        $nroCirugia = 'CIR-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-                        DB::table('cirugias')->insert([
-                            'nro' => $nroCirugia,
-                            'fecha' => now()->toDateString(),
-                            'hora' => now()->toTimeString(),
-                            'tipo' => 'CIRUGIA_INMEDIATA',
-                            'descripcion' => $request->motivo ?? 'Cirugía inmediata por triage rojo',
-                            'nro_emergencia' => $nroEmergencia,
-                            'nro_quirofano' => $quirofano->nro,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                        $acciones['cirugia'] = true;
-                    }
-                } else {
-                    $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-                    DB::table('hospitalizaciones')->insert([
-                        'id' => $idHosp,
-                        'fecha_ingreso' => now(),
-                        'motivo' => 'Observación posterior a triage rojo',
-                        'nro_emergencia' => $nroEmergencia,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                    $acciones['internacion_uti'] = true;
-                }
-
-                DB::commit();
-                return response()->json([
-                    'success' => true,
-                    'flujo' => 'emergencia',
-                    'message' => 'Triage ROJO procesado y derivado a emergencia.',
-                    'acciones' => $acciones,
-                ]);
-            }
-
-            // AMARILLO - Parto
-            $idHosp = 'HOSP-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-            $nroEmergencia = 'EMER-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-            DB::table('emergencias')->insert([
-                'nro' => $nroEmergencia,
-                'descripcion' => 'Ingreso para parto',
-                'estado' => 'INGRESADO',
-                'tipo' => 'PARTO',
-                'id_triage' => $triage->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            DB::table('hospitalizaciones')->insert([
-                'id' => $idHosp,
-                'fecha_ingreso' => now(),
-                'motivo' => $request->boolean('requiere_estabilizacion_previa') ? 'Estabilización previa a parto' : 'Ingreso a parto',
-                'nro_emergencia' => $nroEmergencia,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $quirofano = DB::table('quirofanos')->orderBy('nro')->first();
-            $acciones = [
-                'registro_paciente' => true,
-                'parto_quirofano_exclusivo' => true,
-                'asignacion_neonatologia' => true,
-            ];
-
-            if ($quirofano) {
-                $nroCirugia = 'CIR-' . now()->format('YmdHis') . '-' . random_int(100, 999);
-                DB::table('cirugias')->insert([
-                    'nro' => $nroCirugia,
-                    'fecha' => now()->toDateString(),
-                    'hora' => now()->toTimeString(),
-                    'tipo' => 'PARTO',
-                    'descripcion' => 'Parto en quirófano exclusivo',
-                    'nro_emergencia' => $nroEmergencia,
-                    'nro_quirofano' => $quirofano->nro,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                DB::table('partos')->insert([
-                    'nro' => 'PARTO-' . now()->format('YmdHis') . '-' . random_int(100, 999),
-                    'tipo' => 'INSTITUCIONAL',
-                    'observaciones' => $request->observaciones,
-                    'id_hospitalizacion' => $idHosp,
-                    'nro_cirugia' => $nroCirugia,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
-            if ($request->boolean('requiere_observacion_postparto')) {
-                $acciones['observacion_postparto_uti'] = true;
-            }
-
-            DB::commit();
-            return response()->json([
-                'success' => true,
-                'flujo' => 'parto',
-                'message' => 'Triage AMARILLO (parto) procesado correctamente.',
-                'acciones' => $acciones,
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al procesar triage: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    private function crearTriagePorTipo(string $tipo)
-    {
-        $currentUser = Auth::user();
-
-        $map = [
-            'rojo' => ['color' => 'red', 'descripcion' => 'Emergencia', 'prioridad' => 'alta'],
-            'amarillo' => ['color' => 'yellow', 'descripcion' => 'Parto', 'prioridad' => 'media'],
-            'verde' => ['color' => 'green', 'descripcion' => 'Consulta Externa - No Urgente', 'prioridad' => 'baja'],
-        ];
-
-        $cfg = $map[$tipo];
-        return Triage::create([
-            'id' => 'TRIAGE-' . strtoupper($tipo) . '-' . now()->format('YmdHis') . '-' . random_int(100, 999),
-            'color' => $cfg['color'],
-            'descripcion' => $cfg['descripcion'],
-            'prioridad' => $cfg['prioridad'],
-            'user_id' => $currentUser->id,
-        ]);
-    }
-
-    private function obtenerOCrearRegistroMotivo(string $motivo)
-    {
-        return Registro::firstOrCreate(
-            ['codigo' => 'REG-' . now()->format('YmdHis') . '-' . random_int(100, 999)],
-            [
-                'fecha' => now()->toDateString(),
-                'hora' => now()->toTimeString(),
-                'motivo' => $motivo,
-                'user_id' => Auth::id(),
-            ]
-        );
-    }
 
     // MÉTODOS PARA GESTIÓN DE CITAS Y AGENDA
 
@@ -632,6 +437,30 @@ class ReceptionController extends Controller
         try {
             DB::beginTransaction();
 
+            // Resolver paciente_id desde CI si se envía ci_paciente
+            $pacienteId = $request->paciente_id;
+            if (!$pacienteId && $request->ci_paciente) {
+                $p = \App\Models\Paciente::where('ci', (int) $request->ci_paciente)->first();
+                if (!$p) {
+                    return response()->json(['success' => false, 'message' => 'Paciente no encontrado con ese CI'], 422);
+                }
+                $pacienteId = $p->id;
+            }
+
+            // Tipos de ingreso válidos
+            $tiposValidos = ['consulta_externa', 'internacion', 'emergencia', 'enfermeria'];
+            $tipoIngreso = in_array($request->tipo_ingreso, $tiposValidos)
+                ? $request->tipo_ingreso
+                : 'consulta_externa';
+
+            $fechaCita = \Carbon\Carbon::parse($request->fecha)->startOfDay();
+            if ($fechaCita->lt(\Carbon\Carbon::today())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pueden crear citas con fechas anteriores a la actual'
+                ], 422);
+            }
+
             // Validar que no exista una cita en el mismo horario
             $citaExistente = Cita::where('fecha', $request->fecha)
                 ->where('hora', $request->hora)
@@ -646,17 +475,19 @@ class ReceptionController extends Controller
                 ], 422);
             }
 
-            // Crear la cita
+            // Solo crear la cita — NO asignar registro_codigo NI crear CuentaCobro todavía.
+            // Esas acciones ocurren EXCLUSIVAMENTE cuando recepción marca "Asistió".
             $cita = Cita::create([
-                'ci_paciente' => $request->ci_paciente,
-                'ci_medico' => $request->ci_medico,
+                'paciente_id'         => $pacienteId,
+                'ci_medico'           => $request->ci_medico,
                 'codigo_especialidad' => $request->codigo_especialidad,
-                'fecha' => $request->fecha,
-                'hora' => $request->hora,
-                'motivo' => $request->motivo,
-                'observaciones' => $request->observaciones ?? '',
-                'estado' => 'programado',
-                'user_registro_id' => Auth::id(),
+                'fecha'               => $request->fecha,
+                'hora'                => $request->hora,
+                'motivo'              => $request->motivo,
+                'tipo_ingreso'        => $tipoIngreso,
+                'observaciones'       => $request->observaciones ?? '',
+                'estado'              => 'programado',
+                'user_registro_id'    => Auth::id(),
             ]);
 
             DB::commit();
@@ -664,21 +495,21 @@ class ReceptionController extends Controller
             // Registrar en bitácora
             $this->logActivity(
                 'crear_cita',
-                'Recepción creó cita para: ' . ($cita->paciente ? $cita->paciente->nombre : 'Paciente') . ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora,
+                'Recepción creó cita (' . $tipoIngreso . ') para paciente ID:' . $request->paciente_id . ' - Fecha: ' . $cita->fecha . ' ' . $cita->hora,
                 $cita
             );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cita creada exitosamente',
-                'cita' => $cita->load(['paciente', 'medico' => function ($query) {
+                'message' => 'Cita programada exitosamente. La cuenta se generará cuando el paciente asista.',
+                'cita'    => $cita->load(['paciente', 'medico' => function ($query) {
                     $query->with('user');
                 }, 'especialidad'])
             ]);
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear la cita: ' . $e->getMessage()
@@ -791,11 +622,11 @@ class ReceptionController extends Controller
 
     public function getPendientesLlamada()
     {
-        // Mostrar todas las citas futuras (no canceladas) para gestión de llamadas
+        // Mostrar todas las citas futuras (no canceladas ni atendidas) para gestión de llamadas
         $citas = Cita::where('fecha', '>=', Carbon::today())
-            ->where('estado', '!=', 'cancelado')
+            ->whereNotIn('estado', ['cancelado', 'atendido', 'no_asistio'])
             ->with(['paciente' => function ($query) {
-                $query->select('ci', 'nombre', 'telefono', 'fecha_nacimiento');
+                $query->select('id', 'ci', 'nombre', 'telefono', 'fecha_nacimiento');
             }, 'medico' => function ($query) {
                 $query->with('user');
             }, 'especialidad'])
@@ -858,7 +689,9 @@ class ReceptionController extends Controller
             ->count();
         
         $stats = [
-            'citas_programadas' => Cita::delDia()->count(),
+            'citas_programadas' => Cita::where('fecha', '>=', $hoy)
+                ->whereNotIn('estado', ['cancelado', 'atendido', 'no_asistio'])
+                ->count(),
             'en_atencion' => Cita::enAtencion()->count() + $emergenciasActivas,
             'en_espera' => Cita::enEspera()->count(),
             'admisiones' => Caja::whereDate('fecha', $hoy)
@@ -975,93 +808,6 @@ class ReceptionController extends Controller
         return view('reception.pacientes.index', compact('pacientes'));
     }
 
-    /**
-     * Vista de historial clínico completo de un paciente
-     */
-    public function pacientesHistorial($ci): View
-    {
-        $paciente = Paciente::with([
-            'seguro',
-            'triage',
-            'registro.user',
-            'consultas' => function($q) {
-                $q->with(['medico.user', 'especialidad', 'caja'])
-                  ->orderBy('fecha', 'desc');
-            },
-            'emergencies' => function($q) {
-                $q->with(['user'])
-                  ->orderBy('created_at', 'desc');
-            },
-            'hospitalizaciones' => function($q) {
-                $q->with(['medico.user', 'habitacion'])
-                  ->orderBy('fecha_ingreso', 'desc');
-            }
-        ])->findOrFail($ci);
-
-        $utiHistorial = UtiAdmission::where('patient_id', $ci)
-            ->with(['bed', 'medicamentos', 'costos'])
-            ->orderBy('fecha_ingreso', 'desc')
-            ->get();
-
-        $cirugiasHistorial = Cirugia::whereHas('emergencia', function($q) use ($ci) {
-                $q->where('patient_id', $ci);
-            })
-            ->with(['quirofano', 'emergencia.paciente'])
-            ->orderBy('fecha', 'desc')
-            ->get();
-
-        return view('reception.pacientes.historial', compact(
-            'paciente',
-            'utiHistorial',
-            'cirugiasHistorial'
-        ));
-    }
-
-    /**
-     * Vista de historial clínico optimizada para impresión
-     */
-    public function pacientesHistorialPrint($ci): View
-    {
-        $paciente = Paciente::with([
-            'seguro',
-            'triage',
-            'registro.user',
-            'consultas' => function($q) {
-                $q->with(['medico.user', 'especialidad', 'caja'])
-                  ->orderBy('fecha', 'desc');
-            },
-            'emergencies' => function($q) {
-                $q->with(['user'])
-                  ->orderBy('created_at', 'desc');
-            },
-            'hospitalizaciones' => function($q) {
-                $q->with(['medico.user', 'habitacion'])
-                  ->orderBy('fecha_ingreso', 'desc');
-            }
-        ])->findOrFail($ci);
-
-        $utiHistorial = UtiAdmission::where('patient_id', $ci)
-            ->with(['bed'])
-            ->orderBy('fecha_ingreso', 'desc')
-            ->get();
-
-        $cirugiasHistorial = Cirugia::whereHas('emergencia', function($q) use ($ci) {
-                $q->where('patient_id', $ci);
-            })
-            ->with(['quirofano', 'emergencia.paciente'])
-            ->orderBy('fecha', 'desc')
-            ->get();
-
-        $fechaImpresion = Carbon::now();
-
-        return view('reception.pacientes.historial-print', compact(
-            'paciente',
-            'utiHistorial',
-            'cirugiasHistorial',
-            'fechaImpresion'
-        ));
-    }
-
     // MÉTODOS ADICIONALES PARA GESTIÓN COMPLETA DE CITAS
 
     public function eliminarCita(Request $request, $id)
@@ -1135,34 +881,106 @@ class ReceptionController extends Controller
     public function marcarAsistida(Request $request, $id)
     {
         try {
-            $cita = Cita::findOrFail($id);
+            $cita = Cita::with('paciente')->findOrFail($id);
 
-            if ($cita->estado === 'cancelado') {
+            if (in_array($cita->estado, ['cancelado', 'atendido'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede marcar asistida una cita cancelada'
+                    'message' => 'La cita ya tiene un estado final: ' . $cita->estado
                 ], 422);
             }
 
-            if ($cita->estado === 'atendido') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Esta cita ya fue marcada como atendida'
-                ], 422);
+            if (!$cita->paciente) {
+                return response()->json(['success' => false, 'message' => 'El paciente no existe.'], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Mapear tipo_ingreso de cita → tipo de episodio
+            $tipoEpisodio = match($cita->tipo_ingreso) {
+                'internacion'     => 'internacion',
+                'emergencia'      => 'emergencia',
+                'consulta_externa','enfermeria' => 'consulta',
+                default           => 'consulta',
+            };
+
+            // Abrir episodio — esto hace que el paciente aparezca en /patients
+            $episodio = EpisodioService::abrirEpisodio(
+                $cita->paciente->id,
+                $tipoEpisodio,
+                Auth::id()
+            );
+
+            // Crear CuentaCobro vinculada al episodio si hay tipo_ingreso válido
+            if ($cita->tipo_ingreso) {
+                $tiposValidos = ['consulta_externa', 'internacion', 'emergencia', 'enfermeria'];
+                if (in_array($cita->tipo_ingreso, $tiposValidos)) {
+                    $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
+                        $cita->paciente->id,
+                        $cita->tipo_ingreso,
+                        null
+                    );
+
+                    if (!$cuenta->episodio_id) {
+                        $cuenta->update(['episodio_id' => $episodio->id]);
+                    }
+
+                    $tipoLabel = IngresoPrecio::TIPOS_INGRESO[$cita->tipo_ingreso] ?? ucfirst(str_replace('_', ' ', $cita->tipo_ingreso));
+                    CuentaCobroService::agregarCargoConDeduplicacion(
+                        $cuenta->id,
+                        'servicio',
+                        'Cargo de ingreso - ' . $tipoLabel . ' (Cita #' . $cita->id . ')',
+                        IngresoPrecio::getPrecio($cita->tipo_ingreso) ?? 50.00,
+                        1,
+                        $cita->tipo_ingreso,
+                        Cita::class,
+                        (string) $cita->id
+                    );
+                }
             }
 
             $cita->completarAtencion();
 
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Cita marcada como atendida exitosamente',
+                'message' => 'Cita marcada como atendida. El paciente aparece ahora en el listado de pacientes.',
                 'cita' => $cita->load(['paciente', 'medico.user', 'especialidad'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al marcar asistencia: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function marcarNoAsistida(Request $request, $id)
+    {
+        try {
+            $cita = Cita::findOrFail($id);
+
+            if (in_array($cita->estado, ['cancelado', 'atendido', 'no_asistio'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La cita ya tiene un estado final: ' . $cita->estado
+                ], 422);
+            }
+
+            $cita->update(['estado' => 'no_asistio']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cita marcada como no asistida. No se generó ningún cargo ni episodio.'
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al marcar asistencia: ' . $e->getMessage()
+                'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1174,7 +992,7 @@ class ReceptionController extends Controller
             $fechaFin = $request->get('fecha_fin', Carbon::today()->endOfWeek()->toDateString());
 
             $citas = Cita::whereBetween('fecha', [$fechaInicio, $fechaFin])
-                ->where('estado', '!=', 'cancelado')
+                ->whereNotIn('estado', ['cancelado', 'atendido'])
                 ->with(['paciente', 'medico.user', 'especialidad'])
                 ->orderBy('fecha')
                 ->orderBy('hora')
@@ -1204,7 +1022,8 @@ class ReceptionController extends Controller
     public function getCitasPorPaciente($ci)
     {
         try {
-            $citas = Cita::where('ci_paciente', $ci)
+            $paciente = \App\Models\Paciente::where('ci', (int) $ci)->first();
+            $citas = Cita::where('paciente_id', $paciente?->id ?? 0)
                 ->with(['medico.user', 'especialidad'])
                 ->orderBy('fecha', 'desc')
                 ->orderBy('hora', 'desc')
@@ -1235,16 +1054,7 @@ class ReceptionController extends Controller
             ]);
         }
 
-        $garante = Paciente::where('ci', $ci)
-            ->where(function($q) {
-                $q->whereNull('seguro_id')
-                  ->whereNull('triage_id')
-                  ->whereNull('registro_codigo');
-            })
-            ->orWhere(function($q) {
-                $q->whereNotNull('ci');
-            })
-            ->first();
+        $garante = Paciente::where('ci', $ci)->first();
 
         if ($garante) {
             return response()->json([
@@ -1373,11 +1183,18 @@ class ReceptionController extends Controller
 
             DB::beginTransaction();
 
-            // Crear registro y triage automáticos para el paciente
-            $registroCodigo = $this->obtenerOCrearRegistro();
-            $triageId = $this->obenerOCrearTriage();
+            $nombreCompleto = mb_convert_case(
+                preg_replace('/\s+/', ' ', trim($request->nombres . ' ' . $request->apellidos)),
+                MB_CASE_UPPER, 'UTF-8'
+            );
 
-            $nombreCompleto = trim($request->nombres . ' ' . $request->apellidos);
+            // Crear registro y triage automáticos para el paciente
+            $registroCodigo = $this->obtenerOCrearRegistro([
+                'fecha_nacimiento' => $request->fecha_nacimiento,
+                'sexo'             => $request->sexo,
+                'nombre'           => $nombreCompleto,
+            ]);
+            $triageId = $this->obenerOCrearTriage();
 
             $paciente = Paciente::create([
                 'ci' => $request->ci,
@@ -1414,6 +1231,86 @@ class ReceptionController extends Controller
                 'success' => false,
                 'message' => 'Error al registrar paciente: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function editCita($id)
+    {
+        $cita = Cita::with(['paciente', 'medico.user', 'especialidad'])->findOrFail($id);
+        
+        // Obtener especialidades únicas
+        $especialidades = Especialidad::where('estado', 'activo')
+            ->orderBy('nombre')
+            ->get()
+            ->unique(fn ($esp) => strtolower(trim($esp->nombre)))
+            ->values();
+            
+        // Obtener médicos
+        $medicos = Medico::with('user')->get();
+        
+        return view('reception.citas.edit', compact('cita', 'especialidades', 'medicos'));
+    }
+
+    public function updateCita(Request $request, $id)
+    {
+        $request->validate([
+            'codigo_especialidad' => 'required|string',
+            'ci_medico' => 'required|string',
+            'fecha' => 'required|date',
+            'hora' => 'required|string',
+            'motivo' => 'required|string',
+            'estado' => 'required|string|in:programado,confirmado,en_atencion,atendido,cancelado,no_asistio',
+            'observaciones' => 'nullable|string'
+        ]);
+
+        try {
+            $cita = Cita::findOrFail($id);
+
+            // Validar que la nueva fecha no sea en el pasado
+            $fechaCita = \Carbon\Carbon::parse($request->fecha)->startOfDay();
+            if ($fechaCita->lt(\Carbon\Carbon::today())) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'No se puede programar una cita en una fecha pasada.');
+            }
+
+            // Validar si la nueva fecha/hora cruza con otra cita del mismo médico
+            // (excluyendo esta misma cita)
+            $citaExistente = Cita::where('fecha', $request->fecha)
+                ->where('hora', $request->hora)
+                ->where('ci_medico', $request->ci_medico)
+                ->where('id', '!=', $id)
+                ->where('estado', '!=', 'cancelado')
+                ->first();
+
+            if ($citaExistente) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'El médico ya tiene una cita programada en ese horario.');
+            }
+
+            $cita->update([
+                'codigo_especialidad' => $request->codigo_especialidad,
+                'ci_medico' => $request->ci_medico,
+                'fecha' => $request->fecha,
+                'hora' => $request->hora,
+                'motivo' => $request->motivo,
+                'estado' => $request->estado,
+                'observaciones' => $request->observaciones ?? ''
+            ]);
+
+            $this->logActivity(
+                'actualizar_cita',
+                'Recepción actualizó la cita #' . $cita->id . ' del paciente ' . ($cita->paciente ? $cita->paciente->nombre : 'Desconocido'),
+                $cita
+            );
+
+            return redirect()->route('reception.citas.edit', $cita->id)->with('success', 'Cita actualizada exitosamente.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al actualizar la cita: ' . $e->getMessage());
         }
     }
 }

@@ -132,8 +132,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // SOLUCIÓN: Usar route() helper de Laravel
         const submitUrl = '{{ route("quirofanos.management.store") }}';
         
-        console.log('Enviando POST a:', submitUrl);
-        console.log('Datos:', data);
         
         fetch(submitUrl, {
             method: 'POST',
@@ -145,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify(data)
         })
         .then(response => {
-            console.log('Status:', response.status);
             
             // Si es 404, mostrar error específico
             if (response.status === 404) {
@@ -161,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
-            console.log('Respuesta:', data);
             
             if (data.success) {
                 alert(data.message || 'Quirófano creado exitosamente');
