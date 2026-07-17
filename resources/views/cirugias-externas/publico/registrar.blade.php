@@ -194,11 +194,10 @@
                 <div class="wiz-step-icon green"><i class="fa-solid fa-hospital"></i></div>
                 <div class="wiz-step-head-txt">
                   <h2>Selección de quirófano</h2>
-                  <p>Quirófano 3 solo para cirugías menores y partos</p>
+                  <p>Quirófano 3 solo para cirugías menores</p>
                 </div>
               </div>
               <div style="padding:24px" id="wiz4Body">
-                <p class="hint" style="margin-bottom:14px"><i class="fa-solid fa-circle-info"></i> El Quirófano 3 está habilitado únicamente para cirugías menores y partos naturales.</p>
                 <div class="quir-grid" id="quirGrid"></div>
                 <div id="quirError" class="wiz-err hidden"><i class="fa-solid fa-circle-exclamation"></i> <span id="quirErrorTxt"></span></div>
                 <div id="wizErr4" class="wiz-err hidden"><i class="fa-solid fa-circle-exclamation"></i> <span id="wizErr4Txt"></span></div>
@@ -356,6 +355,7 @@
     whatsapp: '59160975799',
     tipos: @json($tiposJs),
     quirofanos: @json($quirofanosJs),
+    cirugias: @json(\App\Models\CirugiaExterna::CIRUGIAS),
   };
 </script>
 <script src="{{ asset('js/cirugias-externas.js') }}?v={{ $ver }}"></script>

@@ -9,6 +9,7 @@
   const C = window.CE_CONFIG;
   const TIPOS = C.tipos;              // {id, clave, nombre, precio, duracionMin, desc, incluye[], noIncluye[]}
   const QUIROFANOS = C.quirofanos;    // {id, nombre, desc, restriccion[]|null}
+  const CIRUGIAS = C.cirugias || [];
   const MONEDA = C.moneda || 'Bs';
   const NOCTURNO_FIN = C.nocturnoFin || 6;
   const DESCUENTO_NOCT = C.descuentoNoct || 0.10;
@@ -17,10 +18,19 @@
 
   /* ========== ESTADO ========== */
   let tipoSel = null;   // id numérico
+  let cirugiaSel = null; // string id
   let quirSel = null;   // id numérico
   let reservaTmp = null;
   let RES = [];         // ocupación (agenda compartida) [{fecha,q,ini,dur,label,tipo}]
   let submitting = false;
+
+  const selectedDuracion = () => {
+    if (cirugiaSel) {
+      const c = CIRUGIAS.find(x => x.id === cirugiaSel);
+      if (c) return c.duracionMin;
+    }
+    return tipoSel ? tipoDe(tipoSel).duracionMin : 60;
+  };
 
   const $ = id => document.getElementById(id);
   const fmt = n => MONEDA + ' ' + Number(n).toLocaleString('es-BO');
@@ -74,7 +84,7 @@
 
   /* ========== TIPOS DE CIRUGÍA ========== */
   function renderTipos() {
-    $('tipos').innerHTML = TIPOS.map(t => `
+    const tiposHtml = TIPOS.map(t => `
       <button type="button" class="tipo${tipoSel === t.id ? ' sel' : ''}" onclick="CE.selTipo(${t.id})" aria-pressed="${tipoSel === t.id}">
         <div class="check-icon"><i class="fa-solid fa-check"></i></div>
         <div class="tn">${t.nombre}</div>
@@ -83,15 +93,47 @@
         ${t.incluye && t.incluye.length ? `<div class="tinc"><b><i class="fa-solid fa-circle-check"></i> Incluye:</b> ${t.incluye.join(' · ')}</div>` : ''}
         ${t.noIncluye && t.noIncluye.length ? `<div class="texc"><b>No incluye:</b> ${t.noIncluye.join(', ')}</div>` : ''}
       </button>`).join('');
+
+    let cirugiasHtml = '<p class="hint">Seleccione un tipo para ver las cirugías disponibles.</p>';
+    if (tipoSel) {
+      const tSel = tipoDe(tipoSel);
+      const filtradas = CIRUGIAS.filter(c => c.tipo === tSel.clave);
+      if (filtradas.length === 0) {
+        cirugiasHtml = '<p class="hint"><i class="fa-solid fa-circle-info"></i> Este tipo de reserva no requiere seleccionar una cirugía específica.</p>';
+      } else {
+        const grupos = filtradas.reduce((acc, c) => {
+          (acc[c.especialidad] ||= []).push(c);
+          return acc;
+        }, {});
+        cirugiasHtml = Object.entries(grupos).map(([especialidad, items]) => `
+          <div class="cirugia-grupo">
+            <h3>${especialidad}</h3>
+            <div class="cirugia-grid">${items.map(c => `
+              <button type="button" class="cirugia-item${cirugiaSel === c.id ? ' sel' : ''}" onclick="CE.selCirugia('${c.id}')" aria-pressed="${cirugiaSel === c.id}">
+                <div class="cirugia-name">${c.nombre}</div>
+                <div class="cirugia-meta"><span>${c.tipo.charAt(0).toUpperCase() + c.tipo.slice(1)}</span> · <span>${textoDuracion(c.duracionMin)}</span></div>
+              </button>`).join('')}</div>
+          </div>`).join('');
+      }
+    }
+
+    $('tipos').innerHTML = `<div class="tipos-col">${tiposHtml}</div><div class="cirugias-list">${cirugiasHtml}</div>`;
   }
   function selTipo(id) {
-    tipoSel = id; pkHora = null;
+    tipoSel = id;
+    cirugiaSel = null;
+    pkHora = null;
     if (quirSel !== null) {
       const q = quirDe(quirSel), t = tipoDe(id);
       if (q.restriccion && !q.restriccion.includes(t.clave)) { quirSel = null; toast('El tipo de cirugía no es compatible con el Quirófano 3.'); }
     }
     renderTipos(); renderQuirofanos(); renderPk();
     showWizErr(3, ''); $('wizErr3').classList.add('hidden');
+  }
+  function selCirugia(id) {
+    cirugiaSel = id;
+    renderTipos();
+    $('wizErr3').classList.add('hidden');
   }
 
   /* ========== QUIRÓFANOS ========== */
@@ -116,7 +158,7 @@
   function selQuirofano(id) {
     const q = quirDe(id), t = tipoSel ? tipoDe(tipoSel) : null;
     if (q.restriccion && t && !q.restriccion.includes(t.clave)) {
-      $('quirErrorTxt').textContent = 'El Quirófano 3 solo acepta cirugías menores y partos naturales.';
+      $('quirErrorTxt').textContent = 'El Quirófano 3 solo acepta cirugías menores.';
       $('quirError').classList.remove('hidden');
       return;
     }
@@ -216,7 +258,7 @@
     const ahora = new Date();
     const hoyK = fkey(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
     const horaActNow = pad(ahora.getHours()) + ':' + pad(ahora.getMinutes());
-    const dur = tipoSel ? tipoDe(tipoSel).duracionMin : 60;
+    const dur = selectedDuracion();
     let html = DOW.map(d => '<div class="cal-dow">' + d + '</div>').join('');
     for (let i = 0; i < offset; i++) html += '<div class="cal-day other"></div>';
     for (let d = 1; d <= diasMes; d++) {
@@ -240,7 +282,7 @@
   function renderSlots() {
     const box = $('pkSlots'), sel = $('pkSel');
     if (!pkDia) { box.classList.add('hidden'); sel.classList.add('hidden'); return; }
-    const dur = tipoSel ? tipoDe(tipoSel).duracionMin : 60;
+    const dur = selectedDuracion();
     const ahora = new Date();
     const esHoy = pkDia === fkey(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
     const horaAct = pad(ahora.getHours()) + ':' + pad(ahora.getMinutes());
@@ -371,6 +413,14 @@
     }
     if (step === 3) {
       if (!tipoSel) { showWizErr(3, 'Seleccione un tipo de cirugía para continuar.'); ok = false; }
+      else {
+        const tSel = tipoDe(tipoSel);
+        const tieneEspecificas = CIRUGIAS.some(c => c.tipo === tSel.clave);
+        if (tieneEspecificas && !cirugiaSel) {
+          showWizErr(3, 'Seleccione una cirugía específica para continuar.');
+          ok = false;
+        }
+      }
     }
     if (step === 4) {
       if (!quirSel) { showWizErr(4, 'Seleccione un quirófano para continuar.'); ok = false; }
@@ -378,7 +428,7 @@
     if (step === 5) {
       if (!pkDia || !pkHora) { showWizErr(5, 'Seleccione una fecha y un horario disponible.'); ok = false; }
       else {
-        const dur = tipoDe(tipoSel).duracionMin;
+        const dur = selectedDuracion();
         if (!slotValido(pkDia, pkHora, dur, quirSel)) { showWizErr(5, 'Ese horario ya no está disponible. Elija otro.'); renderPk(); ok = false; }
       }
     }
@@ -426,9 +476,10 @@
     const t = tipoDe(tipoSel);
     const q = quirDe(quirSel);
     const calc = calcPrecio(tipoSel, pkHora);
+    const c = cirugiaSel ? CIRUGIAS.find(x => x.id === cirugiaSel) : null;
 
     reservaTmp = {
-      cirujano, cirujanoTel, cirujanoMail, nombre, tipo: tipoSel, quirofano: quirSel,
+      cirujano, cirujanoTel, cirujanoMail, nombre, tipo: tipoSel, cirugia: cirugiaSel, quirofano: quirSel,
       fecha: pkDia, hora: pkHora, precioFinal: calc.precio, descuento: calc.descuento, nocturno: calc.nocturno
     };
 
@@ -436,11 +487,13 @@
       <dt>Celular</dt><dd>${cirujanoTel}</dd>
       <dt>Correo</dt><dd>${cirujanoMail}</dd>
       <dt>Paciente</dt><dd>${nombre}</dd>
-      <dt>Cirugía</dt><dd>${t.nombre} · ${textoDuracion(t.duracionMin)}</dd>
+      <dt>Tipo</dt><dd>${t.nombre}</dd>
+      <dt>Cirugía</dt><dd>${c ? c.nombre + ' · ' + c.especialidad : '—'}</dd>
+      <dt>Duración</dt><dd>${textoDuracion(selectedDuracion())}</dd>
       <dt>Incluye</dt><dd>${t.incluye && t.incluye.length ? t.incluye.join(' · ') : '—'}</dd>
       <dt>No incluye</dt><dd>${t.noIncluye && t.noIncluye.length ? t.noIncluye.join(', ') : '—'}</dd>
       <dt>Quirófano</dt><dd>${q.nombre}</dd>
-      <dt>Horario</dt><dd>${pkDia} · ${pkHora} a ${finDe(pkHora, t.duracionMin)}</dd>
+      <dt>Horario</dt><dd>${pkDia} · ${pkHora} a ${finDe(pkHora, selectedDuracion())}</dd>
       <div class="total-row">`;
     if (calc.nocturno) {
       html += `<div class="total-label">Precio base</div>
@@ -473,7 +526,7 @@
   function limpiarForm() {
     ['fCirujano', 'fCirujanoTel', 'fCirujanoMail', 'fNombre'].forEach(i => $(i).value = '');
     $('fRecibo').value = '';
-    tipoSel = null; quirSel = null; reservaTmp = null; pkDia = null; pkHora = null;
+    tipoSel = null; cirugiaSel = null; quirSel = null; reservaTmp = null; pkDia = null; pkHora = null;
     renderTipos(); renderQuirofanos(); renderPk();
     for (let i = 1; i <= WIZ_TOTAL; i++) clearWizErr(i);
     $('quirError').classList.add('hidden');
@@ -483,7 +536,7 @@
   /* ========== ENVÍO AL BACKEND ========== */
   function validateStep6() {
     if (!$('fRecibo').files[0]) { showWizErr(6, 'Debe subir la foto del recibo para procesar el pago.'); return false; }
-    if (!slotValido(reservaTmp.fecha, reservaTmp.hora, tipoDe(reservaTmp.tipo).duracionMin, reservaTmp.quirofano)) {
+    if (!slotValido(reservaTmp.fecha, reservaTmp.hora, selectedDuracion(), reservaTmp.quirofano)) {
       showWizErr(6, 'Ese horario ya fue tomado. Vuelva atrás y elija otro.'); return false;
     }
     $('wizErr6').classList.add('hidden');
@@ -504,6 +557,7 @@
     fd.append('cirujano_email', reservaTmp.cirujanoMail);
     fd.append('paciente_nombre', reservaTmp.nombre);
     fd.append('tipo_cirugia_externa_id', reservaTmp.tipo);
+    fd.append('cirugia_id', reservaTmp.cirugia || '');
     fd.append('quirofano_id', reservaTmp.quirofano);
     fd.append('fecha', reservaTmp.fecha);
     fd.append('hora_inicio', reservaTmp.hora);
@@ -538,9 +592,11 @@
   /** Arma la URL de WhatsApp con el detalle de la reserva. */
   function urlWhatsapp() {
     const r = reservaTmp, t = tipoDe(r.tipo), q = quirDe(r.quirofano);
+    const c = r.cirugia ? CIRUGIAS.find(x => x.id === r.cirugia) : null;
     const incluyeLn = t.incluye && t.incluye.length ? '\nIncluye: ' + t.incluye.join(', ') : '';
     const noInclLn = t.noIncluye && t.noIncluye.length ? '\nNo incluye: ' + t.noIncluye.join(', ') : '';
-    const msg = 'Nueva reserva de quirófano:\nCirujano: Dr. ' + r.cirujano + ' · ' + r.cirujanoTel + '\nPaciente: ' + r.nombre + '\nCirugía: ' + t.nombre + ' (' + textoDuracion(t.duracionMin) + ')' + incluyeLn + noInclLn + '\nQuirófano: ' + q.nombre + '\nFecha: ' + r.fecha + '  ' + r.hora + '–' + finDe(r.hora, t.duracionMin) + '\nMonto: ' + fmt(r.precioFinal) + (r.nocturno ? ' (descuento nocturno 10%)' : '');
+    const dur = selectedDuracion();
+    const msg = 'Nueva reserva de quirófano:\nCirujano: Dr. ' + r.cirujano + ' · ' + r.cirujanoTel + '\nPaciente: ' + r.nombre + '\nCirugía: ' + (c ? c.nombre + ' (' + c.especialidad + ')' : t.nombre + ' (' + textoDuracion(dur) + ')') + incluyeLn + noInclLn + '\nQuirófano: ' + q.nombre + '\nFecha: ' + r.fecha + '  ' + r.hora + '–' + finDe(r.hora, dur) + '\nMonto: ' + fmt(r.precioFinal) + (r.nocturno ? ' (descuento nocturno 10%)' : '');
     return 'https://wa.me/' + WHATSAPP_NUM + '?text=' + encodeURIComponent(msg);
   }
 
@@ -578,7 +634,7 @@
 
   /* ========== API pública (para los onclick del markup) ========== */
   window.CE = {
-    show, selTipo, selQuirofano, cargarRecibo, navCal, selDia,
+    show, selTipo, selCirugia, selQuirofano, cargarRecibo, navCal, selDia,
     navPk, selPkDia, selSlot, wizNext, wizPrev, confirmarReserva,
   };
 

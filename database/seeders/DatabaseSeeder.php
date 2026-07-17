@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             LinameSeeder::class, // precarga catálogo de almacén con la LINAME (sin stock)
             CamillaSeeder::class,
             HabitacionSeeder::class,
-            //QuirofanoSeeder::class,
+            QuirofanoSeeder::class,
             // PacienteSeeder::class,
             // CuentaCobroSeeder::class,
             //ProcedimientosClinicosSeeder::class,

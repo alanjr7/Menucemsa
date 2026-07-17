@@ -27,7 +27,17 @@ class CirugiaExternaPublicaController extends Controller
     public function create(): View
     {
         $tipos = TipoCirugiaExterna::activos()->orderByDesc('precio')->get();
-        $quirofanos = Quirofano::where('estado', '!=', 'mantenimiento')->orderBy('id')->get();
+        $claves = $tipos->pluck('clave')->toArray();
+        $quirofanos = Quirofano::where('estado', '!=', 'mantenimiento')
+            ->orderBy('id')
+            ->get()
+            ->filter(function ($q) use ($claves) {
+                if (empty($q->restriccion_externa)) {
+                    return true;
+                }
+                return count(array_intersect($q->restriccion_externa, $claves)) > 0;
+            })
+            ->values();
         $qrUrl = CirugiaExterna::qrPagoUrl();
 
         return view('cirugias-externas.publico.registrar', compact('tipos', 'quirofanos', 'qrUrl'));
@@ -71,13 +81,16 @@ class CirugiaExternaPublicaController extends Controller
 
         foreach (CirugiaExterna::with('tipo')->whereBetween('fecha', [$desde, $hasta])->where('estado', '!=', 'rechazado')->get() as $e) {
             $primer = trim((string) (explode(' ', trim($e->cirujano_nombre))[0] ?? ''));
+            $ini = $this->minutosDeHora($e->hora_inicio);
+            $fin = $this->minutosDeHora($e->hora_fin);
+            $dur = $fin - $ini;
             $items[] = [
                 'fecha' => Carbon::parse($e->fecha)->format('Y-m-d'),
                 'q' => (int) $e->quirofano_id,
-                'ini' => $this->minutosDeHora($e->hora_inicio),
-                'dur' => (int) ($e->tipo->duracion_minutos ?? 60),
+                'ini' => $ini,
+                'dur' => $dur,
                 'label' => 'Dr. ' . $primer,
-                'tipo' => $e->tipo->nombre ?? '',
+                'tipo' => $e->cirugia_nombre ?: ($e->tipo->nombre ?? ''),
                 'categoria' => $e->estado === 'pendiente' ? 'externa_pend' : 'externa_conf',
             ];
         }
@@ -107,11 +120,20 @@ class CirugiaExternaPublicaController extends Controller
             'tipo_cirugia_externa_id' => 'required|exists:tipos_cirugia_externa,id',
             'fecha' => 'required|date',
             'hora_inicio' => 'required|date_format:H:i',
+            'cirugia_id' => 'nullable|string',
         ]);
 
         $tipo = TipoCirugiaExterna::findOrFail($validated['tipo_cirugia_externa_id']);
         $quirofano = Quirofano::findOrFail($validated['quirofano_id']);
-        $horaFin = CirugiaExterna::calcularHoraFin($validated['hora_inicio'], $tipo->duracion_minutos);
+
+        $duracionMinutos = $tipo->duracion_minutos;
+        if (!empty($validated['cirugia_id'])) {
+            $surg = CirugiaExterna::findSurgeryById($validated['cirugia_id']);
+            if ($surg) {
+                $duracionMinutos = $surg['duracionMin'];
+            }
+        }
+        $horaFin = CirugiaExterna::calcularHoraFin($validated['hora_inicio'], $duracionMinutos);
 
         $aceptaTipo = $quirofano->aceptaTipoExterno($tipo->clave);
         $solapa = $aceptaTipo && CirugiaExterna::haySolape(
@@ -142,6 +164,7 @@ class CirugiaExternaPublicaController extends Controller
             'cirujano_email' => 'required|email|max:255',
             'paciente_nombre' => 'required|string|max:255',
             'tipo_cirugia_externa_id' => 'required|exists:tipos_cirugia_externa,id',
+            'cirugia_id' => 'nullable|string',
             'quirofano_id' => 'required|exists:quirofanos,id',
             'fecha' => 'required|date|after_or_equal:today',
             'hora_inicio' => 'required|date_format:H:i',
@@ -165,8 +188,22 @@ class CirugiaExternaPublicaController extends Controller
             ]);
         }
 
+        // Validate surgery_id if provided
+        $cirugiaNombre = null;
+        $duracionMinutos = $tipo->duracion_minutos;
+        if (!empty($validated['cirugia_id'])) {
+            $surg = CirugiaExterna::findSurgeryById($validated['cirugia_id']);
+            if (!$surg || $surg['tipo'] !== $tipo->clave) {
+                throw ValidationException::withMessages([
+                    'cirugia_id' => 'La cirugía seleccionada no es válida para este tipo de cirugía.',
+                ]);
+            }
+            $cirugiaNombre = $surg['nombre'];
+            $duracionMinutos = $surg['duracionMin'];
+        }
+
         // Precio recalculado en servidor (nunca confiar en el cliente).
-        $horaFin = CirugiaExterna::calcularHoraFin($validated['hora_inicio'], $tipo->duracion_minutos);
+        $horaFin = CirugiaExterna::calcularHoraFin($validated['hora_inicio'], $duracionMinutos);
         $precio = CirugiaExterna::calcularPrecio($tipo->precio, $validated['hora_inicio']);
 
         // Guard de solape en servidor (agenda compartida).
@@ -184,6 +221,8 @@ class CirugiaExternaPublicaController extends Controller
             'cirujano_email' => $validated['cirujano_email'],
             'paciente_nombre' => $validated['paciente_nombre'],
             'tipo_cirugia_externa_id' => $tipo->id,
+            'cirugia_id' => $validated['cirugia_id'] ?? null,
+            'cirugia_nombre' => $cirugiaNombre,
             'quirofano_id' => $quirofano->id,
             'fecha' => $validated['fecha'],
             'hora_inicio' => $validated['hora_inicio'],
@@ -199,7 +238,7 @@ class CirugiaExternaPublicaController extends Controller
         // Aviso a administración (campana). notifyAdmins cubre el rol admin;
         // el administrador también gestiona el panel.
         $mensaje = "Cirujano: {$cirugia->cirujano_nombre} · Paciente: {$cirugia->paciente_nombre} · "
-            . "{$tipo->nombre} · {$quirofano->nombre} · {$cirugia->fecha->format('d/m/Y')} {$validated['hora_inicio']}";
+            . ($cirugia->cirugia_nombre ?: $tipo->nombre) . " · {$quirofano->nombre} · {$cirugia->fecha->format('d/m/Y')} {$validated['hora_inicio']}";
         NotificationService::notifyAdmins('cirugia', 'Nueva cirugía externa', $mensaje, route('admin.cirugias-externas.index'), ['cirugia_externa_id' => $cirugia->id]);
         NotificationService::notifyRole('administrador', 'cirugia', 'Nueva cirugía externa', $mensaje, route('admin.cirugias-externas.index'), ['cirugia_externa_id' => $cirugia->id]);
 

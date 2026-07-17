@@ -225,7 +225,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Procedimientos',       'route' => 'admin.cirugia.procedimientos', 'roles' => 'admin,administrador', 'order' => 5],
             ['name' => 'Precios y Duración',   'route' => 'tipos-cirugia.index',          'roles' => 'admin,administrador', 'order' => 6],
             ['name' => 'Cirugías Externas',    'route' => 'admin.cirugias-externas.index',    'roles' => 'admin,administrador', 'order' => 7],
-            ['name' => 'Precios Externos',     'route' => 'admin.tipos-cirugia-externa.index', 'roles' => 'admin,administrador', 'order' => 8],
+         //   ['name' => 'Precios Externos',     'route' => 'admin.tipos-cirugia-externa.index', 'roles' => 'admin,administrador', 'order' => 8],
         ]);
 
         // 4. Internación (Nivel 2)

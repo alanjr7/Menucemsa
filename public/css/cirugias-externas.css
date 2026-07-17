@@ -544,3 +544,98 @@ section:not(.hidden){animation:tabFadeIn .22s ease}
 }
 
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ============================================================
+   CIRUGÍAS DISPONIBLES (SELECCIÓN POR ESPECIALIDAD)
+============================================================ */
+.tipos-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px
+}
+
+.cirugias-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg);
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--line);
+}
+
+.cirugia-grupo h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-left: 3px solid var(--blue);
+  padding-left: 8px;
+}
+
+.cirugia-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.cirugia-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: var(--rad-sm);
+  text-align: left;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  width: 100%;
+}
+
+.cirugia-item:hover {
+  border-color: var(--blue);
+  background: var(--blue-lt);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.cirugia-item.sel {
+  border-color: var(--blue);
+  background: var(--blue-lt);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.cirugia-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.cirugia-item.sel .cirugia-name {
+  color: var(--blue-dk);
+}
+
+.cirugia-meta {
+  font-size: 10px;
+  color: var(--ink-lt);
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.cirugia-meta span {
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.cirugia-item.sel .cirugia-meta span {
+  background: var(--blue-sm);
+  color: var(--blue-dk);
+}

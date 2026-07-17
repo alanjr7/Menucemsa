@@ -35,6 +35,9 @@
                         <div><dt class="text-gray-500">Correo</dt><dd class="font-medium">{{ $cirugia->cirujano_email }}</dd></div>
                         <div><dt class="text-gray-500">Paciente</dt><dd class="font-medium">{{ $cirugia->paciente_nombre }}</dd></div>
                         <div><dt class="text-gray-500">Tipo de cirugía</dt><dd class="font-medium">{{ $cirugia->tipo->nombre ?? '—' }}</dd></div>
+                        @if($cirugia->cirugia_nombre)
+                            <div><dt class="text-gray-500">Cirugía específica</dt><dd class="font-medium">{{ $cirugia->cirugia_nombre }}</dd></div>
+                        @endif
                         <div><dt class="text-gray-500">Quirófano</dt><dd class="font-medium">{{ $cirugia->quirofano->nombre ?? '—' }}</dd></div>
                         <div><dt class="text-gray-500">Fecha</dt><dd class="font-medium">{{ $cirugia->fecha->format('d/m/Y') }}</dd></div>
                         <div><dt class="text-gray-500">Horario</dt><dd class="font-medium">{{ \Illuminate\Support\Str::of($cirugia->hora_inicio)->substr(0,5) }} – {{ \Illuminate\Support\Str::of($cirugia->hora_fin)->substr(0,5) }}</dd></div>

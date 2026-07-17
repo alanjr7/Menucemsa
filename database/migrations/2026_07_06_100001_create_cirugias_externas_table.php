@@ -28,6 +28,8 @@ return new class extends Migration
 
             // Catálogo externo + quirófano real
             $table->foreignId('tipo_cirugia_externa_id')->constrained('tipos_cirugia_externa');
+            $table->string('cirugia_id')->nullable();
+            $table->string('cirugia_nombre')->nullable();
             $table->unsignedBigInteger('quirofano_id');
 
             // Agenda

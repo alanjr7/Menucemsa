@@ -58,22 +58,6 @@ return new class extends Migration
                 'no_incluye' => json_encode(['Medicamentos']),
                 'activo' => true, 'created_at' => $ahora, 'updated_at' => $ahora,
             ],
-            [
-                'clave' => 'parto', 'nombre' => 'Parto natural',
-                'descripcion' => 'Obstetricia · tiempo variable · Quirófano 3',
-                'precio' => 1500, 'duracion_minutos' => 120,
-                'incluye' => json_encode(['1 circulante o enfermero']),
-                'no_incluye' => json_encode(['Medicamentos']),
-                'activo' => true, 'created_at' => $ahora, 'updated_at' => $ahora,
-            ],
-            [
-                'clave' => 'sala', 'nombre' => 'Solo uso de quirófano',
-                'descripcion' => 'Alquiler de sala',
-                'precio' => 1000, 'duracion_minutos' => 60,
-                'incluye' => json_encode(['1 circulante']),
-                'no_incluye' => json_encode([]),
-                'activo' => true, 'created_at' => $ahora, 'updated_at' => $ahora,
-            ],
         ]);
     }
 

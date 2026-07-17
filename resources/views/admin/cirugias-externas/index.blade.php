@@ -89,7 +89,7 @@
                                 <td><span class="codigo">{{ $r->codigo }}</span></td>
                                 <td><b>Dr. {{ $r->cirujano_nombre }}</b><br><span class="hint">{{ $r->cirujano_telefono }} · {{ $r->cirujano_email }}</span></td>
                                 <td>{{ $r->paciente_nombre }}</td>
-                                <td>{{ $r->tipo->nombre ?? '—' }}</td>
+                                <td>{{ $r->cirugia_nombre ?: ($r->tipo->nombre ?? '—') }}</td>
                                 <td><b>Q{{ $r->quirofano_id }}</b></td>
                                 <td>{{ $r->fecha->format('Y-m-d') }}<br><span class="hint">{{ \Illuminate\Support\Str::of($r->hora_inicio)->substr(0,5) }}–{{ \Illuminate\Support\Str::of($r->hora_fin)->substr(0,5) }}</span></td>
                                 <td style="font-variant-numeric:tabular-nums">Bs {{ $r->precio_final }}
