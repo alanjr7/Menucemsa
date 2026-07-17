@@ -5,7 +5,7 @@
   "start_url": "/reservar-cirugia",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0b44a8",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/favicon-32x32.png",
