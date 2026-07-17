@@ -129,9 +129,7 @@ class CirugiaExternaPublicaController extends Controller
         $duracionMinutos = $tipo->duracion_minutos;
         if (!empty($validated['cirugia_id'])) {
             $surg = CirugiaExterna::findSurgeryById($validated['cirugia_id']);
-            if ($surg) {
-                $duracionMinutos = $surg['duracionMin'];
-            }
+            // Se usa el tiempo del tipo de cirugía que están comprando, no el de la cirugía específica.
         }
         $horaFin = CirugiaExterna::calcularHoraFin($validated['hora_inicio'], $duracionMinutos);
 
@@ -188,7 +186,6 @@ class CirugiaExternaPublicaController extends Controller
             ]);
         }
 
-        // Validate surgery_id if provided
         $cirugiaNombre = null;
         $duracionMinutos = $tipo->duracion_minutos;
         if (!empty($validated['cirugia_id'])) {
@@ -199,7 +196,7 @@ class CirugiaExternaPublicaController extends Controller
                 ]);
             }
             $cirugiaNombre = $surg['nombre'];
-            $duracionMinutos = $surg['duracionMin'];
+            // Se usa el tiempo del tipo de cirugía que están comprando, no el de la cirugía específica.
         }
 
         // Precio recalculado en servidor (nunca confiar en el cliente).
