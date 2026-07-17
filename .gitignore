@@ -32,3 +32,5 @@ Thumbs.db
 /composer.lock
 /package-lock.json
 .claudepublic/error_log
+error_log
+error_log
