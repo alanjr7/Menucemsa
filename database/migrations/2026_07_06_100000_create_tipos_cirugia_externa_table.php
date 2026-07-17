@@ -44,7 +44,7 @@ return new class extends Migration
             ],
             [
                 'clave' => 'mediana', 'nombre' => 'Cirugía mediana',
-                'descripcion' => 'Equipo completo + 1 día de internación',
+                'descripcion' => 'circulante + instrumentista + 1 día de internación',
                 'precio' => 3550, 'duracion_minutos' => 90,
                 'incluye' => json_encode(['circulante con un dia de internacion']),
                 'no_incluye' => json_encode(['medicamentos', 'insumos de quirofano']),

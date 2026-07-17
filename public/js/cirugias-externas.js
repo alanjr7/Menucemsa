@@ -493,7 +493,7 @@
       <dt>Incluye</dt><dd>${t.incluye && t.incluye.length ? t.incluye.join(' · ') : '—'}</dd>
       <dt>No incluye</dt><dd>${t.noIncluye && t.noIncluye.length ? t.noIncluye.join(', ') : '—'}</dd>
       <dt>Quirófano</dt><dd>${q.nombre}</dd>
-      <dt>Horario</dt><dd>${pkDia} · ${pkHora} a ${finDe(pkHora, selectedDuracion())}</dd>
+      <dt>Horario</dt><dd>${pkDia} · ${pkHora} a ${finDe(pkHora, t.duracionMin)}</dd>
       <div class="total-row">`;
     if (calc.nocturno) {
       html += `<div class="total-label">Precio base</div>
@@ -596,7 +596,7 @@
     const incluyeLn = t.incluye && t.incluye.length ? '\nIncluye: ' + t.incluye.join(', ') : '';
     const noInclLn = t.noIncluye && t.noIncluye.length ? '\nNo incluye: ' + t.noIncluye.join(', ') : '';
     const dur = selectedDuracion();
-    const msg = 'Nueva reserva de quirófano:\nCirujano: Dr. ' + r.cirujano + ' · ' + r.cirujanoTel + '\nPaciente: ' + r.nombre + '\nCirugía: ' + (c ? c.nombre + ' (' + c.especialidad + ')' : t.nombre + ' (' + textoDuracion(dur) + ')') + incluyeLn + noInclLn + '\nQuirófano: ' + q.nombre + '\nFecha: ' + r.fecha + '  ' + r.hora + '–' + finDe(r.hora, dur) + '\nMonto: ' + fmt(r.precioFinal) + (r.nocturno ? ' (descuento nocturno 10%)' : '');
+    const msg = 'Nueva reserva de quirófano:\nCirujano: Dr. ' + r.cirujano + ' · ' + r.cirujanoTel + '\nPaciente: ' + r.nombre + '\nCirugía: ' + (c ? c.nombre + ' (' + c.especialidad + ')' : t.nombre + ' (' + textoDuracion(dur) + ')') + incluyeLn + noInclLn + '\nQuirófano: ' + q.nombre + '\nFecha: ' + r.fecha + '  ' + r.hora + '–' + finDe(r.hora, t.duracionMin) + '\nMonto: ' + fmt(r.precioFinal) + (r.nocturno ? ' (descuento nocturno 10%)' : '');
     return 'https://wa.me/' + WHATSAPP_NUM + '?text=' + encodeURIComponent(msg);
   }
 
