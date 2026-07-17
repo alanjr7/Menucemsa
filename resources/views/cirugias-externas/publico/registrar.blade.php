@@ -286,7 +286,7 @@
                       </a>
                     </div>
                     @endif
-                    <div class="qr-contact">¿Problemas?<b><i class="fa-brands fa-whatsapp"></i> +591 609-75799</b></div>
+                    <div class="qr-contact">¿Problemas?<b><i class="fa-brands fa-whatsapp"></i> +591 75662703</b></div>
                   </div>
                 </div>
                 <div id="wizErr6" class="wiz-err hidden"><i class="fa-solid fa-circle-exclamation"></i> <span id="wizErr6Txt"></span></div>
@@ -352,7 +352,7 @@
     moneda: 'Bs',
     nocturnoFin: 6,
     descuentoNoct: 0.10,
-    whatsapp: '59160975799',
+    whatsapp: '59175662703',
     tipos: @json($tiposJs),
     quirofanos: @json($quirofanosJs),
     cirugias: @json(\App\Models\CirugiaExterna::CIRUGIAS),
