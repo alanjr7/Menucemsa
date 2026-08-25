@@ -55,8 +55,9 @@
                             </svg>
                         </div>
                         <input type="text" id="buscar_paciente" 
-                               class="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-700 focus:outline-hidden rounded-[1px]" 
-                               placeholder="Escriba nombre o documento para buscar, o tipee para agregar nuevo..." autocomplete="off">
+                               class="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-700 focus:outline-hidden rounded-[1px] uppercase" 
+                               style="text-transform: uppercase;"
+                               placeholder="Escriba nombre o documento para buscar  " autocomplete="off">
                     </div>
                     
                     <!-- Dropdown de resultados de pacientes -->
@@ -114,8 +115,9 @@
                                 </svg>
                             </div>
                             <input type="text" id="buscar_cirujano" 
-                                   class="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-purple-700 focus:outline-hidden rounded-[1px]" 
-                                   placeholder="Escriba nombre de cirujano para buscar o crear..." autocomplete="off">
+                                   class="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-purple-700 focus:outline-hidden rounded-[1px] uppercase" 
+                                   style="text-transform: uppercase;"
+                                   placeholder="Escriba nombre de cirujano " autocomplete="off">
                         </div>
                         
                         <!-- Dropdown de resultados de cirujanos -->
@@ -153,16 +155,18 @@
                             Nombre del Instrumentista
                         </label>
                         <input type="text" name="nombre_instrumentista" id="nombre_instrumentista" 
-                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-slate-700 focus:outline-hidden rounded-[1px]" 
-                               placeholder="Nombre completo">
+                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-slate-700 focus:outline-hidden rounded-[1px] uppercase" 
+                               style="text-transform: uppercase;"
+                               >
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             Nombre del Anestesiólogo
                         </label>
                         <input type="text" name="nombre_anestesiologo" id="nombre_anestesiologo" 
-                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-slate-700 focus:outline-hidden rounded-[1px]" 
-                               placeholder="Nombre completo">
+                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-slate-700 focus:outline-hidden rounded-[1px] uppercase" 
+                               style="text-transform: uppercase;"
+                               >
                     </div>
                 </div>
             </div>
@@ -370,12 +374,36 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarMedicos();
     cargarEquipamientos();
     cargarQuirofanos();
+    inicializarInputsMayusculas();
     inicializarBuscadorPacientes();
     inicializarBuscadorCirujanos();
     inicializarEquipamientos();
     inicializarFormateoMonedas();
     inicializarSubmit();
 });
+
+function inicializarInputsMayusculas() {
+    const uppercaseInputs = [
+        'buscar_paciente',
+        'buscar_cirujano',
+        'nombre_instrumentista',
+        'nombre_anestesiologo'
+    ];
+
+    uppercaseInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', function() {
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.toUpperCase();
+                if (start !== null && end !== null) {
+                    this.setSelectionRange(start, end);
+                }
+            });
+        }
+    });
+}
 
 // Toast notification helper (1px de redondeo)
 function showToast(message, type = 'success') {
@@ -470,6 +498,7 @@ function inicializarBuscadorPacientes() {
     const drop = document.getElementById('resultados_paciente');
 
     input.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
         const query = this.value.trim();
         if (query.length === 0) {
             drop.classList.add('hidden');
@@ -505,11 +534,11 @@ function renderResultadosPacientes(matches, query) {
         createBtn.innerHTML = `
             <div class="flex items-center gap-2">
                 <span class="w-5 h-5 bg-blue-700 text-white flex items-center justify-center font-bold text-xs rounded-[1px]">+</span>
-                <span>REGISTRAR NUEVO PACIENTE: "<strong>${escapeHtml(query)}</strong>"</span>
+                <span>REGISTRAR NUEVO PACIENTE: "<strong>${escapeHtml(query.toUpperCase())}</strong>"</span>
             </div>
             <span class="px-2 py-0.5 bg-blue-700 text-white text-[10px] font-bold uppercase rounded-[1px]">Internación</span>
         `;
-        createBtn.onclick = () => crearPacienteRapido(query);
+        createBtn.onclick = () => crearPacienteRapido(query.toUpperCase());
         drop.appendChild(createBtn);
     }
 
@@ -535,6 +564,7 @@ function renderResultadosPacientes(matches, query) {
 }
 
 async function crearPacienteRapido(nombre) {
+    const nombreUpper = (nombre || '').trim().toUpperCase();
     const drop = document.getElementById('resultados_paciente');
     drop.innerHTML = '<div class="p-3 text-xs text-blue-800 font-bold flex items-center gap-2 rounded-[1px]"><svg class="animate-spin h-4 w-4 text-blue-700" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Registrando paciente en Internación...</div>';
 
@@ -547,7 +577,7 @@ async function crearPacienteRapido(nombre) {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': csrf,
             },
-            body: JSON.stringify({ nombre: nombre })
+            body: JSON.stringify({ nombre: nombreUpper })
         });
 
         const data = await res.json();
@@ -591,6 +621,7 @@ function inicializarBuscadorCirujanos() {
     const drop = document.getElementById('resultados_cirujano');
 
     input.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
         const query = this.value.trim();
         if (query.length === 0) {
             drop.classList.add('hidden');
@@ -626,11 +657,11 @@ function renderResultadosCirujanos(matches, query) {
         createBtn.innerHTML = `
             <div class="flex items-center gap-2">
                 <span class="w-5 h-5 bg-purple-700 text-white flex items-center justify-center font-bold text-xs rounded-[1px]">+</span>
-                <span>REGISTRAR NUEVO CIRUJANO: "<strong>${escapeHtml(query)}</strong>"</span>
+                <span>REGISTRAR NUEVO CIRUJANO: "<strong>${escapeHtml(query.toUpperCase())}</strong>"</span>
             </div>
             <span class="px-2 py-0.5 bg-purple-700 text-white text-[10px] font-bold uppercase rounded-[1px]">Cirujano</span>
         `;
-        createBtn.onclick = () => crearCirujanoRapido(query);
+        createBtn.onclick = () => crearCirujanoRapido(query.toUpperCase());
         drop.appendChild(createBtn);
     }
 
@@ -656,6 +687,7 @@ function renderResultadosCirujanos(matches, query) {
 }
 
 async function crearCirujanoRapido(nombre) {
+    const nombreUpper = (nombre || '').trim().toUpperCase();
     const drop = document.getElementById('resultados_cirujano');
     drop.innerHTML = '<div class="p-3 text-xs text-purple-800 font-bold flex items-center gap-2 rounded-[1px]"><svg class="animate-spin h-4 w-4 text-purple-700" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Registrando cirujano...</div>';
 
@@ -668,7 +700,7 @@ async function crearCirujanoRapido(nombre) {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': csrf,
             },
-            body: JSON.stringify({ nombre: nombre })
+            body: JSON.stringify({ nombre: nombreUpper })
         });
 
         const data = await res.json();

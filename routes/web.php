@@ -482,8 +482,8 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/reporte-morosidad', [CuentaCobrarController::class, 'getReporteMorosidad'])->name('cuentas.api.morosidad');
     });
 
-    // Edición de datos de paciente (admin, administrador y recepción)
-    Route::middleware(['role:admin|administrador|reception'])->prefix('admin')->name('admin.')->group(function () {
+    // Edición de datos de paciente (admin, administrador, recepción e internación)
+    Route::middleware(['role:admin|administrador|reception|internacion|enfermera-internacion'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/pacientes/{id}/edit', [\App\Http\Controllers\PatientsController::class, 'edit'])->name('patients.edit');
         Route::put('/pacientes/{id}', [\App\Http\Controllers\PatientsController::class, 'update'])->name('patients.update');
     });

@@ -3,7 +3,8 @@
 @section('content')
 
 @php
-$userRole = auth()->user()->role;
+$user = auth()->user();
+$userRole = $user ? $user->role : null;
 $roleAreaRouteMap = [
     'emergencia'            => 'evaluacion.emergencia',
     'enfermera-emergencia'  => 'evaluacion.emergencia',
@@ -15,8 +16,9 @@ $roleAreaRouteMap = [
 ];
 $evalRouteName = $roleAreaRouteMap[$userRole] ?? null;
 $isAdmin = in_array($userRole, ['admin', 'administrador']);
+$canEdit = in_array($userRole, ['admin', 'administrador', 'internacion', 'enfermera-internacion', 'reception']);
 
-$pacientesData = $pacientes->map(function ($paciente) use ($evalRouteName) {
+$pacientesData = $pacientes->map(function ($paciente) use ($evalRouteName, $canEdit) {
     $isTemporal  = (bool) ($paciente->is_temp ?? false);
     $tipoIngreso = $paciente->tipo_ingreso ?? 'otro';
 
@@ -29,15 +31,16 @@ $pacientesData = $pacientes->map(function ($paciente) use ($evalRouteName) {
             : route('patients.show', $paciente->id);
     } else {
         $cajaId        = $paciente->consultas->first()?->caja?->id;
-        $codigoDisplay = $cajaId ?? $paciente->registro?->codigo;
+        $registroCod   = $paciente->registro?->codigo ?? $paciente->registro_codigo;
+        $codigoDisplay = $cajaId ?? $registroCod ?? $paciente->temp_code ?? ('PAC-' . str_pad($paciente->id, 5, '0', STR_PAD_LEFT));
         $seguroLabel   = $paciente->seguro->nombre_empresa ?? 'Particular';
 
         if ($tipoIngreso === 'internacion' && $paciente->hospitalizaciones->isNotEmpty()) {
             $datosUrl = route('reception.hospitalizacion.comprobante', $paciente->hospitalizaciones->first()->id);
         } elseif ($tipoIngreso === 'emergencia' && $paciente->emergencias->isNotEmpty()) {
             $datosUrl = route('reception.emergencia.comprobante', $paciente->emergencias->first()->id);
-        } elseif (in_array($tipoIngreso, ['consulta_externa', 'enfermeria', 'otro']) && $paciente->registro?->codigo) {
-            $datosUrl = route('reception.confirmacion-registro', $paciente->registro->codigo);
+        } elseif (in_array($tipoIngreso, ['consulta_externa', 'enfermeria', 'otro']) && $registroCod) {
+            $datosUrl = route('reception.confirmacion-registro', $registroCod);
         } else {
             $datosUrl = route('patients.show', $paciente->id);
         }
@@ -45,6 +48,7 @@ $pacientesData = $pacientes->map(function ($paciente) use ($evalRouteName) {
 
     $ciDisplay = $paciente->ci ?? $paciente->temp_code;
     return [
+        'id'            => $paciente->id,
         'ci'            => $ciDisplay,
         'nombre'        => $paciente->nombre,
         'is_temporal'   => $isTemporal,

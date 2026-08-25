@@ -274,11 +274,13 @@ class QuirofanoController extends Controller
                 'nombre' => 'required|string|max:120',
             ]);
 
+            $nombreMayusculas = mb_strtoupper(trim($validated['nombre']), 'UTF-8');
+
             DB::beginTransaction();
 
             // Crear paciente con código temporal e internación
             $paciente = Paciente::crearTemporal([
-                'nombre' => trim($validated['nombre']),
+                'nombre' => $nombreMayusculas,
             ]);
 
             // Abrir episodio de internación
@@ -314,7 +316,7 @@ class QuirofanoController extends Controller
                 'nombre' => 'required|string|max:255',
             ]);
 
-            $nombre = trim($validated['nombre']);
+            $nombre = mb_strtoupper(trim($validated['nombre']), 'UTF-8');
             $ciTemporal = (int) (time() + random_int(1000, 9999));
 
             DB::beginTransaction();
@@ -502,8 +504,8 @@ class QuirofanoController extends Controller
             $cita->equipamiento_precio = !empty($validated['equipamiento_precio']) ? (float)$validated['equipamiento_precio'] : 0.00;
 
             // Campos de personal (sin requerir CI)
-            $cita->nombre_instrumentista = $request->input('nombre_instrumentista');
-            $cita->nombre_anestesiologo = $request->input('nombre_anestesiologo');
+            $cita->nombre_instrumentista = $request->filled('nombre_instrumentista') ? mb_strtoupper(trim($request->input('nombre_instrumentista')), 'UTF-8') : null;
+            $cita->nombre_anestesiologo = $request->filled('nombre_anestesiologo') ? mb_strtoupper(trim($request->input('nombre_anestesiologo')), 'UTF-8') : null;
             $cita->descripcion_cirugia = $request->input('descripcion_cirugia');
             $cita->observaciones = $request->input('observaciones');
 

@@ -8,8 +8,11 @@ use App\Models\Hospitalizacion;
 use App\Models\Caja;
 use App\Models\Emergency;
 use App\Models\AltaPaciente;
+use App\Models\Seguro;
+use App\Models\Registro;
 use App\Services\EpisodioService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -296,30 +299,34 @@ class PatientsController extends Controller
     }
 
     /**
-     * Mostrar formulario para editar paciente
+     * Mostrar formulario para editar paciente (regular o temporal)
      */
-    public function edit($id): View
+    public function edit(Request $request, $id): View
     {
-        $paciente = Paciente::findOrFail($id);
-        $backUrl = $this->urlVolverPaciente();
-        return view('patients.edit', compact('paciente', 'backUrl'));
+        $paciente = Paciente::with(['seguro', 'triage', 'registro.user'])->findOrFail($id);
+        $seguros = Seguro::all();
+        $backUrl = $request->query('back_url') ?: $this->urlVolverPaciente($paciente->id);
+        return view('patients.edit', compact('paciente', 'seguros', 'backUrl'));
     }
 
     /**
-     * Destino de "volver" tras ver/editar un paciente segun el rol:
-     * admin/administrador vuelven a la gestion; recepcion a su listado.
+     * Destino de "volver" tras ver/editar un paciente según el rol:
+     * admin/administrador vuelven a la gestión o ficha; internación a la ficha/dashboard; recepción a su listado.
      */
-    private function urlVolverPaciente(): string
+    private function urlVolverPaciente(?int $pacienteId = null): string
     {
         $user = auth()->user();
+        if ($user && in_array($user->role, ['internacion', 'enfermera-internacion'], true)) {
+            return $pacienteId ? route('patients.show', $pacienteId) : route('internacion-staff.dashboard');
+        }
         if ($user && in_array($user->role, ['admin', 'administrador'], true)) {
-            return route('admin.pacientes.gestionar');
+            return $pacienteId ? route('patients.show', $pacienteId) : route('admin.pacientes.gestionar');
         }
         return route('reception.pacientes.index');
     }
 
     /**
-     * Actualizar información del paciente
+     * Actualizar información del paciente (incluyendo pacientes temporales)
      */
     public function update(Request $request, $id)
     {
@@ -328,7 +335,7 @@ class PatientsController extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'ci' => 'nullable|integer|unique:pacientes,ci,' . $id,
-            'sexo' => 'required|in:M,F',
+            'sexo' => 'nullable|in:M,F',
             'fecha_nacimiento' => 'nullable|date',
             'direccion' => 'nullable|string|max:255',
             'telefono' => 'nullable|string|max:20',
@@ -338,12 +345,52 @@ class PatientsController extends Controller
             'estado_civil' => 'nullable|string|max:50',
             'profesion' => 'nullable|string|max:100',
             'empresa_trabajo' => 'nullable|string|max:255',
+            'seguro_id' => 'nullable|exists:seguros,id',
+            'seguro_poliza' => 'nullable|string|max:100',
+            'seguro_vigencia_desde' => 'nullable|date',
+            'seguro_vigencia_hasta' => 'nullable|date',
         ]);
+
+        if (empty($validated['sexo'])) {
+            $validated['sexo'] = $paciente->sexo ?: 'M';
+        }
+
+        // Si se le asigna un CI oficial y era temporal, actualizar estado a paciente regular
+        if (!empty($validated['ci']) && $paciente->is_temp) {
+            $validated['is_temp'] = false;
+        }
+
+        // Si es un paciente regular y no tiene registro_codigo asignado, generarlo automáticamente
+        if (empty($paciente->registro_codigo) && !($validated['is_temp'] ?? $paciente->is_temp)) {
+            $sexoCodigo = ($validated['sexo'] ?? $paciente->sexo ?? 'M') === 'F' ? 'F' : 'M';
+            $nombre     = $validated['nombre'] ?? $paciente->nombre;
+            $fechaNac   = $validated['fecha_nacimiento'] ?? $paciente->fecha_nacimiento;
+
+            $registroCodigo = Registro::generarCodigo([
+                'fecha_nacimiento' => $fechaNac,
+                'sexo'             => $sexoCodigo,
+                'nombre'           => $nombre,
+            ]);
+
+            Registro::firstOrCreate(
+                ['codigo' => $registroCodigo],
+                [
+                    'fecha'   => now()->toDateString(),
+                    'hora'    => now()->toTimeString(),
+                    'motivo'  => 'Registro generado al actualizar datos del paciente',
+                    'user_id' => Auth::id() ?? 1,
+                ]
+            );
+
+            $validated['registro_codigo'] = $registroCodigo;
+        }
 
         $paciente->update($validated);
 
-        return redirect()->to($this->urlVolverPaciente())
-            ->with('success', 'Información del paciente actualizada correctamente.');
+        $backUrl = $request->input('back_url') ?: $this->urlVolverPaciente($paciente->id);
+
+        return redirect()->to($backUrl)
+            ->with('success', 'Información del paciente ' . ($paciente->is_temp ? '(Temporal) ' : '') . 'actualizada correctamente.');
     }
 
     /**
