@@ -162,7 +162,28 @@
                 <p class="font-semibold text-gray-900">{{ $cita->tipo_anestesia }}</p>
             </div>
             @endif
-            @if($cita->equipamiento_nombre)
+            @if(!empty($cita->equipamientos_detalle) && is_array($cita->equipamientos_detalle))
+            <div class="col-span-full">
+                <label class="text-sm font-medium text-gray-500">Equipamiento Asignado en Quirófano</label>
+                <div class="flex flex-wrap gap-2 mt-1.5">
+                    @foreach($cita->equipamientos_detalle as $eq)
+                        @php
+                            $cobrado = isset($eq['cobrar_cuenta']) ? (bool)$eq['cobrar_cuenta'] : ((float)($eq['precio'] ?? 0) > 0);
+                            $precioCobro = (float)($eq['precio'] ?? 0);
+                            $precioRef = isset($eq['precio_referencia']) ? (float)$eq['precio_referencia'] : $precioCobro;
+                        @endphp
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[1px] {{ $cobrado && $precioCobro > 0 ? 'bg-amber-100 text-amber-950 border border-amber-300' : 'bg-slate-100 text-slate-800 border border-slate-300' }}">
+                            <span>{{ $eq['nombre'] ?? 'Equipo' }}</span>
+                            @if($cobrado && $precioCobro > 0)
+                                <span class="font-mono font-bold text-amber-900">(Bs. {{ number_format($precioCobro, 2) }})</span>
+                            @else
+                                <span class="text-[10px] font-bold uppercase text-slate-700 bg-slate-200 px-1.5 py-0.5 rounded-[1px]">Sin cobro · Bs. 0.00 (Ref: Bs. {{ number_format($precioRef, 2) }})</span>
+                            @endif
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+            @elseif($cita->equipamiento_nombre)
             <div>
                 <label class="text-sm font-medium text-gray-500">Equipamiento</label>
                 <p class="font-semibold text-gray-900">{{ $cita->equipamiento_nombre }} @if($cita->equipamiento_precio > 0)<span class="text-xs text-gray-500">(Bs. {{ number_format($cita->equipamiento_precio, 2) }})</span>@endif</p>

@@ -32,6 +32,7 @@ class CitaQuirurgica extends Model
         'quirofano_id',
         'equipamiento_nombre',
         'equipamiento_precio',
+        'equipamientos_detalle',
         'estado',
         'timestamp_inicio',
         'timestamp_fin',
@@ -54,6 +55,7 @@ class CitaQuirurgica extends Model
         'costo_final' => 'decimal:2',
         'costo_minuto_extra' => 'decimal:2',
         'equipamiento_precio' => 'decimal:2',
+        'equipamientos_detalle' => 'array',
     ];
 
     /**

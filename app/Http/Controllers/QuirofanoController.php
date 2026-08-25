@@ -477,7 +477,8 @@ class QuirofanoController extends Controller
                 'fecha' => 'required|date',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
                 'costo_base' => 'required|numeric|decimal:0,2|min:0',
-                'equipamiento_nombre' => 'nullable|string|max:150',
+                'equipamientos' => 'nullable',
+                'equipamiento_nombre' => 'nullable|string|max:255',
                 'equipamiento_precio' => 'nullable|numeric|min:0',
                 'nombre_instrumentista' => 'nullable|string|max:255',
                 'nombre_anestesiologo' => 'nullable|string|max:255',
@@ -499,9 +500,61 @@ class QuirofanoController extends Controller
             $cita->fecha = $validated['fecha'];
             $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
 
-            // Equipamiento
-            $cita->equipamiento_nombre = $validated['equipamiento_nombre'] ?? null;
-            $cita->equipamiento_precio = !empty($validated['equipamiento_precio']) ? (float)$validated['equipamiento_precio'] : 0.00;
+            // Equipamientos (Soporte Múltiple + Cobro a Cuenta Sí/No + Retrocompatibilidad)
+            $equipamientosInput = $request->input('equipamientos');
+            if (is_string($equipamientosInput)) {
+                $equipamientosInput = json_decode($equipamientosInput, true);
+            }
+
+            if (is_array($equipamientosInput) && count($equipamientosInput) > 0) {
+                $equipamientosDetalle = [];
+                $nombresResumen = [];
+                $totalPrecioEquipos = 0.00;
+
+                foreach ($equipamientosInput as $eq) {
+                    $nombre = trim($eq['nombre'] ?? '');
+                    if (empty($nombre)) {
+                        continue;
+                    }
+                    $precioInput = isset($eq['precio']) ? (float)$eq['precio'] : 0.00;
+                    $precioRef = isset($eq['precio_referencia']) ? (float)$eq['precio_referencia'] : $precioInput;
+                    $cobrarCuenta = isset($eq['cobrar_cuenta']) 
+                        ? filter_var($eq['cobrar_cuenta'], FILTER_VALIDATE_BOOLEAN)
+                        : ($precioInput > 0 && empty($eq['en_paquete']));
+
+                    $precioCobro = $cobrarCuenta ? ($precioInput > 0 ? $precioInput : $precioRef) : 0.00;
+                    $precioRefFinal = ($precioRef > 0) ? $precioRef : $precioInput;
+
+                    $equipamientosDetalle[] = [
+                        'nombre' => $nombre,
+                        'precio' => $precioCobro,
+                        'precio_referencia' => $precioRefFinal,
+                        'cobrar_cuenta' => $cobrarCuenta,
+                        'en_paquete' => !$cobrarCuenta,
+                    ];
+
+                    $totalPrecioEquipos += $precioCobro;
+                    $nombresResumen[] = $nombre . ($cobrarCuenta 
+                        ? ' (Bs. ' . number_format($precioCobro, 2) . ')' 
+                        : ' (Sin cobro - Ref: Bs. ' . number_format($precioRefFinal, 2) . ')');
+                }
+
+                $cita->equipamientos_detalle = $equipamientosDetalle;
+                $cita->equipamiento_nombre = !empty($nombresResumen) ? implode(', ', $nombresResumen) : null;
+                $cita->equipamiento_precio = $totalPrecioEquipos;
+            } else {
+                $cita->equipamiento_nombre = $validated['equipamiento_nombre'] ?? null;
+                $cita->equipamiento_precio = !empty($validated['equipamiento_precio']) ? (float)$validated['equipamiento_precio'] : 0.00;
+                if (!empty($cita->equipamiento_nombre)) {
+                    $cita->equipamientos_detalle = [[
+                        'nombre' => $cita->equipamiento_nombre,
+                        'precio' => $cita->equipamiento_precio,
+                        'precio_referencia' => $cita->equipamiento_precio,
+                        'cobrar_cuenta' => $cita->equipamiento_precio > 0,
+                        'en_paquete' => $cita->equipamiento_precio == 0,
+                    ]];
+                }
+            }
 
             // Campos de personal (sin requerir CI)
             $cita->nombre_instrumentista = $request->filled('nombre_instrumentista') ? mb_strtoupper(trim($request->input('nombre_instrumentista')), 'UTF-8') : null;
@@ -1433,13 +1486,48 @@ class QuirofanoController extends Controller
                 (string)$cita->id
             );
 
-            // Agregar cargo de equipamiento si aplica
-            if (!empty($cita->equipamiento_nombre) && (float)$cita->equipamiento_precio > 0) {
+            // Agregar cargo(s) de equipamiento (con cobro o con precio 0.00 y monto en descripción)
+            if (!empty($cita->equipamientos_detalle) && is_array($cita->equipamientos_detalle)) {
+                foreach ($cita->equipamientos_detalle as $index => $eq) {
+                    $nombreEq = trim($eq['nombre'] ?? '');
+                    if (empty($nombreEq)) {
+                        continue;
+                    }
+
+                    $cobrarCuenta = isset($eq['cobrar_cuenta']) ? (bool)$eq['cobrar_cuenta'] : ((float)($eq['precio'] ?? 0) > 0);
+                    $precioRef = isset($eq['precio_referencia']) ? (float)$eq['precio_referencia'] : (float)($eq['precio'] ?? 0);
+                    $precioCobro = $cobrarCuenta ? (float)($eq['precio'] ?? 0) : 0.00;
+
+                    if ($cobrarCuenta && $precioCobro > 0) {
+                        $descripcion = 'Uso de Equipamiento: ' . $nombreEq . ' (Cita #' . $cita->id . ')';
+                    } else {
+                        $montoDesc = number_format($precioRef > 0 ? $precioRef : $precioCobro, 2);
+                        $descripcion = 'Uso de Equipamiento: ' . $nombreEq . ' (Bs. ' . $montoDesc . ') (Cita #' . $cita->id . ')';
+                    }
+
+                    $slug = \Illuminate\Support\Str::slug($nombreEq);
+                    CuentaCobroService::agregarCargoConDeduplicacion(
+                        $cuenta->id,
+                        'equipo_medico',
+                        $descripcion,
+                        $precioCobro,
+                        1,
+                        'quirofano',
+                        CitaQuirurgica::class,
+                        'equipo_' . $cita->id . '_' . ($slug ?: $index)
+                    );
+                }
+            } elseif (!empty($cita->equipamiento_nombre)) {
+                $precioEq = (float) $cita->equipamiento_precio;
+                $descripcion = $precioEq > 0
+                    ? 'Uso de Equipamiento: ' . $cita->equipamiento_nombre . ' (Cita #' . $cita->id . ')'
+                    : 'Uso de Equipamiento: ' . $cita->equipamiento_nombre . ' (Bs. 0.00) (Cita #' . $cita->id . ')';
+
                 CuentaCobroService::agregarCargoConDeduplicacion(
                     $cuenta->id,
                     'equipo_medico',
-                    'Uso de Equipamiento: ' . $cita->equipamiento_nombre . ' (Cita #' . $cita->id . ')',
-                    (float) $cita->equipamiento_precio,
+                    $descripcion,
+                    $precioEq,
                     1,
                     'quirofano',
                     CitaQuirurgica::class,

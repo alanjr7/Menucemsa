@@ -237,56 +237,87 @@
             </div>
         </div>
 
-        <!-- SECCIÓN 4: EQUIPAMIENTO ESPECIAL Y PRECIO EN CATÁLOGO -->
+        <!-- SECCIÓN 4: EQUIPAMIENTO ESPECIAL Y COBRO A CUENTA -->
         <div class="bg-white border border-slate-300 shadow-xs rounded-[1px] p-5">
             <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2">
                 <div class="flex items-center gap-2">
                     <span class="w-6 h-6 bg-amber-600 text-white text-xs font-bold flex items-center justify-center rounded-full">4</span>
-                    <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Equipamiento Especial de Quirófano</h2>
-                </div>
-           </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <!-- Selector de Equipamiento -->
-                <div class="md:col-span-5">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Equipamiento Requerido
-                    </label>
-                    <select name="equipamiento_nombre" id="equipamiento_nombre" class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-amber-600 focus:outline-hidden rounded-[1px] cursor-pointer">
-                        <option value="">Ninguno</option>
-                        <option value="Arco en C (C-Arm)">Arco en C (C-Arm)</option>
-                        <option value="Torre de lámparas">Torre de lámparas</option>
-                    </select>
-                </div>
-
-                <!-- Input Decimal 12,2 -->
-                <div class="md:col-span-4">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Precio Equipamiento (Bs)
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="text-slate-500 font-bold text-xs font-mono">Bs</span>
-                        </div>
-                        <input type="text" inputmode="decimal" name="equipamiento_precio" id="equipamiento_precio"
-                               class="w-full pl-9 pr-3 py-2.5 text-sm font-bold font-mono bg-white border border-slate-300 text-slate-900 focus:border-amber-600 focus:outline-hidden rounded-[1px]"
-                               placeholder="0.00" value="0.00">
+                    <div>
+                        <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Equipamiento Especial de Quirófano</h2>
+                        <p class="text-xs text-slate-500 font-medium">Seleccione los equipos a ocupar en sala y defina si se cobrarán a la cuenta del paciente o se registrarán sin cobro adicional (Bs. 0.00 con monto de referencia en descripción).</p>
                     </div>
                 </div>
+            </div>
 
-                <!-- Botón Guardar/Editar Catálogo -->
-                <div class="md:col-span-3">
-                    <button type="button" id="btnGuardarPrecioEquipo" 
-                            class="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider border border-amber-700 transition-colors flex items-center justify-center gap-2 rounded-[1px]"
-                            title="Guardar o editar el precio de este equipo en el catálogo para futuras cirugías">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
-                        </svg>
-                        <span>Guardar en Catálogo</span>
-                    </button>
+            <!-- Listado dinámico de equipamientos del catálogo -->
+            <div id="equipamientos_lista" class="space-y-3 mb-4">
+                @if(isset($equipamientos) && count($equipamientos) > 0)
+                    @foreach($equipamientos as $eq)
+                        <div class="equipamiento-item border border-slate-200 bg-slate-50/50 hover:bg-slate-50 p-3.5 rounded-[1px] transition-all" 
+                             data-nombre="{{ $eq->nombre }}" 
+                             data-precio-base="{{ (float)$eq->precio_base }}"
+                             data-cobrar="si">
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                                <!-- Checkbox y Nombre -->
+                                <div class="md:col-span-5 flex items-center gap-3">
+                                    <input type="checkbox" id="check_eq_{{ $loop->index }}" class="eq-checkbox w-4 h-4 text-blue-700 border-slate-300 rounded-[1px] focus:ring-blue-600 cursor-pointer">
+                                    <label for="check_eq_{{ $loop->index }}" class="text-xs font-bold text-slate-800 uppercase tracking-wide cursor-pointer select-none">
+                                        {{ $eq->nombre }}
+                                    </label>
+                                </div>
+
+                                <!-- Input Decimal 12,2 (Precio) -->
+                                <div class="md:col-span-3">
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                            <span class="text-slate-500 font-bold text-xs font-mono">Bs</span>
+                                        </div>
+                                        <input type="text" inputmode="decimal" class="eq-precio w-full pl-8 pr-2.5 py-1.5 text-xs font-bold font-mono bg-slate-100 border border-slate-300 text-slate-500 focus:border-blue-700 focus:outline-hidden rounded-[1px]"
+                                               placeholder="0.00" value="{{ number_format((float)$eq->precio_base, 2, '.', '') }}" disabled>
+                                    </div>
+                                </div>
+
+                                <!-- Opciones de Cobro a Cuenta (SÍ / NO) -->
+                                <div class="md:col-span-4 flex items-center justify-start md:justify-end gap-2">
+                                    <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">¿Cobrar a cuenta?</span>
+                                    <div class="inline-flex border border-slate-300 bg-white p-0.5 rounded-[1px] shadow-xs">
+                                        <button type="button" class="btn-cobro-si px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all bg-emerald-600 text-white shadow-xs opacity-50 cursor-not-allowed" 
+                                                title="Cobrar este monto a la cuenta del paciente" disabled>
+                                            Sí
+                                        </button>
+                                        <button type="button" class="btn-cobro-no px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all text-slate-600 hover:text-slate-900 opacity-50 cursor-not-allowed" 
+                                                title="Registrar en la cuenta del paciente con precio Bs. 0.00 e indicar el monto en la descripción" disabled>
+                                            No
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Estado visual del equipo -->
+                            <div class="eq-status-badge mt-2 pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between text-[11px] gap-2">
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <p class="text-xs text-slate-500 italic">No hay equipamientos activos en el catálogo.</p>
+                @endif
+            </div>
+
+            <!-- Resumen Informativo de Equipos en Sala -->
+            <div class="bg-amber-50/70 border border-amber-200 p-3 rounded-[1px] flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-amber-950 uppercase tracking-wide">Equipos en Sala:</span>
+                    <span id="resumen_equipos_texto" class="font-medium text-amber-900">Ninguno seleccionado</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-amber-950 uppercase tracking-wide">Total Facturable Equipos:</span>
+                    <span id="resumen_equipos_total" class="font-mono font-bold text-amber-800 text-sm">Bs. 0.00</span>
                 </div>
             </div>
-          
+
+            <!-- Inputs ocultos para compatibilidad -->
+            <input type="hidden" name="equipamiento_nombre" id="equipamiento_nombre" value="">
+            <input type="hidden" name="equipamiento_precio" id="equipamiento_precio" value="0.00">
         </div>
 
         <!-- SECCIÓN 5: PROGRAMACIÓN HORARIA Y OBSERVACIONES -->
@@ -413,11 +444,11 @@ function showToast(message, type = 'success') {
 
     toastMsg.textContent = message;
     if (type === 'success') {
-        toastIcon.innerHTML = '✓';
+        toastIcon.innerHTML = '';
     } else if (type === 'error') {
         toastIcon.innerHTML = '✕';
     } else {
-        toastIcon.innerHTML = 'ℹ';
+        toastIcon.innerHTML = '';
     }
 
     toast.classList.remove('translate-y-[-100%]', 'opacity-0', 'pointer-events-none');
@@ -738,69 +769,169 @@ function limpiarCirujano() {
     document.getElementById('buscar_cirujano').focus();
 }
 
-// ----------------- EQUIPAMIENTOS Y PRECIO EDITABLE -----------------
+// ----------------- EQUIPAMIENTOS Y COBRO A CUENTA (SÍ / NO) -----------------
 function inicializarEquipamientos() {
-    const selectEquipo = document.getElementById('equipamiento_nombre');
-    const inputPrecio = document.getElementById('equipamiento_precio');
-    const btnGuardar = document.getElementById('btnGuardarPrecioEquipo');
+    const items = document.querySelectorAll('.equipamiento-item');
 
-    selectEquipo.addEventListener('change', function() {
-        const nombre = this.value;
-        if (!nombre) {
-            inputPrecio.value = '0.00';
-            return;
+    items.forEach(item => {
+        const checkbox = item.querySelector('.eq-checkbox');
+        const inputPrecio = item.querySelector('.eq-precio');
+        const btnCobroSi = item.querySelector('.btn-cobro-si');
+        const btnCobroNo = item.querySelector('.btn-cobro-no');
+        const statusBadge = item.querySelector('.eq-status-badge');
+        const nombre = item.dataset.nombre;
+
+        function actualizarEstadoItem() {
+            if (!checkbox.checked) {
+                inputPrecio.disabled = true;
+                inputPrecio.classList.add('bg-slate-100', 'text-slate-500');
+                inputPrecio.classList.remove('bg-white', 'text-slate-900');
+                
+                btnCobroSi.disabled = true;
+                btnCobroSi.className = 'btn-cobro-si px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all bg-emerald-600 text-white shadow-xs opacity-50 cursor-not-allowed';
+                
+                btnCobroNo.disabled = true;
+                btnCobroNo.className = 'btn-cobro-no px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all text-slate-600 hover:text-slate-900 opacity-50 cursor-not-allowed';
+
+                item.classList.remove('border-emerald-400', 'bg-emerald-50/20', 'border-blue-300', 'bg-blue-50/20');
+                item.classList.add('border-slate-200', 'bg-slate-50/50');
+
+                statusBadge.innerHTML = `<span class="text-slate-400 italic"> No seleccionado para esta cirugía</span>`;
+            } else {
+                inputPrecio.disabled = false;
+                inputPrecio.classList.remove('bg-slate-100', 'text-slate-500');
+                inputPrecio.classList.add('bg-white', 'text-slate-900');
+                
+                btnCobroSi.disabled = false;
+                btnCobroNo.disabled = false;
+
+                const esCobro = (item.dataset.cobrar !== 'no');
+                const precio = parseFloat(inputPrecio.value) || 0;
+
+                if (esCobro) {
+                    btnCobroSi.className = 'btn-cobro-si px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all bg-emerald-600 text-white shadow-xs cursor-pointer';
+                    btnCobroNo.className = 'btn-cobro-no px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all text-slate-600 hover:bg-slate-100 cursor-pointer';
+
+                    item.classList.remove('border-slate-200', 'bg-slate-50/50', 'border-blue-300', 'bg-blue-50/20');
+                    item.classList.add('border-emerald-400', 'bg-emerald-50/20');
+
+                    statusBadge.innerHTML = `
+                        <span class="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-[1px] border border-emerald-300">
+                            SE COBRARÁ A LA CUENTA DEL PACIENTE
+                        </span>
+                        <span class="text-emerald-950 font-mono font-bold">Bs. ${precio.toFixed(2)}</span>
+                    `;
+                } else {
+                    btnCobroSi.className = 'btn-cobro-si px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all text-slate-600 hover:bg-slate-100 cursor-pointer';
+                    btnCobroNo.className = 'btn-cobro-no px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-[1px] transition-all bg-slate-700 text-white shadow-xs cursor-pointer';
+
+                    item.classList.remove('border-slate-200', 'bg-slate-50/50', 'border-emerald-400', 'bg-emerald-50/20');
+                    item.classList.add('border-blue-300', 'bg-blue-50/20');
+
+                    statusBadge.innerHTML = `
+                        <span class="inline-flex items-center gap-1 font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded-[1px] border border-blue-300">
+                            REGISTRADO EN CUENTA SIN COSTO (BS. 0.00)
+                        </span>
+                        <span class="text-slate-600 font-mono font-semibold">Ref. Descripción: (Bs. ${precio.toFixed(2)}) · Cargo: Bs. 0.00</span>
+                    `;
+                }
+            }
+            actualizarResumenEquipamientos();
         }
 
-        if (equipamientosData[nombre] !== undefined) {
-            inputPrecio.value = parseFloat(equipamientosData[nombre]).toFixed(2);
-        } else {
-            inputPrecio.value = '0.00';
-        }
+        checkbox.addEventListener('change', function() {
+            actualizarEstadoItem();
+        });
+
+        btnCobroSi.addEventListener('click', function() {
+            if (!checkbox.checked) {
+                checkbox.checked = true;
+            }
+            item.dataset.cobrar = 'si';
+            actualizarEstadoItem();
+            showToast(`${nombre}: Se cobrará a la cuenta del paciente`, 'success');
+        });
+
+        btnCobroNo.addEventListener('click', function() {
+            if (!checkbox.checked) {
+                checkbox.checked = true;
+            }
+            item.dataset.cobrar = 'no';
+            actualizarEstadoItem();
+            showToast(`${nombre}: Registrado sin costo adicional (Bs. 0.00)`, 'info');
+        });
+
+        inputPrecio.addEventListener('keypress', function(e) {
+            const allowed = /[0-9.,]/;
+            if (!allowed.test(e.key)) e.preventDefault();
+        });
+
+        inputPrecio.addEventListener('input', function() {
+            let val = this.value.replace(',', '.').replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+            this.value = val;
+            actualizarEstadoItem();
+        });
+
+        inputPrecio.addEventListener('blur', function() {
+            const num = parseFloat(this.value);
+            this.value = !isNaN(num) ? num.toFixed(2) : '0.00';
+            actualizarEstadoItem();
+        });
     });
 
-    btnGuardar.addEventListener('click', async function() {
-        const nombre = selectEquipo.value;
-        if (!nombre) {
-            alert('Por favor selecciona primero un equipamiento (Arco en C o Torre de lámparas) para guardar su precio.');
-            return;
-        }
+    actualizarResumenEquipamientos();
+}
 
-        const precio = parseFloat(inputPrecio.value) || 0;
-        btnGuardar.disabled = true;
-        btnGuardar.classList.add('opacity-50');
+function actualizarResumenEquipamientos() {
+    const items = document.querySelectorAll('.equipamiento-item');
+    const seleccionados = [];
+    let totalFacturable = 0;
 
-        try {
-            const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            const res = await fetch('{{ route("quirofano.equipamiento.guardar-precio") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
-                },
-                body: JSON.stringify({ nombre: nombre, precio: precio })
+    items.forEach(item => {
+        const checkbox = item.querySelector('.eq-checkbox');
+        if (checkbox && checkbox.checked) {
+            const nombre = item.dataset.nombre;
+            const precioVal = parseFloat(item.querySelector('.eq-precio').value) || 0;
+            const esCobro = (item.dataset.cobrar !== 'no');
+
+            seleccionados.push({
+                nombre: nombre,
+                precio: esCobro ? precioVal : 0.00,
+                precio_referencia: precioVal,
+                cobrar_cuenta: esCobro,
+                en_paquete: !esCobro
             });
 
-            const data = await res.json();
-            if (data.success) {
-                equipamientosData[nombre] = precio;
-                showToast(`Precio de "${nombre}" actualizado a Bs. ${precio.toFixed(2)}`, 'success');
-            } else {
-                alert(data.message || 'Error al guardar precio');
+            if (esCobro) {
+                totalFacturable += precioVal;
             }
-        } catch (e) {
-            console.error(e);
-            alert('Error al guardar precio: ' + e.message);
-        } finally {
-            btnGuardar.disabled = false;
-            btnGuardar.classList.remove('opacity-50');
         }
     });
+
+    const textoResumen = document.getElementById('resumen_equipos_texto');
+    const totalResumen = document.getElementById('resumen_equipos_total');
+    const hiddenNombre = document.getElementById('equipamiento_nombre');
+    const hiddenPrecio = document.getElementById('equipamiento_precio');
+
+    if (seleccionados.length === 0) {
+        if (textoResumen) textoResumen.textContent = 'Ninguno seleccionado';
+        if (totalResumen) totalResumen.textContent = 'Bs. 0.00';
+        if (hiddenNombre) hiddenNombre.value = '';
+        if (hiddenPrecio) hiddenPrecio.value = '0.00';
+    } else {
+        const resumenNombres = seleccionados.map(s => s.nombre + (s.cobrar_cuenta ? ` (Bs. ${s.precio.toFixed(2)})` : ` (Sin cobro - Ref: Bs. ${s.precio_referencia.toFixed(2)})`));
+        if (textoResumen) textoResumen.textContent = `${seleccionados.length} en sala: ${resumenNombres.join(', ')}`;
+        if (totalResumen) totalResumen.textContent = `Bs. ${totalFacturable.toFixed(2)}`;
+        if (hiddenNombre) hiddenNombre.value = resumenNombres.join(', ');
+        if (hiddenPrecio) hiddenPrecio.value = totalFacturable.toFixed(2);
+    }
 }
 
 // ----------------- FORMATEO DE MONEDA Y TIPO CIRUGÍA -----------------
 function inicializarFormateoMonedas() {
-    const camposDecimales = ['costo_base', 'equipamiento_precio'];
+    const camposDecimales = ['costo_base'];
 
     camposDecimales.forEach(id => {
         const el = document.getElementById(id);
@@ -872,6 +1003,26 @@ function inicializarSubmit() {
 
         const formData = new FormData(form);
         const payload = Object.fromEntries(formData.entries());
+
+        // Recolectar lista estructurada de equipamientos seleccionados
+        const equipamientosSeleccionados = [];
+        document.querySelectorAll('.equipamiento-item').forEach(item => {
+            const chk = item.querySelector('.eq-checkbox');
+            if (chk && chk.checked) {
+                const nombre = item.dataset.nombre;
+                const precioVal = parseFloat(item.querySelector('.eq-precio').value) || 0;
+                const esCobro = (item.dataset.cobrar !== 'no');
+
+                equipamientosSeleccionados.push({
+                    nombre: nombre,
+                    precio: esCobro ? precioVal : 0.00,
+                    precio_referencia: precioVal,
+                    cobrar_cuenta: esCobro,
+                    en_paquete: !esCobro
+                });
+            }
+        });
+        payload.equipamientos = equipamientosSeleccionados;
 
         btnSubmit.disabled = true;
         btnSubmit.innerHTML = `
