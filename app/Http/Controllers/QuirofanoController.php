@@ -17,10 +17,12 @@ use App\Models\Medico;
 use App\Models\Paciente;
 use App\Models\Procedimiento;
 use App\Models\Quirofano;
+use App\Models\QuirofanoEquipamiento;
 use App\Models\Registro;
 use App\Models\TipoCirugia;
 use App\Models\User;
 use App\Services\CuentaCobroService;
+use App\Services\EpisodioService;
 use App\Services\NotificationService;
 use App\Traits\AuditLoggable;
 use Carbon\Carbon;
@@ -28,7 +30,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -259,7 +263,139 @@ class QuirofanoController extends Controller
     public function create(): View
     {
         $tiposCirugia = TipoCirugia::activos()->get();
-        return view('quirofano.cita-create', compact('tiposCirugia'));
+        $equipamientos = QuirofanoEquipamiento::activos()->get();
+        return view('quirofano.cita-create', compact('tiposCirugia', 'equipamientos'));
+    }
+
+    public function quickCreatePaciente(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:120',
+            ]);
+
+            DB::beginTransaction();
+
+            // Crear paciente con código temporal e internación
+            $paciente = Paciente::crearTemporal([
+                'nombre' => trim($validated['nombre']),
+            ]);
+
+            // Abrir episodio de internación
+            $episodio = EpisodioService::abrirEpisodio($paciente->id, 'internacion', auth()->id() ?? 1);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Paciente registrado exitosamente como internación',
+                'paciente' => [
+                    'id' => $paciente->id,
+                    'nombre' => $paciente->nombre,
+                    'temp_code' => $paciente->temp_code,
+                    'ci' => null,
+                    'episodio_id' => $episodio->id,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error en quickCreatePaciente: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear paciente: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function quickCreateCirujano(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:255',
+            ]);
+
+            $nombre = trim($validated['nombre']);
+            $ciTemporal = (int) (time() + random_int(1000, 9999));
+
+            DB::beginTransaction();
+
+            $user = User::create([
+                'name' => $nombre,
+                'email' => 'cirujano.' . Str::slug($nombre) . '.' . time() . '@hospital.local',
+                'password' => Hash::make(Str::random(20)),
+                'role' => 'cirujano',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]);
+
+            $medico = Medico::create([
+                'user_id' => $user->id,
+                'ci' => $ciTemporal,
+                'estado' => 'activo',
+                'telefono' => null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cirujano registrado exitosamente',
+                'medico' => [
+                    'ci' => $medico->ci,
+                    'nombre' => $user->name,
+                    'especialidad' => 'Cirugía General',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error en quickCreateCirujano: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear cirujano: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getEquipamientos(): JsonResponse
+    {
+        try {
+            $equipamientos = QuirofanoEquipamiento::activos()->get();
+            return response()->json([
+                'success' => true,
+                'equipamientos' => $equipamientos,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener equipamientos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function guardarPrecioEquipamiento(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:150',
+                'precio' => 'required|numeric|min:0',
+            ]);
+
+            $equipo = QuirofanoEquipamiento::updateOrCreate(
+                ['nombre' => trim($validated['nombre'])],
+                ['precio_base' => $validated['precio'], 'activo' => true]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Precio de equipamiento actualizado en el catálogo',
+                'equipamiento' => $equipo,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar precio de equipamiento: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function getQuirofanosDisponibles(): JsonResponse
@@ -329,33 +465,43 @@ class QuirofanoController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            // Validación básica primero
+            // Validación
             $validated = $request->validate([
                 'paciente_id' => 'required|integer|exists:pacientes,id',
                 'ci_cirujano' => 'required|exists:medicos,ci',
                 'nro_quirofano' => 'required|exists:quirofanos,id',
                 'tipo_cirugia' => 'required|in:menor,mediana,mayor,ambulatoria',
-                // La fecha se guarda tal cual como dato: se permite cualquier horario
-                // (pasado o futuro), sin validar disponibilidad del quirófano.
+                'tipo_anestesia' => 'nullable|string|max:100',
                 'fecha' => 'required|date',
                 'hora_inicio_estimada' => 'required|date_format:H:i',
                 'costo_base' => 'required|numeric|decimal:0,2|min:0',
-                'ci_instrumentista' => 'nullable|integer',
-                'ci_anestesiologo' => 'nullable|integer',
+                'equipamiento_nombre' => 'nullable|string|max:150',
+                'equipamiento_precio' => 'nullable|numeric|min:0',
+                'nombre_instrumentista' => 'nullable|string|max:255',
+                'nombre_anestesiologo' => 'nullable|string|max:255',
+                'descripcion_cirugia' => 'nullable|string',
+                'observaciones' => 'nullable|string',
             ]);
 
-            // Crear cita sin validación de disponibilidad por ahora
+            // Asegurar que el paciente tenga un episodio de internación abierto
+            $episodio = EpisodioService::abrirEpisodio($validated['paciente_id'], 'internacion', auth()->id() ?? 1);
+
+            // Crear cita
             $cita = new CitaQuirurgica;
             $cita->paciente_id = $validated['paciente_id'];
+            $cita->episodio_id = $episodio->id;
             $cita->ci_cirujano = $validated['ci_cirujano'];
             $cita->quirofano_id = $validated['nro_quirofano'];
             $cita->tipo_cirugia = $validated['tipo_cirugia'];
+            $cita->tipo_anestesia = $validated['tipo_anestesia'] ?? null;
             $cita->fecha = $validated['fecha'];
             $cita->hora_inicio_estimada = $validated['hora_inicio_estimada'];
 
-            // Campos opcionales
-            $cita->ci_instrumentista = $validated['ci_instrumentista'] ?? null;
-            $cita->ci_anestesiologo = $validated['ci_anestesiologo'] ?? null;
+            // Equipamiento
+            $cita->equipamiento_nombre = $validated['equipamiento_nombre'] ?? null;
+            $cita->equipamiento_precio = !empty($validated['equipamiento_precio']) ? (float)$validated['equipamiento_precio'] : 0.00;
+
+            // Campos de personal (sin requerir CI)
             $cita->nombre_instrumentista = $request->input('nombre_instrumentista');
             $cita->nombre_anestesiologo = $request->input('nombre_anestesiologo');
             $cita->descripcion_cirugia = $request->input('descripcion_cirugia');
@@ -363,27 +509,10 @@ class QuirofanoController extends Controller
 
             // Establecer valores por defecto
             $cita->estado = 'programada';
-            $cita->user_registro_id = auth()->id();
+            $cita->user_registro_id = auth()->id() ?? 1;
 
-            // Usar el precio ingresado por el administrador
+            // Usar el precio ingresado
             $cita->costo_base = $validated['costo_base'];
-
-            // Validar disponibilidad del quirófano (temporalmente desactivada para pruebas)
-            /*
-            try {
-                if ($cita->validarDisponibilidadQuirofano()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'El quirófano no está disponible en este horario. Ya existe una cirugía programada.'
-                    ], 422);
-                }
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error al validar disponibilidad: ' . $e->getMessage()
-                ], 500);
-            }
-            */
 
             // Guardar cita y crear registro en caja dentro de una transacción
             DB::beginTransaction();
@@ -409,8 +538,10 @@ class QuirofanoController extends Controller
                     $cita
                 );
 
-                NotificationService::notify($cirujano->user_id, 'cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Fecha: {$cita->fecha} {$cita->hora_inicio_estimada}", route('quirofano.index'), ['cita_id' => $cita->id]);
-                NotificationService::notifyAdmins('cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Cirujano: {$cirujano->user->name}", route('quirofano.index'));
+                if ($cirujano && $cirujano->user_id) {
+                    NotificationService::notify($cirujano->user_id, 'cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Fecha: {$cita->fecha} {$cita->hora_inicio_estimada}", route('quirofano.index'), ['cita_id' => $cita->id]);
+                }
+                NotificationService::notifyAdmins('cirugia', 'Cirugía Programada', "Paciente: {$paciente->nombre} - Cirujano: ".($cirujano->user->name ?? 'Cirujano'), route('quirofano.index'));
 
                 return response()->json([
                     'success' => true,
@@ -431,7 +562,6 @@ class QuirofanoController extends Controller
                 'request_data' => $request->all(),
             ]);
 
-            // Also return the errors in a more visible way for debugging
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación - '.implode(', ', array_keys($e->errors())),
@@ -1286,7 +1416,7 @@ class QuirofanoController extends Controller
             // Obtener o crear la cuenta maestra del paciente (nunca duplica)
             $cuenta = CuentaCobroService::obtenerOCrearCuentaMaestra(
                 $cita->paciente_id,
-                'quirofano'
+                'internacion'
             );
 
             // Agregar el cargo de cirugía con deduplicación automática
@@ -1298,8 +1428,22 @@ class QuirofanoController extends Controller
                 1,
                 'quirofano',
                 CitaQuirurgica::class,
-                $cita->id
+                (string)$cita->id
             );
+
+            // Agregar cargo de equipamiento si aplica
+            if (!empty($cita->equipamiento_nombre) && (float)$cita->equipamiento_precio > 0) {
+                CuentaCobroService::agregarCargoConDeduplicacion(
+                    $cuenta->id,
+                    'equipo_medico',
+                    'Uso de Equipamiento: ' . $cita->equipamiento_nombre . ' (Cita #' . $cita->id . ')',
+                    (float) $cita->equipamiento_precio,
+                    1,
+                    'quirofano',
+                    CitaQuirurgica::class,
+                    'equipo_' . $cita->id
+                );
+            }
 
             return $cuenta;
 

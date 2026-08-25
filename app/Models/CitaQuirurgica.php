@@ -27,8 +27,11 @@ class CitaQuirurgica extends Model
         'nombre_anestesiologo',
         'tipo_cirugia',
         'tipo_final',
+        'tipo_anestesia',
         'descripcion_cirugia',
         'quirofano_id',
+        'equipamiento_nombre',
+        'equipamiento_precio',
         'estado',
         'timestamp_inicio',
         'timestamp_fin',
@@ -50,6 +53,7 @@ class CitaQuirurgica extends Model
         'costo_base' => 'decimal:2',
         'costo_final' => 'decimal:2',
         'costo_minuto_extra' => 'decimal:2',
+        'equipamiento_precio' => 'decimal:2',
     ];
 
     /**

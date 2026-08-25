@@ -156,22 +156,28 @@
                 <label class="text-sm font-medium text-gray-500">Cirujano</label>
                 <p class="font-semibold text-gray-900">{{ optional($cita->cirujano->user)->name ?? 'N/A' }}</p>
             </div>
+            @if($cita->tipo_anestesia)
+            <div>
+                <label class="text-sm font-medium text-gray-500">Tipo de Anestesia</label>
+                <p class="font-semibold text-gray-900">{{ $cita->tipo_anestesia }}</p>
+            </div>
+            @endif
+            @if($cita->equipamiento_nombre)
+            <div>
+                <label class="text-sm font-medium text-gray-500">Equipamiento</label>
+                <p class="font-semibold text-gray-900">{{ $cita->equipamiento_nombre }} @if($cita->equipamiento_precio > 0)<span class="text-xs text-gray-500">(Bs. {{ number_format($cita->equipamiento_precio, 2) }})</span>@endif</p>
+            </div>
+            @endif
             @if($cita->nombre_instrumentista)
             <div>
                 <label class="text-sm font-medium text-gray-500">Instrumentista</label>
                 <p class="font-semibold text-gray-900">{{ $cita->nombre_instrumentista }}</p>
-                @if($cita->ci_instrumentista)
-                <p class="text-xs text-gray-500">CI: {{ $cita->ci_instrumentista }}</p>
-                @endif
             </div>
             @endif
             @if($cita->nombre_anestesiologo)
             <div>
                 <label class="text-sm font-medium text-gray-500">Anestesiólogo</label>
                 <p class="font-semibold text-gray-900">{{ $cita->nombre_anestesiologo }}</p>
-                @if($cita->ci_anestesiologo)
-                <p class="text-xs text-gray-500">CI: {{ $cita->ci_anestesiologo }}</p>
-                @endif
             </div>
             @endif
         </div>

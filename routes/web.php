@@ -149,6 +149,10 @@ Route::middleware(['auth', 'ip.access'])->group(function () {
         Route::get('/api/medico/{ci}', [QuirofanoController::class, 'getMedico'])->name('api.medico');
         Route::get('/api/pacientes-lista', [QuirofanoController::class, 'getListaPacientes'])->name('api.pacientes-lista');
         Route::get('/api/medicos-lista', [QuirofanoController::class, 'getListaMedicos'])->name('api.medicos-lista');
+        Route::post('/quirofano/api/quick-paciente', [QuirofanoController::class, 'quickCreatePaciente'])->name('quirofano.quick-paciente');
+        Route::post('/quirofano/api/quick-cirujano', [QuirofanoController::class, 'quickCreateCirujano'])->name('quirofano.quick-cirujano');
+        Route::get('/quirofano/api/equipamientos', [QuirofanoController::class, 'getEquipamientos'])->name('quirofano.api.equipamientos');
+        Route::post('/quirofano/api/equipamiento/guardar-precio', [QuirofanoController::class, 'guardarPrecioEquipamiento'])->name('quirofano.equipamiento.guardar-precio');
 
 
         // Rutas con parámetros {cita} al FINAL

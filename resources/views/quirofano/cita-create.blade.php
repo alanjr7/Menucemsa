@@ -1,552 +1,898 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="w-full p-6 bg-gray-50/50 min-h-screen">
+<div class="w-full p-4 sm:p-6 bg-slate-100 min-h-screen text-slate-800">
 
-    <!-- Page Header -->
-    <div class="flex justify-between items-center mb-8">
+    <!-- Page Header (Estilo Ejecutivo Clínico con 1px de redondeo) -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b-2 border-slate-300 gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Nueva Cita Quirúrgica</h1>
-            <p class="text-sm text-gray-500">Programar una nueva cita quirúrgica</p>
+            <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 bg-blue-900 text-white text-xs font-bold uppercase tracking-wider rounded-[1px]">Quirófano</span>
+                 </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1">PROGRAMACIÓN DE CIRUGIAS                                                                                                         </h1>
         </div>
-        <a href="{{ route('quirofano.index') }}" class="flex items-center px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 font-medium transition-colors">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="{{ route('quirofano.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider transition-colors shadow-xs rounded-[1px]">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
-            Volver
+            Volver al Panel
         </a>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
-        <form id="citaForm" class="p-6">
-            @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                <!-- Información del Paciente -->
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
-                            Información del Paciente
-                        </h3>
-                        
-                        <div class="space-y-4">
-                            <!-- Buscador de Paciente -->
-                            <div class="relative">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Buscar Paciente *</label>
-                                <div class="flex gap-2">
-                                    <div class="relative flex-1">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                            </svg>
-                                        </div>
-                                        <input type="text" id="buscar_paciente" 
-                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                               placeholder="Escriba nombre o CI del paciente..." autocomplete="off">
-                                        <!-- Dropdown de resultados -->
-                                        <div id="resultados_paciente" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"></div>
-                                    </div>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Escriba al menos 3 caracteres para buscar</p>
-                            </div>
-
-                            <!-- CI del Paciente (oculto pero se envía) -->
-                            <input type="hidden" name="paciente_id" id="paciente_id">
-
-                            <!-- Info del paciente seleccionado -->
-                            <div id="info_paciente" class="hidden bg-blue-50 rounded-lg p-4 border border-blue-100">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600">Paciente seleccionado:</p>
-                                        <p id="nombre_paciente" class="font-semibold text-gray-900"></p>
-                                        <p id="ci_paciente_display" class="text-xs text-gray-500"></p>
-                                    </div>
-                                    <button type="button" onclick="limpiarPaciente()" class="ml-auto text-gray-400 hover:text-red-500">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información Quirúrgica -->
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                            </svg>
-                            Información Quirúrgica
-                        </h3>
-                        
-                        <div class="space-y-4">
-                            <!-- Buscador de Cirujano -->
-                            <div class="relative">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Buscar Cirujano *</label>
-                                <div class="flex gap-2">
-                                    <div class="relative flex-1">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                            </svg>
-                                        </div>
-                                        <input type="text" id="buscar_cirujano" 
-                                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                               placeholder="Escriba nombre o CI del cirujano..." autocomplete="off">
-                                        <!-- Dropdown de resultados -->
-                                        <div id="resultados_cirujano" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"></div>
-                                    </div>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Escriba al menos 3 caracteres para buscar</p>
-                            </div>
-
-                            <!-- CI del Cirujano (oculto) -->
-                            <input type="hidden" name="ci_cirujano" id="ci_cirujano">
-
-                            <!-- Info del cirujano seleccionado -->
-                            <div id="info_cirujano" class="hidden bg-purple-50 rounded-lg p-4 border border-purple-100">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600">Cirujano seleccionado:</p>
-                                        <p id="nombre_cirujano" class="font-semibold text-gray-900"></p>
-                                        <p id="ci_cirujano_display" class="text-xs text-gray-500"></p>
-                                    </div>
-                                    <button type="button" onclick="limpiarCirujano()" class="ml-auto text-gray-400 hover:text-red-500">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Número de Quirófano *</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                    </div>
-                                    <select name="nro_quirofano" id="nro_quirofano" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer" required>
-                                        <option value="">Seleccionar quirófano...</option>
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Cirugía *</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                    </div>
-                                    <select name="tipo_cirugia" id="tipo_cirugia" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer" required>
-                                        <option value="">Seleccionar tipo...</option>
-                                        @foreach($tiposCirugia as $tipo)
-                                            <option value="{{ $tipo->nombre }}" data-duracion="{{ $tipo->duracion_minutos }}" data-costo="{{ $tipo->costo_base }}" class="capitalize">
-                                                {{ ucfirst($tipo->nombre) }} - {{ $tipo->duracion_formateada }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Precio de la Cirugía -->
-                            <div class="relative">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Precio de la Cirugía (Bs) *</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 font-semibold">Bs</span>
-                                    </div>
-                                    <input type="text" inputmode="decimal" name="costo_base" id="costo_base"
-                                           class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                           placeholder="0.00" required>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Este monto reemplaza el costo base del tipo de cirugía y se reflejará en caja</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fecha y Hora -->
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Fecha y Hora</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de la Cirugía *</label>
-                                <input type="date" name="fecha" id="fecha" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Hora de Inicio Estimada *</label>
-                                <input type="time" name="hora_inicio_estimada" id="hora_inicio_estimada" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información Adicional -->
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Adicional</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Instrumentista</label>
-                                <input type="text" name="nombre_instrumentista" id="nombre_instrumentista" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre completo del instrumentista">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">CI del Instrumentista <span class="text-gray-400 font-normal">(opcional)</span></label>
-                                <input type="text" inputmode="numeric" name="ci_instrumentista" id="ci_instrumentista" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Número de CI">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Anestesiólogo</label>
-                                <input type="text" name="nombre_anestesiologo" id="nombre_anestesiologo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre completo del anestesiólogo">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">CI del Anestesiólogo <span class="text-gray-400 font-normal">(opcional)</span></label>
-                                <input type="text" inputmode="numeric" name="ci_anestesiologo" id="ci_anestesiologo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Número de CI">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Descripción de la Cirugía</label>
-                                <textarea name="descripcion_cirugia" id="descripcion_cirugia" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Descripción detallada del procedimiento"></textarea>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
-                                <textarea name="observaciones" id="observaciones" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Observaciones adicionales"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Botones de Acción -->
-            <div class="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
-                <a href="{{ route('quirofano.index') }}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Cancelar
-                </a>
-                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
-                    Programar Cita
-                </button>
-            </div>
-        </form>
+    <!-- Notification Toast (1px de redondeo) -->
+    <div id="toastNotification" class="fixed top-5 right-5 z-50 transform transition-all duration-200 translate-y-[-100%] opacity-0 pointer-events-none rounded-[1px]">
+        <div class="bg-slate-900 text-white px-5 py-3 border-l-4 border-emerald-500 shadow-2xl flex items-center gap-3 rounded-[1px]">
+            <span id="toastIcon" class="text-base"></span>
+            <span id="toastMsg" class="text-xs font-bold tracking-wide uppercase"></span>
+        </div>
     </div>
+
+    <form id="citaForm" class="space-y-6">
+        @csrf
+
+        <!-- SECCIÓN 1: DATOS DEL PACIENTE (INTERNACIÓN) -->
+        <div class="bg-white border border-slate-300 shadow-xs rounded-[1px] p-5">
+            <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 bg-blue-700 text-white text-xs font-bold flex items-center justify-center rounded-full">1</span>
+                    <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Datos del Paciente</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Buscador de Paciente -->
+                <div class="relative" id="contenedor_buscar_paciente">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Buscar o Registrar Paciente <span class="text-red-600">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" id="buscar_paciente" 
+                               class="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-700 focus:outline-hidden rounded-[1px]" 
+                               placeholder="Escriba nombre o documento para buscar, o tipee para agregar nuevo..." autocomplete="off">
+                    </div>
+                    
+                    <!-- Dropdown de resultados de pacientes -->
+                    <div id="resultados_paciente" class="hidden absolute z-50 w-full mt-1 bg-white border-2 border-slate-400 shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-200 rounded-[1px]"></div>
+                </div>
+
+                <!-- Input oculto para paciente_id -->
+                <input type="hidden" name="paciente_id" id="paciente_id" required>
+
+                <!-- Tarjeta de Paciente Seleccionado -->
+                <div id="info_paciente" class="hidden bg-slate-50 border border-slate-300 p-4 rounded-[1px]">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-9 h-9 bg-blue-700 text-white flex items-center justify-center font-bold text-sm rounded-[1px]">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <p id="nombre_paciente" class="font-black text-slate-900 text-sm uppercase tracking-wide"></p>
+                                    <span class="px-2 py-0.5 bg-blue-800 text-white text-[10px] font-bold uppercase rounded-[1px]">Internación</span>
+                                </div>
+                                <p id="ci_paciente_display" class="text-xs text-slate-600 font-mono mt-0.5"></p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="limpiarPaciente()" class="px-3 py-1.5 bg-white border border-slate-300 text-red-700 hover:bg-red-50 text-xs font-bold uppercase tracking-wider transition-colors rounded-[1px]">
+                            Cambiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: EQUIPO MÉDICO QUIRÚRGICO -->
+        <div class="bg-white border border-slate-300 shadow-xs rounded-[1px] p-5">
+            <div class="border-b border-slate-200 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 bg-purple-700 text-white text-xs font-bold flex items-center justify-center rounded-full">2</span>
+                    <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Equipo Médico Quirúrgico</h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Cirujano Principal -->
+                <div class="space-y-3">
+                    <div class="relative" id="contenedor_buscar_cirujano">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Cirujano Principal <span class="text-red-600">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <input type="text" id="buscar_cirujano" 
+                                   class="w-full pl-9 pr-4 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-purple-700 focus:outline-hidden rounded-[1px]" 
+                                   placeholder="Escriba nombre de cirujano para buscar o crear..." autocomplete="off">
+                        </div>
+                        
+                        <!-- Dropdown de resultados de cirujanos -->
+                        <div id="resultados_cirujano" class="hidden absolute z-50 w-full mt-1 bg-white border-2 border-slate-400 shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-200 rounded-[1px]"></div>
+                    </div>
+
+                    <!-- Input oculto para ci_cirujano -->
+                    <input type="hidden" name="ci_cirujano" id="ci_cirujano" required>
+
+                    <!-- Tarjeta de Cirujano Seleccionado -->
+                    <div id="info_cirujano" class="hidden bg-slate-50 border border-slate-300 p-4 rounded-[1px]">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-9 h-9 bg-purple-700 text-white flex items-center justify-center font-bold text-sm rounded-[1px]">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p id="nombre_cirujano" class="font-black text-slate-900 text-sm uppercase tracking-wide"></p>
+                                    <p id="ci_cirujano_display" class="text-xs text-slate-600 font-mono mt-0.5"></p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="limpiarCirujano()" class="px-3 py-1.5 bg-white border border-slate-300 text-red-700 hover:bg-red-50 text-xs font-bold uppercase tracking-wider transition-colors rounded-[1px]">
+                                Cambiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Asistente (Sin CIs obligatorios) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Nombre del Instrumentista
+                        </label>
+                        <input type="text" name="nombre_instrumentista" id="nombre_instrumentista" 
+                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-slate-700 focus:outline-hidden rounded-[1px]" 
+                               placeholder="Nombre completo">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Nombre del Anestesiólogo
+                        </label>
+                        <input type="text" name="nombre_anestesiologo" id="nombre_anestesiologo" 
+                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-slate-700 focus:outline-hidden rounded-[1px]" 
+                               placeholder="Nombre completo">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: PROCEDIMIENTO, QUIRÓFANO Y ANESTESIA -->
+        <div class="bg-white border border-slate-300 shadow-xs rounded-[1px] p-5">
+            <div class="border-b border-slate-200 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 bg-emerald-700 text-white text-xs font-bold flex items-center justify-center rounded-full">3</span>
+                    <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Procedimiento y Anestesia</h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Quirófano -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Quirófano <span class="text-red-600">*</span>
+                    </label>
+                    <select name="nro_quirofano" id="nro_quirofano" class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-emerald-700 focus:outline-hidden rounded-[1px] cursor-pointer" required>
+                        <option value="">Cargando quirófanos...</option>
+                    </select>
+                </div>
+
+                <!-- Tipo de Cirugía -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Tipo de Cirugía <span class="text-red-600">*</span>
+                    </label>
+                    <select name="tipo_cirugia" id="tipo_cirugia" class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-emerald-700 focus:outline-hidden rounded-[1px] cursor-pointer" required>
+                        <option value="">Seleccionar tipo...</option>
+                        @foreach($tiposCirugia as $tipo)
+                            <option value="{{ $tipo->nombre }}" data-duracion="{{ $tipo->duracion_minutos }}" data-costo="{{ $tipo->costo_base }}" class="capitalize">
+                                {{ ucfirst($tipo->nombre) }} - {{ $tipo->duracion_formateada }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Tipo de Anestesia -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Tipo de Anestesia <span class="text-red-600">*</span>
+                    </label>
+                    <select name="tipo_anestesia" id="tipo_anestesia" class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-emerald-700 focus:outline-hidden rounded-[1px] cursor-pointer" required>
+                        <option value="">Seleccionar anestesia...</option>
+                        <option value="Anestesia general">Anestesia general</option>
+                        <option value="Anestesia local + sedación">Anestesia local + sedación</option>
+                        <option value="Anestesia epidural o raquídea">Anestesia epidural o raquídea</option>
+                    </select>
+                </div>
+
+                <!-- Precio Base Cirugía -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Precio Cirugía (Bs) <span class="text-red-600">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-slate-500 font-bold text-xs font-mono">Bs</span>
+                        </div>
+                        <input type="text" inputmode="decimal" name="costo_base" id="costo_base"
+                               class="w-full pl-9 pr-3 py-2.5 text-sm font-bold font-mono bg-white border border-slate-300 text-slate-900 focus:border-emerald-700 focus:outline-hidden rounded-[1px]"
+                               placeholder="0.00" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: EQUIPAMIENTO ESPECIAL Y PRECIO EN CATÁLOGO -->
+        <div class="bg-white border border-slate-300 shadow-xs rounded-[1px] p-5">
+            <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 bg-amber-600 text-white text-xs font-bold flex items-center justify-center rounded-full">4</span>
+                    <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Equipamiento Especial de Quirófano</h2>
+                </div>
+           </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <!-- Selector de Equipamiento -->
+                <div class="md:col-span-5">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Equipamiento Requerido
+                    </label>
+                    <select name="equipamiento_nombre" id="equipamiento_nombre" class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-amber-600 focus:outline-hidden rounded-[1px] cursor-pointer">
+                        <option value="">Ninguno</option>
+                        <option value="Arco en C (C-Arm)">Arco en C (C-Arm)</option>
+                        <option value="Torre de lámparas">Torre de lámparas</option>
+                    </select>
+                </div>
+
+                <!-- Input Decimal 12,2 -->
+                <div class="md:col-span-4">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Precio Equipamiento (Bs)
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-slate-500 font-bold text-xs font-mono">Bs</span>
+                        </div>
+                        <input type="text" inputmode="decimal" name="equipamiento_precio" id="equipamiento_precio"
+                               class="w-full pl-9 pr-3 py-2.5 text-sm font-bold font-mono bg-white border border-slate-300 text-slate-900 focus:border-amber-600 focus:outline-hidden rounded-[1px]"
+                               placeholder="0.00" value="0.00">
+                    </div>
+                </div>
+
+                <!-- Botón Guardar/Editar Catálogo -->
+                <div class="md:col-span-3">
+                    <button type="button" id="btnGuardarPrecioEquipo" 
+                            class="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider border border-amber-700 transition-colors flex items-center justify-center gap-2 rounded-[1px]"
+                            title="Guardar o editar el precio de este equipo en el catálogo para futuras cirugías">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                        </svg>
+                        <span>Guardar en Catálogo</span>
+                    </button>
+                </div>
+            </div>
+          
+        </div>
+
+        <!-- SECCIÓN 5: PROGRAMACIÓN HORARIA Y OBSERVACIONES -->
+        <div class="bg-white border border-slate-300 shadow-xs rounded-[1px] p-5">
+            <div class="border-b border-slate-200 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 bg-indigo-700 text-white text-xs font-bold flex items-center justify-center rounded-full">5</span>
+                    <h2 class="text-sm font-black text-slate-900 uppercase tracking-wide">Agenda Temporal y Observaciones Clínicas</h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Fecha y Hora -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Fecha de Intervención <span class="text-red-600">*</span>
+                        </label>
+                        <input type="date" name="fecha" id="fecha" 
+                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-indigo-700 focus:outline-hidden rounded-[1px]" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Hora Estimada de Inicio <span class="text-red-600">*</span>
+                        </label>
+                        <input type="time" name="hora_inicio_estimada" id="hora_inicio_estimada" 
+                               class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 text-slate-900 focus:border-indigo-700 focus:outline-hidden rounded-[1px]" required>
+                    </div>
+                </div>
+
+                <!-- Descripción y Observaciones -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Descripción del Procedimiento
+                        </label>
+                        <textarea name="descripcion_cirugia" id="descripcion_cirugia" rows="2" 
+                                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 text-slate-900 focus:border-indigo-700 focus:outline-hidden rounded-[1px]" 
+                                  ></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Observaciones Generales
+                        </label>
+                        <textarea name="observaciones" id="observaciones" rows="2" 
+                                  class="w-full px-3 py-2 text-sm bg-white border border-slate-300 text-slate-900 focus:border-indigo-700 focus:outline-hidden rounded-[1px]" 
+                                 ></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <a href="{{ route('quirofano.index') }}" class="px-6 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold uppercase tracking-wider transition-colors rounded-[1px] shadow-xs">
+                Cancelar
+            </a>
+            <button type="submit" id="btnSubmitForm" class="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider border border-blue-600 transition-colors flex items-center gap-2 rounded-[1px] shadow-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                </svg>
+                <span>Programar Cita Quirúrgica</span>
+            </button>
+        </div>
+    </form>
 </div>
 
 <script>
-// Variables globales para almacenar los datos
+// Estado global
 let pacientesData = [];
 let medicosData = [];
+let equipamientosData = {};
 
-// Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar fecha por defecto hoy
+    const today = new Date().toISOString().split('T')[0];
+    const fechaInput = document.getElementById('fecha');
+    if (fechaInput && !fechaInput.value) {
+        fechaInput.value = today;
+    }
+
     cargarPacientes();
     cargarMedicos();
-    inicializarBuscadores();
-    
-    const form = document.getElementById('citaForm');
-    
-    // Cargar quirófanos disponibles
+    cargarEquipamientos();
+    cargarQuirofanos();
+    inicializarBuscadorPacientes();
+    inicializarBuscadorCirujanos();
+    inicializarEquipamientos();
+    inicializarFormateoMonedas();
+    inicializarSubmit();
+});
+
+// Toast notification helper (1px de redondeo)
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toastNotification');
+    const toastMsg = document.getElementById('toastMsg');
+    const toastIcon = document.getElementById('toastIcon');
+
+    toastMsg.textContent = message;
+    if (type === 'success') {
+        toastIcon.innerHTML = '✓';
+    } else if (type === 'error') {
+        toastIcon.innerHTML = '✕';
+    } else {
+        toastIcon.innerHTML = 'ℹ';
+    }
+
+    toast.classList.remove('translate-y-[-100%]', 'opacity-0', 'pointer-events-none');
+    toast.classList.add('translate-y-0', 'opacity-100');
+
+    setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-[-100%]', 'opacity-0', 'pointer-events-none');
+    }, 3500);
+}
+
+// Cargar catálogo de quirófanos
+function cargarQuirofanos() {
     fetch('/api/quirofanos-disponibles', {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        }
+        headers: { 'Accept': 'application/json' }
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         const select = document.getElementById('nro_quirofano');
         select.innerHTML = '<option value="">Seleccionar quirófano...</option>';
         if (data.quirofanos && data.quirofanos.length > 0) {
-            data.quirofanos.forEach(quirofano => {
-                const option = document.createElement('option');
-                option.value = quirofano.id;
-                option.textContent = `Quirófano Q${quirofano.id} - ${quirofano.tipo} (${quirofano.estado})`;
-                select.appendChild(option);
+            data.quirofanos.forEach(q => {
+                const opt = document.createElement('option');
+                opt.value = q.id;
+                opt.textContent = `Quirófano Q${q.id} - ${q.tipo} (${q.estado})`;
+                select.appendChild(opt);
             });
         }
     })
-    .catch(error => {
-        console.warn('No se pudieron cargar los quirófanos:', error);
-    });
+    .catch(err => console.warn('Error al cargar quirófanos:', err));
+}
 
-    // Submit del formulario
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-        
-        // Validación básica
-        if (!data.paciente_id || !data.ci_cirujano || !data.nro_quirofano || !data.tipo_cirugia || !data.fecha || !data.hora_inicio_estimada) {
-            alert('Por favor completa todos los campos requeridos.\n\nBusque y seleccione un paciente y un cirujano.');
+// Cargar catálogo de pacientes
+async function cargarPacientes() {
+    try {
+        const res = await fetch('/api/pacientes-lista', { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (data.success) {
+            pacientesData = data.pacientes || [];
+        }
+    } catch (e) {
+        console.warn('Error al cargar pacientes:', e);
+    }
+}
+
+// Cargar catálogo de médicos
+async function cargarMedicos() {
+    try {
+        const res = await fetch('/api/medicos-lista', { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (data.success) {
+            medicosData = data.medicos || [];
+        }
+    } catch (e) {
+        console.warn('Error al cargar médicos:', e);
+    }
+}
+
+// Cargar catálogo de equipamientos
+async function cargarEquipamientos() {
+    try {
+        const res = await fetch('/quirofano/api/equipamientos', { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+        if (data.success && data.equipamientos) {
+            equipamientosData = {};
+            data.equipamientos.forEach(eq => {
+                equipamientosData[eq.nombre] = parseFloat(eq.precio_base) || 0;
+            });
+        }
+    } catch (e) {
+        console.warn('Error al cargar equipamientos:', e);
+    }
+}
+
+// ----------------- BUSCADOR Y CREACIÓN DE PACIENTE -----------------
+function inicializarBuscadorPacientes() {
+    const input = document.getElementById('buscar_paciente');
+    const drop = document.getElementById('resultados_paciente');
+
+    input.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (query.length === 0) {
+            drop.classList.add('hidden');
             return;
         }
-        
-        const submitUrl = '{{ route("quirofano.store") }}';
-        
-        fetch(submitUrl, {
+
+        const qLower = query.toLowerCase();
+        const matches = pacientesData.filter(p => 
+            (p.nombre || '').toLowerCase().includes(qLower) ||
+            (p.ci && p.ci.toString().includes(qLower)) ||
+            (p.temp_code && p.temp_code.toLowerCase().includes(qLower))
+        ).slice(0, 8);
+
+        renderResultadosPacientes(matches, query);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#contenedor_buscar_paciente')) {
+            drop.classList.add('hidden');
+        }
+    });
+}
+
+function renderResultadosPacientes(matches, query) {
+    const drop = document.getElementById('resultados_paciente');
+    drop.innerHTML = '';
+
+    const exactMatch = matches.some(m => (m.nombre || '').trim().toLowerCase() === query.trim().toLowerCase());
+    
+    if (!exactMatch && query.length >= 2) {
+        const createBtn = document.createElement('div');
+        createBtn.className = 'p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer text-blue-950 font-bold text-xs flex items-center justify-between border-b border-blue-200 transition-colors rounded-[1px]';
+        createBtn.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="w-5 h-5 bg-blue-700 text-white flex items-center justify-center font-bold text-xs rounded-[1px]">+</span>
+                <span>REGISTRAR NUEVO PACIENTE: "<strong>${escapeHtml(query)}</strong>"</span>
+            </div>
+            <span class="px-2 py-0.5 bg-blue-700 text-white text-[10px] font-bold uppercase rounded-[1px]">Internación</span>
+        `;
+        createBtn.onclick = () => crearPacienteRapido(query);
+        drop.appendChild(createBtn);
+    }
+
+    if (matches.length > 0) {
+        matches.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'p-3 hover:bg-slate-100 cursor-pointer text-xs transition-colors flex items-center justify-between rounded-[1px]';
+            item.innerHTML = `
+                <div>
+                    <p class="font-bold text-slate-900 text-sm uppercase">${escapeHtml(p.nombre || 'Sin nombre')}</p>
+                    <p class="text-slate-500 text-xs font-mono">CI / CÓDIGO: ${p.ci || p.temp_code || 'N/A'}${p.telefono ? ' | TEL: ' + p.telefono : ''}</p>
+                </div>
+                <span class="text-blue-700 font-bold text-xs uppercase tracking-wider">Seleccionar →</span>
+            `;
+            item.onclick = () => seleccionarPaciente(p.id, p.nombre, p.ci || p.temp_code);
+            drop.appendChild(item);
+        });
+    } else if (exactMatch) {
+        drop.innerHTML = '<div class="p-3 text-xs text-slate-500 font-medium">No se encontraron más pacientes</div>';
+    }
+
+    drop.classList.remove('hidden');
+}
+
+async function crearPacienteRapido(nombre) {
+    const drop = document.getElementById('resultados_paciente');
+    drop.innerHTML = '<div class="p-3 text-xs text-blue-800 font-bold flex items-center gap-2 rounded-[1px]"><svg class="animate-spin h-4 w-4 text-blue-700" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Registrando paciente en Internación...</div>';
+
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const res = await fetch('{{ route("quirofano.quick-paciente") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            body: JSON.stringify({ nombre: nombre })
+        });
+
+        const data = await res.json();
+        if (data.success && data.paciente) {
+            pacientesData.unshift(data.paciente);
+            seleccionarPaciente(data.paciente.id, data.paciente.nombre, data.paciente.temp_code);
+            showToast(`Paciente "${data.paciente.nombre}" registrado en Internación`, 'success');
+        } else {
+            alert(data.message || 'Error al registrar paciente');
+            drop.classList.add('hidden');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error al crear paciente: ' + e.message);
+        drop.classList.add('hidden');
+    }
+}
+
+function seleccionarPaciente(id, nombre, identificador) {
+    document.getElementById('paciente_id').value = id;
+    document.getElementById('nombre_paciente').textContent = nombre;
+    document.getElementById('ci_paciente_display').textContent = identificador ? 'Código / CI: ' + identificador : 'Sin CI asignado';
+    
+    document.getElementById('info_paciente').classList.remove('hidden');
+    document.getElementById('contenedor_buscar_paciente').classList.add('hidden');
+    document.getElementById('buscar_paciente').value = '';
+    document.getElementById('resultados_paciente').classList.add('hidden');
+}
+
+function limpiarPaciente() {
+    document.getElementById('paciente_id').value = '';
+    document.getElementById('info_paciente').classList.add('hidden');
+    document.getElementById('contenedor_buscar_paciente').classList.remove('hidden');
+    document.getElementById('buscar_paciente').value = '';
+    document.getElementById('buscar_paciente').focus();
+}
+
+// ----------------- BUSCADOR Y CREACIÓN DE CIRUJANO -----------------
+function inicializarBuscadorCirujanos() {
+    const input = document.getElementById('buscar_cirujano');
+    const drop = document.getElementById('resultados_cirujano');
+
+    input.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (query.length === 0) {
+            drop.classList.add('hidden');
+            return;
+        }
+
+        const qLower = query.toLowerCase();
+        const matches = medicosData.filter(m => 
+            (m.nombre || '').toLowerCase().includes(qLower) ||
+            (m.ci && m.ci.toString().includes(qLower)) ||
+            (m.especialidad && m.especialidad.toLowerCase().includes(qLower))
+        ).slice(0, 8);
+
+        renderResultadosCirujanos(matches, query);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#contenedor_buscar_cirujano')) {
+            drop.classList.add('hidden');
+        }
+    });
+}
+
+function renderResultadosCirujanos(matches, query) {
+    const drop = document.getElementById('resultados_cirujano');
+    drop.innerHTML = '';
+
+    const exactMatch = matches.some(m => (m.nombre || '').trim().toLowerCase() === query.trim().toLowerCase());
+
+    if (!exactMatch && query.length >= 2) {
+        const createBtn = document.createElement('div');
+        createBtn.className = 'p-3 bg-purple-50 hover:bg-purple-100 cursor-pointer text-purple-950 font-bold text-xs flex items-center justify-between border-b border-purple-200 transition-colors rounded-[1px]';
+        createBtn.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="w-5 h-5 bg-purple-700 text-white flex items-center justify-center font-bold text-xs rounded-[1px]">+</span>
+                <span>REGISTRAR NUEVO CIRUJANO: "<strong>${escapeHtml(query)}</strong>"</span>
+            </div>
+            <span class="px-2 py-0.5 bg-purple-700 text-white text-[10px] font-bold uppercase rounded-[1px]">Cirujano</span>
+        `;
+        createBtn.onclick = () => crearCirujanoRapido(query);
+        drop.appendChild(createBtn);
+    }
+
+    if (matches.length > 0) {
+        matches.forEach(m => {
+            const item = document.createElement('div');
+            item.className = 'p-3 hover:bg-slate-100 cursor-pointer text-xs transition-colors flex items-center justify-between rounded-[1px]';
+            item.innerHTML = `
+                <div>
+                    <p class="font-bold text-slate-900 text-sm uppercase">${escapeHtml(m.nombre)}</p>
+                    <p class="text-slate-500 text-xs font-mono">CI: ${m.ci}${m.especialidad ? ' | ESP: ' + m.especialidad : ''}</p>
+                </div>
+                <span class="text-purple-700 font-bold text-xs uppercase tracking-wider">Seleccionar →</span>
+            `;
+            item.onclick = () => seleccionarCirujano(m.ci, m.nombre);
+            drop.appendChild(item);
+        });
+    } else if (exactMatch) {
+        drop.innerHTML = '<div class="p-3 text-xs text-slate-500 font-medium">No se encontraron más cirujanos</div>';
+    }
+
+    drop.classList.remove('hidden');
+}
+
+async function crearCirujanoRapido(nombre) {
+    const drop = document.getElementById('resultados_cirujano');
+    drop.innerHTML = '<div class="p-3 text-xs text-purple-800 font-bold flex items-center gap-2 rounded-[1px]"><svg class="animate-spin h-4 w-4 text-purple-700" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Registrando cirujano...</div>';
+
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const res = await fetch('{{ route("quirofano.quick-cirujano") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            body: JSON.stringify({ nombre: nombre })
+        });
+
+        const data = await res.json();
+        if (data.success && data.medico) {
+            medicosData.unshift(data.medico);
+            seleccionarCirujano(data.medico.ci, data.medico.nombre);
+            showToast(`Cirujano "${data.medico.nombre}" registrado exitosamente`, 'success');
+        } else {
+            alert(data.message || 'Error al registrar cirujano');
+            drop.classList.add('hidden');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Error al crear cirujano: ' + e.message);
+        drop.classList.add('hidden');
+    }
+}
+
+function seleccionarCirujano(ci, nombre) {
+    document.getElementById('ci_cirujano').value = ci;
+    document.getElementById('nombre_cirujano').textContent = nombre;
+    document.getElementById('ci_cirujano_display').textContent = 'CI: ' + ci;
+    
+    document.getElementById('info_cirujano').classList.remove('hidden');
+    document.getElementById('contenedor_buscar_cirujano').classList.add('hidden');
+    document.getElementById('buscar_cirujano').value = '';
+    document.getElementById('resultados_cirujano').classList.add('hidden');
+}
+
+function limpiarCirujano() {
+    document.getElementById('ci_cirujano').value = '';
+    document.getElementById('info_cirujano').classList.add('hidden');
+    document.getElementById('contenedor_buscar_cirujano').classList.remove('hidden');
+    document.getElementById('buscar_cirujano').value = '';
+    document.getElementById('buscar_cirujano').focus();
+}
+
+// ----------------- EQUIPAMIENTOS Y PRECIO EDITABLE -----------------
+function inicializarEquipamientos() {
+    const selectEquipo = document.getElementById('equipamiento_nombre');
+    const inputPrecio = document.getElementById('equipamiento_precio');
+    const btnGuardar = document.getElementById('btnGuardarPrecioEquipo');
+
+    selectEquipo.addEventListener('change', function() {
+        const nombre = this.value;
+        if (!nombre) {
+            inputPrecio.value = '0.00';
+            return;
+        }
+
+        if (equipamientosData[nombre] !== undefined) {
+            inputPrecio.value = parseFloat(equipamientosData[nombre]).toFixed(2);
+        } else {
+            inputPrecio.value = '0.00';
+        }
+    });
+
+    btnGuardar.addEventListener('click', async function() {
+        const nombre = selectEquipo.value;
+        if (!nombre) {
+            alert('Por favor selecciona primero un equipamiento (Arco en C o Torre de lámparas) para guardar su precio.');
+            return;
+        }
+
+        const precio = parseFloat(inputPrecio.value) || 0;
+        btnGuardar.disabled = true;
+        btnGuardar.classList.add('opacity-50');
+
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const res = await fetch('{{ route("quirofano.equipamiento.guardar-precio") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                },
+                body: JSON.stringify({ nombre: nombre, precio: precio })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                equipamientosData[nombre] = precio;
+                showToast(`Precio de "${nombre}" actualizado a Bs. ${precio.toFixed(2)}`, 'success');
+            } else {
+                alert(data.message || 'Error al guardar precio');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error al guardar precio: ' + e.message);
+        } finally {
+            btnGuardar.disabled = false;
+            btnGuardar.classList.remove('opacity-50');
+        }
+    });
+}
+
+// ----------------- FORMATEO DE MONEDA Y TIPO CIRUGÍA -----------------
+function inicializarFormateoMonedas() {
+    const camposDecimales = ['costo_base', 'equipamiento_precio'];
+
+    camposDecimales.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.addEventListener('keypress', function(e) {
+            const allowed = /[0-9.,]/;
+            if (!allowed.test(e.key)) e.preventDefault();
+        });
+
+        el.addEventListener('input', function() {
+            let val = this.value.replace(',', '.').replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+            this.value = val;
+        });
+
+        el.addEventListener('blur', function() {
+            const num = parseFloat(this.value);
+            if (!isNaN(num)) this.value = num.toFixed(2);
+        });
+    });
+
+    const tipoCirugiaSelect = document.getElementById('tipo_cirugia');
+    const costoBaseInput = document.getElementById('costo_base');
+
+    tipoCirugiaSelect.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        const costo = opt ? parseFloat(opt.dataset.costo) : NaN;
+        if (!isNaN(costo) && costo > 0) {
+            costoBaseInput.value = costo.toFixed(2);
+        }
+    });
+}
+
+// ----------------- SUBMIT DEL FORMULARIO -----------------
+function inicializarSubmit() {
+    const form = document.getElementById('citaForm');
+    const btnSubmit = document.getElementById('btnSubmitForm');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const pacienteId = document.getElementById('paciente_id').value;
+        const ciCirujano = document.getElementById('ci_cirujano').value;
+        const quirofano = document.getElementById('nro_quirofano').value;
+        const tipoCirugia = document.getElementById('tipo_cirugia').value;
+        const tipoAnestesia = document.getElementById('tipo_anestesia').value;
+        const fecha = document.getElementById('fecha').value;
+        const hora = document.getElementById('hora_inicio_estimada').value;
+        const costoBase = document.getElementById('costo_base').value;
+
+        if (!pacienteId) {
+            alert('Por favor busca o registra un paciente.');
+            document.getElementById('buscar_paciente').focus();
+            return;
+        }
+
+        if (!ciCirujano) {
+            alert('Por favor busca o registra un cirujano.');
+            document.getElementById('buscar_cirujano').focus();
+            return;
+        }
+
+        if (!quirofano || !tipoCirugia || !tipoAnestesia || !fecha || !hora || !costoBase) {
+            alert('Por favor completa todos los campos obligatorios marcados con (*).');
+            return;
+        }
+
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData.entries());
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = `
+            <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            <span>Procesando Registro...</span>
+        `;
+
+        fetch('{{ route("quirofano.store") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify(payload)
         })
-        .then(response => {
+        .then(async response => {
+            const data = await response.json();
             if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-                });
+                throw new Error(data.message || (data.errors ? Object.values(data.errors).flat().join('\n') : 'Error al programar cita'));
             }
-            return response.json();
+            return data;
         })
         .then(data => {
             if (data.success) {
-                alert('Cita quirúrgica programada exitosamente');
+                alert('¡Cita quirúrgica programada exitosamente!\nSe asoció a Internación y se generó la cuenta en Caja.');
                 window.location.href = '{{ route("quirofano.index") }}';
             } else {
                 alert(data.message || 'Error al programar la cita');
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = 'Programar Cita Quirúrgica';
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error: ' + error.message);
+        .catch(err => {
+            console.error(err);
+            alert('Error: ' + err.message);
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = 'Programar Cita Quirúrgica';
         });
     });
-});
-
-// Cargar lista de pacientes
-async function cargarPacientes() {
-    try {
-        const response = await fetch('/api/pacientes-lista', {
-            headers: { 'Accept': 'application/json' }
-        });
-        const data = await response.json();
-        if (data.success) {
-            pacientesData = data.pacientes;
-        }
-    } catch (error) {
-        console.warn('No se pudieron cargar los pacientes:', error);
-    }
 }
 
-// Cargar lista de médicos
-async function cargarMedicos() {
-    try {
-        const response = await fetch('/api/medicos-lista', {
-            headers: { 'Accept': 'application/json' }
-        });
-        const data = await response.json();
-        if (data.success) {
-            medicosData = data.medicos;
-        }
-    } catch (error) {
-        console.warn('No se pudieron cargar los médicos:', error);
-    }
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
-
-// Inicializar buscadores
-function inicializarBuscadores() {
-    // Buscador de pacientes
-    const inputPaciente = document.getElementById('buscar_paciente');
-    const resultadosPaciente = document.getElementById('resultados_paciente');
-    
-    inputPaciente.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        if (query.length < 3) {
-            resultadosPaciente.classList.add('hidden');
-            return;
-        }
-        
-        const resultados = pacientesData.filter(p =>
-            (p.nombre ?? '').toLowerCase().includes(query) ||
-            (p.ci != null && p.ci.toString().includes(query)) ||
-            (p.temp_code ?? '').toLowerCase().includes(query)
-        ).slice(0, 10);
-        
-        mostrarResultadosPacientes(resultados);
-    });
-    
-    // Cerrar dropdown al hacer click fuera
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('#buscar_paciente') && !e.target.closest('#resultados_paciente')) {
-            resultadosPaciente.classList.add('hidden');
-        }
-        if (!e.target.closest('#buscar_cirujano') && !e.target.closest('#resultados_cirujano')) {
-            document.getElementById('resultados_cirujano').classList.add('hidden');
-        }
-    });
-    
-    // Buscador de cirujanos
-    const inputCirujano = document.getElementById('buscar_cirujano');
-    const resultadosCirujano = document.getElementById('resultados_cirujano');
-    
-    inputCirujano.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        if (query.length < 3) {
-            resultadosCirujano.classList.add('hidden');
-            return;
-        }
-        
-        const resultados = medicosData.filter(m => 
-            m.nombre.toLowerCase().includes(query) || 
-            m.ci.toString().includes(query)
-        ).slice(0, 10);
-        
-        mostrarResultadosCirujanos(resultados);
-    });
-}
-
-// Mostrar resultados de pacientes
-function mostrarResultadosPacientes(resultados) {
-    const container = document.getElementById('resultados_paciente');
-    
-    if (resultados.length === 0) {
-        container.innerHTML = '<div class="p-3 text-sm text-gray-500">No se encontraron pacientes</div>';
-        container.classList.remove('hidden');
-        return;
-    }
-    
-    container.innerHTML = resultados.map(p => `
-        <div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarPaciente(${p.id}, '${p.ci ?? p.temp_code ?? ''}', '${(p.nombre ?? '').replace(/'/g, "\\'")}')">
-            <div class="font-medium text-gray-900">${p.nombre ?? 'Sin nombre'}</div>
-            <div class="text-xs text-gray-500">CI: ${p.ci ?? p.temp_code ?? 'N/A'}${p.telefono ? ' - Tel: ' + p.telefono : ''}</div>
-        </div>
-    `).join('');
-    
-    container.classList.remove('hidden');
-}
-
-// Mostrar resultados de cirujanos
-function mostrarResultadosCirujanos(resultados) {
-    const container = document.getElementById('resultados_cirujano');
-    
-    if (resultados.length === 0) {
-        container.innerHTML = '<div class="p-3 text-sm text-gray-500">No se encontraron médicos</div>';
-        container.classList.remove('hidden');
-        return;
-    }
-    
-    container.innerHTML = resultados.map(m => `
-        <div class="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-0" onclick="seleccionarCirujano(${m.ci}, '${m.nombre.replace(/'/g, "\\'")}')">
-            <div class="font-medium text-gray-900">${m.nombre}</div>
-            <div class="text-xs text-gray-500">CI: ${m.ci}${m.especialidad ? ' - ' + m.especialidad : ''}</div>
-        </div>
-    `).join('');
-    
-    container.classList.remove('hidden');
-}
-
-// Seleccionar paciente
-function seleccionarPaciente(id, ci, nombre) {
-    document.getElementById('paciente_id').value = id;
-    document.getElementById('nombre_paciente').textContent = nombre;
-    document.getElementById('ci_paciente_display').textContent = ci ? 'CI: ' + ci : '';
-    document.getElementById('info_paciente').classList.remove('hidden');
-    document.getElementById('buscar_paciente').value = '';
-    document.getElementById('resultados_paciente').classList.add('hidden');
-}
-
-// Seleccionar cirujano
-function seleccionarCirujano(ci, nombre) {
-    document.getElementById('ci_cirujano').value = ci;
-    document.getElementById('nombre_cirujano').textContent = nombre;
-    document.getElementById('ci_cirujano_display').textContent = 'CI: ' + ci;
-    document.getElementById('info_cirujano').classList.remove('hidden');
-    document.getElementById('buscar_cirujano').value = '';
-    document.getElementById('resultados_cirujano').classList.add('hidden');
-}
-
-// Limpiar selección de paciente
-function limpiarPaciente() {
-    document.getElementById('paciente_id').value = '';
-    document.getElementById('info_paciente').classList.add('hidden');
-    document.getElementById('buscar_paciente').value = '';
-}
-
-// Limpiar selección de cirujano
-function limpiarCirujano() {
-    document.getElementById('ci_cirujano').value = '';
-    document.getElementById('info_cirujano').classList.add('hidden');
-    document.getElementById('buscar_cirujano').value = '';
-}
-
-// Normalizar entrada de precio
-(function() {
-    const input = document.getElementById('costo_base');
-    if (!input) return;
-
-    input.addEventListener('keypress', function(e) {
-        const allowed = /[0-9.,]/;
-        if (!allowed.test(e.key)) e.preventDefault();
-    });
-
-    input.addEventListener('input', function() {
-        const pos = this.selectionStart;
-        let val = this.value;
-        // Normalizar coma a punto
-        val = val.replace(',', '.');
-        // Eliminar caracteres no válidos
-        val = val.replace(/[^0-9.]/g, '');
-        // Solo un punto decimal
-        const parts = val.split('.');
-        if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
-        if (this.value !== val) {
-            this.value = val;
-            this.setSelectionRange(pos, pos);
-        }
-    });
-
-    input.addEventListener('blur', function() {
-        const num = parseFloat(this.value);
-        if (!isNaN(num)) this.value = num.toFixed(2);
-    });
-
-    // Precargar el precio por defecto del tipo seleccionado (sigue siendo editable)
-    const tipoSelect = document.getElementById('tipo_cirugia');
-    if (tipoSelect) {
-        tipoSelect.addEventListener('change', function() {
-            const opt = this.options[this.selectedIndex];
-            const costo = opt ? parseFloat(opt.dataset.costo) : NaN;
-            if (!isNaN(costo)) input.value = costo.toFixed(2);
-        });
-    }
-})();</script>
+</script>
 @endsection
